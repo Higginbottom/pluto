@@ -1,3 +1,15 @@
+This is a REPO to track work done by Nick higginbottom and collaborators 
+to modify the hydrodynamics code PLUTO to model disk winds.
+
+It is bsased on PLUTO version 4.2 - downloded from
+
+http://plutocode.ph.unito.it/Download.html
+
+see below for the citation for that work.
+
+
+
+
                         PLUTO version 4.2
                      ------------------------
                  Copyright (C) 2002-2015 Andrea Mignone 
