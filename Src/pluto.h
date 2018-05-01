@@ -39,6 +39,8 @@
 #define STRETCHED_GRID           2
 #define LOGARITHMIC_INC_GRID     3
 #define LOGARITHMIC_DEC_GRID     4
+#define RATIO_GRID               5
+
 
 /* ---- Equation of state (EoS) labels  ----  */
 
@@ -102,6 +104,8 @@
 #define SNEq         5
 #define TABULATED    6
 #define H2_COOL      7
+#define BLONDIN      8
+
 
 /* ---- Physics modules labels ----  */
 

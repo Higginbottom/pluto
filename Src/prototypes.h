@@ -207,9 +207,12 @@ void Async_BegWriteData (const Data *d, Output *output, Grid *grid);
  void Numerical_Jacobian (double *v, double **J);
  void Jacobian (double *v, double *rhs, double **dfdy);
  void CoolingSource (const Data *, double, Time_Step *, Grid *);
- #if COOLING == POWER_LAW
-  void  PowerLawCooling (Data_Arr, double, Time_Step *, Grid *);
- #endif
+ #if COOLING == POWER_LAW 
+ void  PowerLawCooling (Data_Arr, double, Time_Step *, Grid *);
+#endif
+ #if COOLING == BLONDIN
+ void  BlondinCooling (Data_Arr, double, Time_Step *, Grid *);
+#endif
  /* move the following elsewhere ?  */
 /*
 double SolveODE_CK45  (double *, double *, double *, double, double);

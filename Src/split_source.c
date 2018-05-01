@@ -49,6 +49,8 @@ void SplitSource (const Data *d, double dt, Time_Step *Dts, Grid *grid)
   #if COOLING != NO
    #if COOLING == POWER_LAW  /* -- solve exactly -- */
     PowerLawCooling (d->Vc, dt, Dts, grid);
+   #elif COOLING == BLONDIN
+    BlondinCooling (d->Vc, dt, Dts, grid);
    #else
     CoolingSource (d, dt, Dts, grid);
    #endif

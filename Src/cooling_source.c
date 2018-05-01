@@ -56,6 +56,7 @@ void CoolingSource (const Data *d, double dt, Time_Step *Dts, Grid *GXYZ)
 /* --------------------------------------------------------
     Set number and indices of the time-dependent variables
    -------------------------------------------------------- */
+  printf("BLah - got to cooling source\n");
 
   var_list.nvar    = NIONS+1;
   var_list.indx[0] = PRS;
