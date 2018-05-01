@@ -69,16 +69,15 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
   int     i, j, k;
   double  cost, dE;
   double  p, T, p_f, T_f;
-  double  lx, *r, test;
+  double  lx, r, test;
   double t_u,t_l,mu,t_new;
-  int flag;
+  double dt_min;
 
 
-  dt_share=dt;  //We need to share the current time step so the zbrent code can use it
+  dt_share=dt/UNIT_TIME;  //We need to share the current time step so the zbrent code can use it - must be in real units
   lx=g_inputParam[L_x];  //Xray luminosiy
   tx=g_inputParam[T_x];  //Xray tenperature
   
-  r=grid[IDIR].x;  //The radius -
   
 /*  mu=MeanMolecularWeight(v); This is how it should be done - but we are ionized and get the wrong answer */
   
@@ -92,23 +91,27 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
   i(r) from 2 to 201
     this is for 100 theta and 200 r points - so ignores ghost zones...  
   */
-  
+  dt_min=1e99;
   
   DOM_LOOP(k,j,i){
 
+	r=grid[IDIR].x[i]*UNIT_LENGTH;  //The radius - in real units
 
-    rho = VV[RHO][k][j][i];  //density of thr currecnt cell
+
+    rho = VV[RHO][k][j][i]*UNIT_DENSITY;  //density of the current cell in physical units
+	 
     p   = VV[PRS][k][j][i];  //pressure of the current cell
-	E   = p/(g_gamma-1);     //Compute internal energy
-    T   = (p/rho*KELVIN);    //Compute initial temperature in Kelvin
-	
+    T   = (VV[PRS][k][j][i]/VV[RHO][k][j][i]*KELVIN*mu);    //Compute initial temperature in Kelvin
+	 E   = p*UNIT_PRESSURE/(g_gamma-1);     //Compute internal energy in physical units
+	 
+	  
     if (T < g_minCoolingTemp) continue;  //Quit if the temperature is too cold - this may need tweeking
 	
 	
 	nH=1.43*rho/CONST_mp;   //Work out hydrogen number density assuming slar abundances
 	ne=1.21*nH;             //electron number density assuming full ionization
 	n=rho/(mu*CONST_mp);    //particle density
-	xi=lx/nH/r[i]/r[i];     //ionization parameter
+	xi=lx/nH/r/r;     //ionization parameter
 	sqsqxi=pow(xi,0.25);    //we use xi^0.25 in the cooling rates - expensive to recompute every call, so do it noe and transmit externally	
 	hc_init=heatcool(T);    //Get the initial heating/cooling rate
 
@@ -121,8 +124,9 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 		t_l=t_l*0.9;
 		t_u=t_u*1.1;
   		test=zfunc(t_l)*zfunc(t_u);
+//		printf ("test=%e\n",test);
 	}
-	
+//	printf ("BRACKETED between %e and %e\n",t_l,t_u);
 //we now search for the solution temperature
 	
     T_f=zbrent(zfunc,t_l,t_u,1.0);
@@ -130,7 +134,7 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 	
 /*  ----  Update Energy  ----  */
 	T_f = MAX (T_f, g_minCoolingTemp); //if the temperature has dropped too low - use the floor (50K)
-    p_f = T_f*rho/KELVIN;  //Compute the new pressure from the new temperature
+    p_f = T_f*VV[RHO][k][j][i]/(KELVIN*mu);  //Compute the new pressure from the new temperature - code units
 	
 	
 	/*I need to understand this a bit more clearly - p_f/p will give the ratio of the new pressure over the initial pressure
@@ -150,10 +154,14 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 	max cooling rate / dE will be equal to 1 if our change in energy is at the max, so dt will equal the largest
 	acceptable time step. If this is less than the current time step then we will be reducing it next time. 
 	*/
+//	 printf ("T=%e t_f=%e\n",T,T_f);
 
-    Dts->dt_cool = MIN(Dts->dt_cool, dt*g_maxCoolingRate/dE);   
+    Dts->dt_cool = MIN(Dts->dt_cool, dt*g_maxCoolingRate/dE); 
+	 if (Dts->dt_cool<dt_min) dt_min=Dts->dt_cool;
+//    printf ("cooling dt=%e unit_time=%e\n",dt_min,UNIT_TIME);
+//    exit(0);	
   }
-//  exit(0);
+
 }
 
 
@@ -194,7 +202,7 @@ double heatcool2(double T)
 	l_brem=3.3e-27*st*ne*nH;	
 	lambda=h_comp+h_xray-l_brem-l_line-c_comp;
 //	lambda=h_comp-c_comp-l_brem-l_line;
-	printf ("%e %e %e %e %e lambda=%e\n",h_comp,c_comp,l_brem,l_line,h_xray,lambda);	
+	printf ("%e %e %e %e %e %e lambda=%e\n",T,h_comp,c_comp,l_brem,l_line,h_xray,lambda);	
 	return (lambda);
 	
 	
@@ -215,7 +223,7 @@ It uses several external variables to allow zbrent to be used to find the root*/
 double zfunc(double temp) 
 {
 	double ans;
-	ans=(temp*rho/KELVIN/(g_gamma-1))-E-dt_share*(hc_init+heatcool(temp))/2.0;
+	ans=(temp*n*CONST_kB/(g_gamma-1))-E-dt_share*(hc_init+heatcool(temp))/2.0;
 	return (ans);
 }
 

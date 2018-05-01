@@ -83,8 +83,6 @@ void Init (double *v, double x1, double x2, double x3)
   	temp=tx/4.0;    //If we have set the lower density - set the teperature to the compton temperature
 }
 
-printf ("r=%e v[rho]=%e %e\n",r,v[RHO],v[RHO]/UNIT_DENSITY);
-
 
 	v[RHO]=v[RHO]/UNIT_DENSITY; //Scale to code units
 
@@ -169,7 +167,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
  *********************************************************************** */
 {
   int   i, j, k, nv;
-  double  *x1, *x2, *x3;
+  double  *x1, *x2, *x3, r, theta;
   double rho_0,r_0,rho_alpha,cent_mass;
   
 //Get some parameters from the input file
@@ -178,7 +176,6 @@ rho_0=g_inputParam[RHO_0];
 r_0=g_inputParam[R_0];
 rho_alpha=g_inputParam[RHO_ALPHA];
 cent_mass=g_inputParam[CENT_MASS];
-
 
 
   x1 = grid[IDIR].x;
@@ -191,13 +188,15 @@ cent_mass=g_inputParam[CENT_MASS];
 	{
 		if (j==NX2+1)  //This should be the last 'real' theta bin - before the ghost zones.
 		{
-			d->Vc[RHO][k][j][i]=rho_0*pow((x1[i]/r_0),-1.0*rho_alpha);  //Set density at the midplane
+			r = x1[i]*UNIT_LENGTH;
+			theta= x2[j];
+			d->Vc[RHO][k][j][i]=(rho_0*pow((r/r_0),-1.0*rho_alpha))/UNIT_DENSITY;  //Set density at the midplane
 			d->Vc[VX1][k][j][i]=0.0;									//Set radial velocity at the midplane to zero
-		    d->Vc[VX3][k][j][i]=sqrt((CONST_G*cent_mass*sin(x2[j])*sin(x2[j]))/x1[i]);	  //Set v_phi to keplarian		
+		    d->Vc[VX3][k][j][i]=(sqrt((CONST_G*cent_mass*sin(theta)*sin(theta))/r))/UNIT_VELOCITY;	  //Set v_phi to keplarian in code units			 
 		}
-		if (d->Vc[RHO][k][j][i] < 1.e-22) //Set a lower density thruoghout the domain
+		if (d->Vc[RHO][k][j][i]*UNIT_DENSITY < 1.e-22) //Set a lower density throughout the domain
 		{
-	         d->Vc[RHO][k][j][i] = 1.e-22;
+	         d->Vc[RHO][k][j][i] = 1.e-22/UNIT_DENSITY;				
 		 } 
 	 }	
   }
@@ -309,17 +308,19 @@ double BodyForcePotential(double x1, double x2, double x3)
  *
  *********************************************************************** */
 {
-	double cent_mass;
+	double cent_mass,g_const;
 	
-	cent_mass=g_inputParam[CENT_MASS];
 	
+	cent_mass=g_inputParam[CENT_MASS]/UNIT_MASS;  //central mass in code units
+	g_const=CONST_G/(UNIT_ACCELERATION*UNIT_LENGTH*UNIT_LENGTH/UNIT_MASS);  //grav constant in code units
+		
 	
 #if GEOMETRY == CARTESIAN
-	return -1.0*cent_mass*CONST_G/sqrt(x1*x1 + x2*x2 + x3*x3);
+	return -1.0*cent_mass*g_const/sqrt(x1*x1 + x2*x2 + x3*x3);
 #elif GEOMETRY == CYLINDRICAL 
-	return -1.0*cent_mass*CONST_G/sqrt(x1*x1 + x2*x2);
+	return -1.0*cent_mass*g_const/sqrt(x1*x1 + x2*x2);
 #elif GEOMETRY == SPHERICAL 
-	return -1.0*cent_mass*CONST_G/x1;
+	return -1.0*cent_mass*g_const/x1;
 #endif
 }
 #endif
