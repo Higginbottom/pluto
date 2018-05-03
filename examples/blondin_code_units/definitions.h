@@ -5,7 +5,7 @@
 #define  BODY_FORCE              POTENTIAL
 #define  COOLING                 BLONDIN
 #define  RECONSTRUCTION          LINEAR
-#define  TIME_STEPPING           RK2
+#define  TIME_STEPPING           EULER
 #define  DIMENSIONAL_SPLITTING   NO
 #define  NTRACER                 0
 #define  USER_DEF_PARAMETERS     8
@@ -39,8 +39,6 @@
 #define  UNIT_FORCE              (UNIT_MASS*UNIT_ACCELERATION)
 #define  UNIT_TIME               (UNIT_LENGTH/UNIT_VELOCITY)
 #define  UNIT_PRESSURE           (UNIT_DENSITY*UNIT_VELOCITY*UNIT_VELOCITY)
-
-
 
 /* [End] user-defined constants (do not change this line) */
 

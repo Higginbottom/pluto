@@ -77,9 +77,9 @@ void Init (double *v, double x1, double x2, double x3)
  
  
  
-  if (v[RHO]<1e-22)  //Set a lower density bound
+  if (v[RHO]<1e-20)  //Set a lower density bound
   {
-  	v[RHO]=1e-22; 
+  	v[RHO]=1e-20; 
   	temp=tx/4.0;    //If we have set the lower density - set the teperature to the compton temperature
 }
 
@@ -194,9 +194,9 @@ cent_mass=g_inputParam[CENT_MASS];
 			d->Vc[VX1][k][j][i]=0.0;									//Set radial velocity at the midplane to zero
 		    d->Vc[VX3][k][j][i]=(sqrt((CONST_G*cent_mass*sin(theta)*sin(theta))/r))/UNIT_VELOCITY;	  //Set v_phi to keplarian in code units			 
 		}
-		if (d->Vc[RHO][k][j][i]*UNIT_DENSITY < 1.e-22) //Set a lower density throughout the domain
+		if (d->Vc[RHO][k][j][i]*UNIT_DENSITY < 1.e-20) //Set a lower density throughout the domain
 		{
-	         d->Vc[RHO][k][j][i] = 1.e-22/UNIT_DENSITY;				
+	         d->Vc[RHO][k][j][i] = 1.e-20/UNIT_DENSITY;				
 		 } 
 	 }	
   }

@@ -54,6 +54,7 @@ double heatcool();
 double heatcool2();
 double zfunc();
 double zbrent();
+double zfunc2();
 
 /* ********************************************************************* */
 void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
@@ -74,7 +75,7 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
   double dt_min;
 
 
-  dt_share=dt/UNIT_TIME;  //We need to share the current time step so the zbrent code can use it - must be in real units
+  dt_share=dt*UNIT_TIME;  //We need to share the current time step so the zbrent code can use it - must be in real units
   lx=g_inputParam[L_x];  //Xray luminosiy
   tx=g_inputParam[T_x];  //Xray tenperature
   
@@ -91,7 +92,7 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
   i(r) from 2 to 201
     this is for 100 theta and 200 r points - so ignores ghost zones...  
   */
-  dt_min=1e99;
+//printf ("BLAH\n");
   
   DOM_LOOP(k,j,i){
 
@@ -102,15 +103,24 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 	 
     p   = VV[PRS][k][j][i];  //pressure of the current cell
     T   = (VV[PRS][k][j][i]/VV[RHO][k][j][i]*KELVIN*mu);    //Compute initial temperature in Kelvin
-	 E   = p*UNIT_PRESSURE/(g_gamma-1);     //Compute internal energy in physical units
+    E   = p*UNIT_PRESSURE/(g_gamma-1);     //Compute internal energy in physical units
 	 
 	  
     if (T < g_minCoolingTemp) continue;  //Quit if the temperature is too cold - this may need tweeking
 	
 	
-	nH=1.43*rho/CONST_mp;   //Work out hydrogen number density assuming slar abundances
+	nH=rho/(1.43*CONST_mp);   //Work out hydrogen number density assuming slar abundances
 	ne=1.21*nH;             //electron number density assuming full ionization
 	n=rho/(mu*CONST_mp);    //particle density
+	
+	E   = T*n*CONST_kB/(g_gamma-1);
+	
+	if (i==2 && j==37)
+	{	
+//	printf ("BLAH %e %e %e\n",T,E,T*n*CONST_kB/(g_gamma-1));
+    }
+	
+	
 	xi=lx/nH/r/r;     //ionization parameter
 	sqsqxi=pow(xi,0.25);    //we use xi^0.25 in the cooling rates - expensive to recompute every call, so do it noe and transmit externally	
 	hc_init=heatcool(T);    //Get the initial heating/cooling rate
@@ -126,7 +136,19 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
   		test=zfunc(t_l)*zfunc(t_u);
 //		printf ("test=%e\n",test);
 	}
-//	printf ("BRACKETED between %e and %e\n",t_l,t_u);
+	
+	
+
+	
+	
+//	if (j==101)
+//	{
+//		printf ("%e %e %e ",T_f,xi,rho);
+//		heatcool2(T_f);
+//	}
+		
+
+
 //we now search for the solution temperature
 	
     T_f=zbrent(zfunc,t_l,t_u,1.0);
@@ -142,7 +164,7 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 	if that happens. */
 	
 	
-    dE = fabs(1.0 - p_f/p) + 1.e-18;  //The fractional change in pressure (or energy since they are proportional)
+    dE = (fabs(1.0 - p_f/p))/UNIT_TIME + 1.e-18;  //The fractional change in pressure (or energy since they are proportional)
 	
     VV[PRS][k][j][i] = p_f;  //Set the pressure in the cell to the new value
 
@@ -155,13 +177,21 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 	acceptable time step. If this is less than the current time step then we will be reducing it next time. 
 	*/
 //	 printf ("T=%e t_f=%e\n",T,T_f);
+//	if (i==2 && j==37)
+//	{
+//			printf ("T=%e T_f=%e (%e) density=%e dt=%e\n",T,T_f,T_f-T,rho,dt);
+//			heatcool2(T_f);
+//			if (T_f>2e6) exit(0);
+//		}
+//			heatcool2(T_f);
+//			exit(0);
 
     Dts->dt_cool = MIN(Dts->dt_cool, dt*g_maxCoolingRate/dE); 
-	 if (Dts->dt_cool<dt_min) dt_min=Dts->dt_cool;
+//		Dts->dt_cool = 1e6;
 //    printf ("cooling dt=%e unit_time=%e\n",dt_min,UNIT_TIME);
 //    exit(0);	
   }
-
+//  exit(0);
 }
 
 
@@ -195,14 +225,14 @@ double heatcool2(double T)
 	double lambda,st,h_comp,c_comp,h_xray,l_line,l_brem;
 	
 	st=sqrt(T);
-	h_comp=8.9e-36*xi*tx*ne*nH;
+	h_comp=8.9e-36*xi*tx*(ne*nH);
 	c_comp=8.9e-36*xi*(4.0*T)*ne*nH;
-	h_xray=1.5e-21*(sqsqxi/st)*(1-(T/tx))*ne*nH;
+	h_xray=1.5e-21*(sqsqxi/st)*(1-(T/tx))*nH*nH;
 	l_line=1.7e-18*(exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;
 	l_brem=3.3e-27*st*ne*nH;	
 	lambda=h_comp+h_xray-l_brem-l_line-c_comp;
 //	lambda=h_comp-c_comp-l_brem-l_line;
-	printf ("%e %e %e %e %e %e lambda=%e\n",T,h_comp,c_comp,l_brem,l_line,h_xray,lambda);	
+	printf ("%e %e %e %e %e\n",h_comp/(ne*nH),c_comp/(ne*nH),l_brem/(ne*nH),l_line/(ne*nH),h_xray/(nH*nH));	
 	return (lambda);
 	
 	
@@ -224,6 +254,15 @@ double zfunc(double temp)
 {
 	double ans;
 	ans=(temp*n*CONST_kB/(g_gamma-1))-E-dt_share*(hc_init+heatcool(temp))/2.0;
+	return (ans);
+}
+
+
+double zfunc2(double temp) 
+{
+	double ans;
+	ans=(temp*n*CONST_kB/(g_gamma-1))-E-dt_share*(hc_init+heatcool2(temp))/2.0;
+	printf ("Final E=%e Current E=%e initial_hc=%e new_hc=%e dt=%e\n",temp*n*CONST_kB/(g_gamma-1),E,hc_init,heatcool2(temp),dt_share);
 	return (ans);
 }
 
