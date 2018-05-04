@@ -187,7 +187,7 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 //			exit(0);
 
     Dts->dt_cool = MIN(Dts->dt_cool, dt*g_maxCoolingRate/dE); 
-//		Dts->dt_cool = 1e6;
+	Dts->dt_cool = 1e6;
 //    printf ("cooling dt=%e unit_time=%e\n",dt_min,UNIT_TIME);
 //    exit(0);	
   }

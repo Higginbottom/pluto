@@ -34,6 +34,11 @@
 #define  UNIT_DENSITY            1.0
 #define  UNIT_LENGTH             1.0
 #define  UNIT_VELOCITY           1.0
+#define  UNIT_MASS               (UNIT_DENSITY*UNIT_LENGTH*UNIT_LENGTH*UNIT_LENGTH)
+#define  UNIT_ACCELERATION       (UNIT_VELOCITY*UNIT_VELOCITY/UNIT_LENGTH)
+#define  UNIT_FORCE              (UNIT_MASS*UNIT_ACCELERATION)
+#define  UNIT_TIME               (UNIT_LENGTH/UNIT_VELOCITY)
+#define  UNIT_PRESSURE           (UNIT_DENSITY*UNIT_VELOCITY*UNIT_VELOCITY)
 
 /* [End] user-defined constants (do not change this line) */
 
