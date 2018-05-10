@@ -68,7 +68,7 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
  *********************************************************************** */
 {
   int     i, j, k;
-  double  cost, dE;
+  double  cost, dE, E1;
   double  p, T, p_f, T_f;
   double  lx, r, test;
   double t_u,t_l,mu,t_new;
@@ -79,6 +79,7 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
   lx=g_inputParam[L_x];  //Xray luminosiy
   tx=g_inputParam[T_x];  //Xray tenperature
   
+
   
 /*  mu=MeanMolecularWeight(v); This is how it should be done - but we are ionized and get the wrong answer */
   
@@ -102,23 +103,24 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
     rho = VV[RHO][k][j][i]*UNIT_DENSITY;  //density of the current cell in physical units
 	 
     p   = VV[PRS][k][j][i];  //pressure of the current cell
-    T   = (VV[PRS][k][j][i]/VV[RHO][k][j][i]*KELVIN*mu);    //Compute initial temperature in Kelvin
-    E   = p*UNIT_PRESSURE/(g_gamma-1);     //Compute internal energy in physical units
+    T   = VV[PRS][k][j][i]/VV[RHO][k][j][i]*KELVIN*mu;    //Compute initial temperature in Kelvin
+    E1   = (p*UNIT_PRESSURE)/(g_gamma-1);     //Compute internal energy in physical units
 	 
+
 	  
     if (T < g_minCoolingTemp) continue;  //Quit if the temperature is too cold - this may need tweeking
 	
 	
-	nH=rho/(1.43*CONST_mp);   //Work out hydrogen number density assuming slar abundances
+	nH=rho/(1.43*CONST_mp);   //Work out hydrogen number density assuming stellar abundances
 	ne=1.21*nH;             //electron number density assuming full ionization
 	n=rho/(mu*CONST_mp);    //particle density
 	
 	E   = T*n*CONST_kB/(g_gamma-1);
 	
-
+E  = (p*UNIT_PRESSURE)/(g_gamma-1); //USE THIS VERSION, AND IT DIES!!!
 	
 	xi=lx/nH/r/r;     //ionization parameter
-	sqsqxi=pow(xi,0.25);    //we use xi^0.25 in the cooling rates - expensive to recompute every call, so do it noe and transmit externally	
+	sqsqxi=pow(xi,0.25);    //we use xi^0.25 in the cooling rates - expensive to recompute every call, so do it now and transmit externally	
 	hc_init=heatcool(T);    //Get the initial heating/cooling rate
 
 //   the next few lines bracket the solution temperature
@@ -152,15 +154,18 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 	
 /*  ----  Update Energy  ----  */
 	T_f = MAX (T_f, g_minCoolingTemp); //if the temperature has dropped too low - use the floor (50K)
-    p_f = T_f*VV[RHO][k][j][i]/(KELVIN*mu);  //Compute the new pressure from the new temperature - code units
 	
+	
+	
+    p_f = T_f*VV[RHO][k][j][i]/(KELVIN*mu);  //Compute the new pressure from the new temperature - code units
+	 	
 	
 	/*I need to understand this a bit more clearly - p_f/p will give the ratio of the new pressure over the initial pressure
 	so 1 minus that will give zero if there is no change - the +1e-18 is there to stop a divide by zero error in the next step
 	if that happens. */
 	
 	
-    dE = (fabs(1.0 - p_f/p))/UNIT_TIME + 1.e-18;  //The fractional change in pressure (or energy since they are proportional)
+    dE = (fabs(1.0 - p_f/p)) + 1.e-18;  //The fractional change in pressure (or energy since they are proportional)
 	
     VV[PRS][k][j][i] = p_f;  //Set the pressure in the cell to the new value
 
@@ -181,6 +186,12 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 //		}
 //			heatcool2(T_f);
 //			exit(0);
+	 
+ 	if (j==50 && i==10)
+ 	{
+ 		printf ("BLAH4 %e %e %e %e %e %e %e\n",g_time,p_f,p,fabs(1.0 - p_f/p),dE,E,E1);
+		heatcool2(T_f);
+ 	}
 
     Dts->dt_cool = MIN(Dts->dt_cool, dt*g_maxCoolingRate/dE); 
 //    printf ("cooling dt=%e unit_time=%e\n",dt_min,UNIT_TIME);
@@ -227,7 +238,7 @@ double heatcool2(double T)
 	l_brem=3.3e-27*st*ne*nH;	
 	lambda=h_comp+h_xray-l_brem-l_line-c_comp;
 //	lambda=h_comp-c_comp-l_brem-l_line;
-	printf ("%e %e %e %e %e\n",h_comp/(ne*nH),c_comp/(ne*nH),l_brem/(ne*nH),l_line/(ne*nH),h_xray/(nH*nH));	
+	printf ("BLAH5 %e %e %e %e %e %e %e\n",g_time,h_comp,c_comp,l_brem,l_line,h_xray,lambda);	
 	return (lambda);
 	
 	
