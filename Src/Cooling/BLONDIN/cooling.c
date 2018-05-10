@@ -115,11 +115,7 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 	
 	E   = T*n*CONST_kB/(g_gamma-1);
 	
-	if (i==2 && j==37)
-	{	
-//	printf ("BLAH %e %e %e\n",T,E,T*n*CONST_kB/(g_gamma-1));
-    }
-	
+
 	
 	xi=lx/nH/r/r;     //ionization parameter
 	sqsqxi=pow(xi,0.25);    //we use xi^0.25 in the cooling rates - expensive to recompute every call, so do it noe and transmit externally	
@@ -187,7 +183,6 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 //			exit(0);
 
     Dts->dt_cool = MIN(Dts->dt_cool, dt*g_maxCoolingRate/dE); 
-	Dts->dt_cool = 1e6;
 //    printf ("cooling dt=%e unit_time=%e\n",dt_min,UNIT_TIME);
 //    exit(0);	
   }

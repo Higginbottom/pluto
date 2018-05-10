@@ -729,18 +729,27 @@ return;
   for (i = beg-1; i <= end; i++) {
     scrh = Dts->cmax[i]*grid[g_dir].inv_dxi[i];
     cl = MAX(cl, scrh);   
+//	printf ("rhs %i cl=%e cmax=%e dxi=%e scrh=%e\n",i,cl,Dts->cmax[i],grid[g_dir].inv_dxi[i],Dts->cmax[i]*grid[g_dir].inv_dxi[i]);
+	
   }
   #if GEOMETRY == POLAR || GEOMETRY == SPHERICAL
    if (g_dir == JDIR) {
+//    	printf ("1 g_i=%i xgc=%e cl=%e cl/xgc=%e\n",g_i,fabs(grid[IDIR].xgc[g_i]),cl,cl/fabs(grid[IDIR].xgc[g_i]));	   
      cl /= fabs(grid[IDIR].xgc[g_i]);
+	 
    }
    #if GEOMETRY == SPHERICAL
     if (g_dir == KDIR){
       cl /= fabs(grid[IDIR].xgc[g_i])*sin(grid[JDIR].xgc[g_j]);
+//   	printf ("2 g_j=%i %e %e\n",g_j,fabs(grid[IDIR].xgc[g_i])*sin(grid[JDIR].xgc[g_j]),cl);
+	  
     }
    #endif
   #endif
-  Dts->inv_dta = MAX(cl, Dts->inv_dta);  
+//	printf ("new cl=%e inv_dta=%e\n",cl,Dts->inv_dta);
+  Dts->inv_dta = MAX(cl, Dts->inv_dta); 
+//printf ("new inv_dta=%e \n",Dts->inv_dta);
+   
 }
 
 /* ********************************************************************* */

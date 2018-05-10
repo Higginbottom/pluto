@@ -184,12 +184,12 @@ void UpdateStage(const Data *d, Data_Arr UU, double **aflux,
 
          #if !GET_MAX_DT
           C_dt[0][k][j][i] += 0.5*(  Dts->cmax[(*ip)-1] 
-                                   + Dts->cmax[*ip])*inv_dl[*ip];
+                                   + Dts->cmax[*ip])*inv_dl[*ip];		  
          #endif
          #if (PARABOLIC_FLUX & EXPLICIT)
           dl2 = 0.5*inv_dl[*ip]*inv_dl[*ip];
           FOR_EACH(nv, 1, (&cdt_list)) {  
-            C_dt[nv][k][j][i] += (dcoeff[*ip][nv]+dcoeff[(*ip)-1][nv])*dl2;
+            C_dt[nv][k][j][i] += (dcoeff[*ip][nv]+dcoeff[(*ip)-1][nv])*dl2;			
           }
          #endif
 

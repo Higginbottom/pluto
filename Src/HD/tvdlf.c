@@ -102,6 +102,8 @@ void LF_Solver (const State_1D *state, int beg, int end,
   /* -- compute max eigenvalue -- */
 
     cmax[i] = MAX(fabs(cRL_max[i]), fabs(cRL_min[i]));
+//	printf ("%i cmax=%e\n",i,cmax[i]);
+	
     g_maxMach = MAX(g_maxMach, fabs(vRL[i][VXn])/sqrt(a2R[i]));
 
   /* -- compute fluxes -- */

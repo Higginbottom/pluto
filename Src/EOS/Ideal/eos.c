@@ -33,7 +33,10 @@ void SoundSpeed2 (double **v, double *cs2, double *h, int beg, int end,
   int  i;
 
   #if PHYSICS == HD || PHYSICS == MHD
-   for (i = beg; i <= end; i++) cs2[i] = g_gamma*v[i][PRS]/v[i][RHO];
+   for (i = beg; i <= end; i++){ cs2[i] = g_gamma*v[i][PRS]/v[i][RHO];
+//	 printf ("%i pressure=%e rho=%e cs=%e\n",i,v[i][PRS],v[i][RHO]*UNIT_DENSITY,sqrt(cs2[i])); 
+   }
+   
   #elif PHYSICS == RHD || PHYSICS == RMHD
    double theta;
    Enthalpy(v, h, beg, end);
