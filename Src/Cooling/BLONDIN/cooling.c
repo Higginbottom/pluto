@@ -68,7 +68,7 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
  *********************************************************************** */
 {
   int     i, j, k;
-  double  cost, dE, E1;
+  double  cost, dE, E1,E_f;
   double  p, T, p_f, T_f;
   double  lx, r, test;
   double t_u,t_l,mu,t_new;
@@ -104,20 +104,24 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 	 
     p   = VV[PRS][k][j][i];  //pressure of the current cell
     T   = VV[PRS][k][j][i]/VV[RHO][k][j][i]*KELVIN*mu;    //Compute initial temperature in Kelvin
-    E1   = (p*UNIT_PRESSURE)/(g_gamma-1);     //Compute internal energy in physical units
+    E   = (p*UNIT_PRESSURE)/(g_gamma-1);     //Compute internal energy in physical units
 	 
+	nH=rho/(1.43*CONST_mp);   //Work out hydrogen number density assuming stellar abundances
+	ne=1.21*nH;             //electron number density assuming full ionization
+	n=rho/(mu*CONST_mp);    //particle density
 
+	 
+	T=E*(2.0/3.0)/(n*CONST_kB);
+	
+	
 	  
     if (T < g_minCoolingTemp) continue;  //Quit if the temperature is too cold - this may need tweeking
 	
 	
-	nH=rho/(1.43*CONST_mp);   //Work out hydrogen number density assuming stellar abundances
-	ne=1.21*nH;             //electron number density assuming full ionization
-	n=rho/(mu*CONST_mp);    //particle density
+
 	
-	E   = T*n*CONST_kB/(g_gamma-1);
+//E1   = T*n*CONST_kB/(g_gamma-1);
 	
-E  = (p*UNIT_PRESSURE)/(g_gamma-1); //USE THIS VERSION, AND IT DIES!!!
 	
 	xi=lx/nH/r/r;     //ionization parameter
 	sqsqxi=pow(xi,0.25);    //we use xi^0.25 in the cooling rates - expensive to recompute every call, so do it now and transmit externally	
@@ -155,9 +159,12 @@ E  = (p*UNIT_PRESSURE)/(g_gamma-1); //USE THIS VERSION, AND IT DIES!!!
 /*  ----  Update Energy  ----  */
 	T_f = MAX (T_f, g_minCoolingTemp); //if the temperature has dropped too low - use the floor (50K)
 	
+
+	E_f=T_f/(2.0/3.0)*(n*CONST_kB); //convert back to energy
 	
+	p_f=E_f*(g_gamma-1)/UNIT_PRESSURE; 
 	
-    p_f = T_f*VV[RHO][k][j][i]/(KELVIN*mu);  //Compute the new pressure from the new temperature - code units
+//    p_f = T_f*VV[RHO][k][j][i]/(KELVIN*mu);  //Compute the new pressure from the new temperature - code units
 	 	
 	
 	/*I need to understand this a bit more clearly - p_f/p will give the ratio of the new pressure over the initial pressure
@@ -187,11 +194,11 @@ E  = (p*UNIT_PRESSURE)/(g_gamma-1); //USE THIS VERSION, AND IT DIES!!!
 //			heatcool2(T_f);
 //			exit(0);
 	 
- 	if (j==50 && i==10)
- 	{
- 		printf ("BLAH4 %e %e %e %e %e %e %e\n",g_time,p_f,p,fabs(1.0 - p_f/p),dE,E,E1);
-		heatcool2(T_f);
- 	}
+// 	if (j==50 && i==10)
+// 	{
+// 		printf ("BLAH4 %e %e %e %e %e %e %e\n",g_time,p_f,p,fabs(1.0 - p_f/p),dE,E,E1);
+//		heatcool2(T_f);
+// 	}
 
     Dts->dt_cool = MIN(Dts->dt_cool, dt*g_maxCoolingRate/dE); 
 //    printf ("cooling dt=%e unit_time=%e\n",dt_min,UNIT_TIME);
@@ -208,15 +215,13 @@ double heatcool(double T)
 {
 	double lambda,st,h_comp,c_comp,h_xray,l_line,l_brem;
 	
-	st=sqrt(T);  //We use this a couple of times - so compute it at the start
-	h_comp=8.9e-36*xi*tx*ne*nH;  //Compton heating
-	c_comp=8.9e-36*xi*(4.0*T)*ne*nH;  //Compton cooling
-	h_xray=1.5e-21*(sqsqxi/st)*(1-(T/tx))*ne*nH;  //PI heating
-	l_line=1.7e-18*(exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;  //line+recomb cooling
-	l_brem=3.3e-27*st*ne*nH;  //Brem cooling
-	
-	
-	lambda=h_comp+h_xray-l_brem-l_line-c_comp;  //Add em all up
+	st=sqrt(T);
+	h_comp=8.9e-36*xi*tx*(ne*nH);
+	c_comp=8.9e-36*xi*(4.0*T)*ne*nH;
+	h_xray=1.5e-21*(sqsqxi/st)*(1-(T/tx))*nH*nH;
+	l_line=(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;	
+	l_brem=3.3e-27*st*ne*nH;	
+	lambda=h_comp+h_xray-l_brem-l_line-c_comp;
 
 	return (lambda);
 	
@@ -234,11 +239,11 @@ double heatcool2(double T)
 	h_comp=8.9e-36*xi*tx*(ne*nH);
 	c_comp=8.9e-36*xi*(4.0*T)*ne*nH;
 	h_xray=1.5e-21*(sqsqxi/st)*(1-(T/tx))*nH*nH;
-	l_line=1.7e-18*(exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;
+	l_line=(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;	
 	l_brem=3.3e-27*st*ne*nH;	
 	lambda=h_comp+h_xray-l_brem-l_line-c_comp;
 //	lambda=h_comp-c_comp-l_brem-l_line;
-	printf ("BLAH5 %e %e %e %e %e %e %e\n",g_time,h_comp,c_comp,l_brem,l_line,h_xray,lambda);	
+//	printf ("BLAH5 %e %e %e %e %e %e %e %e %e %e %e\n",g_time,xi,T,E,h_comp,c_comp,l_brem,l_line,h_xray,lambda,dt_share);	
 	return (lambda);
 	
 	
@@ -257,20 +262,14 @@ It uses several external variables to allow zbrent to be used to find the root*/
 
 
 double zfunc(double temp) 
-{
+{	
 	double ans;
-	ans=(temp*n*CONST_kB/(g_gamma-1))-E-dt_share*(hc_init+heatcool(temp))/2.0;
+	ans=(temp*n*CONST_kB/(2.0/3.0))-E-dt_share*(hc_init+heatcool(temp))/2.0;
 	return (ans);
 }
 
 
-double zfunc2(double temp) 
-{
-	double ans;
-	ans=(temp*n*CONST_kB/(g_gamma-1))-E-dt_share*(hc_init+heatcool2(temp))/2.0;
-	printf ("Final E=%e Current E=%e initial_hc=%e new_hc=%e dt=%e\n",temp*n*CONST_kB/(g_gamma-1),E,hc_init,heatcool2(temp),dt_share);
-	return (ans);
-}
+
 
 
 //A simple copy of zbrent from python....
