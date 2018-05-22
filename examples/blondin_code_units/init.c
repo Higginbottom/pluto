@@ -186,6 +186,20 @@ cent_mass=g_inputParam[CENT_MASS];
   {    /* -- check solution inside domain -- */
 	TOT_LOOP(k,j,i)
 	{
+/*		if (j==50 && i==10)
+		{
+			printf ("BLAH0 %e %e %e %e %e %e %e\n",g_time,d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i]*KELVIN*0.6,d->Vc[RHO][k][j][i]*UNIT_DENSITY,d->Vc[VX1][k][j][i]*UNIT_VELOCITY,d->Vc[VX2][k][j][i]*UNIT_VELOCITY
+				,d->Vc[VX3][k][j][i]*UNIT_VELOCITY,d->Vc[PRS][k][j][i]*UNIT_PRESSURE);
+			printf ("BLAH1 %e %e %e %e %e %e %e %e %e %e %e\n",g_time,	d->Vc[VX1][k][j-1][i+1],d->Vc[VX1][k][j+0][i+1],d->Vc[VX1][k][j+1][i+1],
+																		d->Vc[VX1][k][j-1][i+0],d->Vc[VX1][k][j+0][i+0],d->Vc[VX1][k][j+0][i+1],
+																		d->Vc[VX1][k][j-1][i-1],d->Vc[VX1][k][j+0][i-1],d->Vc[VX1][k][j+1][i-1],UNIT_VELOCITY);
+			printf ("BLAH2 %e %e %e %e %e %e %e %e %e %e %e\n",g_time,	d->Vc[VX2][k][j-1][i+1],d->Vc[VX2][k][j+0][i+1],d->Vc[VX2][k][j+1][i+1],
+																		d->Vc[VX2][k][j-1][i+0],d->Vc[VX2][k][j+0][i+0],d->Vc[VX2][k][j+0][i+1],
+																		d->Vc[VX2][k][j-1][i-1],d->Vc[VX2][k][j+0][i-1],d->Vc[VX2][k][j+1][i-1],UNIT_VELOCITY);
+			printf ("BLAH3 %e %e %e %e %e %e %e %e %e %e %e\n",g_time,	d->Vc[PRS][k][j-1][i+1],d->Vc[PRS][k][j+0][i+1],d->Vc[PRS][k][j+1][i+1],
+																		d->Vc[PRS][k][j-1][i+0],d->Vc[PRS][k][j+0][i+0],d->Vc[PRS][k][j+0][i+1],
+																		d->Vc[PRS][k][j-1][i-1],d->Vc[PRS][k][j+0][i-1],d->Vc[PRS][k][j+1][i-1],UNIT_PRESSURE);
+		}*/
 		if (j==NX2+1)  //This should be the last 'real' theta bin - before the ghost zones.
 		{
 			r = x1[i]*UNIT_LENGTH;
