@@ -69,6 +69,7 @@ void WriteData (const Data *d, Output *output, Grid *grid)
    -------------------------------------------------------- */
 
   if (last_computed_var != g_stepNumber && d->Vuser != NULL) {
+	  printf ("BLAH!!!!!!\n");
     ComputeUserVar (d, grid);
     last_computed_var = g_stepNumber;
   }

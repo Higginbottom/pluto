@@ -72,7 +72,7 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
   double  p, T, p_f, T_f;
   double  lx, r, test;
   double t_u,t_l,mu,t_new;
-  double dt_min;
+  double dt_min,***xi_out,***T_out,***comp_c_out,***xray_h_out,***comp_h_out,***line_c_out,***brem_c_out;
 
 
   dt_share=dt*UNIT_TIME;  //We need to share the current time step so the zbrent code can use it - must be in real units
@@ -85,6 +85,10 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
   
   mu=0.6;
   
+	T_out     = GetUserVar("T");
+	xi_out     = GetUserVar("XI");
+  
+  
 
   dE = 1.e-18;  //This is from the original cooling code - unsure if I need it.....
   
@@ -96,6 +100,7 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 //printf ("BLAH\n");
   
   DOM_LOOP(k,j,i){
+
 
 	r=grid[IDIR].x[i]*UNIT_LENGTH;  //The radius - in real units
 
@@ -123,7 +128,7 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 //E1   = T*n*CONST_kB/(g_gamma-1);
 	
 	
-	xi=lx/nH/r/r;     //ionization parameter
+	xi_out[k][j][i]=xi=lx/nH/r/r;     //ionization parameter
 	sqsqxi=pow(xi,0.25);    //we use xi^0.25 in the cooling rates - expensive to recompute every call, so do it now and transmit externally	
 	hc_init=heatcool(T);    //Get the initial heating/cooling rate
 
@@ -157,8 +162,9 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 	
 	
 /*  ----  Update Energy  ----  */
-	T_f = MAX (T_f, g_minCoolingTemp); //if the temperature has dropped too low - use the floor (50K)
+	T_out[k][j][i]= T_f = MAX (T_f, g_minCoolingTemp); //if the temperature has dropped too low - use the floor (50K)
 	
+	heatcool2(T,i,j,k);
 
 	E_f=T_f/(2.0/3.0)*(n*CONST_kB); //convert back to energy
 	
@@ -231,16 +237,24 @@ double heatcool(double T)
 
 //A little copy for diagnostic purposes
 
-double heatcool2(double T)
+double heatcool2(double T,int i, int j,int k)
 {
 	double lambda,st,h_comp,c_comp,h_xray,l_line,l_brem;
+    double ***comp_c_out,***xray_h_out,***comp_h_out,***line_c_out,***brem_c_out;
 	
+	
+	comp_c_out	= GetUserVar("comp_c");
+	comp_h_out	= GetUserVar("comp_h");
+	line_c_out	= GetUserVar("line_c");
+	xray_h_out	= GetUserVar("xray_h");
+	brem_c_out	= GetUserVar("brem_c");
+		
 	st=sqrt(T);
-	h_comp=8.9e-36*xi*tx*(ne*nH);
-	c_comp=8.9e-36*xi*(4.0*T)*ne*nH;
-	h_xray=1.5e-21*(sqsqxi/st)*(1-(T/tx))*nH*nH;
-	l_line=(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;	
-	l_brem=3.3e-27*st*ne*nH;	
+	comp_h_out[k][j][i]=h_comp=8.9e-36*xi*tx*(ne*nH);
+	comp_c_out[k][j][i]=c_comp=8.9e-36*xi*(4.0*T)*ne*nH;
+	xray_h_out[k][j][i]=h_xray=1.5e-21*(sqsqxi/st)*(1-(T/tx))*nH*nH;
+	line_c_out[k][j][i]=l_line=(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;	
+	brem_c_out[k][j][i]=l_brem=3.3e-27*st*ne*nH;	
 	lambda=h_comp+h_xray-l_brem-l_line-c_comp;
 //	lambda=h_comp-c_comp-l_brem-l_line;
 //	printf ("BLAH5 %e %e %e %e %e %e %e %e %e %e %e\n",g_time,xi,T,E,h_comp,c_comp,l_brem,l_line,h_xray,lambda,dt_share);	
