@@ -224,7 +224,7 @@ double heatcool(double T)
 	st=sqrt(T);
 	h_comp=8.9e-36*xi*tx*(ne*nH);
 	c_comp=8.9e-36*xi*(4.0*T)*ne*nH;
-	h_xray=1.5e-21*(sqsqxi/st)*(1-(T/tx))*nH*nH;
+	h_xray=1.5e-21*(sqsqxi/st)*(1-(T/tx))*ne*nH;
 	l_line=(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;	
 	l_brem=3.3e-27*st*ne*nH;	
 	lambda=h_comp+h_xray-l_brem-l_line-c_comp;
@@ -241,21 +241,25 @@ double heatcool2(double T,int i, int j,int k)
 {
 	double lambda,st,h_comp,c_comp,h_xray,l_line,l_brem;
     double ***comp_c_out,***xray_h_out,***comp_h_out,***line_c_out,***brem_c_out;
-	
+	double ***ne_out,***nh_out;
 	
 	comp_c_out	= GetUserVar("comp_c");
 	comp_h_out	= GetUserVar("comp_h");
 	line_c_out	= GetUserVar("line_c");
 	xray_h_out	= GetUserVar("xray_h");
 	brem_c_out	= GetUserVar("brem_c");
+	ne_out	= GetUserVar("ne");
+	nh_out	= GetUserVar("nh");
 		
 	st=sqrt(T);
-	comp_h_out[k][j][i]=h_comp=8.9e-36*xi*tx*(ne*nH);
-	comp_c_out[k][j][i]=c_comp=8.9e-36*xi*(4.0*T)*ne*nH;
-	xray_h_out[k][j][i]=h_xray=1.5e-21*(sqsqxi/st)*(1-(T/tx))*nH*nH;
-	line_c_out[k][j][i]=l_line=(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;	
-	brem_c_out[k][j][i]=l_brem=3.3e-27*st*ne*nH;	
-	lambda=h_comp+h_xray-l_brem-l_line-c_comp;
+	ne_out[k][j][i]=ne;
+	nh_out[k][j][i]=nH;	
+	comp_h_out[k][j][i]=h_comp=8.9e-36*xi*tx;
+	comp_c_out[k][j][i]=c_comp=8.9e-36*xi*(4.0*T);
+	xray_h_out[k][j][i]=h_xray=1.5e-21*(sqsqxi/st)*(1-(T/tx));
+	line_c_out[k][j][i]=l_line=(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24);	
+	brem_c_out[k][j][i]=l_brem=3.3e-27*st;	
+	lambda=(h_comp+h_xray-l_brem-l_line-c_comp)*ne*nH;
 //	lambda=h_comp-c_comp-l_brem-l_line;
 //	printf ("BLAH5 %e %e %e %e %e %e %e %e %e %e %e\n",g_time,xi,T,E,h_comp,c_comp,l_brem,l_line,h_xray,lambda,dt_share);	
 	return (lambda);

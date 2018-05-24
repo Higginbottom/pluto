@@ -39,7 +39,6 @@
 #define  UNIT_FORCE              (UNIT_MASS*UNIT_ACCELERATION)
 #define  UNIT_TIME               (UNIT_LENGTH/UNIT_VELOCITY)
 #define  UNIT_PRESSURE           (UNIT_DENSITY*UNIT_VELOCITY*UNIT_VELOCITY)
-#define  SHOW_TIME_STEPS         YES
 
 /* [End] user-defined constants (do not change this line) */
 
