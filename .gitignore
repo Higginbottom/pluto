@@ -1,0 +1,7 @@
+# This is the git ignore for PLUTO
+
+# python and system files
+*.pyc
+
+
+
