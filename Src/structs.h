@@ -271,6 +271,7 @@ typedef struct RUNTIME{
                                         \c Output_dir for PLUTO-Chombo)  */
   Output output[MAX_OUTPUT_TYPES];  
   double patch_left_node[5][16];  /*  self-expl. */
+  double ratio[5];
   double  cfl;               /**< Hyperbolic cfl number (\c CFL) */
   double  cfl_max_var;       /**< Maximum increment between consecutive time
                                   steps (\c CFL_max_var). */
