@@ -151,9 +151,9 @@ rho_alpha=g_inputParam[RHO_ALPHA];
 
   if (side == 0) 
   {    /* -- check solution inside domain -- */
-	TOT_LOOP(k,j,i)
-	{
-		if (j==grid[JDIR].np_int_glob+1 && i>1 && i<grid[IDIR].np_int_glob+2)  //This should be the last 'real' theta bin - before the ghost zones.
+  	DOM_LOOP(k,j,i)
+  	{
+  		if (j==grid[JDIR].np_int_glob+1)  //This should be the last 'real' theta bin - before the ghost zones.
 		{
 			d->Vc[RHO][k][j][i]=rho_0*pow((x1[i]/r_0),-1.0*rho_alpha);
 			d->Vc[VX1][k][j][i]=0.0;
