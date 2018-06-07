@@ -78,9 +78,7 @@ int RuntimeSetup (Runtime *runtime, Cmd_Line *cmd_line, char *ini_file)
 	//Loop over dimensions
     for (ip = 1; ip <= runtime->npatch[idim]; ip++) {
 
-      runtime->patch_left_node[idim][ip] = atof(ParamFileGet(glabel[idim], ++ipos)); //Inner edge
-  	printf ("BLAH1 %e %i %i\n",runtime->patch_left_node[idim][ip],idim,ip);
-	  
+      runtime->patch_left_node[idim][ip] = atof(ParamFileGet(glabel[idim], ++ipos)); //Inner edge	  
       runtime->patch_npoint[idim][ip]    = atoi(ParamFileGet(glabel[idim], ++ipos));  //Number of points
       runtime->npoint[idim]             += runtime->patch_npoint[idim][ip];
       runtime->grid_is_uniform[idim]     = 0;
@@ -100,7 +98,6 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
         runtime->patch_type[idim][ip] = LOGARITHMIC_DEC_GRID;
       }else if (strcmp(str_var,"r") == 0){
         runtime->patch_type[idim][ip] = RATIO_GRID;
-		printf ("TEST1 ip %i %i %i\n",ip,runtime->patch_type[idim][ip],RATIO_GRID);
       }else{ 
         printf ("\nSetup: You must specify either 'u', 's', 'l+', 'l-' or 'r' as grid-type in %s\n",
                 ini_file);
@@ -109,12 +106,10 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
     }
     
     runtime->patch_left_node[idim][ip] = atof(ParamFileGet(glabel[idim], ++ipos)); //Outer edge
-	printf ("BLAH2 %e %i %i\n",runtime->patch_left_node[idim][ip],idim,ip);
 	
 	if (runtime->patch_type[idim][ip-1] == RATIO_GRID)
 	{
 	    runtime->ratio[idim] = atof(ParamFileGet(glabel[idim], ++ipos)); //Ratio
-		printf ("BLAH3 %e %i %i\n",runtime->ratio[idim],idim,ip);
 		ipos--;
 		
 	}
