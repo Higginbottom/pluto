@@ -197,7 +197,7 @@ disk_trunc_rad=g_inputParam[DISK_TRUNC_RAD];  //Disk truncation radius
   {    /* -- check solution inside domain -- */
 	TOT_LOOP(k,j,i)
 	{
-		if (j==NX2+1)  //This should be the last 'real' theta bin - before the ghost zones.
+		if (j==grid[JDIR].np_int_glob+1 && i>1 && i<grid[IDIR].np_int_glob+2)  //This should be the last 'real' theta bin - before the ghost zones.
 		{
 			r = x1[i]*UNIT_LENGTH;
 			theta= x2[j];
