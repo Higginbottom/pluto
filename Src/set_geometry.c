@@ -69,7 +69,6 @@ void MakeGeometry (Grid *GXYZ)
     x   = GG->x[i];
     xr  = x + 0.5*dx;
     xl  = x - 0.5*dx;
-	printf ("r i %i x %e dx %e\n",i,x,dx);
 
     #if GEOMETRY == CARTESIAN
      GG->A[i]    = 1.0;
@@ -101,7 +100,6 @@ void MakeGeometry (Grid *GXYZ)
 
     dx  = GG->dx[j];
     x   = GG->x[j];
-//	printf ("theta i %i x %20.18e dx %20.18e\n",j,x,dx);
 	
     xr  = x + 0.5*dx;
     xl  = x - 0.5*dx;
@@ -151,7 +149,6 @@ void MakeGeometry (Grid *GXYZ)
 
     for (i = 0; i < GXYZ[idim].np_tot-1; i++) {
       GXYZ[idim].inv_dxi[i] = 2.0/(GXYZ[idim].dx[i] + GXYZ[idim].dx[i+1]);
-//	printf ("BLAH idim=%i i=%i %14.12e %14.12e %14.12e\n",idim,i,GXYZ[idim].dx[i],GXYZ[idim].dx[i+1],GXYZ[idim].inv_dxi[i]);
 	  
     }
   }
