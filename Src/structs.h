@@ -93,7 +93,7 @@ typedef struct GRID{
                              \Delta x_{i+1}}\f$.     */
   double dl_min;      /**<  minimum cell length (e.g. min[dr, r*dth,
                             r*sin(th)*dphi] (GLOBAL DOMAIN).  */
-  int np_tot_glob; /**< Total number of points in the global domain 
+  int x; /**< Total number of points in the global domain 
                         (boundaries included). */
   int np_int_glob; /**< Total number of points in the global domain 
                         (boundaries excluded). */
