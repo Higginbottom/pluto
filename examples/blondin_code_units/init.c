@@ -167,7 +167,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
  *********************************************************************** */
 {
   int   i, j, k, nv;
-  double  *x1, *x2, *x3, r, theta;
+  double  *x1, *x2, *x3, r, theta,*x2_glob;
   double rho_0,r_0,rho_alpha,cent_mass;
   
 //Get some parameters from the input file
@@ -181,6 +181,9 @@ cent_mass=g_inputParam[CENT_MASS];
   x1 = grid[IDIR].x;
   x2 = grid[JDIR].x;
   x3 = grid[KDIR].x;
+  
+  x2_glob=grid[JDIR].x_glob;
+  
 
   if (side == 0) 
   {    /* -- check solution inside domain -- */
