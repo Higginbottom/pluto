@@ -103,6 +103,11 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 
 
 	r=grid[IDIR].x[i]*UNIT_LENGTH;  //The radius - in real units
+	
+	if (j==2 && i==2)
+		{
+			printf ("B4 cooling prs=%e ",VV[PRS][k][j][i]);
+		}	
 
 
     rho = VV[RHO][k][j][i]*UNIT_DENSITY;  //density of the current cell in physical units
@@ -181,6 +186,12 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
     dE = (fabs(1.0 - p_f/p)) + 1.e-18;  //The fractional change in pressure (or energy since they are proportional)
 	
     VV[PRS][k][j][i] = p_f;  //Set the pressure in the cell to the new value
+	 
+	 
+ 	if (j==2 && i==2)
+ 		{
+ 			printf ("after cooling prs=%e \n",VV[PRS][k][j][i]);
+ 		}	
 
 	/* This is a bit obscure - it is from the original code, and appears to set the cooling timescale
 	to a value that means the change in energy will be less than the max cooling rate. It needs a bit 

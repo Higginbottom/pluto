@@ -43,6 +43,7 @@ int AdvanceStep (const Data *d, Riemann_Solver *Riemann,
   static Data_Arr U0, Bs0;
   RBox *box = GetRBox (DOM, CENTER);
   
+  
 /* ----------------------------------------------------
    0. Allocate memory 
    ---------------------------------------------------- */
@@ -87,12 +88,15 @@ int AdvanceStep (const Data *d, Riemann_Solver *Riemann,
 #ifdef STAGGERED_MHD
   DIM_LOOP(nv) TOT_LOOP(k,j,i) Bs0[nv][k][j][i] = d->Vs[nv][k][j][i];
 #endif
-
+  printf ("B4 UpdateStage  dens %e eng %e\n",d->Uc[RHO][0][2][2],d->Uc[RHO][0][2][2]);	  
   UpdateStage(d, d->Uc, NULL, Riemann, g_dt, Dts, grid);
+  printf ("AF UpdateStage  dens %e eng %e\n",d->Uc[RHO][0][2][2],d->Uc[RHO][0][2][2]);	  
+  
 #ifdef STAGGERED_MHD
   CT_AverageMagneticField (d->Vs, d->Uc, grid);
 #endif
   ConsToPrim3D (d->Uc, d->Vc, d->flag, box);
+  printf ("AF ConsToPrim  T %e dens %e prs %e\n",d->Vc[PRS][0][2][2]*KELVIN*0.6/d->Vc[RHO][0][2][2],d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2]);	  
 
 /* ----------------------------------------------------
    2. Corrector step (RK2, RK3)

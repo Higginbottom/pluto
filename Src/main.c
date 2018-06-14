@@ -76,6 +76,8 @@ int main (int argc, char *argv[])
   char   first_step=1, last_step = 0;
   double scrh;
   Data   data;
+  Data   data_temp;
+  
   time_t  tbeg, tend;
   Riemann_Solver *Solver;
   Grid      grd[3];
@@ -201,9 +203,11 @@ int main (int argc, char *argv[])
      ------------------------------------------------------ */
 
     if (!first_step && !last_step && cmd_line.write) {
-      CheckForOutput  (&data, &ini, grd);
-      CheckForAnalysis(&data, &ini, grd);
+      CheckForOutput  (&data, &ini, grd);	
+      CheckForAnalysis(&data, &ini, grd);		
     }
+	 
+	 
 
   /* ------------------------------------------------------
       Advance solution array by a single time step
@@ -211,7 +215,15 @@ int main (int argc, char *argv[])
      ------------------------------------------------------ */
 
     if (cmd_line.jet != -1) SetJetDomain (&data, cmd_line.jet, ini.log_freq, grd); 
+	 
+ printf ("B4 integrate T %e dens %e prs %e\n",data.Vc[PRS][0][2][2]*KELVIN*0.6/data.Vc[RHO][0][2][2],data.Vc[RHO][0][2][2],data.Vc[PRS][0][2][2]);
+
+	 
+	 
     err = Integrate (&data, Solver, &Dts, grd);
+	 
+	 printf ("After integrate T %e dens %e prs %e\n",data.Vc[PRS][0][2][2]*KELVIN*0.6/data.Vc[RHO][0][2][2],data.Vc[RHO][0][2][2],data.Vc[PRS][0][2][2]);
+	 
     if (cmd_line.jet != -1) UnsetJetDomain (&data, cmd_line.jet, grd); 
 
   /* ------------------------------------------------------
@@ -507,7 +519,10 @@ int Integrate (Data *d, Riemann_Solver *Solver, Time_Step *Dts, Grid *grid)
        if (AdvanceStep (d, Solver, Dts, grid) != 0) return (1);
      }
     #else
+	  printf ("B4 advance  T %e dens %e prs %e\n",d->Vc[PRS][0][2][2]*KELVIN*0.6/d->Vc[RHO][0][2][2],d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2]);	  
      if (AdvanceStep (d, Solver, Dts, grid) != 0) return(1);
+	  printf ("Af advance  T %e dens %e prs %e\n",d->Vc[PRS][0][2][2]*KELVIN*0.6/d->Vc[RHO][0][2][2],d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2]);	  
+	  
     #endif
     g_operatorStep = PARABOLIC_STEP;
     SplitSource (d, g_dt, Dts, grid);
