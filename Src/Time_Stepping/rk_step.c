@@ -80,6 +80,7 @@ int AdvanceStep (const Data *d, Riemann_Solver *Riemann,
 #endif
 
 /* -- Convert primitive to conservative, save initial stage  -- */
+  printf ("B4 PrimToCons  T %e dens %e prs %e\n",d->Vc[PRS][0][2][2]*KELVIN*0.6/d->Vc[RHO][0][2][2],d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2]);	  
 
   PrimToCons3D(d->Vc, d->Uc, box);
   KDOM_LOOP(k) JDOM_LOOP(j){
@@ -88,15 +89,15 @@ int AdvanceStep (const Data *d, Riemann_Solver *Riemann,
 #ifdef STAGGERED_MHD
   DIM_LOOP(nv) TOT_LOOP(k,j,i) Bs0[nv][k][j][i] = d->Vs[nv][k][j][i];
 #endif
-  printf ("B4 UpdateStage  dens %e eng %e\n",d->Uc[RHO][0][2][2],d->Uc[RHO][0][2][2]);	  
+  printf ("B4 UpdateStage  dens %e eng %e intE %e\n",d->Uc[0][2][2][RHO],d->Uc[0][2][2][ENG],d->Vc[PRS][0][2][2]/(g_gamma - 1.0));	  
   UpdateStage(d, d->Uc, NULL, Riemann, g_dt, Dts, grid);
-  printf ("AF UpdateStage  dens %e eng %e\n",d->Uc[RHO][0][2][2],d->Uc[RHO][0][2][2]);	  
+  printf ("AF UpdateStage  dens %e eng %e\n",d->Uc[0][2][2][RHO],d->Uc[0][2][2][ENG]);	  
   
 #ifdef STAGGERED_MHD
   CT_AverageMagneticField (d->Vs, d->Uc, grid);
 #endif
   ConsToPrim3D (d->Uc, d->Vc, d->flag, box);
-  printf ("AF ConsToPrim  T %e dens %e prs %e\n",d->Vc[PRS][0][2][2]*KELVIN*0.6/d->Vc[RHO][0][2][2],d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2]);	  
+  printf ("AF ConsToPrim  T %e dens %e prs %e intE %e\n",d->Vc[PRS][0][2][2]*KELVIN*0.6/d->Vc[RHO][0][2][2],d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],d->Vc[PRS][0][2][2]/(g_gamma - 1.0));	  
 
 /* ----------------------------------------------------
    2. Corrector step (RK2, RK3)

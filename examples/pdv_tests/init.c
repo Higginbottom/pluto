@@ -207,7 +207,8 @@ cent_mass=g_inputParam[CENT_MASS];
 		 } 
 	if (j==2 && i==2)
 		{
-			printf ("r %f theta %f  T %e %e %e %e\n",x1[i],x2[j],d->Vc[PRS][k][j][i]*KELVIN*0.6/d->Vc[RHO][k][j][i],d->Vc[PRS][k][j-1][i]*KELVIN*0.6/d->Vc[RHO][k][j-1][i],d->Vc[PRS][k][j][i]*KELVIN*0.6/d->Vc[RHO][k][j][i],d->Vc[PRS][k][j+1][i]*KELVIN*0.6/d->Vc[RHO][k][j+1][i]);
+			printf ("r %f theta %f  T %e dens %e prs %e\n",x1[i],x2[j],d->Vc[PRS][k][j][i]*KELVIN*0.6/d->Vc[RHO][k][j][i],d->Vc[RHO][k][j][i],d->Vc[PRS][k][j][i]);
+			if (d->Vc[PRS][k][j][i]*KELVIN*0.6/d->Vc[RHO][k][j][i] > 1e10) QUIT_PLUTO(0);
 		}	 
 	 }	
   }

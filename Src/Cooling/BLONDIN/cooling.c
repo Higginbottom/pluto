@@ -52,9 +52,12 @@
 double xi,sqsqxi,ne,nH,n,tx,E,hc_init,rho,dt_share;
 double heatcool();
 double heatcool2();
+double heatcool3();
+
 double zfunc();
 double zbrent();
 double zfunc2();
+double zfunc1();
 
 /* ********************************************************************* */
 void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
@@ -70,7 +73,7 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
   int     i, j, k;
   double  cost, dE, E1,E_f;
   double  p, T, p_f, T_f;
-  double  lx, r, test;
+  double  lx, r, test,rho;
   double t_u,t_l,mu,t_new;
   double dt_min,***xi_out,***T_out,***comp_c_out,***xray_h_out,***comp_h_out,***line_c_out,***brem_c_out;
 
@@ -106,22 +109,43 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 	
 	if (j==2 && i==2)
 		{
-			printf ("B4 cooling prs=%e ",VV[PRS][k][j][i]);
+			printf ("B4 cooling prs=%e U=%e\n",VV[PRS][k][j][i],VV[PRS][k][j][i]/(2./3.));
 		}	
 
 
-    rho = VV[RHO][k][j][i]*UNIT_DENSITY;  //density of the current cell in physical units
+//    rho = VV[RHO][k][j][i]*UNIT_DENSITY;  //density of the current cell in physical units
 	 
-    p   = VV[PRS][k][j][i];  //pressure of the current cell
-    T   = VV[PRS][k][j][i]/VV[RHO][k][j][i]*KELVIN*mu;    //Compute initial temperature in Kelvin
-    E   = (p*UNIT_PRESSURE)/(g_gamma-1);     //Compute internal energy in physical units
-	 
-	nH=rho/(1.43*CONST_mp);   //Work out hydrogen number density assuming stellar abundances
-	ne=1.21*nH;             //electron number density assuming full ionization
-	n=rho/(mu*CONST_mp);    //particle density
+//    p   = VV[PRS][k][j][i];  //pressure of the current cell
+//    T   = VV[PRS][k][j][i]/VV[RHO][k][j][i]*KELVIN*mu;    //Compute initial temperature in Kelvin
+//    E   = (p*UNIT_PRESSURE)/(g_gamma-1);     //Compute internal energy in physical units
+	
 
+	    rho = VV[RHO][k][j][i];
+	    p   = VV[PRS][k][j][i];
+	    T   = (p/rho*KELVIN*mu);
+
+
+	if (j==2 && i==2)
+		{
+			printf ("B4 cooling T=%e\n",T);
+		}	
 	 
-	T=E*(2.0/3.0)/(n*CONST_kB);
+	nH=rho*UNIT_DENSITY/(1.43*CONST_mp);   //Work out hydrogen number density assuming stellar abundances
+	ne=1.21*nH;             //electron number density assuming full ionization
+	n=rho*UNIT_DENSITY/(mu*CONST_mp);    //particle density
+	
+	
+	if (j==2 && i==2) printf ("rho %e rho(cgs) %e nH %e ne %e n %e\n",rho,rho*UNIT_DENSITY,nH,ne,n);
+	
+
+	E=T*n*CONST_kB/(2.0/3.0);
+	
+	if (j==2 && i==2)
+		{
+			printf ("B4 cooling E=%e\n",E);
+		}
+	 
+//	T=E*(2.0/3.0)/(n*CONST_kB);
 	
 	
 	  
@@ -141,15 +165,19 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 	t_l=T*0.9;
 	t_u=T*1.1;
 	test=zfunc(t_l)*zfunc(t_u);
+	if (j==2 && i==2) printf ("Starting search test=%e t_l=%e (%e) t_u=%e (%e)\n",test,t_l,zfunc1(t_l),t_u,zfunc1(t_u));
  	while (test > 0)
 	{
 		t_l=t_l*0.9;
 		t_u=t_u*1.1;
   		test=zfunc(t_l)*zfunc(t_u);
-//		printf ("test=%e\n",test);
+		if (j==2 && i==2) printf ("Searching test=%e t_l=%e t_u=%e\n",test,t_l,t_u);
 	}
 	
-	
+	if (j==2 && i==2)
+		{
+			printf ("Searching for T between %e and %e\n",t_l,t_u);
+		}
 
 	
 	
@@ -172,8 +200,25 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 	heatcool2(T,i,j,k);
 
 	E_f=T_f/(2.0/3.0)*(n*CONST_kB); //convert back to energy
+
+
+	if (j==2 && i==2)
+		{
+			printf ("AF cooling E=%e\n",E_f);
+		}
+
+
 	
-	p_f=E_f*(g_gamma-1)/UNIT_PRESSURE; 
+	if (j==2 && i==2)
+		{
+			printf ("AF cooling T=%e\n",T_f);
+		}	
+	
+	
+	
+//	p_f=E_f*(g_gamma-1)/UNIT_PRESSURE; 
+		
+	    p_f = T_f*rho/KELVIN/mu;
 	
 //    p_f = T_f*VV[RHO][k][j][i]/(KELVIN*mu);  //Compute the new pressure from the new temperature - code units
 	 	
@@ -190,7 +235,8 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 	 
  	if (j==2 && i==2)
  		{
- 			printf ("after cooling prs=%e \n",VV[PRS][k][j][i]);
+			heatcool3(T,i,j,k);
+ 			printf ("after cooling prs=%e U=%e\n",VV[PRS][k][j][i],VV[PRS][k][j][i]/(2./3.));
  		}	
 
 	/* This is a bit obscure - it is from the original code, and appears to set the cooling timescale
@@ -278,6 +324,24 @@ double heatcool2(double T,int i, int j,int k)
 	
 }
 
+double heatcool3(double T,int i, int j,int k)
+{
+	double lambda,st,h_comp,c_comp,h_xray,l_line,l_brem;
+		
+	st=sqrt(T);
+	h_comp=8.9e-36*xi*tx;
+	c_comp=8.9e-36*xi*(4.0*T);
+	h_xray=1.5e-21*(sqsqxi/st)*(1-(T/tx));
+	l_line=(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24);	
+	l_brem=3.3e-27*st;	
+	lambda=(h_comp+h_xray-l_brem-l_line-c_comp)*ne*nH;
+//	lambda=h_comp-c_comp-l_brem-l_line;
+	printf ("HC comp_h %e comp_c %e brem_c %e line_c %e xray_h %e dt %e ne %e nh %e xi %e T %e dE %e E %e\n",h_comp*ne*nH,c_comp*ne*nH,l_brem*ne*nH,l_line*ne*nH,h_xray*ne*nH,dt_share,ne,nH,xi,T,c_comp*ne*nH*dt_share,E);	
+	return (lambda);
+	
+	
+}
+
 
 /*This function calculates 
 
@@ -297,7 +361,16 @@ double zfunc(double temp)
 	return (ans);
 }
 
-
+double zfunc1(double temp) 
+{	
+	double ans;
+	printf ("temp %e n %e const_kb %e E %e dt_share %e hc_init %e heatcool %e\n",temp,n,CONST_kB,E,dt_share,hc_init,heatcool(temp));
+	ans=(temp*n*CONST_kB/(2.0/3.0))-E-dt_share*(hc_init+heatcool(temp))/2.0;
+	printf ("temp %e n %e const_kb %e E %e dt_share %e hc_init %e heatcool %e ans %e\n",temp,n,CONST_kB,E,dt_share,hc_init,heatcool(temp),ans);
+	
+	
+	return (ans);
+}
 
 
 

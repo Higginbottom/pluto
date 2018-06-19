@@ -66,7 +66,6 @@ void ConsToPrim3D (Data_Arr U, Data_Arr V, unsigned char ***flag, RBox *box)
     if (g_intStage == 1) for (i = ibeg; i <= iend; i++) NormalizeIons(u[i]);
     #endif
     err = ConsToPrim (u, v, ibeg, iend, flag[k][j]);
-
   /* -------------------------------------------------------------
       Ensure any change to 1D conservative arrays is not lost.
       Note: Conversion must be done even when err = 0 in case
@@ -121,16 +120,24 @@ void PrimToCons3D (Data_Arr V, Data_Arr U, RBox *box)
   jbeg = (box->jb <= box->je) ? (jend=box->je, box->jb):(jend=box->jb, box->je);
   kbeg = (box->kb <= box->ke) ? (kend=box->ke, box->kb):(kend=box->kb, box->ke);
 
+  printf ("PrimToCons3D  dens %e prs %e\n",V[RHO][0][2][2],V[PRS][0][2][2]);	  
+
+
   for (k = kbeg; k <= kend; k++){ g_k = k;
   for (j = jbeg; j <= jend; j++){ g_j = j;
     for (i = ibeg; i <= iend; i++) VAR_LOOP(nv) v[i][nv] = V[nv][k][j][i];
+	if (j==2) printf ("PrimToCons3D  dens %e prs %e\n",v[2][RHO],v[2][PRS]);	
 #ifdef CHOMBO
-    PrimToCons(v, u, ibeg, iend);
+    PrimToCons(v, u, ibeg, iend);	
     for (i = ibeg; i <= iend; i++) VAR_LOOP(nv) U[nv][k][j][i] = u[i][nv];
 #else      
     PrimToCons (v, U[k][j], ibeg, iend);
+	if (j==2) printf ("PrimToCons3D  dens %e eng %e\n",U[0][2][2][RHO],U[0][2][2][ENG]);	
+	
 #endif
   }}
+  
+  
   g_dir = current_dir; /* restore current direction */
 
 }

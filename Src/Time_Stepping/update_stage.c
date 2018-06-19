@@ -51,7 +51,7 @@ void UpdateStage(const Data *d, Data_Arr UU, double **aflux,
  * \param [in]      grid     pointer to array of Grid structures
  *********************************************************************** */
 {
-  int  i, j, k;
+  int  i, j, k, ii;
   int  nv, dir, beg_dir, end_dir;
   int  *ip;
   double *inv_dl, dl2;
@@ -68,6 +68,10 @@ void UpdateStage(const Data *d, Data_Arr UU, double **aflux,
   #endif
 
   cdt_list = TimeStepIndexList();
+
+
+  printf ("In UpdateStage  dens %e eng %e\n",d->Uc[0][2][2][RHO],d->Uc[0][2][2][ENG]);	  
+
 
 /* --------------------------------------------------------------
    1. Allocate memory
@@ -146,7 +150,11 @@ void UpdateStage(const Data *d, Data_Arr UU, double **aflux,
       }
       CheckNaN (state.v, 0, indx.ntot-1,0);
       States  (&state, indx.beg - 1, indx.end + 1, grid); 
+  	  if (j==34 && i==2) printf ("B4 Riemann  %i %i %i dens %e eng %e state %e\n",k,j,i,UU[0][2][2][RHO],UU[0][2][2][ENG],state.rhs[2][ENG]);	  		   
       Riemann (&state, indx.beg - 1, indx.end, Dts->cmax, grid);
+  	  if (j==34 && i==2) printf ("AF Riemann  %i %i %i dens %e eng %e state %e\n",k,j,i,UU[0][2][2][RHO],UU[0][2][2][ENG],state.rhs[2][ENG]);	  		   
+
+	  
       #ifdef STAGGERED_MHD
        CT_StoreEMF (&state, indx.beg - 1, indx.end, grid);
       #endif
@@ -155,11 +163,16 @@ void UpdateStage(const Data *d, Data_Arr UU, double **aflux,
       #endif
       #if UPDATE_VECTOR_POTENTIAL == YES
        VectorPotentialUpdate (d, NULL, &state, grid);
+	   
       #endif
       #ifdef SHEARINGBOX
        SB_SaveFluxes (&state, grid);
+	   
       #endif
+   	  if (j==34 && i==2) printf ("B4 RHS  %i %i %i dens %e eng %e state %e\n",k,j,i,UU[0][2][2][RHO],UU[0][2][2][ENG],state.rhs[2][ENG]);	  		   
       RightHandSide (&state, Dts, indx.beg, indx.end, dt, grid);
+  	  if (j==34 && i==2) printf ("AF RHS  %i %i %i dens %e eng %e state %e\n",k,j,i,UU[0][2][2][RHO],UU[0][2][2][ENG],state.rhs[2][ENG]);	  		   
+	
 
     /* -- update:  U = U + dt*R -- */
 
@@ -170,7 +183,10 @@ void UpdateStage(const Data *d, Data_Arr UU, double **aflux,
        SaveAMRFluxes (&state, aflux, indx.beg-1, indx.end, grid);
       #else
        for ((*ip) = indx.beg; (*ip) <= indx.end; (*ip)++) { 
+	  	  if (j==2 && i==2) printf ("B4 VAR_LOOP  %i dens %e eng %e %e\n",nv,UU[0][2][2][RHO],UU[0][2][2][ENG],state.rhs[*ip][ENG]);	  		   
          VAR_LOOP(nv) UU[k][j][i][nv] += state.rhs[*ip][nv];
+  	      if (j==2 && i==2) printf ("AF VAR_LOOP  %i dens %e eng %e %e\n",nv,UU[0][2][2][RHO],UU[0][2][2][ENG],state.rhs[*ip][ENG]);	  		   
+		 
        }
       #endif
 
