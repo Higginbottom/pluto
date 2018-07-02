@@ -1,4 +1,4 @@
-# Add objects file for Power Law Cooling Source  
+# Add objects file for BLONDIN Cooling Source  
 
 VPATH        += $(SRC)/Cooling/BLONDIN
 INCLUDE_DIRS += -I$(SRC)/Cooling/BLONDIN

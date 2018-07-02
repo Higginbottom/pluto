@@ -111,6 +111,20 @@ void Init (double *v, double x1, double x2, double x3)
 
   #endif
 }
+
+/* ********************************************************************* */
+void InitDomain (Data *d, Grid *grid)
+/*! 
+ * Assign initial condition by looping over the computational domain.
+ * Called after the usual Init() function to assign initial conditions
+ * on primitive variables.
+ * Value assigned here will overwrite those prescribed during Init().
+ *
+ *
+ *********************************************************************** */
+{
+}
+
 /* ********************************************************************* */
 void Analysis (const Data *d, Grid *grid)
 /*! 
@@ -167,7 +181,13 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
  *********************************************************************** */
 {
   int   i, j, k, nv;
-  double  *x1, *x2, *x3, r, theta,*x2_glob;
+  double *x1 = grid->x[IDIR];
+  double *x2 = grid->x[JDIR];
+  double *x3 = grid->x[KDIR];
+  
+  double *x2_glob = grid->x_glob[JDIR];
+  
+  double  r, theta;
   double rho_0,r_0,rho_alpha,cent_mass;
   
 //Get some parameters from the input file
@@ -178,18 +198,18 @@ rho_alpha=g_inputParam[RHO_ALPHA];
 cent_mass=g_inputParam[CENT_MASS];
 
 
-  x1 = grid[IDIR].x;
-  x2 = grid[JDIR].x;
-  x3 = grid[KDIR].x;
+//  x1 = grid[IDIR].x;
+//  x2 = grid[JDIR].x;
+//  x3 = grid[KDIR].x;
   
-  x2_glob=grid[JDIR].x_glob;
+//  x2_glob=grid[JDIR].x_glob;
   
 
   if (side == 0) 
   {    /* -- check solution inside domain -- */
   	DOM_LOOP(k,j,i)
   	{
-		if (j==grid[JDIR].np_int+1 && (fabs(x2_glob[grid[JDIR].np_int_glob+1]-x2[j])/x2_glob[grid[JDIR].np_int_glob+1]) < 1e-20)  //This should be the last 'real' theta bin - before the ghost zones.
+		if (j==grid->np_int[JDIR]+1 && (fabs(x2_glob[grid->np_int_glob[JDIR]+1]-x2[j])/x2_glob[grid->np_int_glob[JDIR]+1]) < 1e-20)  //This should be the last 'real' theta bin - before the ghost zones.
 		{
 			r = x1[i]*UNIT_LENGTH;
 			theta= x2[j];

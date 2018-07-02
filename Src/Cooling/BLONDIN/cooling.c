@@ -57,7 +57,7 @@ double zbrent();
 double zfunc2();
 
 /* ********************************************************************* */
-void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
+void BlondinCooling (Data_Arr VV, double dt, timeStep *Dts, Grid *grid)
 /*!
  * \param [in,out]  VV    a pointer to the PLUTO 3D data array containing
  *                        pimitive variables.
@@ -102,7 +102,7 @@ void BlondinCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
   DOM_LOOP(k,j,i){
 
 
-	r=grid[IDIR].x[i]*UNIT_LENGTH;  //The radius - in real units
+	r=grid->x[IDIR][i]*UNIT_LENGTH;  //The radius - in real units
 
 
     rho = VV[RHO][k][j][i]*UNIT_DENSITY;  //density of the current cell in physical units

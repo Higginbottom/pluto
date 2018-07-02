@@ -176,7 +176,13 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
  *********************************************************************** */
 {
   int   i, j, k, nv;
-  double  *x1, *x2, *x3, r, theta,*x2_glob;
+  double *x1 = grid->x[IDIR];
+  double *x2 = grid->x[JDIR];
+  double *x3 = grid->x[KDIR];
+	  
+  double *x2_glob = grid->x_glob[JDIR];
+	  
+  double  r, theta;
   double rho_0,r_0,rho_alpha,cent_mass,disk_trunc_rad;
   
 //Get some parameters from the input file
@@ -189,17 +195,12 @@ disk_trunc_rad=g_inputParam[DISK_TRUNC_RAD];  //Disk truncation radius
 
 
 
-  x1 = grid[IDIR].x;
-  x2 = grid[JDIR].x;
-  x3 = grid[KDIR].x;
-  
-  x2_glob=grid[JDIR].x_glob;
   
   if (side == 0) 
   {    /* -- check solution inside domain -- */
 	DOM_LOOP(k,j,i)
 	{
-		if (j==grid[JDIR].np_int+1 && (fabs(x2_glob[grid[JDIR].np_int_glob+1]-x2[j])/x2_glob[grid[JDIR].np_int_glob+1]) < 1e-20)  //This should be the last 'real' theta bin - before the ghost zones.
+	if (j==grid->np_int[JDIR]+1 && 	(fabs(x2_glob[grid->np_int_glob[JDIR]+1]-x2[j])/x2_glob[grid->np_int_glob[JDIR]+1]) < 1e-20)  //This should be the last 'real' theta bin - before the ghost zones.
 		{
 			r = x1[i]*UNIT_LENGTH;
 			theta= x2[j];

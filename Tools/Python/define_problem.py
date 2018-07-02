@@ -525,7 +525,7 @@ class DefineProblem(object):
     if self.flag_dict['WITH-FD']:
       self.additional_files += ['fd_states.o', 'fd_reconstruct.o', 'fd_flux.o']
 
-    if self.default[self.entries.index('COOLING')] not in ['NO', 'POWER_LAW', 'KROME']:
+    if self.default[self.entries.index('COOLING')] not in ['NO', 'POWER_LAW', 'KROME', 'BLONDIN']:
       self.additional_files += ['cooling_source.o','cooling_ode_solver.o']
 
     if self.phymodule == 'MHD' or self.phymodule == 'RMHD':

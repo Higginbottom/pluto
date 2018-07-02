@@ -230,7 +230,7 @@ void Trace (double);
   void  PowerLawCooling (Data_Arr, double, timeStep *, Grid *);
  #endif
  #if COOLING == BLONDIN
- void  BlondinCooling (Data_Arr, double, Time_Step *, Grid *);
+ void  BlondinCooling (Data_Arr, double, timeStep *, Grid *);
  #endif
  /* move the following elsewhere ?  */
 /*
