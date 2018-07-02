@@ -10,11 +10,12 @@ from matplotlib.pyplot import *
 from matplotlib.mlab import *
 
 ####### Check for h5py to Read AMR data ######
-try:
-    import h5py as h5
-    hasH5 = True
-except ImportError:
-    hasH5 = False
+#try:
+#    import h5py as h5
+#    hasH5 = True
+#except ImportError:
+#    hasH5 = False
+hasH5 = False
 
 def curdir():
 	""" Get the current working directory.
@@ -314,7 +315,7 @@ class pload(object):
                     A.fromstring(fp.read(nb))
                     if (self.Slice):
                         darr = np.zeros((n1*n2*n3))
-                        indxx = np.sort([n3_tot*n2_tot*k + j*n2_tot + i for i in self.irange for j in self.jrange for k in self.krange])
+                        indxx = np.sort([self.n3_tot*self.n2_tot*k + j*self.n2_tot + i for i in self.irange for j in self.jrange for k in self.krange])
                         if (sys.byteorder != self.endianess):
                             A.byteswap()
                         for ii,iii in enumerate(indxx):
@@ -1213,7 +1214,7 @@ class Tools(object):
 		nslices = [ slice(0,j) for j in list(newdims) ]
 		newcoords = np.mgrid[nslices]
 
-		newcoords_dims = range(n.rank(newcoords))
+		newcoords_dims = range(np.rank(newcoords))
 		#make first index last
 		newcoords_dims.append(newcoords_dims.pop(0))
 		newcoords_tr = newcoords.transpose(newcoords_dims)

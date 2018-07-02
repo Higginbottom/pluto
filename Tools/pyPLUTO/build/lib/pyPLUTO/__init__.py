@@ -1,3 +1,4 @@
 from pyPLUTO import *
+from part_read import *
 
-__version__ = '4-2.0'
+__version__ = '4-3.0'
