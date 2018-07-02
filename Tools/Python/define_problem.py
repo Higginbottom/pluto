@@ -165,7 +165,7 @@ class DefineProblem(object):
     geolist = ['CARTESIAN','CYLINDRICAL','POLAR','SPHERICAL']
     bfolist = ['NO','VECTOR', 'POTENTIAL', '(VECTOR+POTENTIAL)']
     ftblist = ['NO','YES']
-    coolist = ['NO','POWER_LAW','TABULATED','SNEq','MINEq','H2_COOL', 'KROME']
+    coolist = ['NO','POWER_LAW','TABULATED','SNEq','MINEq','H2_COOL', 'KROME','BLONDIN']
     intlist = ['FLAT','LINEAR','LimO3','WENO3','PARABOLIC']
     tmslist = ['EULER','RK2','RK3','HANCOCK','CHARACTERISTIC_TRACING']
     dislist = ['YES','NO']

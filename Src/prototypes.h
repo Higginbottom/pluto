@@ -229,6 +229,9 @@ void Trace (double);
  #if COOLING == POWER_LAW
   void  PowerLawCooling (Data_Arr, double, timeStep *, Grid *);
  #endif
+ #if COOLING == BLONDIN
+ void  BlondinCooling (Data_Arr, double, Time_Step *, Grid *);
+ #endif
  /* move the following elsewhere ?  */
 /*
 double SolveODE_CK45  (double *, double *, double *, double, double);
