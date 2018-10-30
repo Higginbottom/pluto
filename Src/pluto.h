@@ -40,6 +40,8 @@
 #define STRETCHED_GRID           2
 #define LOGARITHMIC_INC_GRID     3
 #define LOGARITHMIC_DEC_GRID     4
+#define RATIO_GRID               5
+
 
 /* ---- Equation of sweep (EoS) labels  ----  */
 
