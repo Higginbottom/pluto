@@ -94,7 +94,7 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
         runtime->patch_type[idim][ip] = LOGARITHMIC_INC_GRID;
       }else if (strcmp(str_var,"l-") == 0){
         runtime->patch_type[idim][ip] = LOGARITHMIC_DEC_GRID;
-    }else if (strcmp(str_var,"r") == 0){
+      }else if (strcmp(str_var,"r") == 0){
       runtime->patch_type[idim][ip] = RATIO_GRID;
       }else{ 
           printf ("\nSetup: You must specify either 'u', 's', 'l+', 'l-' or 'r' as grid-type in %s\n",
