@@ -104,6 +104,13 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
     }
     
     runtime->patch_left_node[idim][ip] = atof(ParamFileGet(glabel[idim], ++ipos));
+	 
+ 	if (runtime->patch_type[idim][ip-1] == RATIO_GRID)
+ 	{
+ 	    runtime->ratio[idim] = atof(ParamFileGet(glabel[idim], ++ipos)); //Ratio - needs a seperate line coz more params
+ 		ipos--;
+		
+ 	}
 
     if ( (ipos+1) != (runtime->npatch[idim]*3 + 3)) {
       printf ("! Setup(): domain #%d setup is not properly defined \n", idim);
