@@ -1,33 +1,7 @@
-The test problems in this directory are examples of blondin type runs.
+This directory contains examples generated as part of the effort to get
+pluto and python running together. THe isothermal disk is a very simple 
+example made early on to just get a diskwind working and test the boundary
+conditions.
 
-They are currently:
-
-small_ratio_grid: An attempt to reproduce the small blondin run in 
-	http://adsabs.harvard.edu/abs/2017ApJ...836...42H. This also acts
-	as an example of the `new' ratio grid type that is not documented
-	in the pluto user manual.
-	
-	It is of the form    X1-grid 1 r_inner 80    r    r_outer r_ratio
-	
-	where r_inner and r_outer are the inner and outer coordinate - in code units
-	r_ratio is the ratio of the n+1th grid cell to the nth cell.
-	
-large_log_grid: This is a large model, like the large bloding run in
-	the above paper. It uses the more usual log grid - as detailed
-	in the pluto user guide.
-	
-	
-The 'non standard' inputs in the pluto.ini files are as follows. All should
-be in cgs units/
-
-
-RHO_0                The midplane density at R_0  
-RHO_ALPHA            The exponent of the midplane density - 2 makes xi constant  
-R_0                  The radius at which rho_0 is set - normally R_IC
-CENT_MASS            The mass of the central object
-DISK_MDOT            The disk accretion rate - used only to set up the initial temperature profile  
-CISO                 The isothermal sound speed - not used in ideal gas simulations like these
-L_x                  The central source luminosity above 13.6eV
-T_x                  The xray temperature of the assumed bremsstrahlung source
-DISK_TRUNC_RAD       The radius at which the central boundary mass drops off - edge of the disk
-
+The blondin directory contains a couple of examples trying to get the 
+blondin style heating rates into the code
