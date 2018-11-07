@@ -82,6 +82,20 @@ void Init (double *v, double x1, double x2, double x3)
 
   #endif
 }
+
+/* ********************************************************************* */
+void InitDomain (Data *d, Grid *grid)
+/*! 
+ * Assign initial condition by looping over the computational domain.
+ * Called after the usual Init() function to assign initial conditions
+ * on primitive variables.
+ * Value assigned here will overwrite those prescribed during Init().
+ *
+ *
+ *********************************************************************** */
+{
+}
+
 /* ********************************************************************* */
 void Analysis (const Data *d, Grid *grid)
 /*! 
@@ -138,16 +152,16 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
  *********************************************************************** */
 {
   int   i, j, k, nv;
-  double  *x1, *x2, *x3;
+  double *x1 = grid->x[IDIR];
+  double *x2 = grid->x[JDIR];
+  double *x3 = grid->x[KDIR];
   double rho_0,r_0,rho_alpha;
 rho_0=g_inputParam[RHO_0];
 r_0=g_inputParam[R_0];
 rho_alpha=g_inputParam[RHO_ALPHA];
 
 
-  x1 = grid[IDIR].x;
-  x2 = grid[JDIR].x;
-  x3 = grid[KDIR].x;
+
 
   if (side == 0) 
   {    /* -- check solution inside domain -- */
@@ -277,7 +291,7 @@ double BodyForcePotential(double x1, double x2, double x3)
 	double cent_mass;
 	
 	cent_mass=g_inputParam[ptmass]
-	
+		printf ("cent_mass=%e\n",cent_mass);
 	
 #if GEOMETRY == CARTESIAN
 	return -1.0*cent_mass*CONST_G/sqrt(x1*x1 + x2*x2 + x3*x3);
