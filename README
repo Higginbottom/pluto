@@ -1,3 +1,21 @@
+This is currently the default branch, and should only be updated with 
+known working improvements. Any tinkering should be done in new branches
+from it. It is based upon PLUTO 4.3, and the aim is to reproduce the
+Blondin runs of HP15 and HK16. 
+
+To run the code, one should clone the repo with
+
+git clone https://github.com/Higginbottom/pluto.git and set up the system
+as described below in the PLUTO readme file.
+
+
+The example files to run a blondin style run are in
+
+Test_Problems/PY_PLUTO. Read the readme files in the top level directory
+and subdirectories to understand what each of the runs is trying to represent.
+
+
+
                         PLUTO version 4.3
                      ------------------------
                  Copyright (C) 2002-2018 Andrea Mignone 
@@ -87,6 +105,10 @@ Have fun!
   
 If you encounter problems during the previous steps, or have any other 
 question regarding the code, please send an e-mail to mignone@ph.unito.it
+
+
+
+
 
 
 
