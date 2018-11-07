@@ -1,5 +1,9 @@
-This is a REPO to track work done by Nick higginbottom and collaborators 
-to modify the hydrodynamics code PLUTO to model disk winds.
+This contains the python 4.2 version of the blondin type simulations.
+Kept for reference only - can be deleted soon
+
+
+
+
 
 It is bsased on PLUTO version 4.2 - downloded from
 
