@@ -82,7 +82,7 @@ static void TotalFlux (const Sweep *, double *, double **, int, int, Grid *);
 
 /* *********************************************************************** */
 void RightHandSide (const Sweep *sweep, timeStep *Dts, 
-                    int beg, int end, double dt, Grid *grid)
+                    int beg, int end, double dt, Grid *grid,int sig)
 /*! 
  *
  * \param [in,out]  sweep  pointer to Sweep structure
@@ -125,7 +125,7 @@ int *n;
 /* --------------------------------------------------
    0. Allocate memory
    -------------------------------------------------- */
-
+  if (sig==1)printf ("RightHandside beg=%i end=%i g_i=%i g_j=%i g_k=%i RHO=%e\n",beg,end,g_i,g_j,g_k,sweep->rhs[2][RHO]);
 #if GEOMETRY != CARTESIAN
   if (fA == NULL) {
     fA   = ARRAY_2D(NMAX_POINT, NVAR, double);
@@ -136,10 +136,12 @@ int *n;
 /* --------------------------------------------------
    1. Compute fluxes for passive scalars and dust
    -------------------------------------------------- */
-
+if (sig==1) printf ("RightHandSide (energy=%e density=%e)\n",sweep->rhs[2][ENG],sweep->rhs[2][RHO]);
 #if NSCL > 0
+printf ("BLAH\n");
   AdvectFlux (sweep, beg - 1, end, grid);
 #endif
+  if (sig==1) printf ("RightHandSide (energy=%e density=%e)\n",sweep->rhs[2][ENG],sweep->rhs[2][RHO]);
 
   i = g_i;  /* will be redefined during x1-sweep */
   j = g_j;  /* will be redefined during x2-sweep */
@@ -197,6 +199,7 @@ int *n;
     NVAR_LOOP(nv) rhs[i][nv] = -scrh*(flux[i][nv] - flux[i-1][nv]);
     #if USE_PRS_GRADIENT == YES
     rhs[i][MXn] -= scrh*(p[i] - p[i-1]);
+	if (sig==1 && i==2) printf ("RHS PRS grad energy=%e\n",sweep->rhs[i][ENG]);
     #endif
   }
 #else
@@ -205,17 +208,26 @@ int *n;
     for (i = beg; i <= end; i++){ 
       dtdV = dt/dV[k][j][i];
       dtdl = dt/dx1[i];
+  	if (sig==1 && i==2) printf ("RHS1 dens=%e\n",sweep->rhs[i][RHO]);
+	  
       NVAR_LOOP(nv) rhs[i][nv] = -dtdV*(fA[i][nv] - fA[i-1][nv]);
+  	if (sig==1 && i==2) printf ("RHS1 dens=%e\n",sweep->rhs[i][RHO]);
 
       #if USE_PRS_GRADIENT == YES
       rhs[i][MXn] -= dtdl*(p[i] - p[i-1]);
+  	if (sig==1 && i==2) printf ("RHS dtdl energy=%e\n",sweep->rhs[i][ENG]);
+	  
       #endif
       #ifdef GLM_MHD
+	  
       rhs[i][BXn] = -dtdl*(flux[i][BXn] - flux[i-1][BXn]);
       #endif
 
-      #ifdef iMPHI      
+      #ifdef iMPHI 
+	       
       rhs[i][iMPHI] /= fabs(x1[i]);
+  	if (sig==1 && i==2) printf ("RHS div by dr energy=%e\n",sweep->rhs[i][ENG]);
+	  
       #endif
  
       #if (GEOMETRY == POLAR || GEOMETRY == CYLINDRICAL) &&  (defined iBPHI) 
@@ -226,7 +238,9 @@ int *n;
              rhs[i][iBTH]  = -q*(fA[i][iBTH]  - fA[i-1][iBTH]);  ,
              rhs[i][iBPHI] = -q*(fA[i][iBPHI] - fA[i-1][iBPHI]);)
       #endif
+				 
     }  
+    if (sig==1) printf ("RHS I_DIR energy=%e\n",sweep->rhs[2][ENG]);
 
   }else if (g_dir == JDIR){
     
@@ -235,8 +249,10 @@ int *n;
     for (j = beg; j <= end; j++){ 
       dtdV = dt/dV[k][j][i];
       dtdl = dt/dx2[j]*dx_dl[j][i];
+    	if (sig==1 && j==2) printf ("RHSJ dens=%e\n",sweep->rhs[j][RHO]);
       
       NVAR_LOOP(nv) rhs[j][nv] = -dtdV*(fA[j][nv] - fA[j-1][nv]);
+    	if (sig==1 && j==2) printf ("RHSJ dens=%e dtdV=%e fA[j]=%e fA[j-1]=%e\n",sweep->rhs[j][RHO],dtdV,fA[j][RHO],fA[j-1][RHO]);
 
       #if USE_PRS_GRADIENT == YES
       rhs[j][MXn] -= dtdl*(p[j] - p[j-1]);
@@ -252,7 +268,9 @@ int *n;
       rhs[j][iBPHI] = -dtdl*(fA[j][iBPHI] - fA[j-1][iBPHI]);
       #endif  /* PHYSICS == MHD */
       #endif /* GEOMETRY == SPHERICAL  */
+	  
     }
+    if (sig==1) printf ("RHS J_DIR energy=%e\n",sweep->rhs[2][ENG]);
 
   }else if (g_dir == KDIR){
 
@@ -270,14 +288,17 @@ int *n;
       rhs[k][BXn] = -dtdl*(flux[k][BXn] - flux[k-1][BXn]);
       #endif
     }
+    if (sig==1) printf ("RHS K_DIR energy=%e\n",sweep->rhs[2][ENG]);
+	
   }
 #endif  /* GEOMETRY == CARTESIAN */
 
 /* --------------------------------------------------------------
    6. Add source terms
    -------------------------------------------------------------- */
-
-  RightHandSideSource (sweep, Dts, beg, end, dt, phi_p, grid);
+  if (sig==1) printf ("RHS B4 Source energy=%e\n",sweep->rhs[2][ENG]);
+  RightHandSideSource (sweep, Dts, beg, end, dt, phi_p, grid,sig);
+  if (sig==1) printf ("RHS AF Source energy=%e\n",sweep->rhs[2][ENG]);
 
 /* --------------------------------------------------
    7. Reset right hand side in internal boundary zones

@@ -62,6 +62,9 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
   static double ***C_dt;
   RBox  sweepBox;
 
+  printf ("In UDS  %e current E %e \n",g_time,UU[0][2][2][ENG]);
+
+
 #if DIMENSIONAL_SPLITTING == YES
   beg_dir = end_dir = g_dir;
 #else
@@ -117,6 +120,8 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
   }
 #endif
 
+
+
 /* --------------------------------------------------------
    2. Update conservative solution array with hyperbolic 
       terms only.
@@ -134,18 +139,14 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
   for (dir = beg_dir; dir <= end_dir; dir++){
 
     g_dir = dir;  
-
+	printf ("DIR=%i \n",g_dir);
   /* -- 2b. Set integration box for current update -- */
 
     RBoxDefine(IBEG, IEND, JBEG, JEND, KBEG, KEND, CENTER, &sweepBox);
     RBoxSetDirections (&sweepBox, g_dir);
     SetVectorIndices (g_dir);
 
-    #if (defined STAGGERED_MHD)
-    D_EXPAND(                                      ;  ,
-             (*sweepBox.tbeg)--; (*sweepBox.tend)++;  ,
-             (*sweepBox.bbeg)--; (*sweepBox.bend)++;)
-    #endif
+
     ResetState(d, &sweep, grid);
 
     int ntot = grid->np_tot[g_dir];
@@ -163,70 +164,40 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
         #endif
       }
 
-      #if (HALL_MHD == EXPLICIT)
-      double ***Jx = d->J[IDIR];
-      double ***Jy = d->J[JDIR];
-      double ***Jz = d->J[KDIR];
-      for ((*ip) = 0; (*ip) < ntot-1; (*ip)++) {
 
-        if (g_dir == IDIR){  
-          stateL->J[*ip][IDIR] = AVERAGE_XYZ(Jx,k-1,j-1,i);
-          stateL->J[*ip][JDIR] = AVERAGE_Z(Jy,k-1,j,i);
-          stateL->J[*ip][KDIR] = AVERAGE_Y(Jz,k,j-1,i);
-        }else if (g_dir == JDIR){  
-          stateL->J[*ip][IDIR] = AVERAGE_Z(Jx,k-1,j,i);
-          stateL->J[*ip][JDIR] = AVERAGE_XYZ(Jy,k-1,j,i-1);
-          stateL->J[*ip][KDIR] = AVERAGE_X(Jz,k,j,i-1);
-        }else if (g_dir == KDIR){  
-          stateL->J[*ip][IDIR] = AVERAGE_Y(Jx,k,j-1,i);
-          stateL->J[*ip][JDIR] = AVERAGE_X(Jy,k,j,i-1);
-          stateL->J[*ip][KDIR] = AVERAGE_XYZ(Jz,k,j-1,i-1);
-        }
-      }
-      #endif
-
-      #if (defined PARTICLES) && (PARTICLES_TYPE == COSMIC_RAYS)
-      Particles_CR_States1DCopy(d, &sweep, 1, ntot-2);
-      #endif
       
       CheckNaN (stateC->v, 0, ntot-1,0);
+	  
       States  (&sweep, nbeg - 1, nend + 1, grid);
+	  
       Riemann (&sweep, nbeg - 1, nend, Dts->cmax, grid);
-      #ifdef STAGGERED_MHD
-      CT_StoreUpwindEMF (&sweep, d->emf, nbeg - 1, nend, grid);
-      #endif
+      if (i==2 || j==2) {
+		  printf ("In UDS - about to go to RightHandSide RHS (sweep E=%e RHO=%e)\n",sweep.rhs[2][ENG],sweep.rhs[2][RHO]);
+		  RightHandSide (&sweep, Dts, nbeg, nend, dt, grid,1);
+		  printf ("In UDS - back from RHS RightHandSide RHS sweep E=%e RHO=%e\n",sweep.rhs[2][ENG],sweep.rhs[2][RHO]);
+		  
+	  }
+	  else {RightHandSide (&sweep, Dts, nbeg, nend, dt, grid,0);
+	  }
+		  
 
-      #if UPDATE_VECTOR_POTENTIAL == YES
-      VectorPotentialUpdate (d, NULL, &sweep, grid);
-      #endif
-      #ifdef SHEARINGBOX
-      SB_SaveFluxes (&sweep, grid);
-      #endif
-      RightHandSide (&sweep, Dts, nbeg, nend, dt, grid);
-      #if FORCED_TURB == YES
-      if (g_stepNumber%Ft->StirFreq == 0 ? 1:0){
-        ForcedTurb_CorrectRHS(d, &sweep, nbeg, nend, dt,  grid);
-      }  
-      #endif
+	  if (i==2 || j==2) printf ("In UDS2h  %e j=%3i i=%3i current E %e \n",g_time,j,i,UU[0][2][2][ENG]);
 
     /* -- Update:  U = U + dt*R -- */
 
       for ((*ip) = nbeg; (*ip) <= nend; (*ip)++) { 
+		  if (j==2 && i==2) {if (*ip==2) printf ("RHS energy=%e %i %i\n",sweep.rhs[*ip][ENG],j,i);}
         NVAR_LOOP(nv) UU[k][j][i][nv] += sweep.rhs[*ip][nv];
       }
-      #ifdef CHOMBO
-      for ((*ip) = nbeg-1; (*ip) <= nend; (*ip)++){
-        sweep.flux[*ip][MXn] += sweep.press[*ip];
-        #if HAVE_ENERGY && ENTROPY_SWITCH
-        sweep.flux[*ip][ENTR] = 0.0;
-        #endif
-      }   
-      StoreAMRFlux (sweep.flux, aflux, 0, 0, NVAR-1, nbeg-1, nend, grid);
-      #endif 
+	  
+	  if (i==2 || j==2) printf ("In UDS2i  %e j=%3i i=%3i current E %e \n",g_time,j,i,UU[0][2][2][ENG]);
+	  
+
 
     /* -- Compute inverse hyperbolic time step - */
 
       #if (DIMENSIONAL_SPLITTING == NO) && (DIMENSIONS > 1)
+	  
       if (g_intStage == 1){
         inv_dl = GetInverse_dl(grid);
         for ((*ip) = nbeg; (*ip) <= nend; (*ip)++) { 
@@ -239,8 +210,12 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
         Dts->invDt_hyp = MAX(Dts->invDt_hyp, Dts->cmax[*ip]*inv_dl[*ip]);
       }
       #endif
+	  
     }
   }
+
+
+  printf ("In UDS2  %e current E %e \n",g_time,UU[0][2][2][ENG]);
 
 /* --------------------------------------------------------
    3. Compute (hyperbolic) emf
@@ -249,6 +224,8 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
 #ifdef STAGGERED_MHD
   CT_ComputeEMF(d,grid);
 #endif
+
+
 
 /* --------------------------------------------------------
    4. Correct fluxes for shearingbox 
@@ -260,6 +237,8 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
   SB_CorrectEMF(d->emf, d->Vs, grid);
   #endif
 #endif
+  
+  
 
 /* ----------------------------------------------------------
    5. Update solution array with parabolic (diffusion) terms.
@@ -273,6 +252,8 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
   #endif
 #endif
 
+
+
 /* --------------------------------------------------------
    6. Update staggered magnetic field with total (hyp+par)
       emf. Note that this call cannot be moved before to
@@ -283,6 +264,8 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
 #ifdef STAGGERED_MHD
   CT_Update(d, d->Vs, dt, grid);
 #endif
+  
+  
 
 /* ---------------------------------------------------------------
    7. Update solution array with particle feedback
@@ -300,6 +283,8 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
   Particles_Dust_ConservativeFeedback (UU, d->Fdust, dt, &sweepBox);
   #endif
 #endif
+  
+  
 
 /* -------------------------------------------------------------------
    8. Reduce dt for dimensionally unsplit schemes.
@@ -311,4 +296,7 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
     Dts->invDt_hyp /= (double)DIMENSIONS;
   }
 #endif
+  
+  
+  
 }

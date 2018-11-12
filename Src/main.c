@@ -171,7 +171,15 @@ int main (int argc, char *argv[])
      ---------------------------------------------------- */
 
     if (cmd_line.jet != -1) SetJetDomain (&data, cmd_line.jet, ini.log_freq, grd); 
+	
+	printf ("B4 int %e density %e pressure %20.15e temp %e\n",g_time,data.Vc[RHO][0][2][2],data.Vc[PRS][0][2][2],KELVIN*0.6*data.Vc[PRS][0][2][2]/data.Vc[RHO][0][2][2]);
+	
+	
     err = Integrate (&data, Solver, &Dts, grd);
+	
+	printf ("AF int %e density %e pressure %20.15e temp %e\n",g_time,data.Vc[RHO][0][2][2],data.Vc[PRS][0][2][2],KELVIN*0.6*data.Vc[PRS][0][2][2]/data.Vc[RHO][0][2][2]);
+	
+	
     if (cmd_line.jet != -1) UnsetJetDomain (&data, cmd_line.jet, grd); 
 
   /* ----------------------------------------------------
@@ -226,6 +234,9 @@ int main (int argc, char *argv[])
     }
     #endif
 
+
+	printf ("time inc %e density %e pressure %e temp %e\n",g_time,data.Vc[RHO][0][2][2],data.Vc[PRS][0][2][2],KELVIN*0.6*data.Vc[PRS][0][2][2]/data.Vc[RHO][0][2][2]);
+
   /* ------------------------------------------------------
      2g. Get next time step dt(n+1).
          Do it every two steps if cooling or dimensional
@@ -240,6 +251,9 @@ int main (int argc, char *argv[])
 
     g_stepNumber++;
     first_step = 0;
+	
+	
+	printf ("\n");
   }
 
 /* =====================================================================
@@ -305,21 +319,17 @@ int Integrate (Data *d, Riemann_Solver *Solver, timeStep *Dts, Grid *grid)
   g_maxRiemannIter = 0;
   g_maxRootIter    = 0;
 	
-#ifdef PARTICLES 
-  #if (PARTICLES_TEST == YES)
-  Particles_CR_Update (d, Dts, g_dt, grid);
-  return 0;
-  #endif
-#endif
 
 /* --------------------------------------------------------
    1. Initialize max propagation speed in Dedner's approach
    -------------------------------------------------------- */
+printf ("TEST1  %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
 
 #ifdef GLM_MHD  /* -- initialize glm_ch -- */
   GLM_Init (d, Dts, grid);   
   GLM_Source (d->Vc, 0.5*g_dt, grid);
 #endif
+printf ("TEST2  %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
 
 /* --------------------------------------------------------
    2. Perform Strang Splitting on directions (if necessary)
@@ -327,34 +337,31 @@ int Integrate (Data *d, Riemann_Solver *Solver, timeStep *Dts, Grid *grid)
    -------------------------------------------------------- */
 
   TOT_LOOP(k,j,i) d->flag[k][j][i] = 0;
+printf ("TEST3  %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
 
-#ifdef FARGO
-  FARGO_ComputeVelocity(d, grid);
-#endif
+printf ("TEST4 g_stepNumber %li\n",g_stepNumber);
   
   if ((g_stepNumber%2) == 0){
     g_hydroStep = TRUE;
-    #if DIMENSIONAL_SPLITTING == YES
-    for (g_dir = 0; g_dir < DIMENSIONS; g_dir++){
-      if (AdvanceStep (d, Solver, Dts, grid) != 0) return (1);
-    }
-    #else
+	printf ("TEST4a  B4 adv%e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
     if (AdvanceStep (d, Solver, Dts, grid) != 0) return(1);
-    #endif
+	printf ("TEST4b  AF adv %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
     g_hydroStep = FALSE;
     SplitSource (d, g_dt, Dts, grid);
+	printf ("TEST4b AF SPl %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
+	
+
   }else{
-    g_hydroStep = FALSE;
+  	printf ("TEST4a B4 SPl  %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);	
+    
+	g_hydroStep = FALSE;
     SplitSource (d, g_dt, Dts, grid);
     g_hydroStep = TRUE;
-    #if DIMENSIONAL_SPLITTING == YES
-    for (g_dir = DIMENSIONS - 1; g_dir >= 0; g_dir--){
-      if (AdvanceStep(d, Solver, Dts, grid) != 0) return (1);
-    }
-    #else
-    if (AdvanceStep (d, Solver, Dts, grid) != 0) return(1);
-    #endif
-  }       
+
+	printf ("TEST4b B4 adv  %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);	
+    if (AdvanceStep (d, Solver, Dts, grid) != 0) return(1);	
+	printf ("TEST4c AF adv  %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
+	  }       
 
 #ifdef GLM_MHD  /* -- GLM source for dt/2 -- */
   GLM_Source (d->Vc, 0.5*g_dt, grid);

@@ -69,7 +69,7 @@
 
 /* *********************************************************************** */
 void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
-                          int beg, int end, double dt, double *phi_p, Grid *grid)
+                          int beg, int end, double dt, double *phi_p, Grid *grid, int sig)
 /*! 
  *
  * \param [in,out]  state  pointer to State_1D structure
@@ -114,6 +114,8 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
   double **Bg0, **wA, w, wp, vphi, phi_c;
   double vc[NVAR], *vg;
 
+  if (sig==1) printf ("In RHSSource   %e\n",sweep->rhs[2][ENG]);
+
 #ifdef FARGO
   wA = FARGO_GetVelocity();
 #endif
@@ -133,7 +135,11 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
   j = g_j;  /* will be redefined during x2-sweep */
   k = g_k;  /* will be redefined during x3-sweep */
   
+
+  
+  
   if (g_dir == IDIR){
+	  if (sig==1) printf ("IDIR %i beg %i end %i\n",g_dir,beg,end);
 
     for (i = beg; i <= end; i++) {
       dtdx = dt/dx1[i];
@@ -198,6 +204,7 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
       rhs[i][MX1] += dt*Sm*r_1;
 
 #endif
+	  if (sig==1 && i==2) printf ("In RHSSource 1 %e\n",sweep->rhs[2][ENG]);
 
     /* ----------------------------------------------------
        I2. Modify rhs to enforce conservation
@@ -207,6 +214,9 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
       rhs[i][iMPHI] -= w*rhs[i][RHO];
       IF_ENERGY(rhs[i][ENG] -= w*(rhs[i][iMPHI] + 0.5*w*rhs[i][RHO]);)
 #endif
+
+		  if (sig==1 && i==2) printf ("In RHSSource 2 %e\n",sweep->rhs[2][ENG]);
+
 
     /* ----------------------------------------------------
        I3. Include body forces
@@ -239,6 +249,8 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
     }
     
   } else if (g_dir == JDIR){
+	  if (sig==1) printf ("JDIR %i beg %i end %i\n",g_dir,beg,end);
+	  
 
     scrh = dt;
 #if GEOMETRY == POLAR
@@ -250,6 +262,8 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
 #endif
     for (j = beg; j <= end; j++) {
       dtdx = scrh/dx2[j];
+
+	  if (sig==1 && j==2) printf ("In RHSSource 3 %e\n",sweep->rhs[2][ENG]);
 
     /* --------------------------------------------
        J1. Add geometrical source terms
@@ -284,6 +298,9 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
       Sm += EXPAND(0.0, +    TotBB(vc, Bg0[j], iBTH, iBR), 
                         - ct*TotBB(vc, Bg0[j], iBPHI, iBPHI));
       rhs[j][MX2] += dt*Sm*r_1;
+	  
+	  if (sig==1 && j==2) printf ("In RHSSource 4 %e\n",sweep->rhs[2][ENG]);
+	  
 
     /* ----------------------------------------------------
        J2. Modify rhs to enforce conservation
@@ -295,6 +312,9 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
   #endif
 
 #endif  /* GEOMETRY == SPHERICAL */
+
+		  if (sig==1 && j==2) printf ("In RHSSource 5 %e\n",sweep->rhs[2][ENG]);
+
 
     /* ----------------------------------------------------
        J3. Include Body force
@@ -312,16 +332,24 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
       IF_ENERGY(rhs[j][ENG] += dt*vg[RHO]*vg[VX3]*g[KDIR];)
       #endif
 #endif
+  		  if (sig==1 && j==2) printf ("In RHSSource 5a %e\n",sweep->rhs[2][ENG]);
 
 #if (BODY_FORCE & POTENTIAL)
       rhs[j][MX2]   -= dtdx*vg[RHO]*(phi_p[j] - phi_p[j-1]);
+ 	 if (sig==1 && j==2) printf ("In BodyForcePot phi_p[j]=%e phi_p[j-1]=%e %i %e %i %e\n",phi_p[j],phi_p[j-1],MX2,rhs[j][MX2],RHO,rhs[j][RHO]);
+	  
       IF_ENERGY(phi_c        = BodyForcePotential(x1[i], x2[j], x3[k]); 
+	 if (sig==1 && j==2) printf ("In BodyForcePot = %e rho= %e RHS=%e\n",phi_c,rhs[j][RHO],phi_c*rhs[j][RHO]);
+	 if (sig==1 && j==2 && rhs[j][RHO]<0.0) printf ("BOOM %e dir=%i\n",rhs[j][RHO],g_dir);
+	  
                 rhs[j][ENG] -= phi_c*rhs[j][RHO];)
 #endif
+					
+		 if (sig==1 && j==2) printf ("In RHSSource 5b %e\n",sweep->rhs[2][ENG]);
+					
     }
 
   }else if (g_dir == KDIR){
-
     scrh  = dt;
 #if GEOMETRY == SPHERICAL
     scrh *= dx2[j]/(rt[i]*dmu[j]);
@@ -363,6 +391,10 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
     }
   }
 
+
+
+  if (sig==1) printf ("In RHSSource 6 %e\n",sweep->rhs[2][ENG]);
+
 /* --------------------------------------------------
               Powell's source terms
    -------------------------------------------------- */
@@ -381,6 +413,8 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
   #endif
   }
 #endif
+  if (sig==1) printf ("In RHSSource 7 %e\n",sweep->rhs[2][ENG]);
+  
 
 /* -------------------------------------------------
             Extended GLM source terms

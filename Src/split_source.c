@@ -40,7 +40,7 @@ void SplitSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
 /*  ---------------------------------------------
              Cooling/Heating losses
     ---------------------------------------------  */
-
+	printf ("In Splitsource B4 cooling, pressure=%20.15e\n",d->Vc[PRS][0][2][2]);
 #if COOLING != NO
   #if COOLING == POWER_LAW  /* -- solve exactly -- */
   PowerLawCooling (d->Vc, dt, Dts, grid);
@@ -52,6 +52,7 @@ void SplitSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
   CoolingSource (d, dt, Dts, grid);
   #endif
 #endif
+printf ("In Splitsource AF cooling, pressure=%20.15e\n",d->Vc[PRS][0][2][2]);
 
 /* ----------------------------------------------
     Parabolic terms using STS:
@@ -62,10 +63,13 @@ void SplitSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
    ---------------------------------------------- */
 
 #if (PARABOLIC_FLUX & SUPER_TIME_STEPPING)
+printf ("BLAH1\n");
   STS (d, dt, Dts, grid);
 #endif
 
 #if (PARABOLIC_FLUX & RK_LEGENDRE)
+  printf ("BLAH2\n");
+  
   RKL (d, dt, Dts, grid);
 #endif
 

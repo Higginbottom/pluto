@@ -145,9 +145,9 @@ void   RestartFromFile (Runtime *, int, int, Grid *);
 void   RestartDump     (Runtime *);
 void   RestartGet      (Runtime *, int, int, int);
 
-void   RightHandSide (const Sweep *, timeStep *, int, int, double, Grid *);
+void   RightHandSide (const Sweep *, timeStep *, int, int, double, Grid *,int);
 void   RightHandSideSource (const Sweep *, timeStep *, int, int, double,
-                          double *, Grid *);
+                          double *, Grid *,int);
 void     RKC (const Data *d, double, timeStep *, Grid *);
 void     RKL (const Data *d, double, timeStep *, Grid *);
 
