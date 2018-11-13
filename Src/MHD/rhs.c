@@ -133,28 +133,12 @@ int *n;
 #endif
   if (phi_p == NULL) phi_p = ARRAY_1D(NMAX_POINT, double);
 
-/* --------------------------------------------------
-   1. Compute fluxes for passive scalars and dust
-   -------------------------------------------------- */
-if (sig==1) printf ("RightHandSide (energy=%e density=%e)\n",sweep->rhs[2][ENG],sweep->rhs[2][RHO]);
-#if NSCL > 0
-printf ("BLAH\n");
-  AdvectFlux (sweep, beg - 1, end, grid);
-#endif
-  if (sig==1) printf ("RightHandSide (energy=%e density=%e)\n",sweep->rhs[2][ENG],sweep->rhs[2][RHO]);
 
   i = g_i;  /* will be redefined during x1-sweep */
   j = g_j;  /* will be redefined during x2-sweep */
   k = g_k;  /* will be redefined during x3-sweep */
   
-/* ------------------------------------------------
-   2. Add pressure to normal component of 
-      momentum flux if necessary.
-   ------------------------------------------------ */
 
-#if USE_PRS_GRADIENT == NO
-  for (i = beg - 1; i <= end; i++) flux[i][MXn] += p[i];
-#endif
 
 /* --------------------------------------------------------
    3. Compute gravitational potential at cell interfaces

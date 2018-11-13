@@ -138,9 +138,9 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
       States  (&sweep, nbeg - 1, nend + 1, grid);
 		if (i==2 || j==2) printf ("Back from States\n");
 		
-	  if (i==2 || j==2) printf ("BLAH off to riemann i=%i j=%i k=%i beg=%i end=%i\n",i,j,k,nbeg-1,nend);
+	  if (i==2 || j==2) printf ("Off to riemann i=%i j=%i k=%i beg=%i end=%i\n",i,j,k,nbeg-1,nend);
       Riemann (&sweep, nbeg - 1, nend, Dts->cmax, grid);
-	  if (i==2 || j==2) printf ("BLAH back from riemann cmax=%e\n",Dts->cmax);
+	  if (i==2 || j==2) printf ("Back from riemann cmax=%e\n",Dts->cmax);
 	  
 	  
 	  
