@@ -99,27 +99,17 @@ Uhalf = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);
 
   printf ("B4 PTC  %e old Pres %e current E %e \n",g_time,d->Vc[PRS][0][2][2],d->Uc[0][2][2][ENG]);
    PrimToCons3D(d->Vc, d->Uc, &box);
+   
+   printf ("PTC KE=%e INTE=%e\n",0.5*d->Vc[RHO][0][2][2]*(d->Vc[VX1][0][2][2]*d->Vc[VX1][0][2][2]+d->Vc[VX2][0][2][2]*d->Vc[VX2][0][2][2]+d->Vc[VX3][0][2][2]*d->Vc[VX3][0][2][2]),d->Vc[PRS][0][2][2]/(g_gamma - 1.0));
+   
+   
    printf ("AF PTC  %e old Pres %e current E %e \n",g_time,d->Vc[PRS][0][2][2],d->Uc[0][2][2][ENG]);
    
   KDOM_LOOP(k) JDOM_LOOP(j){
     memcpy ((void *)U0[k][j][IBEG], d->Uc[k][j][IBEG], NX1*NVAR*sizeof(double));
   }
 
-  #ifdef STAGGERED_MHD
-  DIM_LOOP(nv) TOT_LOOP(k,j,i) Bs0[nv][k][j][i] = d->Vs[nv][k][j][i];
-  #endif
 
-/* -- 1c. Compute Particles feedback / Advance with pred. step -- */
-
-#ifdef PARTICLES
-  #if PARTICLES_TYPE == COSMIC_RAYS
-  Particles_CR_ComputeForce (d->Vc, d, grid);
-  #elif PARTICLES_TYPE == DUST
-  Particles_Dust_ComputeForce (d->Vc, d, grid);
-  #elif PARTICLES_TYPE == LAGRANGIAN
-  Particles_LP_Predictor(d, Dts, g_dt, grid);
-  #endif
-#endif
 
 /* -- 1d. Advance conservative variables array -- */
   printf ("B4 UDS  %e density %e pressure %e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);

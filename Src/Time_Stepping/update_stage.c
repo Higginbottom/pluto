@@ -93,32 +93,6 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
   }
 #endif
 
-/* --------------------------------------------------------
-   1. Compute Fcr force only at predictor step
-      (g_intStage == 1).
-   -------------------------------------------------------- */
-
-#ifdef PARTICLES
-  #if PARTICLES_TYPE == COSMIC_RAYS
-  if (g_intStage == 1) Particles_CR_ComputeForce (d->Vc, d, grid);
-  #elif PARTICLES_TYPE == DUST
-  if (g_intStage == 1) Particles_Dust_ComputeForce (d->Vc, d, grid);
-  #endif
-#endif
-
-#if FORCED_TURB == YES
-  ForcedTurb *Ft;
-  Ft = d->Ft;
-
-/* Force only at every St_Decay Time interval */
-
-  if(g_stepNumber%Ft->StirFreq == 0 ? 1:0){
-    ForcedTurb_OUNoiseUpdate(Ft->OUPhases, 6*(Ft->NModes), Ft->OUVar,
-                             Ft->StirFreq*dt, Ft->StirDecay);
-    ForcedTurb_CalcPhases(Ft);
-    ForcedTurb_ComputeAcceleration(Ft, grid);
-  }
-#endif
 
 
 
@@ -127,14 +101,7 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
       terms only.
    -------------------------------------------------------- */
 
-  /* -- 2a. Compute current for Hall MHD -- */
   
-  #if (HALL_MHD == EXPLICIT)
-  #ifdef STAGGERED_MHD
-    #error HALL_MHD not compatible with CT scheme
-  #endif
-  GetCurrent (d, grid);
-  #endif
 
   for (dir = beg_dir; dir <= end_dir; dir++){
 
@@ -169,8 +136,9 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
       CheckNaN (stateC->v, 0, ntot-1,0);
 	  
       States  (&sweep, nbeg - 1, nend + 1, grid);
-	  
+	  printf ("BLAH off to riemann i=%i j=%i k=%i\n",i,j,k);
       Riemann (&sweep, nbeg - 1, nend, Dts->cmax, grid);
+	  printf ("BLAH back from riemann cmax=%e\n",Dts->cmax);
       if (i==2 || j==2) {
 		  printf ("In UDS - about to go to RightHandSide RHS (sweep E=%e RHO=%e)\n",sweep.rhs[2][ENG],sweep.rhs[2][RHO]);
 		  RightHandSide (&sweep, Dts, nbeg, nend, dt, grid,1);
@@ -217,73 +185,7 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
 
   printf ("In UDS2  %e current E %e \n",g_time,UU[0][2][2][ENG]);
 
-/* --------------------------------------------------------
-   3. Compute (hyperbolic) emf
-   -------------------------------------------------------- */
 
-#ifdef STAGGERED_MHD
-  CT_ComputeEMF(d,grid);
-#endif
-
-
-
-/* --------------------------------------------------------
-   4. Correct fluxes for shearingbox 
-   -------------------------------------------------------- */
-
-#ifdef SHEARINGBOX
-  SB_CorrectFluxes (UU, 0.0, dt, grid);
-  #ifdef STAGGERED_MHD
-  SB_CorrectEMF(d->emf, d->Vs, grid);
-  #endif
-#endif
-  
-  
-
-/* ----------------------------------------------------------
-   5. Update solution array with parabolic (diffusion) terms.
-   ---------------------------------------------------------- */
-
-#if (PARABOLIC_FLUX & EXPLICIT)
-  RBoxDefine (IBEG, IEND, JBEG, JEND, KBEG, KEND, CENTER, &sweepBox);
-  ParabolicUpdate (d, UU, &sweepBox, aflux, dt, Dts, grid);
-  #if (defined STAGGERED_MHD) && (RESISTIVITY == EXPLICIT)
-  CT_ResistiveEMF (d, 1, grid);
-  #endif
-#endif
-
-
-
-/* --------------------------------------------------------
-   6. Update staggered magnetic field with total (hyp+par)
-      emf. Note that this call cannot be moved before to
-      ParabolicUpdate() which may compute J based on the
-      current value of d->Vs.
-   -------------------------------------------------------- */
-
-#ifdef STAGGERED_MHD
-  CT_Update(d, d->Vs, dt, grid);
-#endif
-  
-  
-
-/* ---------------------------------------------------------------
-   7. Update solution array with particle feedback
-      (note that, at corrector, d->Fcr is computed from
-       total momentum variation in the particle pusher).
-   --------------------------------------------------------------- */
-
-#ifdef PARTICLES
-  #if (PARTICLES_TYPE == COSMIC_RAYS) && (PARTICLES_CR_FEEDBACK == YES)
-  RBoxDefine(IBEG, IEND, JBEG, JEND, KBEG, KEND, CENTER, &sweepBox);
-  Particles_CR_ConservativeFeedback (UU, d->Fcr, dt, &sweepBox);
-  #endif
-  #if (PARTICLES_TYPE == DUST) && (PARTICLES_DUST_FEEDBACK == YES)
-  RBoxDefine(IBEG, IEND, JBEG, JEND, KBEG, KEND, CENTER, &sweepBox);
-  Particles_Dust_ConservativeFeedback (UU, d->Fdust, dt, &sweepBox);
-  #endif
-#endif
-  
   
 
 /* -------------------------------------------------------------------
@@ -291,6 +193,7 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
    ------------------------------------------------------------------- */
 
 #if (DIMENSIONAL_SPLITTING == NO) && (DIMENSIONS > 1)
+  
   if (g_intStage == 1){
     DOM_LOOP(k,j,i) Dts->invDt_hyp = MAX(Dts->invDt_hyp, C_dt[k][j][i]);
     Dts->invDt_hyp /= (double)DIMENSIONS;

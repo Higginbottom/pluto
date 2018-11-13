@@ -37,8 +37,7 @@ void PrimToCons (double **uprim, double **ucons, int ibeg, int iend)
   int  i, nv, status;
   double *v, *u;
   double rho, rhoe, T, gmm1;
-
-  #if EOS == IDEAL
+#if EOS == IDEAL
    gmm1 = g_gamma - 1.0;
   #endif
   for (i = ibeg; i <= iend; i++) {
