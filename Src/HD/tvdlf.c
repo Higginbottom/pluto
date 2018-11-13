@@ -61,7 +61,6 @@ void LF_Solver (const Sweep *sweep, int beg, int end,
   static double **vRL;
   static double *cRL_min, *cRL_max;
   double *vR, *vL, *uR, *uL;
-  printf ("BLAH in LF_Solver solver\n");
   
   if (vRL == NULL){
     vRL = ARRAY_2D(NMAX_POINT, NFLX, double);

@@ -105,6 +105,8 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
   PLM_Coeffs plm_coeffs;
   static double **dv;
 
+
+
 #if LIMITER == FOURTH_ORDER_LIM
   FourthOrderLinear(sweep, beg, end, grid);
   return;
@@ -130,8 +132,9 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
 /* -------------------------------------------
    1. Compute undivided differences
    ------------------------------------------- */
-
   for (i = beg-1; i <= end; i++){
+	 if (i==2) {printf ("States var %i v[i+1][nv]=%e v[i][nv]=%e\n",0,v[i+1][nv],v[i][nv]);}
+	  
     NVAR_LOOP(nv)  dv[i][nv] = v[i+1][nv] - v[i][nv];
   }
 

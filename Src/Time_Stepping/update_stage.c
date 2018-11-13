@@ -134,11 +134,16 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
 
       
       CheckNaN (stateC->v, 0, ntot-1,0);
-	  
+		if (i==2 || j==2) printf ("Going to States\n");
       States  (&sweep, nbeg - 1, nend + 1, grid);
-	  printf ("BLAH off to riemann i=%i j=%i k=%i\n",i,j,k);
+		if (i==2 || j==2) printf ("Back from States\n");
+		
+	  if (i==2 || j==2) printf ("BLAH off to riemann i=%i j=%i k=%i beg=%i end=%i\n",i,j,k,nbeg-1,nend);
       Riemann (&sweep, nbeg - 1, nend, Dts->cmax, grid);
-	  printf ("BLAH back from riemann cmax=%e\n",Dts->cmax);
+	  if (i==2 || j==2) printf ("BLAH back from riemann cmax=%e\n",Dts->cmax);
+	  
+	  
+	  
       if (i==2 || j==2) {
 		  printf ("In UDS - about to go to RightHandSide RHS (sweep E=%e RHO=%e)\n",sweep.rhs[2][ENG],sweep.rhs[2][RHO]);
 		  RightHandSide (&sweep, Dts, nbeg, nend, dt, grid,1);
