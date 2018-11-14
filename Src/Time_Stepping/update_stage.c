@@ -170,7 +170,6 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
     /* -- Compute inverse hyperbolic time step - */
 
       #if (DIMENSIONAL_SPLITTING == NO) && (DIMENSIONS > 1)
-	  
       if (g_intStage == 1){
         inv_dl = GetInverse_dl(grid);
         for ((*ip) = nbeg; (*ip) <= nend; (*ip)++) { 

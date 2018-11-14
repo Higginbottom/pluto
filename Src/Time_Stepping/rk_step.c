@@ -117,25 +117,9 @@ Uhalf = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);
   UpdateStage(d, d->Uc, NULL, Riemann, g_dt, Dts, grid);
   printf ("AF UDS  %e density %e pressure %e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
   
-#ifdef STAGGERED_MHD
-  CT_AverageMagneticField (d->Vs, d->Uc, grid);
-#endif
 
-/* -- 1e. Advance particles by a full step -- */
 
-#ifdef PARTICLES
-  #if (PARTICLES_TYPE == COSMIC_RAYS) || (PARTICLES_TYPE == DUST)
-  TOT_LOOP(k,j,i) NVAR_LOOP(nv) {
-    Uhalf[k][j][i][nv] = 0.5*(U0[k][j][i][nv] + d->Uc[k][j][i][nv]);
-  }
-  ConsToPrim3D (Uhalf, d->Vc, d->flag,&box);
-  #endif
-  #if PARTICLES_TYPE == COSMIC_RAYS
-  Particles_CR_Update(d, Dts, g_dt, grid);
-  #elif PARTICLES_TYPE == DUST
-  Particles_Dust_Update(d, Dts, g_dt, grid);
-  #endif
-#endif
+
  
 /* -- 1f. Convert to primitive vars -- */
   printf ("B4 CTP  %e old Pres %e current E %e \n",g_time,d->Vc[PRS][0][2][2],d->Uc[0][2][2][ENG]);
@@ -147,7 +131,7 @@ Uhalf = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);
    -------------------------------------------------------- */
 
 #if (TIME_STEPPING == RK2) || (TIME_STEPPING == RK3)
-
+  printf ("BLAH\n");
 /* -- 2a. Set boundary conditions -- */
 
   g_intStage = 2;
