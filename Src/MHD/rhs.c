@@ -125,7 +125,7 @@ int *n;
 /* --------------------------------------------------
    0. Allocate memory
    -------------------------------------------------- */
-  if (sig==1)printf ("RHS beg=%i end=%i g_i=%i g_j=%i g_k=%i RHO=%e\n",beg,end,g_i,g_j,g_k,sweep->rhs[2][RHO]);
+//  if (sig==1)printf ("RHS beg=%i end=%i g_i=%i g_j=%i g_k=%i RHO=%e\n",beg,end,g_i,g_j,g_k,sweep->rhs[2][RHO],sweep->rhs[2][ENG]);
 #if GEOMETRY != CARTESIAN
   if (fA == NULL) {
     fA   = ARRAY_2D(NMAX_POINT, NVAR, double);
@@ -183,8 +183,7 @@ int *n;
     NVAR_LOOP(nv) rhs[i][nv] = -scrh*(flux[i][nv] - flux[i-1][nv]);
     #if USE_PRS_GRADIENT == YES
     rhs[i][MXn] -= scrh*(p[i] - p[i-1]);
-	if (sig==1 && i==2) printf ("RHS PRS grad energy=%e\n",sweep->rhs[i][ENG]);
-    #endif
+#endif
   }
 #else
   if (g_dir == IDIR){
@@ -192,39 +191,37 @@ int *n;
     for (i = beg; i <= end; i++){ 
       dtdV = dt/dV[k][j][i];
       dtdl = dt/dx1[i];
-  	if (sig==1 && i==2) printf ("RHS1 dens=%e\n",sweep->rhs[i][RHO]);
+ //   	if (sig==1 && i==2) printf ("RHS dtdV=%e dtdl=%e\n",dtdV,dtdl);
 	  
+  //		if (sig==1 && i==2) printf ("RHS1 dens=%e\n",sweep->rhs[i][RHO]);
+		
+  		if (sig==1 && i==2) printf ("dir=%i RHO=%i ENG=%i MXn=%i iMPHI=%i\n",g_dir,RHO,ENG,MXn,iMPHI);
+		
+		
+		
+		
       NVAR_LOOP(nv) rhs[i][nv] = -dtdV*(fA[i][nv] - fA[i-1][nv]);
-  	if (sig==1 && i==2) printf ("RHS1 dens=%e\n",sweep->rhs[i][RHO]);
+ 	if (sig==1 && i==2)	NVAR_LOOP(nv) printf ("RHS nv=%i rhs[i][nv]=%e\n",nv,rhs[i][nv]);
+	  
+ // 	if (sig==1 && i==2) printf ("RHS1 dens=%e\n",sweep->rhs[i][RHO]);
 
       #if USE_PRS_GRADIENT == YES
+//  	if (sig==1 && i==2) printf ("RHS B4 PRS grad energy=%e dt=%e dx[i]=%e p[i]=%e p[i+1]=%e\n",sweep->rhs[i][ENG],dt,dx[i],p[i],p[i+1]);	
       rhs[i][MXn] -= dtdl*(p[i] - p[i-1]);
-  	if (sig==1 && i==2) printf ("RHS dtdl energy=%e\n",sweep->rhs[i][ENG]);
+//  	if (sig==1 && i==2) printf ("RHS AF PRS grad energy=%e dt=%e dx[i]=%e p[i]=%e p[i+1]=%e\n",sweep->rhs[i][ENG],dt,dx[i],p[i],p[i+1]);
 	  
       #endif
-      #ifdef GLM_MHD
-	  
-      rhs[i][BXn] = -dtdl*(flux[i][BXn] - flux[i-1][BXn]);
-      #endif
+      
 
       #ifdef iMPHI 
 	       
       rhs[i][iMPHI] /= fabs(x1[i]);
-  	if (sig==1 && i==2) printf ("RHS div by dr energy=%e\n",sweep->rhs[i][ENG]);
 	  
       #endif
  
-      #if (GEOMETRY == POLAR || GEOMETRY == CYLINDRICAL) &&  (defined iBPHI) 
-      rhs[i][iBPHI] = -dtdl*(fA[i][iBPHI] - fA[i-1][iBPHI]);
-      #elif (GEOMETRY == SPHERICAL) && (PHYSICS == MHD)
-      q = dtdl/x1[i];
-      EXPAND(                                                    ,
-             rhs[i][iBTH]  = -q*(fA[i][iBTH]  - fA[i-1][iBTH]);  ,
-             rhs[i][iBPHI] = -q*(fA[i][iBPHI] - fA[i-1][iBPHI]);)
-      #endif
 				 
     }  
-    if (sig==1) printf ("RHS I_DIR energy=%e\n",sweep->rhs[2][ENG]);
+   if (sig==1) printf ("RHS I_DIR energy=%e\n",sweep->rhs[2][ENG]);
 
   }else if (g_dir == JDIR){
     
@@ -233,8 +230,11 @@ int *n;
     for (j = beg; j <= end; j++){ 
       dtdV = dt/dV[k][j][i];
       dtdl = dt/dx2[j]*dx_dl[j][i];
-    	if (sig==1 && j==2) printf ("RHSJ dens=%e\n",sweep->rhs[j][RHO]);
+ //   	if (sig==1 && j==2) printf ("RHSJ dens=%e\n",sweep->rhs[j][RHO]);
       
+  		if (sig==1 && j==2) printf ("dir=%i RHO=%i ENG=%i MXn=%i iMPHI=%i\n",g_dir,RHO,ENG,MXn,iMPHI);
+	  
+	  
       NVAR_LOOP(nv) rhs[j][nv] = -dtdV*(fA[j][nv] - fA[j-1][nv]);
     	if (sig==1 && j==2) printf ("RHSJ dens=%e dtdV=%e fA[j]=%e fA[j-1]=%e\n",sweep->rhs[j][RHO],dtdV,fA[j][RHO],fA[j-1][RHO]);
 
