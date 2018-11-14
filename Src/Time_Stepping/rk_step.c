@@ -41,10 +41,9 @@ int AdvanceStep (Data *d, Riemann_Solver *Riemann,
   static double  one_third = 1.0/3.0;
   static Data_Arr U0, Bs0;
   RBox   box;
-
-  printf ("IN ADV  %e density %e pressure %e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
-
-static Data_Arr Uhalf;
+  printf ("ADV\n");
+  printf ("IN ADV      %e density  %e pressure  %e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
+	static Data_Arr Uhalf;
   
   RBoxDefine (IBEG, IEND, JBEG, JEND, KBEG, KEND, CENTER, &box);
 
@@ -83,7 +82,7 @@ Uhalf = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);
    -------------------------------------------------------- */
 
 /* -- 1a. Set boundary conditions -- */
-  printf ("B4 BC  %e density %e pressure %e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
+  printf ("ADV B4 BC   %e density  %e pressure  %e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
 
   g_intStage = 1;  
   Boundary (d, ALL_DIR, grid);
@@ -91,19 +90,15 @@ Uhalf = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);
   FlagShock (d, grid);
   #endif
 
-  printf ("AF BC  %e density %e pressure %e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
+  printf ("ADV AF BC   %e density  %e pressure  %e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
 
 
 /* -- 1b. Convert primitive to conservative, save initial stage  -- */
 
 
-  printf ("B4 PTC  %e old Pres %e current E %e \n",g_time,d->Vc[PRS][0][2][2],d->Uc[0][2][2][ENG]);
+  printf ("ADV B4 PTC  %e density  %e pressure  %e current E %e \n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],d->Uc[0][2][2][ENG]);
    PrimToCons3D(d->Vc, d->Uc, &box);
-   
-   printf ("PTC KE=%e INTE=%e\n",0.5*d->Vc[RHO][0][2][2]*(d->Vc[VX1][0][2][2]*d->Vc[VX1][0][2][2]+d->Vc[VX2][0][2][2]*d->Vc[VX2][0][2][2]+d->Vc[VX3][0][2][2]*d->Vc[VX3][0][2][2]),d->Vc[PRS][0][2][2]/(g_gamma - 1.0));
-   
-   
-   printf ("AF PTC  %e old Pres %e current E %e \n",g_time,d->Vc[PRS][0][2][2],d->Uc[0][2][2][ENG]);
+   printf ("ADV AF PTC  %e density  %e pressure  %e current E %e KE=%e INTE=%e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],d->Uc[0][2][2][ENG],0.5*d->Vc[RHO][0][2][2]*(d->Vc[VX1][0][2][2]*d->Vc[VX1][0][2][2]+d->Vc[VX2][0][2][2]*d->Vc[VX2][0][2][2]+d->Vc[VX3][0][2][2]*d->Vc[VX3][0][2][2]),d->Vc[PRS][0][2][2]/(g_gamma - 1.0));
    
   KDOM_LOOP(k) JDOM_LOOP(j){
     memcpy ((void *)U0[k][j][IBEG], d->Uc[k][j][IBEG], NX1*NVAR*sizeof(double));
@@ -112,131 +107,22 @@ Uhalf = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);
 
 
 /* -- 1d. Advance conservative variables array -- */
-  printf ("B4 UDS  %e density %e pressure %e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
-
+  printf ("ADV B4 UDS  %e density  %e pressure  %e current E %e KE=%e INTE=%e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],d->Uc[0][2][2][ENG],0.5*d->Vc[RHO][0][2][2]*(d->Vc[VX1][0][2][2]*d->Vc[VX1][0][2][2]+d->Vc[VX2][0][2][2]*d->Vc[VX2][0][2][2]+d->Vc[VX3][0][2][2]*d->Vc[VX3][0][2][2]),d->Vc[PRS][0][2][2]/(g_gamma - 1.0));
   UpdateStage(d, d->Uc, NULL, Riemann, g_dt, Dts, grid);
-  printf ("AF UDS  %e density %e pressure %e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
+  printf ("ADV AF UDS  %e density  %e pressure  %e current E %e KE=%e INTE=%e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],d->Uc[0][2][2][ENG],0.5*d->Vc[RHO][0][2][2]*(d->Vc[VX1][0][2][2]*d->Vc[VX1][0][2][2]+d->Vc[VX2][0][2][2]*d->Vc[VX2][0][2][2]+d->Vc[VX3][0][2][2]*d->Vc[VX3][0][2][2]),d->Vc[PRS][0][2][2]/(g_gamma - 1.0));
   
 
 
 
  
 /* -- 1f. Convert to primitive vars -- */
-  printf ("B4 CTP  %e old Pres %e current E %e \n",g_time,d->Vc[PRS][0][2][2],d->Uc[0][2][2][ENG]);
+  printf ("ADV B4 CTP  %e density  %e pressure  %e current E %e KE=%e INTE=%e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],d->Uc[0][2][2][ENG],0.5*d->Vc[RHO][0][2][2]*(d->Vc[VX1][0][2][2]*d->Vc[VX1][0][2][2]+d->Vc[VX2][0][2][2]*d->Vc[VX2][0][2][2]+d->Vc[VX3][0][2][2]*d->Vc[VX3][0][2][2]),d->Vc[PRS][0][2][2]/(g_gamma - 1.0));
   ConsToPrim3D (d->Uc, d->Vc, d->flag, &box);
-  printf ("AF CTP  %e old Pres %e current E %e \n",g_time,d->Vc[PRS][0][2][2],d->Uc[0][2][2][ENG]);
+  printf ("ADV AF CTP  %e density  %e pressure  %e current E %e KE=%e INTE=%e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],d->Uc[0][2][2][ENG],0.5*d->Vc[RHO][0][2][2]*(d->Vc[VX1][0][2][2]*d->Vc[VX1][0][2][2]+d->Vc[VX2][0][2][2]*d->Vc[VX2][0][2][2]+d->Vc[VX3][0][2][2]*d->Vc[VX3][0][2][2]),d->Vc[PRS][0][2][2]/(g_gamma - 1.0));
 
-/* --------------------------------------------------------
-   2. Corrector step (RK2, RK3)
-   -------------------------------------------------------- */
+  printf ("ADV end     %e density  %e pressure  %e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
 
-#if (TIME_STEPPING == RK2) || (TIME_STEPPING == RK3)
-  printf ("BLAH\n");
-/* -- 2a. Set boundary conditions -- */
 
-  g_intStage = 2;
-  Boundary (d, ALL_DIR, grid);
-
-/* -- 2b. Advance Particles -- */
-
-  #if (defined PARTICLES) && (PARTICLES_TYPE == LAGRANGIAN)
-  Particles_LP_Corrector(d, Dts, g_dt, grid);
-  #endif
-
-/* -- 2c. need an extra conversion if INTERNAL_BOUNDARY is enabled 
-         [note: done only with dimensional splitting for backward compat.] -- */
-
-  #if (INTERNAL_BOUNDARY == YES) && (DIMENSIONAL_SPLITTING == YES)
-  PrimToCons3D (d->Vc, d->Uc, &box);
-  #endif   
-
-/* -- 2d. Advance solution array -- */
-
-  UpdateStage(d, d->Uc, NULL, Riemann, g_dt, Dts, grid);
-  DOM_LOOP(k, j, i) NVAR_LOOP(nv){
-    d->Uc[k][j][i][nv] = w0*U0[k][j][i][nv] + wc*d->Uc[k][j][i][nv];
-  }
-  #ifdef STAGGERED_MHD
-  DIM_LOOP(nv) TOT_LOOP(k,j,i) {
-    d->Vs[nv][k][j][i] = w0*Bs0[nv][k][j][i] + wc*d->Vs[nv][k][j][i];
-  }
-  CT_AverageMagneticField (d->Vs, d->Uc, grid);
-  #endif
-
-/* -- 2e. Apply FARGO orbital shift -- */
-
-  #if (defined FARGO) && (TIME_STEPPING == RK2)
-  FARGO_ShiftSolution (d->Uc, d->Vs, grid);
-  #endif
-
-/* -- 2f. Convert to Primitive -- */
-
-  ConsToPrim3D (d->Uc, d->Vc, d->flag, &box);
-
-/* -- 2g. Inject particles or update spectra-- */
-  
-  #ifdef PARTICLES
-    #if (PARTICLES_TYPE == COSMIC_RAYS)
-    Particles_Inject(d,grid);
-    #elif (PARTICLES_TYPE == LAGRANGIAN) && (PARTICLES_LP_SPECTRA == YES)
-    Particles_LP_UpdateSpectra (d, g_dt, grid);
-    #endif
-  #endif
-
-#endif  /* TIME_STEPPING == RK2/RK3 */
-
-/* --------------------------------------------------------
-   3. Last corrector step (RK3 only) 
-   -------------------------------------------------------- */
-
-#if TIME_STEPPING == RK3
-  #ifdef PARTICLES 
-  #if PARTICLES_TYPE == COSMIC_RAYS || PARTICLES_TYPE == DUST
-  print ("! AdvanceStep(): RK3 algorithm not permitted\n");
-  QUIT_PLUTO(1);
-  #endif
-  #endif
-
-/* -- 3a. Set Boundary conditions -- */
-
-  g_intStage = 3;
-  Boundary (d, ALL_DIR, grid);
-
-/* -- 3b. need an extra conversion if INTERNAL_BOUNDARY is enabled 
-         [note: done only with dimensional splitting for backward compat.] -- */
-
-  #if (INTERNAL_BOUNDARY == YES) && (DIMENSIONAL_SPLITTING == YES)
-  PrimToCons3D (d->Vc, d->Uc, &box);
-  #endif
-
-/* -- 3c. Update solution array -- */
-
-  UpdateStage(d, d->Uc, NULL, Riemann, g_dt, Dts, grid);
-  DOM_LOOP(k,j,i) NVAR_LOOP(nv){
-    d->Uc[k][j][i][nv] = one_third*(U0[k][j][i][nv] + 2.0*d->Uc[k][j][i][nv]);
-  }
-  #ifdef STAGGERED_MHD
-  DIM_LOOP(nv) TOT_LOOP(k,j,i){
-    d->Vs[nv][k][j][i] = (Bs0[nv][k][j][i] + 2.0*d->Vs[nv][k][j][i])/3.0;
-  }
-  CT_AverageMagneticField (d->Vs, d->Uc, grid);
-  #endif
-
-/* -- 3d. Apply FARGO orbital shift -- */
-
-  #ifdef FARGO
-  FARGO_ShiftSolution (d->Uc, d->Vs, grid);
-  #endif
-  ConsToPrim3D (d->Uc, d->Vc, d->flag, &box);
-#endif /* TIME_STEPPING == RK3 */
-
-/* --------------------------------------------------------
-   4. Add velocity if FARGO is used
-   -------------------------------------------------------- */
-
-#ifdef FARGO
-  FARGO_AddVelocity (d,grid);
-#endif
 
   return 0; /* -- step has been achieved, return success -- */
 }

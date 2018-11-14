@@ -125,7 +125,7 @@ int *n;
 /* --------------------------------------------------
    0. Allocate memory
    -------------------------------------------------- */
-  if (sig==1)printf ("RightHandside beg=%i end=%i g_i=%i g_j=%i g_k=%i RHO=%e\n",beg,end,g_i,g_j,g_k,sweep->rhs[2][RHO]);
+  if (sig==1)printf ("RHS beg=%i end=%i g_i=%i g_j=%i g_k=%i RHO=%e\n",beg,end,g_i,g_j,g_k,sweep->rhs[2][RHO]);
 #if GEOMETRY != CARTESIAN
   if (fA == NULL) {
     fA   = ARRAY_2D(NMAX_POINT, NVAR, double);
