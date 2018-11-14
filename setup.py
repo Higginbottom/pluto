@@ -64,7 +64,7 @@ if __name__ == "__main__":   # starts from here
   for x in sys.argv[1:]:     # check argument list
 
     if (x == "--auto-update"):
-      auto_update = 1	
+      auto_update = 1    
 
     elif (x == "--get-arch"):
       sys.exit(1)
@@ -91,7 +91,7 @@ if __name__ == "__main__":   # starts from here
       print ("Enabling Chombo support for AMR")
       cmset = set(['--with-fd','--with-sb','--with-fargo','--with-particles']) & set(sys.argv)
       if len(cmset) != 0:
-        print('! Incompatible modules, ',x,' + '.join(y for y in cmset))
+        print(('! Incompatible modules, ',x,' + '.join(y for y in cmset)))
         sys.exit(1)
       break
 
@@ -107,14 +107,14 @@ if __name__ == "__main__":   # starts from here
     elif (x == "--with-sb"): 
       print ("Enabling support for shearing box module")
       if '--with-fd' in sys.argv:
-        print('! Incompatible modules, ',x,' +  --with-fd')
+        print(('! Incompatible modules, ',x,' +  --with-fd'))
         sys.exit(1)
 
     elif (x == "--with-cr_transport"): 
       print ("Enabling support for cr_transport module")
   
     else:
-      print ("! Unrecognized option '",x,"'")
+      print(("! Unrecognized option '",x,"'"))
       sys.exit(1)
 
   print('\n> Loading PLUTO Interface...')

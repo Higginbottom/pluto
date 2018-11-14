@@ -39,8 +39,8 @@ class DefineProblem(object):
     # defining the PLUTO entries and its default values in lists.  
     self.entries = ['PHYSICS', 'DIMENSIONS', 'COMPONENTS', 'GEOMETRY',
                     'BODY_FORCE', 'FORCED_TURB','COOLING', 'RECONSTRUCTION', 
-		    'TIME_STEPPING','DIMENSIONAL_SPLITTING', 'NTRACER', 
-		    'USER_DEF_PARAMETERS']
+            'TIME_STEPPING','DIMENSIONAL_SPLITTING', 'NTRACER', 
+            'USER_DEF_PARAMETERS']
     self.default = ['HD', '1', '1', 'CARTESIAN','NO', 'NO',
                     'NO','LINEAR','RK2',
                     'NO', '0', '0']
@@ -819,10 +819,10 @@ class DefineProblem(object):
         l2 = nlist[lindx1:]
         opBracket = 0
         clBracket = 0
-	addIndx   = 0
+        addIndx   = 0
         for item in l2:
           line = item.split()
-	  addIndx += 1
+          addIndx += 1
           if ((len(line) > 0) and (line[0] !='*')):
             for w in line:
               if "{" in list(w): opBracket += 1
