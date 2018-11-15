@@ -161,13 +161,13 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
 	  if (i==2 || j==2) printf ("In uds2h  %e j=%3i i=%3i current E %e \n",g_time,j,i,UU[0][2][2][ENG]);
 
     /* -- Update:  U = U + dt*R -- */
-	  if (i==2 || j==2) printf ("UDS B4 Update  E=%20.15e\n",UU[0][2][2][ENG]);
+	  if (i==2 || j==2) printf ("UDS B4 Update  E=%20.15e dens=%20.15e\n",UU[0][2][2][ENG],UU[0][2][2][RHO]);
 
       for ((*ip) = nbeg; (*ip) <= nend; (*ip)++) { 
 //		  if (j==2 && i==2) {if (*ip==2) printf ("RHS energy=%e %i %i\n",sweep.rhs[*ip][ENG],j,i);}
           NVAR_LOOP(nv) UU[k][j][i][nv] += sweep.rhs[*ip][nv];
       }
-	  if (i==2 || j==2) printf ("UDS AF Update  E=%20.15e\n",UU[0][2][2][ENG]);
+	  if (i==2 || j==2) printf ("UDS AF Update  E=%20.15e dens=%20.15e\n",UU[0][2][2][ENG],UU[0][2][2][RHO]);
 	  
 	  
 //	  if (i==2 || j==2) printf ("In uds2i  %e j=%3i i=%3i current E %e \n",g_time,j,i,UU[0][2][2][ENG]);

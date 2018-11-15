@@ -201,7 +201,7 @@ int *n;
 		
 		
       NVAR_LOOP(nv) rhs[i][nv] = -dtdV*(fA[i][nv] - fA[i-1][nv]);
- 	if (sig==1 && i==2)	NVAR_LOOP(nv) printf ("RHS nv=%i rhs[i][nv]=%e\n",nv,rhs[i][nv]);
+ 	if (sig==1 && i==2)	NVAR_LOOP(nv) printf ("RHS nv=%i rhs[i][nv]=%20.15e\n",nv,rhs[i][nv]);
 	  
  // 	if (sig==1 && i==2) printf ("RHS1 dens=%e\n",sweep->rhs[i][RHO]);
 
@@ -236,7 +236,8 @@ int *n;
 	  
 	  
       NVAR_LOOP(nv) rhs[j][nv] = -dtdV*(fA[j][nv] - fA[j-1][nv]);
-    	if (sig==1 && j==2) printf ("RHSJ dens=%e dtdV=%e fA[j]=%e fA[j-1]=%e\n",sweep->rhs[j][RHO],dtdV,fA[j][RHO],fA[j-1][RHO]);
+   	if (sig==1 && j==2)	NVAR_LOOP(nv) printf ("RHS nv=%i rhs[i][nv]=%20.15e\n",nv,rhs[i][nv]);
+	  
 
       #if USE_PRS_GRADIENT == YES
       rhs[j][MXn] -= dtdl*(p[j] - p[j-1]);

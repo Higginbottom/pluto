@@ -114,7 +114,7 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
   double **Bg0, **wA, w, wp, vphi, phi_c;
   double vc[NVAR], *vg;
 
-  if (sig==1) printf ("In RHSSource   %e\n",sweep->rhs[2][ENG]);
+  if (sig==1) printf ("RHSSource   \n");
 
 #ifdef FARGO
   wA = FARGO_GetVelocity();
@@ -139,7 +139,7 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
   
   
   if (g_dir == IDIR){
-	  if (sig==1) printf ("IDIR %i beg %i end %i\n",g_dir,beg,end);
+        if (sig==1) printf ("RHSSource IDIR %i RHS[ENG][2][]2]=%20.15e RHO=%21.15e\n",g_dir,sweep->rhs[2][ENG],sweep->rhs[2][RHO]);
 
     for (i = beg; i <= end; i++) {
       dtdx = dt/dx1[i];
@@ -148,208 +148,80 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
        I1. Add geometrical source term
        -------------------------------------------- */
 
-#if GEOMETRY == CARTESIAN
-
-      vg = stateC->v[i];
-      #ifdef SHEARINGBOX  /* Include Coriolis term for x-momentum */
-      rhs[i][MX1] += dt*2.0*vg[RHO]*vg[VX2]*SB_OMEGA;
-      #endif
-
-      #if (defined FARGO && !defined SHEARINGBOX) 
-      w = wA[k][i];
-      #endif
-  
-#elif GEOMETRY == CYLINDRICAL
-
-      r_1 = 1.0/x1[i];
-      vg  = vc;
-      NFLX_LOOP(nv) vc[nv] = 0.5*(vp[i][nv] + vm[i][nv]);       
-      #if COMPONENTS == 3
-      vphi = vc[iVPHI];
-      IF_ROTATING_FRAME(w     = g_OmegaZ*x1[i];
-                        vphi += w;)
-      rhs[i][MX1]   += dt*(vc[RHO]*vphi*vphi - TotBB(vc, Bg0[i], iBPHI, iBPHI))*r_1;
-      #endif  /* COMPONENTS == 3 */
-
-#elif GEOMETRY == POLAR
-
-      r_1 = 1.0/x1[i];
-      vg  = vc;
-      NFLX_LOOP(nv) vc[nv] = 0.5*(vp[i][nv] + vm[i][nv]); 
-      vphi = vc[iVPHI];
-      #if (defined FARGO) || (ROTATING_FRAME == YES)
-      w = 0.0;
-      IF_FARGO         (w += wA[k][i];)
-      IF_ROTATING_FRAME(w += g_OmegaZ*x1[i];)
-      vphi += w;
-      #endif
-      rhs[i][MX1] += dt*(  vc[RHO]*vphi*vphi 
-                         - TotBB(vc, Bg0[i], iBPHI, iBPHI))*r_1;
-
-#elif GEOMETRY == SPHERICAL
+#if GEOMETRY == SPHERICAL
 
       r_1 = 1.0/x1[i];
       vg  = vc;
       NFLX_LOOP(nv) vc[nv] = 0.5*(vp[i][nv] + vm[i][nv]);
       vphi = SELECT(0.0, 0.0, vc[iVPHI]);
-      #if (defined FARGO) || (ROTATING_FRAME == YES)
-      w = 0.0;
-      IF_FARGO         (w += wA[j][i];)
-      IF_ROTATING_FRAME(w += g_OmegaZ*x1[i]*s[j];)
-      vphi += w;
-      #endif
       Sm = vc[RHO]*(EXPAND(  0.0, + vc[VX2]*vc[VX2], + vphi*vphi));
       Sm += EXPAND(  0.0, - TotBB(vc, Bg0[i], iBTH, iBTH), 
                           - TotBB(vc, Bg0[i], iBPHI,iBPHI));
       rhs[i][MX1] += dt*Sm*r_1;
 
 #endif
-	  if (sig==1 && i==2) printf ("In RHSSource 1 %e\n",sweep->rhs[2][ENG]);
-
-    /* ----------------------------------------------------
-       I2. Modify rhs to enforce conservation
-       ---------------------------------------------------- */
-
-#if ((defined FARGO && !defined SHEARINGBOX) || (ROTATING_FRAME == YES)) 
-      rhs[i][iMPHI] -= w*rhs[i][RHO];
-      IF_ENERGY(rhs[i][ENG] -= w*(rhs[i][iMPHI] + 0.5*w*rhs[i][RHO]);)
-#endif
-
-		  if (sig==1 && i==2) printf ("In RHSSource 2 %e\n",sweep->rhs[2][ENG]);
+	  if (sig==1 && i==2) printf ("RHSSource IDIR %i Geom Source     %20.15e RHO=%21.15e\n",g_dir,sweep->rhs[2][ENG],sweep->rhs[2][RHO]);
 
 
     /* ----------------------------------------------------
        I3. Include body forces
        ---------------------------------------------------- */
 
-#if (BODY_FORCE & VECTOR)
-      BodyForceVector(vg, g, x1[i], x2[j], x3[k]);
-      rhs[i][MX1]   += dt*vg[RHO]*g[IDIR];
-      IF_ENERGY(rhs[i][ENG] += dt*0.5*(flux[i][RHO] + flux[i-1][RHO])*g[IDIR];)
-      
-      /* -- Add tangential components in 1D -- */
-      
-      #if DIMENSIONS == 1   
-      EXPAND(                                    ,
-             rhs[i][MX2] += dt*vg[RHO]*g[JDIR];  ,
-             rhs[i][MX3] += dt*vg[RHO]*g[KDIR];)
-      #if HAVE_ENERGY
-      rhs[i][ENG] += dt*(EXPAND(0.0, + vg[RHO]*vg[VX2]*g[JDIR],
-                                     + vg[RHO]*vg[VX3]*g[KDIR] );
-      #endif                         
-      #endif
-#endif
       
 #if (BODY_FORCE & POTENTIAL)
       rhs[i][MX1]   -= dtdx*vg[RHO]*(phi_p[i] - phi_p[i-1]);
       IF_ENERGY(phi_c       = BodyForcePotential(x1[i], x2[j], x3[k]); 
                 rhs[i][ENG] -= phi_c*rhs[i][RHO];)
 #endif
-
+			  	  if (sig==1 && i==2) printf ("RHSSource IDIR %i Potential       %20.15e RHO=%21.15e\n",g_dir,sweep->rhs[2][ENG],sweep->rhs[2][RHO]);
     }
     
   } else if (g_dir == JDIR){
-	  if (sig==1) printf ("JDIR %i beg %i end %i\n",g_dir,beg,end);
-	  
-
+      if (sig==1 && i==2) printf ("RHSSource JDIR %i RHS[ENG][2][]2]=%20.15e RHO=%21.15e\n",g_dir,sweep->rhs[2][ENG],sweep->rhs[2][RHO]);
     scrh = dt;
-#if GEOMETRY == POLAR
-    scrh /= x1[i];
-    r_1   = 1.0/x1[i];
-#elif GEOMETRY == SPHERICAL
+#if GEOMETRY == SPHERICAL
     scrh /= rt[i];
     r_1   = 1.0/rt[i];
 #endif
     for (j = beg; j <= end; j++) {
       dtdx = scrh/dx2[j];
 
-	  if (sig==1 && j==2) printf ("In RHSSource 3 %e\n",sweep->rhs[2][ENG]);
 
     /* --------------------------------------------
        J1. Add geometrical source terms
        -------------------------------------------- */
-
-#if GEOMETRY != SPHERICAL
-
-      vg = stateC->v[j];
-
-#ifdef SHEARINGBOX /* Include Coriolis term for y-momentum */
-    #ifdef FARGO 
-      rhs[j][MX2] += dt*(SB_Q-2.0)*vg[RHO]*vg[VX1]*SB_OMEGA;
-    #else
-      rhs[j][MX2] -= dt*2.0*vg[RHO]*vg[VX1]*SB_OMEGA;
-    #endif
-#endif
-
-#elif GEOMETRY == SPHERICAL
-
+#if GEOMETRY == SPHERICAL
       ct = 1.0/tan(x2[j]); 
       vg = vc;
       NFLX_LOOP(nv) vc[nv] = stateC->v[j][nv];
       vphi = SELECT(0.0, 0.0, vc[iVPHI]);
-      #if (defined FARGO) || (ROTATING_FRAME == YES)
-      w = 0.0; 
-      IF_FARGO         (w += wA[j][i];)
-//      IF_ROTATING_FRAME(w += g_OmegaZ*x1[i]*sin(x2[j]);)
-      IF_ROTATING_FRAME(w += g_OmegaZ*x1[i]*s[j];)
-      vphi += w;
-      #endif
       Sm = vc[RHO]*(EXPAND(  0.0, - vc[iVTH]*vc[iVR], + ct*vphi*vphi));
       Sm += EXPAND(0.0, +    TotBB(vc, Bg0[j], iBTH, iBR), 
                         - ct*TotBB(vc, Bg0[j], iBPHI, iBPHI));
       rhs[j][MX2] += dt*Sm*r_1;
-	  
-	  if (sig==1 && j==2) printf ("In RHSSource 4 %e\n",sweep->rhs[2][ENG]);
-	  
-
-    /* ----------------------------------------------------
-       J2. Modify rhs to enforce conservation
-       ---------------------------------------------------- */
-
-  #if (defined FARGO) || (ROTATING_FRAME == YES)
-      rhs[j][MX3] -= w*rhs[j][RHO];
-      IF_ENERGY(rhs[j][ENG]  -= w*(rhs[j][MX3] + 0.5*w*rhs[j][RHO]);)
-  #endif
-
 #endif  /* GEOMETRY == SPHERICAL */
-
-		  if (sig==1 && j==2) printf ("In RHSSource 5 %e\n",sweep->rhs[2][ENG]);
-
-
+	  if (sig==1 && j==2) printf ("RHSSource JDIR %i Geom Source     %20.15e RHO=%21.15e\n",g_dir,sweep->rhs[2][ENG],sweep->rhs[2][RHO]);
     /* ----------------------------------------------------
        J3. Include Body force
        ---------------------------------------------------- */
-
-#if (BODY_FORCE & VECTOR)
-      BodyForceVector(vg, g, x1[i], x2[j], x3[k]);
-      rhs[j][MX2]   += dt*vg[RHO]*g[JDIR];
-      IF_ENERGY(rhs[j][ENG] += dt*0.5*(flux[j][RHO] + flux[j-1][RHO])*g[JDIR];)
-
-      /* -- Add tangential components in 2D -- */
-      
-      #if DIMENSIONS == 2 && COMPONENTS == 3  
-      rhs[j][MX3] += dt*vg[RHO]*g[KDIR];
-      IF_ENERGY(rhs[j][ENG] += dt*vg[RHO]*vg[VX3]*g[KDIR];)
-      #endif
-#endif
-  		  if (sig==1 && j==2) printf ("In RHSSource 5a %e\n",sweep->rhs[2][ENG]);
-
 #if (BODY_FORCE & POTENTIAL)
       rhs[j][MX2]   -= dtdx*vg[RHO]*(phi_p[j] - phi_p[j-1]);
- 	 if (sig==1 && j==2) printf ("In BodyForcePot phi_p[j]=%e phi_p[j-1]=%e %i %e %i %e\n",phi_p[j],phi_p[j-1],MX2,rhs[j][MX2],RHO,rhs[j][RHO]);
+// 	 if (sig==1 && j==2) printf ("In BodyForcePot phi_p[j]=%e phi_p[j-1]=%e %i %e %i %e\n",phi_p[j],phi_p[j-1],MX2,rhs[j][MX2],RHO,rhs[j][RHO]);
 	  
       IF_ENERGY(phi_c        = BodyForcePotential(x1[i], x2[j], x3[k]); 
-	 if (sig==1 && j==2) printf ("In BodyForcePot = %e rho= %e RHS=%e\n",phi_c,rhs[j][RHO],phi_c*rhs[j][RHO]);
-	 if (sig==1 && j==2 && rhs[j][RHO]<0.0) printf ("BOOM %e dir=%i\n",rhs[j][RHO],g_dir);
+//	 if (sig==1 && j==2) printf ("In BodyForcePot = %e rho= %e RHS=%e\n",phi_c,rhs[j][RHO],phi_c*rhs[j][RHO]);
+//	 if (sig==1 && j==2 && rhs[j][RHO]<0.0) printf ("BOOM %e dir=%i\n",rhs[j][RHO],g_dir);
 	  
                 rhs[j][ENG] -= phi_c*rhs[j][RHO];)
 #endif
+   	  if (sig==1 && j==2) printf ("RHSSource IDIR %i Potential       %20.15e RHO=%21.15e\n",g_dir,sweep->rhs[2][ENG],sweep->rhs[2][RHO]);
 					
-		 if (sig==1 && j==2) printf ("In RHSSource 5b %e\n",sweep->rhs[2][ENG]);
 					
     }
 
   }else if (g_dir == KDIR){
+      if (sig==1) printf ("RHSSource KDIR %i RHS[ENG][2][]2]=%20.15e\n",g_dir,sweep->rhs[2][ENG]);
+	  
     scrh  = dt;
 #if GEOMETRY == SPHERICAL
     scrh *= dx2[j]/(rt[i]*dmu[j]);
@@ -358,71 +230,22 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
     for (k = beg; k <= end; k++) {
       dtdx = scrh/dx3[k];
       vg   = stateC->v[k];
-
-#if (GEOMETRY == CARTESIAN) || (GEOMETRY == POLAR)
-    /* ------------------------------------------------------
-       K2. modify rhs to enforce conservation (FARGO only)
-           (solid body rotations are not included the
-            velocity depends on the cylindrical radius only)
-       ------------------------------------------------------ */
-
-  #if (defined FARGO && !defined SHEARINGBOX) 
-       w = wA[k][i];
-       rhs[k][MX2] -= w*rhs[k][RHO];
-       IF_ENERGY(rhs[k][ENG] -= w*(rhs[k][MX2] + 0.5*w*rhs[k][RHO]);)
-  #endif
-#endif
-
     /* ----------------------------------------------------
        K3. Include body forces
        ---------------------------------------------------- */
-
-#if (BODY_FORCE & VECTOR)
-      BodyForceVector(vg, g, x1[i], x2[j], x3[k]);
-      rhs[k][MX3]   += dt*vg[RHO]*g[KDIR];
-      IF_ENERGY(rhs[k][ENG] += dt*0.5*(flux[k][RHO] + flux[k-1][RHO])*g[KDIR];)
-#endif
-
 #if (BODY_FORCE & POTENTIAL)
       rhs[k][MX3]   -= dtdx*vg[RHO]*(phi_p[k] - phi_p[k-1]);
       IF_ENERGY(phi_c        = BodyForcePotential(x1[i], x2[j], x3[k]);
                 rhs[k][ENG] -= phi_c*rhs[k][RHO];)
 #endif
+			     	  if (sig==1 && k==2) printf ("RHSSource KDIR %i Potential       %20.15e\n",g_dir,sweep->rhs[2][ENG]);
+					
     }
   }
 
 
-
-  if (sig==1) printf ("In RHSSource 6 %e\n",sweep->rhs[2][ENG]);
-
-/* --------------------------------------------------
-              Powell's source terms
-   -------------------------------------------------- */
-
-#if (PHYSICS == MHD) && (DIVB_CONTROL == EIGHT_WAVES)
-  for (i = beg; i <= end; i++) {
-    EXPAND(rhs[i][MX1] += dt*sweep->src[i][MX1];  ,
-           rhs[i][MX2] += dt*sweep->src[i][MX2];  ,
-           rhs[i][MX3] += dt*sweep->src[i][MX3];)
-
-    EXPAND(rhs[i][BX1] += dt*sweep->src[i][BX1];  ,
-           rhs[i][BX2] += dt*sweep->src[i][BX2];  ,
-           rhs[i][BX3] += dt*sweep->src[i][BX3];)
-  #if HAVE_ENERGY
-    rhs[i][ENG] += dt*sweep->src[i][ENG];
-  #endif
-  }
-#endif
-  if (sig==1) printf ("In RHSSource 7 %e\n",sweep->rhs[2][ENG]);
   
 
-/* -------------------------------------------------
-            Extended GLM source terms
-   ------------------------------------------------- */
-
-#if (defined GLM_MHD) && (GLM_EXTENDED == YES)
-  GLM_ExtendedSource (sweep, dt, beg, end, grid);
-#endif
 
 }
 #undef TotBB
