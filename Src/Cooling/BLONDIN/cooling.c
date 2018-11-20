@@ -101,7 +101,6 @@ void BlondinCooling (Data_Arr VV, double dt, timeStep *Dts, Grid *grid)
   i=2;
   j=2;
   k=2;
-  printf ("COOLING PRS=%e U=%e T1=%e T2=%e\n",VV[PRS][k][j][i],(VV[PRS][k][j][i]*UNIT_PRESSURE)/(g_gamma-1),VV[PRS][k][j][i]/VV[RHO][k][j][i]*KELVIN*mu,(VV[PRS][k][j][i]*UNIT_PRESSURE)/(g_gamma-1)*(2.0/3.0)/((VV[RHO][k][j][i]*UNIT_DENSITY/(mu*CONST_mp))*CONST_kB));
   DOM_LOOP(k,j,i){
 
 

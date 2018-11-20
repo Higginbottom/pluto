@@ -172,12 +172,19 @@ int main (int argc, char *argv[])
 
     if (cmd_line.jet != -1) SetJetDomain (&data, cmd_line.jet, ini.log_freq, grd); 
 	
-	printf ("B4 int %e density %e pressure %20.15e temp %e\n",g_time,data.Vc[RHO][0][2][2],data.Vc[PRS][0][2][2],KELVIN*0.6*data.Vc[PRS][0][2][2]/data.Vc[RHO][0][2][2]);
+	
+
+	
+	if (g_stepNumber>NSHTIME1) printf ("B4 int %e density %e pressure %20.15e temp %e\n",g_time,data.Vc[RHO][0][NSHj][NSHi],data.Vc[PRS][0][NSHj][NSHi],KELVIN*0.6*data.Vc[PRS][0][NSHj][NSHi]/data.Vc[RHO][0][NSHj][NSHi]);
+
+
 	
 	
     err = Integrate (&data, Solver, &Dts, grd);
 	
-	printf ("AF int %e density %e pressure %20.15e temp %e\n",g_time,data.Vc[RHO][0][2][2],data.Vc[PRS][0][2][2],KELVIN*0.6*data.Vc[PRS][0][2][2]/data.Vc[RHO][0][2][2]);
+	if (g_stepNumber>NSHTIME1)
+		
+	 printf ("AF int %e density %e pressure %20.15e temp %e\n",g_time,data.Vc[RHO][0][NSHj][NSHi],data.Vc[PRS][0][NSHj][NSHi],KELVIN*0.6*data.Vc[PRS][0][NSHj][NSHi]/data.Vc[RHO][0][NSHj][NSHi]);
 	
 	
     if (cmd_line.jet != -1) UnsetJetDomain (&data, cmd_line.jet, grd); 
@@ -235,7 +242,7 @@ int main (int argc, char *argv[])
     #endif
 
 
-	printf ("time inc %e density %e pressure %e temp %e\n",g_time,data.Vc[RHO][0][2][2],data.Vc[PRS][0][2][2],KELVIN*0.6*data.Vc[PRS][0][2][2]/data.Vc[RHO][0][2][2]);
+	if (g_stepNumber>NSHTIME1) printf ("time inc %e density %e pressure %e temp %e\n",g_time,data.Vc[RHO][0][NSHj][NSHi],data.Vc[PRS][0][NSHj][NSHi],KELVIN*0.6*data.Vc[PRS][0][NSHj][NSHi]/data.Vc[RHO][0][NSHj][NSHi]);
 
   /* ------------------------------------------------------
      2g. Get next time step dt(n+1).
@@ -253,7 +260,8 @@ int main (int argc, char *argv[])
     first_step = 0;
 	
 	
-	printf ("\n");
+	if (g_stepNumber>NSHTIME1) printf ("\n");
+	if (g_stepNumber>NSHTIME2)  exit(0);
   }
 
 /* =====================================================================
@@ -319,12 +327,12 @@ int Integrate (Data *d, Riemann_Solver *Solver, timeStep *Dts, Grid *grid)
   g_maxRiemannIter = 0;
   g_maxRootIter    = 0;
 	
-  printf ("Integ  g_stepNumber %li\n",g_stepNumber);
+if (g_stepNumber>NSHTIME1)   printf ("Integ  g_stepNumber %li\n",g_stepNumber);
 
 /* --------------------------------------------------------
    1. Initialize max propagation speed in Dedner's approach
    -------------------------------------------------------- */
-printf ("Integ1         %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
+if (g_stepNumber>NSHTIME1)  printf ("Integ1         %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],KELVIN*0.6*d->Vc[PRS][0][NSHj][NSHi]/d->Vc[RHO][0][NSHj][NSHi]);
 
 /* --------------------------------------------------------
    2. Perform Strang Splitting on directions (if necessary)
@@ -332,32 +340,32 @@ printf ("Integ1         %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[R
    -------------------------------------------------------- */
 
   TOT_LOOP(k,j,i) d->flag[k][j][i] = 0;
-printf ("Integ2         %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
+if (g_stepNumber>NSHTIME1)  printf ("Integ2         %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],KELVIN*0.6*d->Vc[PRS][0][NSHj][NSHi]/d->Vc[RHO][0][NSHj][NSHi]);
 
   
   if ((g_stepNumber%2) == 0){
     g_hydroStep = TRUE;
-	printf ("Integ   B4 adv %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
+if (g_stepNumber>NSHTIME1) 	printf ("Integ   B4 adv %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],KELVIN*0.6*d->Vc[PRS][0][NSHj][NSHi]/d->Vc[RHO][0][NSHj][NSHi]);
     if (AdvanceStep (d, Solver, Dts, grid) != 0) return(1);
-	printf ("Integ   AF adv %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
-	printf ("Integ   B4 SPl %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
+if (g_stepNumber>NSHTIME1) 	printf ("Integ   AF adv %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],KELVIN*0.6*d->Vc[PRS][0][NSHj][NSHi]/d->Vc[RHO][0][NSHj][NSHi]);
+if (g_stepNumber>NSHTIME1) 	printf ("Integ   B4 SPl %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],KELVIN*0.6*d->Vc[PRS][0][NSHj][NSHi]/d->Vc[RHO][0][NSHj][NSHi]);
 	
     g_hydroStep = FALSE;
     SplitSource (d, g_dt, Dts, grid);
-	printf ("Integ   AF SPl %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
+if (g_stepNumber>NSHTIME1) 	printf ("Integ   AF SPl %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],KELVIN*0.6*d->Vc[PRS][0][NSHj][NSHi]/d->Vc[RHO][0][NSHj][NSHi]);
 	
 
   }else{
-  	printf ("Integ   B4 SPl %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);	
+if (g_stepNumber>NSHTIME1)   	printf ("Integ   B4 SPl %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],KELVIN*0.6*d->Vc[PRS][0][NSHj][NSHi]/d->Vc[RHO][0][NSHj][NSHi]);	
     
 	g_hydroStep = FALSE;
     SplitSource (d, g_dt, Dts, grid);
     g_hydroStep = TRUE;
-  	printf ("Integ   AF SPl %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);	
+if (g_stepNumber>NSHTIME1)   	printf ("Integ   AF SPl %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],KELVIN*0.6*d->Vc[PRS][0][NSHj][NSHi]/d->Vc[RHO][0][NSHj][NSHi]);	
 
-	printf ("Integ   B4 adv %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);	
+if (g_stepNumber>NSHTIME1) 	printf ("Integ   B4 adv %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],KELVIN*0.6*d->Vc[PRS][0][NSHj][NSHi]/d->Vc[RHO][0][NSHj][NSHi]);	
     if (AdvanceStep (d, Solver, Dts, grid) != 0) return(1);	
-	printf ("Integ   AF adv %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
+if (g_stepNumber>NSHTIME1) 	printf ("Integ   AF adv %e density %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],KELVIN*0.6*d->Vc[PRS][0][NSHj][NSHi]/d->Vc[RHO][0][NSHj][NSHi]);
 	  }       
 
 

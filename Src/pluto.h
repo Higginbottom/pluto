@@ -10,6 +10,11 @@
   \date   Feb 21, 2018
 */
 /* ///////////////////////////////////////////////////////////////////// */
+
+
+
+
+
 #ifndef PLUTO_H
 #define PLUTO_H
 
@@ -128,6 +133,10 @@
 #define MHD           4
 #define RMHD          5
 #define CR_TRANSPORT  6
+
+
+
+
 
 /*  ----  SET LABELS FOR DIV.B Control  ----  
           If you move them to the MHD header, 

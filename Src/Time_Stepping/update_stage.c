@@ -62,7 +62,7 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
   static double ***C_dt;
   RBox  sweepBox;
 
-  printf ("In UDS  %e current E %e \n",g_time,UU[0][2][2][ENG]);
+  if (g_stepNumber>NSHTIME1) printf ("In UDS  %e current E %e \n",g_time,UU[0][NSHj][NSHi][ENG]);
 
 
 #if DIMENSIONAL_SPLITTING == YES
@@ -106,7 +106,7 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
   for (dir = beg_dir; dir <= end_dir; dir++){
 
     g_dir = dir;  
-	printf ("UDS DIR=%i \n",g_dir);
+	if (g_stepNumber>NSHTIME1) printf ("UDS DIR=%i \n",g_dir);
   /* -- 2b. Set integration box for current update -- */
 
     RBoxDefine(IBEG, IEND, JBEG, JEND, KBEG, KEND, CENTER, &sweepBox);
@@ -134,20 +134,20 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
 
       
       CheckNaN (stateC->v, 0, ntot-1,0);
-		if (i==2 || j==2) printf ("UDS B4 States  E=%20.15e\n",UU[0][2][2][ENG]);
+		if ((i==NSHi || j==NSHj) && g_stepNumber>NSHTIME1) printf ("UDS B4 States  E=%20.15e\n",UU[0][NSHj][NSHi][ENG]);
       States  (&sweep, nbeg - 1, nend + 1, grid);
-		if (i==2 || j==2) printf ("UDS AF States  E=%20.15e\n",UU[0][2][2][ENG]);
+		if ((i==NSHi || j==NSHj) && g_stepNumber>NSHTIME1) printf ("UDS AF States  E=%20.15e\n",UU[0][NSHj][NSHi][ENG]);
 		
-	  if (i==2 || j==2) printf ("UDS B4 Riemann E=%20.15e\n",UU[0][2][2][ENG]);
+	  if ((i==NSHi || j==NSHj) && g_stepNumber>NSHTIME1) printf ("UDS B4 Riemann E=%20.15e\n",UU[0][NSHj][NSHi][ENG]);
       Riemann (&sweep, nbeg - 1, nend, Dts->cmax, grid);
-	  if (i==2 || j==2) printf ("UDS AF Riemann E=%20.15e\n",UU[0][2][2][ENG]);
+	  if ((i==NSHi || j==NSHj) && g_stepNumber>NSHTIME1) printf ("UDS AF Riemann E=%20.15e\n",UU[0][NSHj][NSHi][ENG]);
 	  
 	  
 	  
-      if (i==2 || j==2) {
-		  printf ("UDS B4 RHS     E=%20.15e\n",UU[0][2][2][ENG]);
+      if ((i==NSHi || j==NSHj) && g_stepNumber>NSHTIME1) {
+		  printf ("UDS B4 RHS     E=%20.15e\n",UU[0][NSHj][NSHi][ENG]);
 		  RightHandSide (&sweep, Dts, nbeg, nend, dt, grid,1);
-		  printf ("UDS AF RHS     E=%20.15e\n",UU[0][2][2][ENG]);
+		  printf ("UDS AF RHS     E=%20.15e\n",UU[0][NSHj][NSHi][ENG]);
 		  
 		  
 		  
@@ -158,19 +158,19 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
 	  }
 		  
 
-	  if (i==2 || j==2) printf ("In uds2h  %e j=%3i i=%3i current E %e \n",g_time,j,i,UU[0][2][2][ENG]);
+	  if ((i==NSHi || j==NSHj) && g_stepNumber>NSHTIME1) printf ("In uds2h  %e j=%3i i=%3i current E %e \n",g_time,j,i,UU[0][NSHj][NSHi][ENG]);
 
     /* -- Update:  U = U + dt*R -- */
-	  if (i==2 || j==2) printf ("UDS B4 Update  E=%20.15e dens=%20.15e\n",UU[0][2][2][ENG],UU[0][2][2][RHO]);
+	  if ((i==NSHi || j==NSHj) && g_stepNumber>NSHTIME1) printf ("UDS B4 Update  E=%20.15e dens=%20.15e\n",UU[0][NSHj][NSHi][ENG],UU[0][NSHj][NSHi][RHO]);
 
       for ((*ip) = nbeg; (*ip) <= nend; (*ip)++) { 
 //		  if (j==2 && i==2) {if (*ip==2) printf ("RHS energy=%e %i %i\n",sweep.rhs[*ip][ENG],j,i);}
           NVAR_LOOP(nv) UU[k][j][i][nv] += sweep.rhs[*ip][nv];
       }
-	  if (i==2 || j==2) printf ("UDS AF Update  E=%20.15e dens=%20.15e\n",UU[0][2][2][ENG],UU[0][2][2][RHO]);
+	  if ((i==NSHi || j==NSHj) && g_stepNumber>NSHTIME1) printf ("UDS AF Update  E=%20.15e dens=%20.15e\n",UU[0][NSHj][NSHi][ENG],UU[0][NSHj][NSHi][RHO]);
 	  
 	  
-//	  if (i==2 || j==2) printf ("In uds2i  %e j=%3i i=%3i current E %e \n",g_time,j,i,UU[0][2][2][ENG]);
+//	  if ((i==NSHi || j==NSHj) && g_stepNumber>NSHTIME1) printf ("In uds2i  %e j=%3i i=%3i current E %e \n",g_time,j,i,UU[0][NSHj][NSHi][ENG]);
 	  
 
 
@@ -194,7 +194,7 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
   }
 
 
-//  printf ("In UDS2  %e current E %e \n",g_time,UU[0][2][2][ENG]);
+//  printf ("In UDS2  %e current E %e \n",g_time,UU[0][NSHj][NSHi][ENG]);
 
 
   

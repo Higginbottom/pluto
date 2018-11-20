@@ -41,8 +41,8 @@ int AdvanceStep (Data *d, Riemann_Solver *Riemann,
   static double  one_third = 1.0/3.0;
   static Data_Arr U0, Bs0;
   RBox   box;
-  printf ("ADV\n");
-  printf ("IN ADV        %e density  %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
+if (g_stepNumber>NSHTIME1)   printf ("ADV\n");
+ if (g_stepNumber>NSHTIME1)  printf ("IN ADV        %e density  %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],KELVIN*0.6*d->Vc[PRS][0][NSHj][NSHi]/d->Vc[RHO][0][NSHj][NSHi]);
 
 	static Data_Arr Uhalf;
   
@@ -83,7 +83,7 @@ Uhalf = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);
    -------------------------------------------------------- */
 
 /* -- 1a. Set boundary conditions -- */
-  printf ("ADV B4 BC     %e density  %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
+if (g_stepNumber>NSHTIME1)   printf ("ADV B4 BC     %e density  %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],KELVIN*0.6*d->Vc[PRS][0][NSHj][NSHi]/d->Vc[RHO][0][NSHj][NSHi]);
 
   g_intStage = 1;  
   Boundary (d, ALL_DIR, grid);
@@ -91,17 +91,40 @@ Uhalf = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);
   FlagShock (d, grid);
   #endif
 
-  printf ("ADV AF BC     %e density  %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
+
+if (g_stepNumber>NSHTIME1)   printf ("ADV AF BC     %e density  %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],KELVIN*0.6*d->Vc[PRS][0][NSHj][NSHi]/d->Vc[RHO][0][NSHj][NSHi]);
+
+if (g_stepNumber>NSHTIME1) printf ("Start %e  density[i-1][j-1]  %e density[i][j-1]  %e density[i+1][j-1]  %e\n",g_time,d->Vc[RHO][0][NSHj-1][NSHi-1],d->Vc[RHO][0][NSHj-1][NSHi],d->Vc[RHO][0][NSHj-1][NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("Start %e  density[i-1][j]    %e density[i-1][j]  %e density[i+1][j]    %e\n",g_time,d->Vc[RHO][0][NSHj]  [NSHi-1],d->Vc[RHO][0][NSHj]  [NSHi],d->Vc[RHO][0][NSHj]  [NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("Start %e  density[i-1][j+1]  %e density[i][j+1]  %e density[i+1][j+1]  %e\n",g_time,d->Vc[RHO][0][NSHj+1][NSHi-1],d->Vc[RHO][0][NSHj+1][NSHi],d->Vc[RHO][0][NSHj+1][NSHi+1]);
+
+if (g_stepNumber>NSHTIME1) printf ("Start %e  pressure[i-1][j-1] %e pressure[i][j-1] %e pressure[i+1][j-1] %e\n",g_time,d->Vc[PRS][0][NSHj-1][NSHi-1],d->Vc[PRS][0][NSHj-1][NSHi],d->Vc[PRS][0][NSHj-1][NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("Start %e  pressure[i-1][j]   %e pressure[i-1][j] %e pressure[i+1][j]   %e\n",g_time,d->Vc[PRS][0][NSHj]  [NSHi-1],d->Vc[PRS][0][NSHj]  [NSHi],d->Vc[PRS][0][NSHj]  [NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("Start %e  pressure[i-1][j+1] %e pressure[i][j+1] %e pressure[i+1][j+1] %e\n",g_time,d->Vc[PRS][0][NSHj+1][NSHi-1],d->Vc[PRS][0][NSHj+1][NSHi],d->Vc[PRS][0][NSHj+1][NSHi+1]);
+
+if (g_stepNumber>NSHTIME1) printf ("Start %e  V1[i-1][j-1] %e V1[i][j-1] %e V1[i+1][j-1] %e\n",g_time,d->Vc[VX1][0][NSHj-1][NSHi-1],d->Vc[VX1][0][NSHj-1][NSHi],d->Vc[VX1][0][NSHj-1][NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("Start %e  V1[i-1][j]   %e V1[i-1][j] %e V1[i+1][j]   %e\n",g_time,d->Vc[VX1][0][NSHj]  [NSHi-1],d->Vc[VX1][0][NSHj]  [NSHi],d->Vc[VX1][0][NSHj]  [NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("Start %e  V1[i-1][j+1] %e V1[i][j+1] %e V1[i+1][j+1] %e\n",g_time,d->Vc[VX1][0][NSHj+1][NSHi-1],d->Vc[VX1][0][NSHj+1][NSHi],d->Vc[VX1][0][NSHj+1][NSHi+1]);
+
+
+if (g_stepNumber>NSHTIME1) printf ("Start %e  V2[i-1][j-1] %e V2[i][j-1] %e V2[i+1][j-1] %e\n",g_time,d->Vc[VX2][0][NSHj-1][NSHi-1],d->Vc[VX2][0][NSHj-1][NSHi],d->Vc[VX2][0][NSHj-1][NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("Start %e  V2[i-1][j]   %e V2[i-1][j] %e V2[i+1][j]   %e\n",g_time,d->Vc[VX2][0][NSHj]  [NSHi-1],d->Vc[VX2][0][NSHj]  [NSHi],d->Vc[VX2][0][NSHj]  [NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("Start %e  V2[i-1][j+1] %e V2[i][j+1] %e V2[i+1][j+1] %e\n",g_time,d->Vc[VX2][0][NSHj+1][NSHi-1],d->Vc[VX2][0][NSHj+1][NSHi],d->Vc[VX2][0][NSHj+1][NSHi+1]);
+
+if (g_stepNumber>NSHTIME1) printf ("Start %e  V3[i-1][j-1] %e V3[i][j-1] %e V3[i+1][j-1] %e\n",g_time,d->Vc[VX3][0][NSHj-1][NSHi-1],d->Vc[VX3][0][NSHj-1][NSHi],d->Vc[VX3][0][NSHj-1][NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("Start %e  V3[i-1][j]   %e V3[i-1][j] %e V3[i+1][j]   %e\n",g_time,d->Vc[VX3][0][NSHj]  [NSHi-1],d->Vc[VX3][0][NSHj]  [NSHi],d->Vc[VX3][0][NSHj]  [NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("Start %e  V3[i-1][j+1] %e V3[i][j+1] %e V3[i+1][j+1] %e\n",g_time,d->Vc[VX3][0][NSHj+1][NSHi-1],d->Vc[VX3][0][NSHj+1][NSHi],d->Vc[VX3][0][NSHj+1][NSHi+1]);
+
 
 
 /* -- 1b. Convert primitive to conservative, save initial stage  -- */
 
 
-  printf ("ADV B4 PTC     %e density  %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
+ if (g_stepNumber>NSHTIME1)  printf ("ADV B4 PTC     %e density  %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],KELVIN*0.6*d->Vc[PRS][0][NSHj][NSHi]/d->Vc[RHO][0][NSHj][NSHi]);
 
 
    PrimToCons3D(d->Vc, d->Uc, &box);
-   printf ("ADV AF PTC    %e density  %20.15e pressure %20.15e current E %20.15e KE=%e INTE=%e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],d->Uc[0][2][2][ENG],0.5*d->Vc[RHO][0][2][2]*(d->Vc[VX1][0][2][2]*d->Vc[VX1][0][2][2]+d->Vc[VX2][0][2][2]*d->Vc[VX2][0][2][2]+d->Vc[VX3][0][2][2]*d->Vc[VX3][0][2][2]),d->Vc[PRS][0][2][2]/(g_gamma - 1.0));
+if (g_stepNumber>NSHTIME1)    printf ("ADV AF PTC    %e density  %20.15e pressure %20.15e current E %20.15e KE=%e INTE=%e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],d->Uc[0][NSHj][NSHi][ENG],0.5*d->Vc[RHO][0][NSHj][NSHi]*(d->Vc[VX1][0][NSHj][NSHi]*d->Vc[VX1][0][NSHj][NSHi]+d->Vc[VX2][0][NSHj][NSHi]*d->Vc[VX2][0][NSHj][NSHi]+d->Vc[VX3][0][NSHj][NSHi]*d->Vc[VX3][0][NSHj][NSHi]),d->Vc[PRS][0][NSHj][NSHi]/(g_gamma - 1.0));
    
   KDOM_LOOP(k) JDOM_LOOP(j){
     memcpy ((void *)U0[k][j][IBEG], d->Uc[k][j][IBEG], NX1*NVAR*sizeof(double));
@@ -110,20 +133,20 @@ Uhalf = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);
 
 
 /* -- 1d. Advance conservative variables array -- */
-  printf ("ADV B4 UDS    %e density  %20.15e pressure %20.15e current E %e KE=%e INTE=%e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],d->Uc[0][2][2][ENG],0.5*d->Vc[RHO][0][2][2]*(d->Vc[VX1][0][2][2]*d->Vc[VX1][0][2][2]+d->Vc[VX2][0][2][2]*d->Vc[VX2][0][2][2]+d->Vc[VX3][0][2][2]*d->Vc[VX3][0][2][2]),d->Vc[PRS][0][2][2]/(g_gamma - 1.0));
+if (g_stepNumber>NSHTIME1)   printf ("ADV B4 UDS    %e density  %20.15e pressure %20.15e current E %e KE=%e INTE=%e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],d->Uc[0][NSHj][NSHi][ENG],0.5*d->Vc[RHO][0][NSHj][NSHi]*(d->Vc[VX1][0][NSHj][NSHi]*d->Vc[VX1][0][NSHj][NSHi]+d->Vc[VX2][0][NSHj][NSHi]*d->Vc[VX2][0][NSHj][NSHi]+d->Vc[VX3][0][NSHj][NSHi]*d->Vc[VX3][0][NSHj][NSHi]),d->Vc[PRS][0][NSHj][NSHi]/(g_gamma - 1.0));
   UpdateStage(d, d->Uc, NULL, Riemann, g_dt, Dts, grid);
-  printf ("ADV AF UDS    %e density  %20.15e pressure %20.15e current E %e KE=%e INTE=%e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],d->Uc[0][2][2][ENG],0.5*d->Vc[RHO][0][2][2]*(d->Vc[VX1][0][2][2]*d->Vc[VX1][0][2][2]+d->Vc[VX2][0][2][2]*d->Vc[VX2][0][2][2]+d->Vc[VX3][0][2][2]*d->Vc[VX3][0][2][2]),d->Vc[PRS][0][2][2]/(g_gamma - 1.0));
+if (g_stepNumber>NSHTIME1)   printf ("ADV AF UDS    %e density  %20.15e pressure %20.15e current E %e KE=%e INTE=%e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],d->Uc[0][NSHj][NSHi][ENG],0.5*d->Vc[RHO][0][NSHj][NSHi]*(d->Vc[VX1][0][NSHj][NSHi]*d->Vc[VX1][0][NSHj][NSHi]+d->Vc[VX2][0][NSHj][NSHi]*d->Vc[VX2][0][NSHj][NSHi]+d->Vc[VX3][0][NSHj][NSHi]*d->Vc[VX3][0][NSHj][NSHi]),d->Vc[PRS][0][NSHj][NSHi]/(g_gamma - 1.0));
   
 
 
 
  
 /* -- 1f. Convert to primitive vars -- */
-  printf ("ADV B4 CTP    %e density  %e pressure %20.15e current E %e KE=%e INTE=%e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],d->Uc[0][2][2][ENG],0.5*d->Vc[RHO][0][2][2]*(d->Vc[VX1][0][2][2]*d->Vc[VX1][0][2][2]+d->Vc[VX2][0][2][2]*d->Vc[VX2][0][2][2]+d->Vc[VX3][0][2][2]*d->Vc[VX3][0][2][2]),d->Vc[PRS][0][2][2]/(g_gamma - 1.0));
+if (g_stepNumber>NSHTIME1)   printf ("ADV B4 CTP    %e density  %e pressure %20.15e current E %e KE=%e INTE=%e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],d->Uc[0][NSHj][NSHi][ENG],0.5*d->Vc[RHO][0][NSHj][NSHi]*(d->Vc[VX1][0][NSHj][NSHi]*d->Vc[VX1][0][NSHj][NSHi]+d->Vc[VX2][0][NSHj][NSHi]*d->Vc[VX2][0][NSHj][NSHi]+d->Vc[VX3][0][NSHj][NSHi]*d->Vc[VX3][0][NSHj][NSHi]),d->Vc[PRS][0][NSHj][NSHi]/(g_gamma - 1.0));
   ConsToPrim3D (d->Uc, d->Vc, d->flag, &box);
-  printf ("ADV AF CTP    %e density  %e pressure %20.15e current E %e KE=%e INTE=%e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],d->Uc[0][2][2][ENG],0.5*d->Vc[RHO][0][2][2]*(d->Vc[VX1][0][2][2]*d->Vc[VX1][0][2][2]+d->Vc[VX2][0][2][2]*d->Vc[VX2][0][2][2]+d->Vc[VX3][0][2][2]*d->Vc[VX3][0][2][2]),d->Vc[PRS][0][2][2]/(g_gamma - 1.0));
+if (g_stepNumber>NSHTIME1)   printf ("ADV AF CTP    %e density  %e pressure %20.15e current E %e KE=%e INTE=%e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],d->Uc[0][NSHj][NSHi][ENG],0.5*d->Vc[RHO][0][NSHj][NSHi]*(d->Vc[VX1][0][NSHj][NSHi]*d->Vc[VX1][0][NSHj][NSHi]+d->Vc[VX2][0][NSHj][NSHi]*d->Vc[VX2][0][NSHj][NSHi]+d->Vc[VX3][0][NSHj][NSHi]*d->Vc[VX3][0][NSHj][NSHi]),d->Vc[PRS][0][NSHj][NSHi]/(g_gamma - 1.0));
 
-  printf ("ADV end       %e density  %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][2][2],d->Vc[PRS][0][2][2],KELVIN*0.6*d->Vc[PRS][0][2][2]/d->Vc[RHO][0][2][2]);
+ if (g_stepNumber>NSHTIME1)  printf ("ADV end       %e density  %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],KELVIN*0.6*d->Vc[PRS][0][NSHj][NSHi]/d->Vc[RHO][0][NSHj][NSHi]);
 
 
 

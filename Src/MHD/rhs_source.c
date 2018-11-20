@@ -139,7 +139,7 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
   
   
   if (g_dir == IDIR){
-        if (sig==1) printf ("RHSSource IDIR %i RHS[ENG][2][]2]=%20.15e RHO=%21.15e\n",g_dir,sweep->rhs[2][ENG],sweep->rhs[2][RHO]);
+        if (sig==1) printf ("RHSSource IDIR %i RHS[ENG][2][]2]=%20.15e RHO=%21.15e\n",g_dir,sweep->rhs[NSHi][ENG],sweep->rhs[NSHi][RHO]);
 
     for (i = beg; i <= end; i++) {
       dtdx = dt/dx1[i];
@@ -160,7 +160,7 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
       rhs[i][MX1] += dt*Sm*r_1;
 
 #endif
-	  if (sig==1 && i==2) printf ("RHSSource IDIR %i Geom Source     %20.15e RHO=%21.15e\n",g_dir,sweep->rhs[2][ENG],sweep->rhs[2][RHO]);
+	  if (sig==1 && i==NSHi) printf ("RHSSource IDIR %i Geom Source     %20.15e RHO %21.15e Tot %20.15e\n",g_dir,dt*Sm*r_1,sweep->rhs[NSHi][RHO],sweep->rhs[NSHi][ENG]);
 
 
     /* ----------------------------------------------------
@@ -170,14 +170,19 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
       
 #if (BODY_FORCE & POTENTIAL)
       rhs[i][MX1]   -= dtdx*vg[RHO]*(phi_p[i] - phi_p[i-1]);
+  	 if (sig==1 && i==NSHi) printf ("In BodyForcePot phi_p[j]=%e phi_p[j-1]=%e diff=%e MX2=%i rhs[j][MX2]=%e RHO=%i rhs[j][RHO])=%e\n",phi_p[j],phi_p[i-1],(phi_p[j] - phi_p[i-1]),MX2,rhs[i][MX2],RHO,rhs[i][RHO]);
+	  
       IF_ENERGY(phi_c       = BodyForcePotential(x1[i], x2[j], x3[k]); 
+ 	 if (sig==1 && i==NSHi) printf ("In BodyForcePot = %e rho= %e RHS=%e X1=%e X2=%e\n",phi_c,rhs[i][RHO],phi_c*rhs[i][RHO],x1[i],x2[j]);
+	  
+	  
                 rhs[i][ENG] -= phi_c*rhs[i][RHO];)
 #endif
-			  	  if (sig==1 && i==2) printf ("RHSSource IDIR %i Potential       %20.15e RHO=%21.15e\n",g_dir,sweep->rhs[2][ENG],sweep->rhs[2][RHO]);
+			  	  if (sig==1 && i==NSHi) printf ("RHSSource IDIR %i Potential       %20.15e RHO=%21.15e\n",g_dir,sweep->rhs[NSHi][ENG],sweep->rhs[NSHi][RHO]);
     }
     
   } else if (g_dir == JDIR){
-      if (sig==1 && i==2) printf ("RHSSource JDIR %i RHS[ENG][2][]2]=%20.15e RHO=%21.15e\n",g_dir,sweep->rhs[2][ENG],sweep->rhs[2][RHO]);
+      if (sig==1 && j==NSHj) printf ("RHSSource JDIR %i RHS[ENG][2][]2]=%20.15e RHO=%21.15e\n",g_dir,sweep->rhs[NSHj][ENG],sweep->rhs[NSHj][RHO]);
     scrh = dt;
 #if GEOMETRY == SPHERICAL
     scrh /= rt[i];
@@ -200,21 +205,20 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
                         - ct*TotBB(vc, Bg0[j], iBPHI, iBPHI));
       rhs[j][MX2] += dt*Sm*r_1;
 #endif  /* GEOMETRY == SPHERICAL */
-	  if (sig==1 && j==2) printf ("RHSSource JDIR %i Geom Source     %20.15e RHO=%21.15e\n",g_dir,sweep->rhs[2][ENG],sweep->rhs[2][RHO]);
+	  if (sig==1 && j==NSHj) printf ("RHSSource IDIR %i Geom Source     %20.15e RHO %21.15e Tot %20.15e\n",g_dir,dt*Sm*r_1,sweep->rhs[NSHj][RHO],sweep->rhs[NSHj][ENG]);
     /* ----------------------------------------------------
        J3. Include Body force
        ---------------------------------------------------- */
 #if (BODY_FORCE & POTENTIAL)
       rhs[j][MX2]   -= dtdx*vg[RHO]*(phi_p[j] - phi_p[j-1]);
-// 	 if (sig==1 && j==2) printf ("In BodyForcePot phi_p[j]=%e phi_p[j-1]=%e %i %e %i %e\n",phi_p[j],phi_p[j-1],MX2,rhs[j][MX2],RHO,rhs[j][RHO]);
+ 	 if (sig==1 && j==NSHj) printf ("In BodyForcePot phi_p[j]=%e phi_p[j-1]=%e diff=%e MX2=%i rhs[j][MX2]=%e RHO=%i rhs[j][RHO])=%e\n",phi_p[j],phi_p[j-1],(phi_p[j] - phi_p[j-1]),MX2,rhs[j][MX2],RHO,rhs[j][RHO]);
 	  
       IF_ENERGY(phi_c        = BodyForcePotential(x1[i], x2[j], x3[k]); 
-//	 if (sig==1 && j==2) printf ("In BodyForcePot = %e rho= %e RHS=%e\n",phi_c,rhs[j][RHO],phi_c*rhs[j][RHO]);
-//	 if (sig==1 && j==2 && rhs[j][RHO]<0.0) printf ("BOOM %e dir=%i\n",rhs[j][RHO],g_dir);
+	 if (sig==1 && j==NSHj) printf ("In BodyForcePot = %e rho= %e RHS=%e X1=%e X2=%e\n",phi_c,rhs[j][RHO],phi_c*rhs[j][RHO],x1[i],x2[j]);
 	  
                 rhs[j][ENG] -= phi_c*rhs[j][RHO];)
 #endif
-   	  if (sig==1 && j==2) printf ("RHSSource IDIR %i Potential       %20.15e RHO=%21.15e\n",g_dir,sweep->rhs[2][ENG],sweep->rhs[2][RHO]);
+   	  if (sig==1 && j==NSHj) printf ("RHSSource IDIR %i Potential       %20.15e RHO=%21.15e\n",g_dir,sweep->rhs[NSHj][ENG],sweep->rhs[NSHj][RHO]);
 					
 					
     }

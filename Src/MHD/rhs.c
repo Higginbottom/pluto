@@ -195,13 +195,13 @@ int *n;
 	  
   //		if (sig==1 && i==2) printf ("RHS1 dens=%e\n",sweep->rhs[i][RHO]);
 		
-  		if (sig==1 && i==2) printf ("dir=%i RHO=%i ENG=%i MXn=%i iMPHI=%i\n",g_dir,RHO,ENG,MXn,iMPHI);
+  		if (sig==1 && i==NSHi) printf ("dir=%i RHO=%i ENG=%i MXn=%i iMPHI=%i\n",g_dir,RHO,ENG,MXn,iMPHI);
 		
 		
 		
 		
       NVAR_LOOP(nv) rhs[i][nv] = -dtdV*(fA[i][nv] - fA[i-1][nv]);
- 	if (sig==1 && i==2)	NVAR_LOOP(nv) printf ("RHS nv=%i rhs[i][nv]=%20.15e\n",nv,rhs[i][nv]);
+ 	if (sig==1 && i==NSHi)	NVAR_LOOP(nv) printf ("RHS nv=%i rhs[i][nv]=%20.15e fA[i]=%e fA[i-1]=%e dV=%e\n",nv,rhs[i][nv],fA[i][nv],fA[i-1][nv],dV[k][j][i]);
 	  
  // 	if (sig==1 && i==2) printf ("RHS1 dens=%e\n",sweep->rhs[i][RHO]);
 
@@ -221,7 +221,7 @@ int *n;
  
 				 
     }  
-   if (sig==1) printf ("RHS I_DIR energy=%e\n",sweep->rhs[2][ENG]);
+   if (sig==1) printf ("RHS I_DIR energy=%e\n",sweep->rhs[NSHi][ENG]);
 
   }else if (g_dir == JDIR){
     
@@ -232,11 +232,11 @@ int *n;
       dtdl = dt/dx2[j]*dx_dl[j][i];
  //   	if (sig==1 && j==2) printf ("RHSJ dens=%e\n",sweep->rhs[j][RHO]);
       
-  		if (sig==1 && j==2) printf ("dir=%i RHO=%i ENG=%i MXn=%i iMPHI=%i\n",g_dir,RHO,ENG,MXn,iMPHI);
+  		if (sig==1 && j==NSHj) printf ("dir=%i RHO=%i ENG=%i MXn=%i iMPHI=%i\n",g_dir,RHO,ENG,MXn,iMPHI);
 	  
 	  
       NVAR_LOOP(nv) rhs[j][nv] = -dtdV*(fA[j][nv] - fA[j-1][nv]);
-   	if (sig==1 && j==2)	NVAR_LOOP(nv) printf ("RHS nv=%i rhs[i][nv]=%20.15e\n",nv,rhs[i][nv]);
+   	if (sig==1 && j==NSHj)	NVAR_LOOP(nv) printf ("RHS nv=%i rhs[i][nv]=%20.15e fA[i]=%e fA[i-1]=%e dV=%e\n",nv,rhs[j][nv],fA[j][nv],fA[j-1][nv],dV[k][j][i]);
 	  
 
       #if USE_PRS_GRADIENT == YES
@@ -255,7 +255,7 @@ int *n;
       #endif /* GEOMETRY == SPHERICAL  */
 	  
     }
-    if (sig==1) printf ("RHS J_DIR energy=%e\n",sweep->rhs[2][ENG]);
+    if (sig==1) printf ("RHS J_DIR energy=%e\n",sweep->rhs[NSHj][ENG]);
 
   }else if (g_dir == KDIR){
 
@@ -281,9 +281,9 @@ int *n;
 /* --------------------------------------------------------------
    6. Add source terms
    -------------------------------------------------------------- */
-  if (sig==1) printf ("RHS B4 Source energy=%e\n",sweep->rhs[2][ENG]);
+//  if (sig==1) printf ("RHS B4 Source energy=%e\n",sweep->rhs[2][ENG]);
   RightHandSideSource (sweep, Dts, beg, end, dt, phi_p, grid,sig);
-  if (sig==1) printf ("RHS AF Source energy=%e\n",sweep->rhs[2][ENG]);
+//  if (sig==1) printf ("RHS AF Source energy=%e\n",sweep->rhs[2][ENG]);
 
 /* --------------------------------------------------
    7. Reset right hand side in internal boundary zones
