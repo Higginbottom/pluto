@@ -94,26 +94,32 @@ if (g_stepNumber>NSHTIME1)   printf ("ADV B4 BC     %e density  %e pressure %20.
 
 if (g_stepNumber>NSHTIME1)   printf ("ADV AF BC     %e density  %e pressure %20.15e temp %e\n",g_time,d->Vc[RHO][0][NSHj][NSHi],d->Vc[PRS][0][NSHj][NSHi],KELVIN*0.6*d->Vc[PRS][0][NSHj][NSHi]/d->Vc[RHO][0][NSHj][NSHi]);
 
-if (g_stepNumber>NSHTIME1) printf ("Start %e  density[i-1][j-1]  %e density[i][j-1]  %e density[i+1][j-1]  %e\n",g_time,d->Vc[RHO][0][NSHj-1][NSHi-1],d->Vc[RHO][0][NSHj-1][NSHi],d->Vc[RHO][0][NSHj-1][NSHi+1]);
-if (g_stepNumber>NSHTIME1) printf ("Start %e  density[i-1][j]    %e density[i-1][j]  %e density[i+1][j]    %e\n",g_time,d->Vc[RHO][0][NSHj]  [NSHi-1],d->Vc[RHO][0][NSHj]  [NSHi],d->Vc[RHO][0][NSHj]  [NSHi+1]);
-if (g_stepNumber>NSHTIME1) printf ("Start %e  density[i-1][j+1]  %e density[i][j+1]  %e density[i+1][j+1]  %e\n",g_time,d->Vc[RHO][0][NSHj+1][NSHi-1],d->Vc[RHO][0][NSHj+1][NSHi],d->Vc[RHO][0][NSHj+1][NSHi+1]);
 
-if (g_stepNumber>NSHTIME1) printf ("Start %e  pressure[i-1][j-1] %e pressure[i][j-1] %e pressure[i+1][j-1] %e\n",g_time,d->Vc[PRS][0][NSHj-1][NSHi-1],d->Vc[PRS][0][NSHj-1][NSHi],d->Vc[PRS][0][NSHj-1][NSHi+1]);
-if (g_stepNumber>NSHTIME1) printf ("Start %e  pressure[i-1][j]   %e pressure[i-1][j] %e pressure[i+1][j]   %e\n",g_time,d->Vc[PRS][0][NSHj]  [NSHi-1],d->Vc[PRS][0][NSHj]  [NSHi],d->Vc[PRS][0][NSHj]  [NSHi+1]);
-if (g_stepNumber>NSHTIME1) printf ("Start %e  pressure[i-1][j+1] %e pressure[i][j+1] %e pressure[i+1][j+1] %e\n",g_time,d->Vc[PRS][0][NSHj+1][NSHi-1],d->Vc[PRS][0][NSHj+1][NSHi],d->Vc[PRS][0][NSHj+1][NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("Density & i=1 & i=2 & i=3 \\ \n");
 
-if (g_stepNumber>NSHTIME1) printf ("Start %e  V1[i-1][j-1] %e V1[i][j-1] %e V1[i+1][j-1] %e\n",g_time,d->Vc[VX1][0][NSHj-1][NSHi-1],d->Vc[VX1][0][NSHj-1][NSHi],d->Vc[VX1][0][NSHj-1][NSHi+1]);
-if (g_stepNumber>NSHTIME1) printf ("Start %e  V1[i-1][j]   %e V1[i-1][j] %e V1[i+1][j]   %e\n",g_time,d->Vc[VX1][0][NSHj]  [NSHi-1],d->Vc[VX1][0][NSHj]  [NSHi],d->Vc[VX1][0][NSHj]  [NSHi+1]);
-if (g_stepNumber>NSHTIME1) printf ("Start %e  V1[i-1][j+1] %e V1[i][j+1] %e V1[i+1][j+1] %e\n",g_time,d->Vc[VX1][0][NSHj+1][NSHi-1],d->Vc[VX1][0][NSHj+1][NSHi],d->Vc[VX1][0][NSHj+1][NSHi+1]);
-
-
-if (g_stepNumber>NSHTIME1) printf ("Start %e  V2[i-1][j-1] %e V2[i][j-1] %e V2[i+1][j-1] %e\n",g_time,d->Vc[VX2][0][NSHj-1][NSHi-1],d->Vc[VX2][0][NSHj-1][NSHi],d->Vc[VX2][0][NSHj-1][NSHi+1]);
-if (g_stepNumber>NSHTIME1) printf ("Start %e  V2[i-1][j]   %e V2[i-1][j] %e V2[i+1][j]   %e\n",g_time,d->Vc[VX2][0][NSHj]  [NSHi-1],d->Vc[VX2][0][NSHj]  [NSHi],d->Vc[VX2][0][NSHj]  [NSHi+1]);
-if (g_stepNumber>NSHTIME1) printf ("Start %e  V2[i-1][j+1] %e V2[i][j+1] %e V2[i+1][j+1] %e\n",g_time,d->Vc[VX2][0][NSHj+1][NSHi-1],d->Vc[VX2][0][NSHj+1][NSHi],d->Vc[VX2][0][NSHj+1][NSHi+1]);
-
-if (g_stepNumber>NSHTIME1) printf ("Start %e  V3[i-1][j-1] %e V3[i][j-1] %e V3[i+1][j-1] %e\n",g_time,d->Vc[VX3][0][NSHj-1][NSHi-1],d->Vc[VX3][0][NSHj-1][NSHi],d->Vc[VX3][0][NSHj-1][NSHi+1]);
-if (g_stepNumber>NSHTIME1) printf ("Start %e  V3[i-1][j]   %e V3[i-1][j] %e V3[i+1][j]   %e\n",g_time,d->Vc[VX3][0][NSHj]  [NSHi-1],d->Vc[VX3][0][NSHj]  [NSHi],d->Vc[VX3][0][NSHj]  [NSHi+1]);
-if (g_stepNumber>NSHTIME1) printf ("Start %e  V3[i-1][j+1] %e V3[i][j+1] %e V3[i+1][j+1] %e\n",g_time,d->Vc[VX3][0][NSHj+1][NSHi-1],d->Vc[VX3][0][NSHj+1][NSHi],d->Vc[VX3][0][NSHj+1][NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("j=1  &  %e &  %e &  %e \\ \n",g_time,d->Vc[RHO][0][NSHj-1][NSHi-1],d->Vc[RHO][0][NSHj-1][NSHi],d->Vc[RHO][0][NSHj-1][NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("j=2  &    %e &  %e &    %e \\ \n",g_time,d->Vc[RHO][0][NSHj]  [NSHi-1],d->Vc[RHO][0][NSHj]  [NSHi],d->Vc[RHO][0][NSHj]  [NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("j=3  &[j+1]  %e &  %e &  %e \\ \n",g_time,d->Vc[RHO][0][NSHj+1][NSHi-1],d->Vc[RHO][0][NSHj+1][NSHi],d->Vc[RHO][0][NSHj+1][NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("\hline \n");
+if (g_stepNumber>NSHTIME1) printf ("Pressure \\ \n");
+if (g_stepNumber>NSHTIME1) printf ("j=1  & %e & %e & %e \\ \n",g_time,d->Vc[PRS][0][NSHj-1][NSHi-1],d->Vc[PRS][0][NSHj-1][NSHi],d->Vc[PRS][0][NSHj-1][NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("j=2  &   %e & %e &   %e \\ \n",g_time,d->Vc[PRS][0][NSHj]  [NSHi-1],d->Vc[PRS][0][NSHj]  [NSHi],d->Vc[PRS][0][NSHj]  [NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("j=3  & %e & %e & %e \\ \n",g_time,d->Vc[PRS][0][NSHj+1][NSHi-1],d->Vc[PRS][0][NSHj+1][NSHi],d->Vc[PRS][0][NSHj+1][NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("\hline \n");
+if (g_stepNumber>NSHTIME1) printf ("V_{r} \\ \n");
+if (g_stepNumber>NSHTIME1) printf ("j=1  & %e & %e & %e \\ \n",g_time,d->Vc[VX1][0][NSHj-1][NSHi-1],d->Vc[VX1][0][NSHj-1][NSHi],d->Vc[VX1][0][NSHj-1][NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("j=2  &   %e & %e &   %e \\ \n",g_time,d->Vc[VX1][0][NSHj]  [NSHi-1],d->Vc[VX1][0][NSHj]  [NSHi],d->Vc[VX1][0][NSHj]  [NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("j=3  & %e & %e & %e \\ \n",g_time,d->Vc[VX1][0][NSHj+1][NSHi-1],d->Vc[VX1][0][NSHj+1][NSHi],d->Vc[VX1][0][NSHj+1][NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("\hline \n");
+if (g_stepNumber>NSHTIME1) printf ("V_{\theta} \\ \n");
+if (g_stepNumber>NSHTIME1) printf ("j=1  & %e & %e & %e \\ \n",g_time,d->Vc[VX2][0][NSHj-1][NSHi-1],d->Vc[VX2][0][NSHj-1][NSHi],d->Vc[VX2][0][NSHj-1][NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("j=2  &   %e & %e &   %e \\ \n",g_time,d->Vc[VX2][0][NSHj]  [NSHi-1],d->Vc[VX2][0][NSHj]  [NSHi],d->Vc[VX2][0][NSHj]  [NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("j=3  & %e & %e & %e \\ \n",g_time,d->Vc[VX2][0][NSHj+1][NSHi-1],d->Vc[VX2][0][NSHj+1][NSHi],d->Vc[VX2][0][NSHj+1][NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("\hline \n");
+if (g_stepNumber>NSHTIME1) printf ("V_{\phi} \\ \n");
+if (g_stepNumber>NSHTIME1) printf ("j=1  & %e & %e & %e \\ \n",g_time,d->Vc[VX3][0][NSHj-1][NSHi-1],d->Vc[VX3][0][NSHj-1][NSHi],d->Vc[VX3][0][NSHj-1][NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("j=2  &   %e & %e &   %e \\ \n",g_time,d->Vc[VX3][0][NSHj]  [NSHi-1],d->Vc[VX3][0][NSHj]  [NSHi],d->Vc[VX3][0][NSHj]  [NSHi+1]);
+if (g_stepNumber>NSHTIME1) printf ("j=3  & %e & %e & %e \\ \n",g_time,d->Vc[VX3][0][NSHj+1][NSHi-1],d->Vc[VX3][0][NSHj+1][NSHi],d->Vc[VX3][0][NSHj+1][NSHi+1]);
 
 
 
