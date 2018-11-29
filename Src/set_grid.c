@@ -431,7 +431,6 @@ void MakeGrid (int idim, Runtime *rtime, double *xlft, double *xrgt, double *dx)
    
     } else if ( rtime->patch_type[idim][iseg] == RATIO_GRID) {
 	  ratio=rtime->ratio[idim];
-	  printf ("We are here xL %e xR %e iL %i iR %i rtime->ratio %e iR-iL+1 %i\n",xL,xR,iL,iR,rtime->ratio[idim],iR-iL+1);
 	  xlft[iL] = xL;
 	  dx[iL] = (xR-xL)*(ratio-1.0)/(pow(ratio,(iR-iL+1)) - 1.0); //Initial dx
 	  xrgt[iL] = xlft[iL] + dx[iL];
