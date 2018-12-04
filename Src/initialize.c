@@ -435,7 +435,9 @@ void Initialize(int argc, char *argv[], Data *data,
    -------------------------------------------------------------- */
 
   for (nv = 0; nv < USER_DEF_PARAMETERS; nv++) g_inputParam[nv] = runtime->aux[nv];
+  
 
+	  
 /* ------------------------------------------------------------
           Allocate memory for 3D data arrays
    ------------------------------------------------------------ */
@@ -459,6 +461,22 @@ void Initialize(int argc, char *argv[], Data *data,
   data->emf = malloc(sizeof(EMF));
   CT_Allocate (data->emf);
 #endif  
+
+
+#ifdef PY_CONNECT
+  data->comp_h_pre=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->comp_c_pre=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->xray_h_pre=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->line_c_pre=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->brem_c_pre=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->comp_h=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->comp_c=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->xray_h=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->line_c=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->brem_c=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);	  
+#endif
+
+
 
 /* ------------------------------------------------------------
     Allocate memory for vector potential.
@@ -525,6 +543,20 @@ void Initialize(int argc, char *argv[], Data *data,
 #ifdef FARGO
   FARGO_ComputeVelocity(data, grid);
 #endif
+  
+/* --------------------------------------------------------------
+    If we are running py_pluto - we now go and see if we have a python heatcool file 
+   -------------------------------------------------------------- */
+  
+#ifdef PY_CONNECT
+  if (cmd_line->restart == NO)
+  {
+	 read_py_heatcool (data, grid,1); 
+ }
+	  
+#endif
+  
+  
 
 /* --------------------------------------------------------
     Set output attributes (names, images, number of

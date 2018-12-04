@@ -47,6 +47,21 @@ typedef struct Data_{
                          \f$x_2\f$ and \f$x_1\f$ direction. */
   double ****Vuser; /**< Array storing user-defined supplementary variables 
                          written to disk. */ 
+	  
+#ifdef PY_CONNECT
+  double ***comp_h_pre;   //
+  double ***comp_c_pre;   //
+  double ***line_c_pre;   //
+  double ***xray_h_pre;   //
+  double ***brem_c_pre;   //  
+  double ***comp_h;   //
+  double ***comp_c;   //
+  double ***line_c;   //
+  double ***xray_h;   //
+  double ***brem_c;   // 
+#endif	  
+	  
+	  
   double ***Ax1;    /**< Vector potential comp. in the \f$x_1\f$ dir.*/
   double ***Ax2;    /**< Vector potential comp. in the \f$x_2\f$ dir.*/
   double ***Ax3;    /**< Vector potential comp. in the \f$x_3\f$ dir.*/

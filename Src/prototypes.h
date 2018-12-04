@@ -230,7 +230,7 @@ void Trace (double);
   void  PowerLawCooling (Data_Arr, double, timeStep *, Grid *);
  #endif
  #if COOLING == BLONDIN
- void  BlondinCooling (Data_Arr, double, timeStep *, Grid *);
+ void  BlondinCooling (const Data *, double, timeStep *, Grid *);
  #endif
  /* move the following elsewhere ?  */
 /*
@@ -274,5 +274,9 @@ double GetEntropy (double x);
 /* --- New stuffs -- */
 
 void   WriteAsciiFile (char *fname, double *q, int nvar);
+
+#if PY_CONNECT
+void  read_py_heatcool (Data *, Grid *,int);
+#endif
 
 

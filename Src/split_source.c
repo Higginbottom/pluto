@@ -47,7 +47,7 @@ void SplitSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
   #elif COOLING == KROME /* -- Interfaced krome solvers -- */
   KromeCooling (d, dt, Dts, grid);
   #elif COOLING == BLONDIN
-  BlondinCooling (d->Vc, dt, Dts, grid);
+  BlondinCooling (d, dt, Dts, grid);
   #else
   CoolingSource (d, dt, Dts, grid);
   #endif

@@ -40,10 +40,11 @@ class DefineProblem(object):
     self.entries = ['PHYSICS', 'DIMENSIONS', 'COMPONENTS', 'GEOMETRY',
                     'BODY_FORCE', 'FORCED_TURB','COOLING', 'RECONSTRUCTION', 
             'TIME_STEPPING','DIMENSIONAL_SPLITTING', 'NTRACER', 
-            'USER_DEF_PARAMETERS']
-    self.default = ['HD', '1', '1', 'CARTESIAN','NO', 'NO',
-                    'NO','LINEAR','RK2',
-                    'NO', '0', '0']
+            'USER_DEF_PARAMETERS','PY_CONNECT']
+    self.default = ['HD', '1', '1', 'CARTESIAN',
+                   'NO', 'NO','NO','LINEAR',
+                    'RK2','NO', '0', 
+                    '0','NO']
 
     # Creating a dictionary of flags that are invoked by giving arguments.
     flag_keys = ['WITH-CHOMBO', 'FULL', 'WITH-FD', 'WITH-SB', 'WITH-FARGO',
@@ -172,10 +173,12 @@ class DefineProblem(object):
     ntrlist = ['%d'%n for n in range(9)]
     udplist = ['%d'%n for n in range(32)]
     udclist = ['%d'%n for n in range(32)]
+    pyllist = ['NO','YES']
+	
 
     self.options = [phylist, dimlist, comlist, geolist, bfolist,ftblist,
                     coolist, intlist, tmslist,
-                    dislist, ntrlist, udplist,
+                    dislist, ntrlist, udplist,pyllist,
                     udclist]
 
   def AfterFlagLists(self):
@@ -652,6 +655,10 @@ class DefineProblem(object):
         self.pluto_path.append('Cooling/Power_Law/')
       else:
         self.pluto_path.append('Cooling/'+ cool_mode +'/')
+		
+    py_mode = self.default[self.entries.index('PY_CONNECT')]
+    if py_mode != 'NO':
+      self.pluto_path.append('Py_pluto/')
 
     if 'EOS' in self.mod_entries:
       if 'PVTE_LAW' in self.mod_default:

@@ -3,45 +3,10 @@
   \file  
   \brief  Take a source step using power-law cooling.
 
-  Integrate the ODE 
-  \f[
-       dp_{\rm cgs}/dt_{\rm cgs}
-      = -(\Gamma - 1) \Lambda(\rho_{\rm cgs}, T_{\rm cgs})
-       \qquad{\rm where}\qquad
-       \Lambda = \frac{a_{br}}{(\mu m_H)^2} \rho_{\rm cgs}^2 \sqrt{T_{\rm cgs}}
-      \,,\qquad
-         a_{br} = 2.e-27   c.g.s
-  \f]
-  which accounts for bremmstrahlung cooling.
-  Here the subscript 'cgs' means that the corresponding quantity is given
-  in c.g.s units. 
-  We denote with \c mu the molecular weight, \c mH the hydrogen mass (in c.g.s).
-  
-  The previous integration is carried out analytically since the density
-  does not change during this step.
-  In non-dimensional form:
-  \f[
-      \frac{dp}{dt} = -{\rm cost} \;\rho  (\rho p)^{\HALF}
-  \f]
+
  
-   [notice that since  \c p/rho=T/KELVIN this is equivalent to:
-    \c dp/dt=-cost rho^2 (T/KELVIN)^(1/2) ]
- 
-  The quantity \c cost is determined by transforming the dimensional
-  equation into the non-dimensional one.
-  If p, rho and t are in code (non-dimensional) units and if \c L_0,
-  \c rho_0, and \c V_0 are the unit length, density and velocity,
-  then \c cost is found to be:
-  \verbatim
-                   a_br * (gamma - 1) * L_0 * rho_0
-        cost = -------------------------------------------
-                sqrt(kB * mu * mH) * kB * mu * mH * V_0^2
-  \endverbatim
-   where a_{br} = 2.e-27 (in c.g.s), kB is the Boltmann constant
-  
- 
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    July 28, 2014
+  \authors Nick Higginbottom
+  \date    July 28, 2018
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -50,14 +15,14 @@
 #define EPS 3.0e-8
 
 double xi,sqsqxi,ne,nH,n,tx,E,hc_init,rho,dt_share;
+double comp_c_pre,comp_h_pre,line_c_pre,brem_c_pre,xray_h_pre;
 double heatcool();
-double heatcool2();
 double zfunc();
 double zbrent();
 double zfunc2();
 
 /* ********************************************************************* */
-void BlondinCooling (Data_Arr VV, double dt, timeStep *Dts, Grid *grid)
+void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 /*!
  * \param [in,out]  VV    a pointer to the PLUTO 3D data array containing
  *                        pimitive variables.
@@ -72,22 +37,20 @@ void BlondinCooling (Data_Arr VV, double dt, timeStep *Dts, Grid *grid)
   double  p, T, p_f, T_f;
   double  lx, r, test;
   double t_u,t_l,mu,t_new;
-  double dt_min,***xi_out,***T_out,***comp_c_out,***xray_h_out,***comp_h_out,***line_c_out,***brem_c_out;
+  double dt_min,***xi_out,***T_out;
 
 
   dt_share=dt*UNIT_TIME;  //We need to share the current time step so the zbrent code can use it - must be in real units
   lx=g_inputParam[L_x];  //Xray luminosiy
   tx=g_inputParam[T_x];  //Xray tenperature
-  
+  mu=g_inputParam[MU];  //Mean particle mass  
 
   
 /*  mu=MeanMolecularWeight(v); This is how it should be done - but we are ionized and get the wrong answer */
   
-  mu=0.6;
+//  mu=0.6;
   
-	T_out     = GetUserVar("T");
-	xi_out     = GetUserVar("XI");
-  
+
   
 
   dE = 1.e-18;  //This is from the original cooling code - unsure if I need it.....
@@ -100,15 +63,28 @@ void BlondinCooling (Data_Arr VV, double dt, timeStep *Dts, Grid *grid)
 //printf ("BLAH\n");
   
   DOM_LOOP(k,j,i){
+	  
+	comp_c_pre=data->comp_c_pre[k][j][i];
+	comp_h_pre=data->comp_h_pre[k][j][i];
+	line_c_pre=data->line_c_pre[k][j][i];
+	brem_c_pre=data->brem_c_pre[k][j][i];
+	xray_h_pre=data->xray_h_pre[k][j][i];
+	  
+	  
 
 
 	r=grid->x[IDIR][i]*UNIT_LENGTH;  //The radius - in real units
+	
+	
+	
+	
+	
 
 
-    rho = VV[RHO][k][j][i]*UNIT_DENSITY;  //density of the current cell in physical units
+    rho = data->Vc[RHO][k][j][i]*UNIT_DENSITY;  //density of the current cell in physical units
 	 
-    p   = VV[PRS][k][j][i];  //pressure of the current cell
-    T   = VV[PRS][k][j][i]/VV[RHO][k][j][i]*KELVIN*mu;    //Compute initial temperature in Kelvin
+    p   = data->Vc[PRS][k][j][i];  //pressure of the current cell
+    T   = data->Vc[PRS][k][j][i]/data->Vc[RHO][k][j][i]*KELVIN*mu;    //Compute initial temperature in Kelvin
     E   = (p*UNIT_PRESSURE)/(g_gamma-1);     //Compute internal energy in physical units
 	 
 	nH=rho/(1.43*CONST_mp);   //Work out hydrogen number density assuming stellar abundances
@@ -128,7 +104,8 @@ void BlondinCooling (Data_Arr VV, double dt, timeStep *Dts, Grid *grid)
 //E1   = T*n*CONST_kB/(g_gamma-1);
 	
 	
-	xi_out[k][j][i]=xi=lx/nH/r/r;     //ionization parameter
+	xi=lx/nH/r/r;     //ionization parameter
+	
 	sqsqxi=pow(xi,0.25);    //we use xi^0.25 in the cooling rates - expensive to recompute every call, so do it now and transmit externally	
 	hc_init=heatcool(T);    //Get the initial heating/cooling rate
 
@@ -141,20 +118,8 @@ void BlondinCooling (Data_Arr VV, double dt, timeStep *Dts, Grid *grid)
 		t_l=t_l*0.9;
 		t_u=t_u*1.1;
   		test=zfunc(t_l)*zfunc(t_u);
-//		printf ("test=%e\n",test);
 	}
 	
-	
-
-	
-	
-//	if (j==101)
-//	{
-//		printf ("%e %e %e ",T_f,xi,rho);
-//		heatcool2(T_f);
-//	}
-		
-
 
 //we now search for the solution temperature
 	
@@ -162,9 +127,9 @@ void BlondinCooling (Data_Arr VV, double dt, timeStep *Dts, Grid *grid)
 	
 	
 /*  ----  Update Energy  ----  */
-	T_out[k][j][i]= T_f = MAX (T_f, g_minCoolingTemp); //if the temperature has dropped too low - use the floor (50K)
+	T_f = MAX (T_f, g_minCoolingTemp); //if the temperature has dropped too low - use the floor (50K)
 	
-	heatcool2(T,i,j,k);
+//	heatcool2(data,T,i,j,k);
 
 	E_f=T_f/(2.0/3.0)*(n*CONST_kB); //convert back to energy
 	
@@ -180,7 +145,7 @@ void BlondinCooling (Data_Arr VV, double dt, timeStep *Dts, Grid *grid)
 	
     dE = (fabs(1.0 - p_f/p)) + 1.e-18;  //The fractional change in pressure (or energy since they are proportional)
 	
-    VV[PRS][k][j][i] = p_f;  //Set the pressure in the cell to the new value
+    data->Vc[PRS][k][j][i] = p_f;  //Set the pressure in the cell to the new value
 
 	/* This is a bit obscure - it is from the original code, and appears to set the cooling timescale
 	to a value that means the change in energy will be less than the max cooling rate. It needs a bit 
@@ -190,27 +155,10 @@ void BlondinCooling (Data_Arr VV, double dt, timeStep *Dts, Grid *grid)
 	max cooling rate / dE will be equal to 1 if our change in energy is at the max, so dt will equal the largest
 	acceptable time step. If this is less than the current time step then we will be reducing it next time. 
 	*/
-//	 printf ("T=%e t_f=%e\n",T,T_f);
-//	if (i==2 && j==37)
-//	{
-//			printf ("T=%e T_f=%e (%e) density=%e dt=%e\n",T,T_f,T_f-T,rho,dt);
-//			heatcool2(T_f);
-//			if (T_f>2e6) exit(0);
-//		}
-//			heatcool2(T_f);
-//			exit(0);
-	 
-// 	if (j==50 && i==10)
-// 	{
-// 		printf ("BLAH4 %e %e %e %e %e %e %e\n",g_time,p_f,p,fabs(1.0 - p_f/p),dE,E,E1);
-//		heatcool2(T_f);
-// 	}
 
     Dts->dt_cool = MIN(Dts->dt_cool, dt*g_maxCoolingRate/dE); 
-//    printf ("cooling dt=%e unit_time=%e\n",dt_min,UNIT_TIME);
-//    exit(0);	
+	
   }
-//  exit(0);
 }
 
 
@@ -222,11 +170,11 @@ double heatcool(double T)
 	double lambda,st,h_comp,c_comp,h_xray,l_line,l_brem;
 	
 	st=sqrt(T);
-	h_comp=8.9e-36*xi*tx*(ne*nH);
-	c_comp=8.9e-36*xi*(4.0*T)*ne*nH;
-	h_xray=1.5e-21*(sqsqxi/st)*(1-(T/tx))*ne*nH;
-	l_line=(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;	
-	l_brem=3.3e-27*st*ne*nH;	
+	h_comp=comp_h_pre*8.9e-36*xi*tx*(ne*nH);
+	c_comp=comp_c_pre*8.9e-36*xi*(4.0*T)*ne*nH;
+	h_xray=xray_h_pre*1.5e-21*(sqsqxi/st)*(1-(T/tx))*ne*nH;
+	l_line=line_c_pre*(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;	
+	l_brem=brem_c_pre*3.3e-27*st*ne*nH;	
 	lambda=h_comp+h_xray-l_brem-l_line-c_comp;
 
 	return (lambda);
@@ -237,29 +185,28 @@ double heatcool(double T)
 
 //A little copy for diagnostic purposes
 
-double heatcool2(double T,int i, int j,int k)
+double heatcool2(double xi,double T,int i, int j,int k, double ne, double nh)
 {
 	double lambda,st,h_comp,c_comp,h_xray,l_line,l_brem;
-    double ***comp_c_out,***xray_h_out,***comp_h_out,***line_c_out,***brem_c_out;
-	double ***ne_out,***nh_out;
+	double ***comp_h, ***comp_c, ***line_c, ***brem_c, ***xray_h ;
 	
-	comp_c_out	= GetUserVar("comp_c");
-	comp_h_out	= GetUserVar("comp_h");
-	line_c_out	= GetUserVar("line_c");
-	xray_h_out	= GetUserVar("xray_h");
-	brem_c_out	= GetUserVar("brem_c");
-	ne_out	= GetUserVar("ne");
-	nh_out	= GetUserVar("nh");
+
+
+	comp_h  = GetUserVar("comp_h");
+	comp_c  = GetUserVar("comp_c");
+	xray_h  = GetUserVar("xray_h");
+	line_c  = GetUserVar("line_c");
+	brem_c  = GetUserVar("brem_c");
+	
+	
 		
 	st=sqrt(T);
-	ne_out[k][j][i]=ne;
-	nh_out[k][j][i]=nH;	
-	comp_h_out[k][j][i]=h_comp=8.9e-36*xi*tx;
-	comp_c_out[k][j][i]=c_comp=8.9e-36*xi*(4.0*T);
-	xray_h_out[k][j][i]=h_xray=1.5e-21*(sqsqxi/st)*(1-(T/tx));
-	line_c_out[k][j][i]=l_line=(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24);	
-	brem_c_out[k][j][i]=l_brem=3.3e-27*st;	
-	lambda=(h_comp+h_xray-l_brem-l_line-c_comp)*ne*nH;
+	comp_h[k][j][i]=h_comp=8.9e-36*xi*tx;
+	comp_c[k][j][i]=c_comp=8.9e-36*xi*(4.0*T);
+	xray_h[k][j][i]=h_xray=1.5e-21*(sqsqxi/st)*(1-(T/tx));
+	line_c[k][j][i]=l_line=(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24);	
+	brem_c[k][j][i]=l_brem=3.3e-27*st;	
+	lambda=(h_comp+h_xray-l_brem-l_line-c_comp);
 //	lambda=h_comp-c_comp-l_brem-l_line;
 //	printf ("BLAH5 %e %e %e %e %e %e %e %e %e %e %e\n",g_time,xi,T,E,h_comp,c_comp,l_brem,l_line,h_xray,lambda,dt_share);	
 	return (lambda);
