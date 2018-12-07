@@ -394,13 +394,15 @@ py_cycles=3
 py_cycles=py_cycles+istart*2
 
 
-out=open("logfile",'w',0)
+out=open("pluto_py_logfile",'w',0)
 
 out.write("Starting run"+"\n")
 #out.write("zeus_ver="+zeus_ver+"\n")
 
 for i in range(istart,10000):  #We will permit up to 500 calls to python (this is a lot)
 	out.write("STARTING CYCLE "+str(i)+"\n")
+	print ("STARTING CYCLE "+str(i)+"\n")
+	
 	pluto_input_file(t0+float(i)*dt)
 	out.write("Running for time="+str(t0+float(i)*dt)+"\n")
 	if i==0:   #This is the first step - 
@@ -418,13 +420,18 @@ for i in range(istart,10000):  #We will permit up to 500 calls to python (this i
 	python_input_file(root+".pluto",py_cycles)  #This generate a python parameter file
 	cmdline="cp "+root+".pluto"+".pf input.pf"   #Copy the python file to a generaic name so windsave files persist
 	out.write(cmdline+"\n")
+	print (cmdline+"\n")
+
 	subprocess.check_call(cmdline,shell=True)
 	if py_cycles==3: #This is the first time thruogh - so no restart""
-		cmdline="mpirun -n 24 "+python_ver+" -z  input.pf > "+root+".py_log"  #We now run python
+		cmdline="mpirun -n 4 "+python_ver+" -z  input.pf > "+root+".py_log"  #We now run python
 	else:
-		cmdline="mpirun -n 24 "+python_ver+" -z -r  input.pf > "+root+".py_log"  #We now run python
+		cmdline="mpirun -n 4 "+python_ver+" -z -r  input.pf > "+root+".py_log"  #We now run python
 	out.write("Running python"+"\n") 
+	print("Running python"+"\n") 	
 	out.write(cmdline+"\n")
+	print(cmdline+"\n")
+	
 	subprocess.check_call(cmdline,shell=True)   #Well, here is the actual call
 	cmdline="cp py_heatcool.dat "+root+"_py_heatcool.dat"  
 	out.write(cmdline+"\n")
