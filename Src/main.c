@@ -122,6 +122,23 @@ int main (int argc, char *argv[])
     CheckForOutput (&data, &ini, tbeg, grd);
     CheckForAnalysis (&data, &ini, grd);
   }
+  
+  
+/* --------------------------------------------------------------
+  1a.  If we are running py_pluto - we now go and see if we have a python heatcool file 
+   -------------------------------------------------------------- */
+  
+#ifdef PY_CONNECT
+  if (cmd_line.restart == NO)
+    {
+    read_py_heatcool (&data, grd,0); 
+    }
+  else
+    {
+    read_py_heatcool (&data, grd,1); 
+    }  
+#endif
+  
 
   if (cmd_line.maxsteps == 0) last_step = 1;
   print ("> Starting computation... \n\n");  

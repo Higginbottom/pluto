@@ -544,18 +544,7 @@ void Initialize(int argc, char *argv[], Data *data,
   FARGO_ComputeVelocity(data, grid);
 #endif
   
-/* --------------------------------------------------------------
-    If we are running py_pluto - we now go and see if we have a python heatcool file 
-   -------------------------------------------------------------- */
-  
-#ifdef PY_CONNECT
-  if (cmd_line->restart == NO)
-  {
-	 read_py_heatcool (data, grid,1); 
- }
-	  
-#endif
-  
+
   
 
 /* --------------------------------------------------------
