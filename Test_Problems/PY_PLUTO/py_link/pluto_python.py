@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python -i
 
 import subprocess
 import glob
@@ -372,7 +372,7 @@ def pluto_input_file(tlim):
 #subprocess.check_call("rm py_heatcool.dat",shell=True)
 
 
-t0=10000.0  #The run time for the initial zeus run - the first run is to produce a starting geometry
+t0=1000.0  #The run time for the initial zeus run - the first run is to produce a starting geometry
 dt=1000.0
 den_tol=0.5 #We ask Zeus to log cells whose density has changed by 50% or more (can be a *LOT* more)
 nden=0.1    #The percentage of cells that can change before we call python again
@@ -407,16 +407,20 @@ for i in range(istart,10000):  #We will permit up to 500 calls to python (this i
 	out.write("Running for time="+str(t0+float(i)*dt)+"\n")
 	if i==0:   #This is the first step - 
 		out.write("Creating first zeus_file"+"\n")
-		cmdline="./pluto >"+"%08d"%i+"_pluto_output"
+		cmdline="./pluto >"+"%08d"%i+"_pluto_log"
 	else:
 		out.write("generating restart zeus run \n")      #This should be the name of the restart file
-		cmdline="./pluto -restart "+str(i)+" > "+"%08d"%i+"_pluto_output"
+		cmdline="./pluto -restart "+str(i)+" > "+"%08d"%i+"_pluto_log"
 		
 	out.write("Executing pluto with command line "+cmdline+"\n")
 	subprocess.call(cmdline,shell=True)    #Call zeus
 	out.write("Finished pluto run"+"\n")
-	pluto2py(i)   #We now make a python input file
-	root="%08d"%i
+	cmdline="tail -1 dbl.out"   
+	out.write(cmdline+"\n")
+	proc=subprocess.Popen(cmdline,shell=True,stdout=subprocess.PIPE) #This mess gets the last hdffile	
+	ifile=int(proc.stdout.read().split()[0])
+	pluto2py(ifile)   #We now make a python input file
+	root="%08d"%(ifile)
 	python_input_file(root+".pluto",py_cycles)  #This generate a python parameter file
 	cmdline="cp "+root+".pluto"+".pf input.pf"   #Copy the python file to a generaic name so windsave files persist
 	out.write(cmdline+"\n")
@@ -424,9 +428,9 @@ for i in range(istart,10000):  #We will permit up to 500 calls to python (this i
 
 	subprocess.check_call(cmdline,shell=True)
 	if py_cycles==3: #This is the first time thruogh - so no restart""
-		cmdline="mpirun -n 4 "+python_ver+" -z  input.pf > "+root+".py_log"  #We now run python
+		cmdline="mpirun -n 24 "+python_ver+" -z  input.pf > "+root+".python_log"  #We now run python
 	else:
-		cmdline="mpirun -n 4 "+python_ver+" -z -r  input.pf > "+root+".py_log"  #We now run python
+		cmdline="mpirun -n 24 "+python_ver+" -z -r  input.pf > "+root+".python_log"  #We now run python
 	out.write("Running python"+"\n") 
 	print("Running python"+"\n") 	
 	out.write(cmdline+"\n")
