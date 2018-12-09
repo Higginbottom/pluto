@@ -410,7 +410,7 @@ for i in range(istart,10000):  #We will permit up to 500 calls to python (this i
 		cmdline="./pluto >"+"%08d"%i+"_pluto_log"
 	else:
 		out.write("generating restart zeus run \n")      #This should be the name of the restart file
-		cmdline="./pluto -restart "+str(i)+" > "+"%08d"%i+"_pluto_log"
+		cmdline="./pluto -restart "+str(ifile)+" > "+"%08d"%i+"_pluto_log"
 		
 	out.write("Executing pluto with command line "+cmdline+"\n")
 	subprocess.call(cmdline,shell=True)    #Call zeus
@@ -436,11 +436,15 @@ for i in range(istart,10000):  #We will permit up to 500 calls to python (this i
 	out.write(cmdline+"\n")
 	print(cmdline+"\n")
 	
-	subprocess.check_call(cmdline,shell=True)   #Well, here is the actual call
+#	subprocess.check_call(cmdline,shell=True)   #Well, here is the actual call
 	cmdline="cp py_heatcool.dat "+root+"_py_heatcool.dat"  
 	out.write(cmdline+"\n")
 	subprocess.check_call(cmdline,shell=True)   #And finally we take a copy of the python heatcool file for later investigation.
 	py_cycles=py_cycles+2
+#	now make a prefactors file
+	out.write ("Makeing a prefactor file useing "+str(ifile)+" dbl file")
+	pre_calc(ifile)
+	
 	out.write("FINISHED CYCLE"+"\n")
 	
 out.close()
