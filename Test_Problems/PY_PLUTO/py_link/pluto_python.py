@@ -1,4 +1,4 @@
-#!/usr/bin/env python -i
+#!/usr/bin/env python 
 
 import subprocess
 import glob
@@ -390,6 +390,9 @@ if t0==0.0:
 
 py_cycles=3
 
+nproc_py=4
+nproc_pl=4
+
 
 py_cycles=py_cycles+istart*2
 
@@ -407,10 +410,10 @@ for i in range(istart,10000):  #We will permit up to 500 calls to python (this i
 	out.write("Running for time="+str(t0+float(i)*dt)+"\n")
 	if i==0:   #This is the first step - 
 		out.write("Creating first zeus_file"+"\n")
-		cmdline="./pluto >"+"%08d"%i+"_pluto_log"
+		cmdline="mpirun -n "+str(nproc_pl)+" ./pluto >"+"%08d"%i+"_pluto_log"
 	else:
 		out.write("generating restart zeus run \n")      #This should be the name of the restart file
-		cmdline="./pluto -restart "+str(ifile)+" > "+"%08d"%i+"_pluto_log"
+		cmdline="mpirun -n "+str(nproc_pl)+" ./pluto -restart "+str(ifile)+" > "+"%08d"%i+"_pluto_log"
 		
 	out.write("Executing pluto with command line "+cmdline+"\n")
 	subprocess.call(cmdline,shell=True)    #Call zeus
@@ -428,9 +431,9 @@ for i in range(istart,10000):  #We will permit up to 500 calls to python (this i
 
 	subprocess.check_call(cmdline,shell=True)
 	if py_cycles==3: #This is the first time thruogh - so no restart""
-		cmdline="mpirun -n 24 "+python_ver+" -z  input.pf > "+root+".python_log"  #We now run python
+		cmdline="mpirun -n "+str(nproc_py)+" "+python_ver+" -z  input.pf > "+root+".python_log"  #We now run python
 	else:
-		cmdline="mpirun -n 24 "+python_ver+" -z -r  input.pf > "+root+".python_log"  #We now run python
+		cmdline="mpirun -n "+str(nproc_py)+" "+python_ver+" -z -r  input.pf > "+root+".python_log"  #We now run python
 	out.write("Running python"+"\n") 
 	print("Running python"+"\n") 	
 	out.write(cmdline+"\n")
@@ -443,7 +446,11 @@ for i in range(istart,10000):  #We will permit up to 500 calls to python (this i
 	py_cycles=py_cycles+2
 #	now make a prefactors file
 	out.write ("Makeing a prefactor file useing "+str(ifile)+" dbl file")
-	pre_calc(ifile)
+	pre_calc(ifile)	
+	cmdline="cp prefactors.dat "+root+"_prefactors.dat"  
+	out.write(cmdline+"\n")
+	subprocess.check_call(cmdline,shell=True)
+
 	
 	out.write("FINISHED CYCLE"+"\n")
 	
