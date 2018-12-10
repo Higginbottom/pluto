@@ -438,8 +438,7 @@ for i in range(istart,10000):  #We will permit up to 500 calls to python (this i
 	print("Running python"+"\n") 	
 	out.write(cmdline+"\n")
 	print(cmdline+"\n")
-	
-#	subprocess.check_call(cmdline,shell=True)   #Well, here is the actual call
+	subprocess.check_call(cmdline,shell=True)   #Well, here is the actual call
 	cmdline="cp py_heatcool.dat "+root+"_py_heatcool.dat"  
 	out.write(cmdline+"\n")
 	subprocess.check_call(cmdline,shell=True)   #And finally we take a copy of the python heatcool file for later investigation.
