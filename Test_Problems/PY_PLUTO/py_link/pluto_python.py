@@ -188,8 +188,10 @@ def pre_calc(ifile):
 	fmt='%013.6e'
 
 	#This next line defines formats for the output variables. This is set in a dictionary
-	fmts={	'ir':'%03i',	
-		'itheta':'%03i',	
+	fmts={	'ir':'%03i',
+		'rcent':fmt,
+		'itheta':'%03i',
+		'thetacent':fmt,	
 		'rho':fmt,
 		'comp_h_pre':fmt,
 		'comp_c_pre':fmt,
@@ -199,17 +201,19 @@ def pre_calc(ifile):
 		}	
 
 	titles=[]
-	titles=titles+["ir","itheta","rho"]
+	titles=titles+["ir","rcent","itheta","thetacent"."rho"]
 	titles=titles+["comp_h_pre","comp_c_pre","xray_h_pre","brem_c_pre","line_c_pre"]	
 	
 	col0=heatcool["i"]
-	col1=heatcool["j"]
-	col2=heatcool["rho"]
-	col3=comp_h_pre
-	col4=comp_c_pre
-	col5=xray_h_pre
-	col6=brem_c_pre
-	col7=line_c_pre
+	col1=heatcool["rcen"]
+	col2=heatcool["j"]
+	col3=heatcool["thetacen"]
+	col4=heatcool["rho"]
+	col5=comp_h_pre
+	col6=comp_c_pre
+	col7=xray_h_pre
+	col8=brem_c_pre
+	col9=line_c_pre
 
 	out=open("prefactors.dat",'w')
 

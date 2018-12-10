@@ -32,6 +32,7 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 	char *fgets (), aline[LINELENGTH];
 	int ii,jj,nwords;
 	double dens,comp_h_pre,comp_c_pre,xray_h_pre,brem_c_pre,line_c_pre;
+	double rcen,thetacen;
 	int icount;
 	
 	
@@ -51,30 +52,49 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 			printf ("NO prefactor file\n");
 			exit(0);
 		}
+	    DOM_LOOP(k,j,i){ //Initialise
+			d->comp_h_pre[k][j][i]=-1.0;
+			d->comp_c_pre[k][j][i]=-1.0;
+			d->xray_h_pre[k][j][i]=-1.0;
+			d->line_c_pre[k][j][i]=-1.0;
+			d->brem_c_pre[k][j][i]=-1.0;
+		}
 		fgets (aline, LINELENGTH, fptr);
 		icount=0;
 		while (fgets (aline, LINELENGTH, fptr) != NULL)	
 		{		
-			if ((nwords = sscanf (aline, "%d %d %le %le %le %le %le %le", &ii, &jj, &dens, &comp_h_pre, &comp_c_pre, &xray_h_pre, &brem_c_pre, &line_c_pre)) == 8)
+			if ((nwords = sscanf (aline, "%d %le %d %le %le %le %le %le %le %le", &ii, &rcen, &jj, &thetacen, &dens, &comp_h_pre, &comp_c_pre, &xray_h_pre, &brem_c_pre, &line_c_pre)) == 10)
 			{
-				ii=ii+grid->gbeg[0];  //Correct by the number of ghost zones in i (r)
-				jj=jj+grid->gbeg[1];  //Correct by the number of ghost zones in j (theta)
-				if ((d->Vc[RHO][k][jj][ii]*UNIT_DENSITY/dens)-1.>1e-6)
+				DOM_LOOP(k,j,i)
 				{
-					printf ("Denisty mismatch\n");
+					if (fabs((rcen-grid->x[IDIR][i])/rcen)<1e-6 && fabs((thetacen-grid->x[JDIR][j])/thetacen)<1e-6)
+					{
+						if ((d->Vc[RHO][k][j][i]*UNIT_DENSITY/dens)-1.>1e-6)
+						{
+							printf ("Density mismatch\n");
+						}
+						else
+						{
+							icount++;
+							d->comp_h_pre[k][j][i]=comp_h_pre;
+							d->comp_c_pre[k][j][i]=comp_c_pre;
+							d->xray_h_pre[k][j][i]=xray_h_pre;
+							d->line_c_pre[k][j][i]=line_c_pre;
+							d->brem_c_pre[k][j][i]=brem_c_pre;
+						}
+					}
 				}
-				
-				icount++;
-				d->comp_h_pre[k][jj][ii]=comp_h_pre;
-				d->comp_c_pre[k][jj][ii]=comp_c_pre;
-				d->xray_h_pre[k][jj][ii]=xray_h_pre;
-				d->line_c_pre[k][jj][ii]=line_c_pre;
-				d->brem_c_pre[k][jj][ii]=brem_c_pre;
 			}
 			else
 			{
 				printf ("Prefactor file incorrectly formatted nwords=%i %s\n",nwords,aline);
 				exit(0);
+			}
+		}
+	    DOM_LOOP(k,j,i){ //Test
+			if (d->comp_h_pre[k][j][i]<0.0)
+			{
+				printf ("PROBLEM with i=%i j=%i\n",i,j);
 			}
 		}
 		printf ("Read in %i prefectors\n",icount);
