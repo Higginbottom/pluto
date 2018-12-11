@@ -29,7 +29,7 @@ R_IC=(c.G.cgs*data["CENT_MASS"]*data["MU"]*c.m_p.cgs/c.k_B.cgs/(data["T_x"]/4.0)
 
 data["RHO_ALPHA"]=2.0    #The drop off with radius
 data["R_0"]=R_IC         #THe radius we are using to set the density (usually R_IC)
-data["RHO_0"]=2.75e-12   #The density at that radius
+data["RHO_0"]=16.0e-12   #The density at that radius
 
 #Now lets set up the central source - we want everything to be consistent!
 
@@ -42,12 +42,12 @@ data["DISK_MDOT"]=(data["L_x"]/c.c.cgs/c.c.cgs/efficiency).value   #THe disk mas
 
 data["R_MIN"]=0.05*R_IC/UNIT_LENGTH
 data["R_MAX"]=2*R_IC/UNIT_LENGTH
-data["N_R"]=8
+data["N_R"]=80
 data["DISK_TRUNC_RAD"]=2*R_IC
 
 data["T_MIN"]=np.radians(0.0)
 data["T_MAX"]=np.radians(90.0)
-data["N_T"]=10
+data["N_T"]=100
 
 #Now we work out the matching luminosity for the python simulation.
 
@@ -60,7 +60,7 @@ const=data["L_x"]/L_x_test[0]
 data["L_2_10"]=const*quad(pps.brem,nu2,nu3,args=(data["T_x"],data["BREM_ALPHA"]))[0]
 print "2-10 keV luminosity=",data["L_2_10"]
 
-data["NPHOT"]=1e5
+data["NPHOT"]=1e7
 
 
 
@@ -71,13 +71,13 @@ data["NPHOT"]=1e5
 	
 
 
-t0=1000.0  #The run time for the initial zeus run - the first run is to produce a starting geometry
+t0=10000.0  #The run time for the initial zeus run - the first run is to produce a starting geometry
 dt=1000.0   #
-den_tol=0.5 #We ask Zeus to log cells whose density has changed by 50% or more (can be a *LOT* more)
-nden=0.1    #The percentage of cells that can change before we call python again
+#den_tol=0.5 #We ask Zeus to log cells whose density has changed by 50% or more (can be a *LOT* more)
+#nden=0.1    #The percentage of cells that can change before we call python again
 
 
-python_ver="~/python/bin/py82i"
+python_ver="~/python/bin/py82k"
 
 istart=0
 
