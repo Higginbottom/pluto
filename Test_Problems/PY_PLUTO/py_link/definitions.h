@@ -33,15 +33,13 @@
 #define  DISK_TRUNC_RAD                 8
 #define  MU                             9
 
-
-
 /* [Beg] user-defined constants (do not change this line) */
 
 #define  WARNING_MESSAGES               NO
 #define  INTERNAL_BOUNDARY              YES
 #define  UNIT_DENSITY                   2.75e-12
-#define  UNIT_LENGTH                    4.82e10
-#define  UNIT_VELOCITY                  4.82e10
+#define  UNIT_LENGTH                    4.82467640071e+11
+#define  UNIT_VELOCITY                  4.82467640071e+11
 #define  UNIT_MASS                      (UNIT_DENSITY*UNIT_LENGTH*UNIT_LENGTH*UNIT_LENGTH)
 #define  UNIT_ACCELERATION              (UNIT_VELOCITY*UNIT_VELOCITY/UNIT_LENGTH)
 #define  UNIT_FORCE                     (UNIT_MASS*UNIT_ACCELERATION)

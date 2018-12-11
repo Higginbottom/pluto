@@ -2,16 +2,16 @@
 
 import subprocess
 import glob
-from astropy.io import ascii
-from astropy.table import Table
 from astropy import constants as c
 from astropy import units as u
 from scipy.integrate import quad
-
 import pyPLUTO as pp
 import numpy as np
-
 import pluto_python_sub as pps
+
+
+
+UNIT_DENSITY,UNIT_LENGTH,UNIT_VELOCITY=pps.get_units()
 
 
 #Set the parameters of the run here
@@ -31,36 +31,36 @@ data["RHO_ALPHA"]=2.0    #The drop off with radius
 data["R_0"]=R_IC         #THe radius we are using to set the density (usually R_IC)
 data["RHO_0"]=2.75e-12   #The density at that radius
 
+#Now lets set up the central source - we want everything to be consistent!
 
+efficiency=0.083        #The efficiency of conversion of mass to lumonisity at the central source - used to set the disk mdot
+data["L_x"]=3.3e37       #The luminosity from 13.6eV to infinity
+data["BREM_ALPHA"]=0.0   #The power law for the bremstrahlung specrrum - should stay at zero unless there is a very goo reason
+data["DISK_MDOT"]=(data["L_x"]/c.c.cgs/c.c.cgs/efficiency).value   #THe disk massloss rate is only used to set the initial temperature
 
+#Finally, lets set up the grid - confusingly, rmin and rmax are scaled by the UNIT_LENGTH, disk truncation isn't
 
-data["DISK_MDOT"]=4.4e17
-data["L_x"]=3.3e37
-data["BREM_ALPHA"]=0.0
-
-
-data["R_MIN"]=0.05*R_IC
-data["R_MAX"]=20*R_IC
-data["N_R"=200
+data["R_MIN"]=0.05*R_IC/UNIT_LENGTH
+data["R_MAX"]=2*R_IC/UNIT_LENGTH
+data["N_R"]=8
 data["DISK_TRUNC_RAD"]=2*R_IC
 
-print "Disk Mdot implies a luminosity of ",(data["DISK_MDOT"]*c.c.cgs*c.c.cgs*0.083).value," vs value of ",data["L_x"]," assuming 8.3% efficiency"
+data["T_MIN"]=np.radians(0.0)
+data["T_MAX"]=np.radians(90.0)
+data["N_T"]=10
 
+#Now we work out the matching luminosity for the python simulation.
 
 nu1=((13.6*u.eV).to(u.erg)/c.h.cgs).value
 nu2=((2000*u.eV).to(u.erg)/c.h.cgs).value
 nu3=((10000*u.eV).to(u.erg)/c.h.cgs).value
 numax=(data["T_x"]*u.K*c.k_B.cgs/c.h.cgs).value*100.
-
-
 L_x_test=quad(pps.brem,nu1,np.max([nu3,numax]),args=(data["T_x"],data["BREM_ALPHA"]))
-
 const=data["L_x"]/L_x_test[0]
-
-
 data["L_2_10"]=const*quad(pps.brem,nu2,nu3,args=(data["T_x"],data["BREM_ALPHA"]))[0]
-
 print "2-10 keV luminosity=",data["L_2_10"]
+
+data["NPHOT"]=1e5
 
 
 
@@ -71,8 +71,8 @@ print "2-10 keV luminosity=",data["L_2_10"]
 	
 
 
-t0=10000.0  #The run time for the initial zeus run - the first run is to produce a starting geometry
-dt=1000.0
+t0=1000.0  #The run time for the initial zeus run - the first run is to produce a starting geometry
+dt=1000.0   #
 den_tol=0.5 #We ask Zeus to log cells whose density has changed by 50% or more (can be a *LOT* more)
 nden=0.1    #The percentage of cells that can change before we call python again
 
@@ -122,7 +122,7 @@ for i in range(istart,10000):  #We will permit up to 500 calls to python (this i
 	ifile=int(proc.stdout.read().split()[0])
 	pps.pluto2py(ifile)   #We now make a python input file
 	root="%08d"%(ifile)
-	pps.python_input_file(root+".pluto",py_cycles,data)  #This generate a python parameter file
+	pps.python_input_file(root+".pluto",data,py_cycles)  #This generate a python parameter file
 	cmdline="cp "+root+".pluto"+".pf input.pf"   #Copy the python file to a generaic name so windsave files persist
 	out.write(cmdline+"\n")
 	print (cmdline+"\n")
@@ -147,8 +147,6 @@ for i in range(istart,10000):  #We will permit up to 500 calls to python (this i
 	cmdline="cp prefactors.dat "+root+"_prefactors.dat"  
 	out.write(cmdline+"\n")
 	subprocess.check_call(cmdline,shell=True)
-
-	
 	out.write("FINISHED CYCLE"+"\n")
 	
 out.close()
