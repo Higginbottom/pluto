@@ -1,4 +1,4 @@
-#!/usr/bin/env python -i
+#!/usr/bin/env python
 
 import subprocess
 import glob
@@ -8,6 +8,11 @@ from scipy.integrate import quad
 import pyPLUTO as pp
 import numpy as np
 import pluto_python_sub as pps
+
+
+
+nproc_py=4
+nproc_pl=4
 
 
 
@@ -88,8 +93,7 @@ if t0==0.0:
 
 py_cycles=3
 
-nproc_py=4
-nproc_pl=4
+
 
 
 py_cycles=py_cycles+istart*2
