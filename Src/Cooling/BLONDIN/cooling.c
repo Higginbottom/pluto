@@ -88,7 +88,12 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
     E   = (p*UNIT_PRESSURE)/(g_gamma-1);     //Compute internal energy in physical units
 	 
 	nH=rho/(1.43*CONST_mp);   //Work out hydrogen number density assuming stellar abundances
-	ne=1.21*nH;             //electron number density assuming full ionization
+	
+	xi=lx/nH/r/r;     //ionization parameter
+	ne=nH*ne_rat(T,xi);
+	
+//	ne=1.21*nH;             //electron number density assuming full ionization
+	
 	n=rho/(mu*CONST_mp);    //particle density
 
 	 
@@ -104,7 +109,6 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 //E1   = T*n*CONST_kB/(g_gamma-1);
 	
 	
-	xi=lx/nH/r/r;     //ionization parameter
 	
 	sqsqxi=pow(xi,0.25);    //we use xi^0.25 in the cooling rates - expensive to recompute every call, so do it now and transmit externally	
 	hc_init=heatcool(T);    //Get the initial heating/cooling rate
@@ -168,11 +172,12 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 double heatcool(double T)
 {
 	double lambda,st,h_comp,c_comp,h_xray,l_line,l_brem;
+	ne=nH*ne_rat(T,xi);
 	
 	st=sqrt(T);
 	h_comp=comp_h_pre*8.9e-36*xi*tx*(ne*nH);
 	c_comp=comp_c_pre*8.9e-36*xi*(4.0*T)*ne*nH;
-	h_xray=xray_h_pre*1.5e-21*(sqsqxi/st)*(1-(T/tx))*ne*nH;
+	h_xray=xray_h_pre*1.5e-21*(sqsqxi/st)*(1-(T/tx))*nH*nH;
 	l_line=line_c_pre*(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;	
 	l_brem=brem_c_pre*3.3e-27*st*ne*nH;	
 	lambda=h_comp+h_xray-l_brem-l_line-c_comp;

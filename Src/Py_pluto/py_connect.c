@@ -36,7 +36,7 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 	int icount;
 	
 	
-	printf ("DOING IT\n");
+
 	if (flag==0) //Initialising first time round
     DOM_LOOP(k,j,i){
 		d->comp_h_pre[k][j][i]=1.0;
@@ -102,4 +102,15 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 }
 
 
+double ne_rat(double temp,double xi)
+{
+	 double x1,x2,ne_rat;
+
+	x1=pow(10,(-51.59417133+12.27740153*log10(temp)));
+	x2=pow(10,(-3.80749689+0.86092628*log10(temp)));
+	
+	ne_rat=fmin(x1,x2);
+	ne_rat=fmin(ne_rat,1.21);
+	return (ne_rat);
+ }
 

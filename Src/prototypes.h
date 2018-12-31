@@ -279,4 +279,5 @@ void   WriteAsciiFile (char *fname, double *q, int nvar);
 void  read_py_heatcool (Data *, Grid *,int);
 #endif
 
+double ne_rat(double temp,double xi);
 

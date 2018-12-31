@@ -46,14 +46,18 @@ tx=g_inputParam[T_x];  //Xray tenperature
 
 	  
 	  nH=rho/(1.43*CONST_mp);   //Work out hydrogen number density assuming stellar abundances
-	  ne=1.21*nH;             //electron number density assuming full ionization
+	  
+  	  xi_out[k][j][i]=xi=lx/nH/r/r;     //ionization parameter
+	  
+      ne=nH*ne_rat(T,xi);
+	  
+//	  ne=1.21*nH;             //electron number density assuming full ionization
 	  n=rho/(mu*CONST_mp);    //particle density
 	  
       ne_out[k][j][i]=ne;
       nH_out[k][j][i]=nH; 
 	  
 	  
-  	  xi_out[k][j][i]=xi=lx/nH/r/r;     //ionization parameter
 	  
 	 
 	 heatcool2(xi,T,i,j,k,ne,nH);
