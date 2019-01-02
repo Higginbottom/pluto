@@ -356,6 +356,8 @@ def pre_calc(ifile):
 		if (heatcool["rho"][i]/(D.rho[heatcool["i"][i]][heatcool["j"][i]]*UNIT_DENSITY))-1.>1e-6:
 			odd=odd+1
 		nenh=D.ne[heatcool["i"][i]][heatcool["j"][i]]*D.nh[heatcool["i"][i]][heatcool["j"][i]]
+		nhnh=D.nh[heatcool["i"][i]][heatcool["j"][i]]*D.nh[heatcool["i"][i]][heatcool["j"][i]]
+		
 		test=(heatcool["heat_comp"][i]/(D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]*D.comp_h[heatcool["i"][i]][heatcool["j"][i]]*nenh))
 		if test<max_change*D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]:
 			test=max_change*D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]
@@ -384,7 +386,7 @@ def pre_calc(ifile):
 			test=(1./max_change)*D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]
 		brem_c_pre.append(test)	
 	
-		test=(heatcool["heat_xray"][i]/(D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]*D.xray_h[heatcool["i"][i]][heatcool["j"][i]]*nenh))
+		test=(heatcool["heat_xray"][i]/(D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]*D.xray_h[heatcool["i"][i]][heatcool["j"][i]]*nhnh))
 		if test<max_change*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]:
 			test=max_change*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]
 		elif test>(1./max_change)*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]:
