@@ -71,7 +71,7 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 					{
 						if ((d->Vc[RHO][k][j][i]*UNIT_DENSITY/dens)-1.>1e-6)
 						{
-							printf ("Density mismatch\n");
+							printf ("Density mismatch in cell i=%i j=%i old=%e new=%e\n",i,j,d->Vc[RHO][k][j][i]*UNIT_DENSITY,dens);
 						}
 						else
 						{
@@ -94,7 +94,23 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 	    DOM_LOOP(k,j,i){ //Test
 			if (d->comp_h_pre[k][j][i]<0.0)
 			{
-				printf ("PROBLEM with i=%i j=%i\n",i,j);
+				printf ("comp_h_prefactor<0.0 for i=%i j=%i comp_h_pre=%e\n",i,j,d->comp_h_pre[k][j][i]);
+			}
+			if (d->comp_c_pre[k][j][i]<0.0)
+			{
+				printf ("comp_c_prefactor<0.0 for i=%i j=%i comp_h_pre=%e\n",i,j,d->comp_c_pre[k][j][i]);
+			}
+			if (d->xray_h_pre[k][j][i]<0.0)
+			{
+				printf ("xray_h_prefactor<0.0 for i=%i j=%i comp_h_pre=%e\n",i,j,d->xray_h_pre[k][j][i]);
+			}
+			if (d->line_c_pre[k][j][i]<0.0)
+			{
+				printf ("line_c_prefactor<0.0 for i=%i j=%i comp_h_pre=%e\n",i,j,d->line_c_pre[k][j][i]);
+			}
+			if (d->brem_c_pre[k][j][i]<0.0)
+			{
+				printf ("brem_c_prefactor<0.0 for i=%i j=%i comp_h_pre=%e\n",i,j,d->brem_c_pre[k][j][i]);
 			}
 		}
 		printf ("Read in %i prefectors\n",icount);
@@ -111,6 +127,7 @@ double ne_rat(double temp,double xi)
 	
 	ne_rat=fmin(x1,x2);
 	ne_rat=fmin(ne_rat,1.21);
+//	printf ("%e %e %e %e\n",temp,x1,x2,ne_rat);
 	return (ne_rat);
  }
 
