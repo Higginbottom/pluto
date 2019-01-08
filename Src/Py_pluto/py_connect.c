@@ -67,9 +67,9 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 			{
 				DOM_LOOP(k,j,i)
 				{
-					if (fabs(((rcen/UNIT_LENGTH)-grid->x[IDIR][i])/(rcen/UNIT_LENGTH))<1e-6 && fabs((thetacen-grid->x[JDIR][j])/thetacen)<1e-6)
+					if (fabs(((rcen/UNIT_LENGTH)-grid->x[IDIR][i])/(rcen/UNIT_LENGTH))<1e-5 && fabs((thetacen-grid->x[JDIR][j])/thetacen)<1e-5)
 					{
-						if ((d->Vc[RHO][k][j][i]*UNIT_DENSITY/dens)-1.>1e-6)
+						if ((d->Vc[RHO][k][j][i]*UNIT_DENSITY/dens)-1.>1e-5)
 						{
 							printf ("Density mismatch in cell i=%i j=%i old=%e new=%e\n",i,j,d->Vc[RHO][k][j][i]*UNIT_DENSITY,dens);
 						}
