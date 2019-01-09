@@ -69,19 +69,16 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 				{
 					if (fabs(((rcen/UNIT_LENGTH)-grid->x[IDIR][i])/(rcen/UNIT_LENGTH))<1e-5 && fabs((thetacen-grid->x[JDIR][j])/thetacen)<1e-5)
 					{
-						if ((d->Vc[RHO][k][j][i]*UNIT_DENSITY/dens)-1.>1e-5)
+						if ((d->Vc[RHO][k][j][i]*UNIT_DENSITY/dens)-1.>1e-6)
 						{
 							printf ("Density mismatch in cell i=%i j=%i old=%e new=%e\n",i,j,d->Vc[RHO][k][j][i]*UNIT_DENSITY,dens);
 						}
-						else
-						{
-							icount++;
-							d->comp_h_pre[k][j][i]=comp_h_pre;
-							d->comp_c_pre[k][j][i]=comp_c_pre;
-							d->xray_h_pre[k][j][i]=xray_h_pre;
-							d->line_c_pre[k][j][i]=line_c_pre;
-							d->brem_c_pre[k][j][i]=brem_c_pre;
-						}
+						icount++;
+						d->comp_h_pre[k][j][i]=comp_h_pre;
+						d->comp_c_pre[k][j][i]=comp_c_pre;
+						d->xray_h_pre[k][j][i]=xray_h_pre;
+						d->line_c_pre[k][j][i]=line_c_pre;
+						d->brem_c_pre[k][j][i]=brem_c_pre;
 					}
 				}
 			}
