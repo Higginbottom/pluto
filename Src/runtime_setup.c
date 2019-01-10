@@ -201,6 +201,8 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
   for (ip = 0; ip < runtime->user_var; ip++){
     if ( (str = ParamFileGet("uservar", 2 + ip)) != NULL){
       sprintf (runtime->user_var_name[ip], "%s", str);
+	  printf ("BLAH %i %s\n",ip,runtime->user_var_name[ip]);
+	  
     }else{
       printf ("! Setup(): missing name after user var name '%s'\n", 
               runtime->user_var_name[ip-1]);
