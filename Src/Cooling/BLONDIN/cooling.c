@@ -207,7 +207,7 @@ void BlondinCooling (Data_Arr VV, double dt, timeStep *Dts, Grid *grid)
 // 	}
 
     Dts->dt_cool = MIN(Dts->dt_cool, dt*g_maxCoolingRate/dE); 
-	if (dt*g_maxCoolingRate/dE<0.1)
+	if (dt*g_maxCoolingRate/dE<1e-2)
 	{
 		printf ("dt=%e g_maxcoolingRate=%e dE=%e dt*g_maxCoolingRate/dE=%e xi=%e T=%e i=%i j=%i dE=%e E_f=%e\n",dt,g_maxCoolingRate,E-E_f,dt*g_maxCoolingRate/dE,xi,T_f,i,j,(1.0 - p_f/p),E_f);
 	}
