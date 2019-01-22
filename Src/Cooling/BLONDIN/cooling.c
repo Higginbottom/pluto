@@ -120,8 +120,11 @@ void BlondinCooling (Data_Arr VV, double dt, timeStep *Dts, Grid *grid)
 	
 	
 	  
-    if (T < g_minCoolingTemp) continue;  //Quit if the temperature is too cold - this may need tweeking
-	
+    if (T < g_minCoolingTemp) 
+	{
+		printf ("T %e too low in cell %i %i - continuuing\n",T,i,j);
+		continue;  //Quit if the temperature is too cold - this may need tweeking
+	}
 	
 
 	
