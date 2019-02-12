@@ -474,6 +474,8 @@ void Initialize(int argc, char *argv[], Data *data,
   data->xray_h=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->line_c=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->brem_c=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);	  
+  data->rad_force_pre = ARRAY_4D(3,NX3_TOT, NX2_TOT, NX1_TOT, double);
+  
 #endif
 
 

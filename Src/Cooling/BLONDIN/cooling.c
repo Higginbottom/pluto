@@ -197,11 +197,11 @@ double heatcool2(double xi,double T,int i, int j,int k, double ne, double nh)
 	
 
 
-	comp_h  = GetUserVar("comp_h");
-	comp_c  = GetUserVar("comp_c");
-	xray_h  = GetUserVar("xray_h");
-	line_c  = GetUserVar("line_c");
-	brem_c  = GetUserVar("brem_c");
+	comp_h  = GetUserVar("ch");
+	comp_c  = GetUserVar("cc");
+	xray_h  = GetUserVar("xh");
+	line_c  = GetUserVar("lc");
+	brem_c  = GetUserVar("bc");
 	
 	
 		
