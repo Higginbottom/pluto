@@ -73,7 +73,7 @@ def pluto_input_file(tlim,data):
 	output.write("\n")
 	output.write("[Static Grid Output]\n")
 	output.write("\n")
-	output.write("uservar    14    XI T comp_h comp_c line_c brem_c xray_h comp_h_pre comp_c_pre line_c_pre brem_c_pre xray_h_pre ne nh\n")
+	output.write("uservar    14    XI T ch cc lc bc xh ch_pre cc_pre lc_pre bc_pre xh_pre ne nh\n")
 	output.write("dbl        1000000000000   -1   single_file\n")
 	output.write("flt       -1.0  -1   single_file\n")
 	output.write("vtk       -1.0  -1   single_file\n")
