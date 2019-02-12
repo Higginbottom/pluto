@@ -776,6 +776,8 @@ extern double g_smallDensity, g_smallPressure;
 extern double g_time, g_dt;
 extern int    g_hydroStep;
 extern double g_maxMach;
+extern double ****g_rad_force_pre; // 
+
 #if ROTATING_FRAME
  extern double g_OmegaZ;
 #endif
@@ -827,5 +829,9 @@ extern double g_inputParam[32];
  #define NX3_MAX   NX3_TOT
 
 #endif
+  
+
+  
+  
 
 #endif /* PLUTO_H */

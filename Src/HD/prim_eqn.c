@@ -227,7 +227,7 @@ void PrimSource (const State *state, double **src, int beg, int end, Grid *grid)
      for (i = beg; i <= end; i++){
        #if BODY_FORCE & VECTOR
         v = state->v[i];
-        BodyForceVector(v, g, x1[i], x2[j], x3[k]);
+        BodyForceVector(v, g, x1[i], x2[j], x3[k],i,j,k);
         src[i][VX1] += g[IDIR];
        #endif
        #if BODY_FORCE & POTENTIAL
@@ -254,7 +254,7 @@ void PrimSource (const State *state, double **src, int beg, int end, Grid *grid)
      for (j = beg; j <= end; j++){
        #if BODY_FORCE & VECTOR
         v = state->v[j];
-        BodyForceVector(v, g, x1[i], x2[j], x3[k]);
+        BodyForceVector(v, g, x1[i], x2[j], x3[k],i,j,k);
         src[j][VX2] += g[JDIR];
        #endif
        #if BODY_FORCE & POTENTIAL
@@ -280,7 +280,7 @@ void PrimSource (const State *state, double **src, int beg, int end, Grid *grid)
      for (k = beg; k <= end; k++){
        #if BODY_FORCE & VECTOR
         v = state->v[k];
-        BodyForceVector(v, g, x1[i], x2[j], x3[k]);
+        BodyForceVector(v, g, x1[i], x2[j], x3[k],i,j,k);
         src[k][VX3] += g[KDIR];
        #endif
        #if BODY_FORCE & POTENTIAL

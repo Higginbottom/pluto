@@ -213,7 +213,7 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
        ---------------------------------------------------- */
 
 #if (BODY_FORCE & VECTOR)
-      BodyForceVector(vg, g, x1[i], x2[j], x3[k]);
+      BodyForceVector(vg, g, x1[i], x2[j], x3[k],i,j,k);
       rhs[i][MX1]   += dt*vg[RHO]*g[IDIR];
       IF_ENERGY(rhs[i][ENG] += dt*0.5*(flux[i][RHO] + flux[i-1][RHO])*g[IDIR];)
       
@@ -301,7 +301,7 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
        ---------------------------------------------------- */
 
 #if (BODY_FORCE & VECTOR)
-      BodyForceVector(vg, g, x1[i], x2[j], x3[k]);
+      BodyForceVector(vg, g, x1[i], x2[j], x3[k],i,j,k);
       rhs[j][MX2]   += dt*vg[RHO]*g[JDIR];
       IF_ENERGY(rhs[j][ENG] += dt*0.5*(flux[j][RHO] + flux[j-1][RHO])*g[JDIR];)
 
@@ -350,7 +350,7 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
        ---------------------------------------------------- */
 
 #if (BODY_FORCE & VECTOR)
-      BodyForceVector(vg, g, x1[i], x2[j], x3[k]);
+      BodyForceVector(vg, g, x1[i], x2[j], x3[k],i,j,k);
       rhs[k][MX3]   += dt*vg[RHO]*g[KDIR];
       IF_ENERGY(rhs[k][ENG] += dt*0.5*(flux[k][RHO] + flux[k-1][RHO])*g[KDIR];)
 #endif

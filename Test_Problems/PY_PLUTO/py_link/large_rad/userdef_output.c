@@ -17,18 +17,20 @@ void ComputeUserVar (const Data *d, Grid *grid)
 {
   int i, j, k, nv;  
 double ***comp_h_pre, ***comp_c_pre, ***line_c_pre, ***brem_c_pre, ***xray_h_pre, ***T_out, ***xi_out, ***ne_out, ***nH_out;
+
+#if (BODY_FORCE & VECTOR)
 double ***g1_out, ***g2_out, ***g3_out, g[3], Vc[NVAR];
 double ***g1_pre, ***g2_pre, ***g3_pre;
+#endif
 
 double rho,p,T,xi,ne,nH,n,mu,lx,tx,r;
 double *x1   = grid->x[IDIR],  *x2  = grid->x[JDIR],  *x3  = grid->x[KDIR];
 
-comp_h_pre  = GetUserVar("comp_h_pre");
-comp_c_pre  = GetUserVar("comp_c_pre");
-xray_h_pre  = GetUserVar("xray_h_pre");
-line_c_pre  = GetUserVar("line_c_pre");
-brem_c_pre  = GetUserVar("brem_c_pre");
-rad_f_pre = GetUserVar("brem_f_pre");
+comp_h_pre  = GetUserVar("ch_pre");
+comp_c_pre  = GetUserVar("cc_pre");
+xray_h_pre  = GetUserVar("xh_pre");
+line_c_pre  = GetUserVar("lc_pre");
+brem_c_pre  = GetUserVar("bc_pre");
 ne_out	= GetUserVar("ne");
 nH_out	= GetUserVar("nh");
 T_out     = GetUserVar("T");

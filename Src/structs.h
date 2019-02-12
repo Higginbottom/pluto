@@ -54,7 +54,6 @@ typedef struct Data_{
   double ***line_c_pre;   //
   double ***xray_h_pre;   //
   double ***brem_c_pre;   // 
-  double ****rad_force_pre; // 
   double ***comp_h;   //
   double ***comp_c;   //
   double ***line_c;   //

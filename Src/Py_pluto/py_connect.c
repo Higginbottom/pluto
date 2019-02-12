@@ -44,9 +44,9 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 		d->xray_h_pre[k][j][i]=1.0;
 		d->line_c_pre[k][j][i]=1.0;
 		d->brem_c_pre[k][j][i]=1.0;
-		d->rad_force_pre[0][k][j][i]=1.0;
-		d->rad_force_pre[1][k][j][i]=1.0;
-		d->rad_force_pre[2][k][j][i]=1.0;		
+		g_rad_force_pre[0][k][j][i]=1.0;
+		g_rad_force_pre[1][k][j][i]=1.0;
+		g_rad_force_pre[2][k][j][i]=1.0;		
 	}
 	else
 	{

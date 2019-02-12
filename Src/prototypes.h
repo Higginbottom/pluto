@@ -29,7 +29,7 @@ void BodyForcePotentialGet (double **v, double **gphi,
 
 
 double BodyForcePotential(double, double, double);
-void   BodyForceVector(double *, double *, double, double, double);
+void   BodyForceVector(double *, double *, double, double, double, int,int,int);
 
 void   ChangeOutputVar (void);
 void   CharTracingStep(const Sweep *, int, int, Grid *);

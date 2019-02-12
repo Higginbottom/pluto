@@ -173,3 +173,6 @@ double g_inputParam[32]; /**< Array containing the user-defined parameters.
   MPI_Datatype PartOutputType;
  #endif
 #endif	
+
+
+  double ****g_rad_force_pre; // 
