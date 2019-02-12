@@ -18,11 +18,11 @@ void ComputeUserVar (const Data *d, Grid *grid)
   int i, j, k;  
 double ***comp_h_pre, ***comp_c_pre, ***line_c_pre, ***brem_c_pre, ***xray_h_pre, ***T_out, ***xi_out, ***ne_out, ***nH_out;
 double rho,p,T,xi,ne,nH,n,mu,lx,tx,r;
-comp_h_pre  = GetUserVar("comp_h_pre");
-comp_c_pre  = GetUserVar("comp_c_pre");
-xray_h_pre  = GetUserVar("xray_h_pre");
-line_c_pre  = GetUserVar("line_c_pre");
-brem_c_pre  = GetUserVar("brem_c_pre");
+comp_h_pre  = GetUserVar("ch_pre");
+comp_c_pre  = GetUserVar("cc_pre");
+xray_h_pre  = GetUserVar("xh_pre");
+line_c_pre  = GetUserVar("lc_pre");
+brem_c_pre  = GetUserVar("bc_pre");
 ne_out	= GetUserVar("ne");
 nH_out	= GetUserVar("nh");
 T_out     = GetUserVar("T");
