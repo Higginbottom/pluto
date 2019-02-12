@@ -336,7 +336,7 @@ def pluto2py(ifile):
 
 def pre_calc(ifile):
 	max_change=0.9
-	heatcool=ascii.read("py_heatcool.dat")
+	heatcool=ascii.read("%08d"%(ifile)+"_py_heatcool.dat")
 	D=pp.pload(ifile)
 
 	# We need the definitions file - so we know the conversion factors.
@@ -363,6 +363,8 @@ def pre_calc(ifile):
 			test=max_change*D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]
 		elif test>(1./max_change)*D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]:
 			test=(1./max_change)*D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]
+		else:
+			test=test*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]
 		comp_h_pre.append(test)
 			
 		test=(heatcool["cool_comp"][i]/(D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]*D.comp_c[heatcool["i"][i]][heatcool["j"][i]]*nenh))
@@ -370,6 +372,8 @@ def pre_calc(ifile):
 			test=max_change*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]
 		elif test>(1./max_change)*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
 			test=(1./max_change)*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]
+		else:
+			test=test*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]
 		comp_c_pre.append(test)	
 	
 		test=(heatcool["cool_lines"][i]/(D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]*D.line_c[heatcool["i"][i]][heatcool["j"][i]]*nenh))
@@ -377,6 +381,8 @@ def pre_calc(ifile):
 			test=max_change*D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]
 		elif test>(1./max_change)*D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
 			test=(1./max_change)*D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]
+		else:
+			test=test*D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]
 		line_c_pre.append(test)	
 	
 		test=(heatcool["cool_ff"][i]/(D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]*D.brem_c[heatcool["i"][i]][heatcool["j"][i]]*nenh))
@@ -384,6 +390,8 @@ def pre_calc(ifile):
 			test=max_change*D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]
 		elif test>(1./max_change)*D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
 			test=(1./max_change)*D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]
+		else:
+			test=test*D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]
 		brem_c_pre.append(test)	
 	
 		test=(heatcool["heat_xray"][i]/(D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]*D.xray_h[heatcool["i"][i]][heatcool["j"][i]]*nhnh))
@@ -391,6 +399,8 @@ def pre_calc(ifile):
 			test=max_change*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]
 		elif test>(1./max_change)*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]:
 			test=(1./max_change)*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]
+		else:
+			test=test*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]
 		xray_h_pre.append(test)
 	
 	
@@ -429,4 +439,3 @@ def pre_calc(ifile):
 	out_dat=Table([col0,col1,col2,col3,col4,col5,col6,col7,col8,col9],names=titles)
 	ascii.write(out_dat,out,formats=fmts)
 	return(odd)
-		

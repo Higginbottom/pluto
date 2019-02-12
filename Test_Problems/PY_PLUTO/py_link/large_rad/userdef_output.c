@@ -18,6 +18,8 @@ void ComputeUserVar (const Data *d, Grid *grid)
   int i, j, k, nv;  
 double ***comp_h_pre, ***comp_c_pre, ***line_c_pre, ***brem_c_pre, ***xray_h_pre, ***T_out, ***xi_out, ***ne_out, ***nH_out;
 double ***g1_out, ***g2_out, ***g3_out, g[3], Vc[NVAR];
+double ***g1_pre, ***g2_pre, ***g3_pre;
+
 double rho,p,T,xi,ne,nH,n,mu,lx,tx,r;
 double *x1   = grid->x[IDIR],  *x2  = grid->x[JDIR],  *x3  = grid->x[KDIR];
 
@@ -26,6 +28,7 @@ comp_c_pre  = GetUserVar("comp_c_pre");
 xray_h_pre  = GetUserVar("xray_h_pre");
 line_c_pre  = GetUserVar("line_c_pre");
 brem_c_pre  = GetUserVar("brem_c_pre");
+rad_f_pre = GetUserVar("brem_f_pre");
 ne_out	= GetUserVar("ne");
 nH_out	= GetUserVar("nh");
 T_out     = GetUserVar("T");
@@ -33,7 +36,9 @@ xi_out     = GetUserVar("XI");
 g1_out     = GetUserVar("g1");
 g2_out     = GetUserVar("g2");
 g3_out     = GetUserVar("g3");
-
+g1_pre     = GetUserVar("g1_pre");
+g2_pre     = GetUserVar("g2_pre");
+g3_pre     = GetUserVar("g3_pre");
 
 
 mu=g_inputParam[MU];
@@ -83,6 +88,10 @@ tx=g_inputParam[T_x];  //Xray tenperature
 	g1_out[k][j][i]=g[0];
 	g2_out[k][j][i]=g[1];
 	g3_out[k][j][i]=g[2];
+	
+	g1_pre[k][j][i]=d->rad_force_pre[0][k][j][i];
+	g2_pre[k][j][i]=d->rad_force_pre[1][k][j][i];
+	g3_pre[k][j][i]=d->rad_force_pre[2][k][j][i];
 	
 	#endif
 	

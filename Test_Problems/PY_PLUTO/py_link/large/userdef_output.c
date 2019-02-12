@@ -23,6 +23,7 @@ comp_c_pre  = GetUserVar("comp_c_pre");
 xray_h_pre  = GetUserVar("xray_h_pre");
 line_c_pre  = GetUserVar("line_c_pre");
 brem_c_pre  = GetUserVar("brem_c_pre");
+rad_f_pre = GetUserVar("brem_f_pre");
 ne_out	= GetUserVar("ne");
 nH_out	= GetUserVar("nh");
 T_out     = GetUserVar("T");
@@ -67,6 +68,7 @@ tx=g_inputParam[T_x];  //Xray tenperature
 	xray_h_pre[k][j][i]=d->xray_h_pre[k][j][i];
 	line_c_pre[k][j][i]=d->line_c_pre[k][j][i];
 	brem_c_pre[k][j][i]=d->brem_c_pre[k][j][i];
+	
 	
   }
 }
