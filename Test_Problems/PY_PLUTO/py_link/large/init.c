@@ -223,10 +223,6 @@ disk_trunc_rad=g_inputParam[DISK_TRUNC_RAD];  //Disk truncation radius
 				d->Vc[RHO][k][j][i]=(rho_0*pow((r/r_0),-1.0*rho_alpha))/UNIT_DENSITY;  //Set density at the midplane
 				
 			}
-//			else
-//			{
-//		      d->Vc[RHO][k][j][i]=rho_0*pow((r/r_0),-1.0*rho_alpha)*exp(20.*(1.-(r/disk_trunc_rad)))/UNIT_DENSITY; //	
-/////////////////////////////////////////////////////////////////////			}
 			d->Vc[VX1][k][j][i]=0.0;									//Set radial velocity at the midplane to zero
 		    d->Vc[VX3][k][j][i]=(sqrt((CONST_G*cent_mass*sin(theta)*sin(theta))/r))/UNIT_VELOCITY;	  //Set v_phi to keplarian in code units			 
 		}
@@ -313,7 +309,7 @@ disk_trunc_rad=g_inputParam[DISK_TRUNC_RAD];  //Disk truncation radius
 
 #if BODY_FORCE != NO
 /* ********************************************************************* */
-void BodyForceVector(double *v, double *g, double x1, double x2, double x3)
+void BodyForceVector(double *v, double *g, double x1, double x2, double x3,int i,int j,int k)
 /*!
  * Prescribe the acceleration vector as a function of the coordinates
  * and the vector of primitive variables *v.
@@ -327,9 +323,58 @@ void BodyForceVector(double *v, double *g, double x1, double x2, double x3)
  *
  *********************************************************************** */
 {
-  g[IDIR] = 0.0;
-  g[JDIR] = 0.0;
-  g[KDIR] = 0.0;
+	double rad, rs;
+	double Lx;
+	double rho,nH,ne,F_r;
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	Lx=g_inputParam[L_x];  //central lum in cgs
+	
+    rho = v[RHO]*UNIT_DENSITY;  //density of the current cell in physical units
+	
+	
+	nH=rho/(1.43*CONST_mp);   //Work out hydrogen number density assuming stellar abundances
+	ne=1.21*nH;             //electron number density assuming full ionization
+	
+	
+	
+	/* first we get the radial distance from the central source*/
+	
+	#if GEOMETRY == CARTESIAN
+		rs = sqrt(x1*x1 + x2*x2 + x3*x3); /* spherical radius in cart. coords */
+	#elif GEOMETRY == CYLINDRICAL
+		rs = sqrt(x1*x1 + x2*x2); /* spherical radius in cyl. coords */
+	#elif GEOMETRY == SPHERICAL
+		rs = x1; /* spherical radius in sph. coords */
+	#endif
+		
+	rs*=UNIT_LENGTH;
+
+	F_r=CONST_sigmaT*ne*Lx/4./CONST_PI/rs/rs/CONST_c/rho;
+
+	#if GEOMETRY == CARTESIAN
+		printf ("Rad force not implemented for cartesian")
+		g[IDIR] = 0.0;
+		g[JDIR] = 0.0;
+		g[KDIR] = 0.0;
+	#elif GEOMETRY == CYLINDRICAL
+		printf ("Rad force not implemented for cylindrical")
+		g[IDIR] = 0.0;
+		g[JDIR] = 0.0;
+		g[KDIR] = 0.0;
+	#elif GEOMETRY == SPHERICAL
+		g[IDIR] = g_rad_force_pre[0][k][j][i]*F_r/UNIT_ACCELERATION;
+		g[JDIR] = 0.0;
+		g[KDIR] = 0.0;
+	#endif
+
 }
 /* ********************************************************************* */
 double BodyForcePotential(double x1, double x2, double x3)
