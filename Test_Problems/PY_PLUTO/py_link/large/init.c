@@ -323,9 +323,10 @@ void BodyForceVector(double *v, double *g, double x1, double x2, double x3,int i
  *
  *********************************************************************** */
 {
-	double rad, rs;
+	double rad, rs,theta;
 	double Lx;
-	double rho,nH,ne,F_r;
+	double rho,nH,ne,F_r,F_t,F_p;
+	double F_w,F_y,F_z;
 	
 	
 	
@@ -355,24 +356,47 @@ void BodyForceVector(double *v, double *g, double x1, double x2, double x3,int i
 		rs = x1; /* spherical radius in sph. coords */
 	#endif
 		
-	rs*=UNIT_LENGTH;
-
+	/* and also the angle of the cell */ 
+		
+	#if GEOMETRY == CARTESIAN
+		theta = atan(x1/x2); /* spherical radius in cart. coords */
+	#elif GEOMETRY == CYLINDRICAL
+		theta = atan(x1/x2); /* spherical radius in cyl. coords */
+	#elif GEOMETRY == SPHERICAL
+		theta = x2; /* spherical radius in sph. coords */
+	#endif	
+		
+		
+	//First compute the theoertical radiation force rom the central source in spherical coords	
+		
+		
+	rs*=UNIT_LENGTH; //We will work in cgs
 	F_r=CONST_sigmaT*ne*Lx/4./CONST_PI/rs/rs/CONST_c/rho;
+	F_t=0.0;
+	F_p=0.0;
+	
+	//We now convert to cylindrical coordinates - this is to make it easuer to apply scaling factors
+	
+	F_w=g_rad_force_pre[0][k][j][i]*(F_r*sin(theta)+F_t*cos(theta))/UNIT_ACCELERATION;
+	F_z=g_rad_force_pre[2][k][j][i]*(F_r*cos(theta)-F_t*sin(theta))/UNIT_ACCELERATION;
+	F_y=g_rad_force_pre[1][k][j][i]*F_p/UNIT_ACCELERATION;
+	
+	
+	
 
 	#if GEOMETRY == CARTESIAN
-		printf ("Rad force not implemented for cartesian")
+	printf ("Rad force not implemented for cartesian")
 		g[IDIR] = 0.0;
 		g[JDIR] = 0.0;
 		g[KDIR] = 0.0;
 	#elif GEOMETRY == CYLINDRICAL
-		printf ("Rad force not implemented for cylindrical")
-		g[IDIR] = 0.0;
-		g[JDIR] = 0.0;
-		g[KDIR] = 0.0;
+		g[IDIR] = F_w;
+		g[JDIR] = F_y;
+		g[KDIR] = F_z;
 	#elif GEOMETRY == SPHERICAL
-		g[IDIR] = g_rad_force_pre[0][k][j][i]*F_r/UNIT_ACCELERATION;
-		g[JDIR] = 0.0;
-		g[KDIR] = 0.0;
+		g[IDIR] = F_w*sin(theta)+F_z*cos(theta);
+		g[JDIR] = F_w*cos(theta)-F_z*sin(theta);
+		g[KDIR] = F_y;
 	#endif
 
 }

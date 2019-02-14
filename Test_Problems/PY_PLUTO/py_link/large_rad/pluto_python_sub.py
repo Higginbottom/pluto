@@ -32,7 +32,7 @@ def get_units(fname='definitions.h'):
 def brem(freq,T_x=5.6e7,alpha=0.0):
 	return freq**alpha*np.exp((-1.*c.h.cgs*freq/c.k_B.cgs/T_x).value)
 
-def pluto_input_file(tlim,data):
+def pluto_input_file(tlim,data,radforce=0):
 	output=open('pluto.ini','w')
 	output.write("[Grid]\n")
 	output.write("\n")
@@ -73,7 +73,10 @@ def pluto_input_file(tlim,data):
 	output.write("\n")
 	output.write("[Static Grid Output]\n")
 	output.write("\n")
-	output.write("uservar    17    XI T comp_h comp_c line_c brem_c xray_h comp_h_pre comp_c_pre line_c_pre brem_c_pre xray_h_pre ne nh g1 g2 g3\n")
+	if radforce==1:
+		output.write("uservar    20    XI T ch cc lc bc xh ch_pre cc_pre lc_pre bc_pre xh_pre ne nh g1 g2 g3 g1_pre g2_pre g3_pre\n")
+	else:
+		output.write("uservar    14    XI T ch cc lc bc xh ch_pre cc_pre lc_pre bc_pre xh_pre ne nh\n")
 	output.write("dbl        1000000000000   -1   single_file\n")
 	output.write("flt       -1.0  -1   single_file\n")
 	output.write("vtk       -1.0  -1   single_file\n")
@@ -107,71 +110,9 @@ def pluto_input_file(tlim,data):
 	
 	
 	
-def python_input_file(fname,data,cycles=2):
-	output=open(fname+".pf",'w')
-	output.write("System_type(0=star,1=binary,2=agn)                    2\n")
-	output.write("Wind_type                 3\n")	
-	output.write("Coord.system(0=spherical,1=cylindrical,2=spherical_polar,3=cyl_var)                    1\n")
-	output.write("Wind.dim.in.x_or_r.direction                     30\n")
-	output.write("Wind.dim.in.z_or_theta.direction                   30\n")
-	output.write("Number.of.wind.components 1\n") 
-	output.write("disk.type(0=no.disk,1=standard.flat.disk,2=vertically.extended.disk) 0\n") 
-	output.write("Atomic_data                         data/standard80\n")
-	output.write("write_atomicdata(0=no,1=yes)               0\n")        
-	output.write("photons_per_cycle                            "+str(data["NPHOT"])+"\n")
-	output.write("Ionization_cycles                                "+str(cycles)+"\n")
-	output.write("spectrum_cycles                                   0\n")
-	output.write("adjust_grid(0=no,1=yes)								0\n")
-	output.write("Wind_ionization 9\n")
-	output.write("Line_transfer 3\n")
-	output.write("Thermal_balance_options(0=everything.on,1=no.adiabatic)                    1\n")
-	output.write("Disk_radiation(y=1)                               0\n")
-	output.write("Wind_radiation(y=1)                               1\n")
-	output.write("QSO_BH_radiation                               1\n")
-	output.write("Rad_type_for_disk(0=bb,1=models)_to_make_wind     0\n")
-	output.write("Rad_type_for_agn(0=bb,1=models,3=power_law,4=cloudy_table)_to_make_wind)  5\n")
-	output.write("mstar(msol)        "+str(data["CENT_MASS"]/c.M_sun.cgs.value)+"\n")
-	output.write("rstar(cm)                                     7e+08\n")
-	output.write("tstar                                         40000\n")
-	output.write("lum_agn(ergs/s) "+str(data["L_2_10"])+"\n")
-	output.write("agn_bremsstrahlung_temp(K) "+str(data["T_x"])+"\n")
-	output.write("agn_bremsstrahlung_alpha "+str(data["BREM_ALPHA"])+"\n")
-	output.write("geometry_for_pl_source 0\n")
-	output.write("agn_power_law_index 							0.0\n")
-	output.write("agn_power_law_cutoff (0)						0\n")
-	output.write("Torus(0=no,1=yes)								0\n")
-	output.write("disk.mdot(msol/yr)   "+str(data["DISK_MDOT"]/c.M_sun.cgs.value*60.*60.*24.*365.25)+"\n")
-	output.write("Disk.illumination.treatment 0\n")
-	output.write("Disk.temperature.profile(0=standard;1=readin)                    0\n")
-	output.write("disk.radmax(cm)                             2.4e+10\n")
-	output.write("wind.radmax(cm)                               1e+11\n")
-	output.write("wind.t.init                                   40000\n")
-	output.write("hydro_file "+fname+"\n")
-	output.write("Hydro_thetamax(degrees)                        -1\n")
-	output.write("filling_factor(1=smooth,<1=clumped)                    1\n")
-	output.write("Rad_type_for_agn(3=power_law,4=cloudy_table)_in_final_spectrum 3\n")
-	output.write("Rad_type_for_disk(0=bb,1=models,2=uniform)_in_final_spectrum                    0\n")
-	output.write("spectrum_wavemin                               1450\n")
-	output.write("spectrum_wavemax                               1650\n")
-	output.write("no_observers                                      4\n")
-	output.write("angle(0=pole)                                    10\n")
-	output.write("angle(0=pole)                                    30\n")
-	output.write("angle(0=pole)                                    60\n")
-	output.write("angle(0=pole)                                    80\n")
-	output.write("live.or.die(0).or.extract(anything_else)                    1\n")
-	output.write("spec.type(flambda(1),fnu(2),basic(other)                    1\n")
-	output.write("Use.standard.care.factors(1=yes)						1\n")
-	output.write("reverb.type 0\n")
-	output.write("Photon.sampling.approach           8\n")
-	output.write("Num.of.frequency.bands(5) 10\n")
-	output.write("Lowest_energy_to_be_considered(eV) 1.03333\n")
-	output.write("Highest_energy_to_be_considered(eV) 50000 \n")
-	output.write("Extra.diagnostics(0=no,1=yes)   1\n")
-	output.write("keep_ioncycle_windsaves()   1\n")
-	output.close()
-	return
 
-def python_input_file_82j(fname,data,cycles=2):
+
+def python_input_file(fname,data,cycles=2):
 	output=open(fname+".pf",'w')
 	output.write("System_type(star,binary,agn,previous)            agn\n")
 	output.write("\n")
@@ -351,6 +292,8 @@ def pre_calc(ifile):
 	line_c_pre=[]
 
 	odd=0.0
+	
+	itest=19900
 
 	for i in range(len(heatcool["rho"])):
 		if (heatcool["rho"][i]/(D.rho[heatcool["i"][i]][heatcool["j"][i]]*UNIT_DENSITY))-1.>1e-6:
@@ -358,50 +301,45 @@ def pre_calc(ifile):
 		nenh=D.ne[heatcool["i"][i]][heatcool["j"][i]]*D.nh[heatcool["i"][i]][heatcool["j"][i]]
 		nhnh=D.nh[heatcool["i"][i]][heatcool["j"][i]]*D.nh[heatcool["i"][i]][heatcool["j"][i]]
 		
-		test=(heatcool["heat_comp"][i]/(D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]*D.comp_h[heatcool["i"][i]][heatcool["j"][i]]*nenh))
-		if test<max_change*D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=max_change*D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]
-		elif test>(1./max_change)*D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=(1./max_change)*D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]
-		else:
-			test=test*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		comp_h_pre.append(test)
+		ideal_prefactor=(heatcool["heat_comp"][i]/(D.ch[heatcool["i"][i]][heatcool["j"][i]]*nenh))
+		change=ideal_prefactor/D.ch_pre[heatcool["i"][i]][heatcool["j"][i]]
+		if change<max_change:
+			change=max_change
+		elif change>(1./max_change):
+			change=(1./max_change)
+		comp_h_pre.append(change*D.ch_pre[heatcool["i"][i]][heatcool["j"][i]])
 			
-		test=(heatcool["cool_comp"][i]/(D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]*D.comp_c[heatcool["i"][i]][heatcool["j"][i]]*nenh))
-		if test<max_change*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=max_change*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		elif test>(1./max_change)*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=(1./max_change)*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		else:
-			test=test*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		comp_c_pre.append(test)	
+		ideal_prefactor=(heatcool["cool_comp"][i]/(D.cc[heatcool["i"][i]][heatcool["j"][i]]*nenh))
+		change=ideal_prefactor/D.cc_pre[heatcool["i"][i]][heatcool["j"][i]]
+		if change<max_change:
+			change=max_change
+		elif change>(1./max_change):
+			change=(1./max_change)
+		comp_c_pre.append(change*D.cc_pre[heatcool["i"][i]][heatcool["j"][i]])
 	
-		test=(heatcool["cool_lines"][i]/(D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]*D.line_c[heatcool["i"][i]][heatcool["j"][i]]*nenh))
-		if test<max_change*D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=max_change*D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		elif test>(1./max_change)*D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=(1./max_change)*D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		else:
-			test=test*D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		line_c_pre.append(test)	
+		ideal_prefactor=(heatcool["cool_lines"][i]/(D.lc[heatcool["i"][i]][heatcool["j"][i]]*nenh))
+		change=ideal_prefactor/D.lc_pre[heatcool["i"][i]][heatcool["j"][i]]
+		if change<max_change:
+			change=max_change
+		elif change>(1./max_change):
+			change=(1./max_change)
+		line_c_pre.append(change*D.lc_pre[heatcool["i"][i]][heatcool["j"][i]])
+		
+		ideal_prefactor=(heatcool["cool_ff"][i]/(D.bc[heatcool["i"][i]][heatcool["j"][i]]*nenh))
+		change=ideal_prefactor/D.bc_pre[heatcool["i"][i]][heatcool["j"][i]]
+		if change<max_change:
+			change=max_change
+		elif change>(1./max_change):
+			change=(1./max_change)
+		brem_c_pre.append(change*D.bc_pre[heatcool["i"][i]][heatcool["j"][i]])
 	
-		test=(heatcool["cool_ff"][i]/(D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]*D.brem_c[heatcool["i"][i]][heatcool["j"][i]]*nenh))
-		if test<max_change*D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=max_change*D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		elif test>(1./max_change)*D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=(1./max_change)*D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		else:
-			test=test*D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		brem_c_pre.append(test)	
-	
-		test=(heatcool["heat_xray"][i]/(D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]*D.xray_h[heatcool["i"][i]][heatcool["j"][i]]*nhnh))
-		if test<max_change*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=max_change*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]
-		elif test>(1./max_change)*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=(1./max_change)*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]
-		else:
-			test=test*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]
-		xray_h_pre.append(test)
+		ideal_prefactor=(heatcool["heat_xray"][i]/(D.xh[heatcool["i"][i]][heatcool["j"][i]]*nenh))
+		change=ideal_prefactor/D.xh_pre[heatcool["i"][i]][heatcool["j"][i]]
+		if change<max_change:
+			change=max_change
+		elif change>(1./max_change):
+			change=(1./max_change)
+		xray_h_pre.append(change*D.xh_pre[heatcool["i"][i]][heatcool["j"][i]])
 	
 	
 	fmt='%013.6e'

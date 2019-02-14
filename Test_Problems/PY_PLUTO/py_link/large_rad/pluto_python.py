@@ -14,6 +14,8 @@ import pluto_python_sub as pps
 nproc_py=4
 nproc_pl=4
 
+rad_force=1
+
 
 
 UNIT_DENSITY,UNIT_LENGTH,UNIT_VELOCITY=pps.get_units()
@@ -108,7 +110,7 @@ for i in range(istart,10000):  #We will permit up to 500 calls to python (this i
 	out.write("STARTING CYCLE "+str(i)+"\n")
 	print ("STARTING CYCLE "+str(i)+"\n")
 	
-	pps.pluto_input_file(t0+float(i)*dt,data)
+	pps.pluto_input_file(t0+float(i)*dt,data,rad_force)
 	out.write("Running for time="+str(t0+float(i)*dt)+"\n")
 	if i==0:   #This is the first step - 
 		out.write("Creating first zeus_file"+"\n")

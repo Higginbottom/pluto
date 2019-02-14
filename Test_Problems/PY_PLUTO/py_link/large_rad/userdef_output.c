@@ -35,12 +35,15 @@ ne_out	= GetUserVar("ne");
 nH_out	= GetUserVar("nh");
 T_out     = GetUserVar("T");
 xi_out     = GetUserVar("XI");
+
+#if (BODY_FORCE & VECTOR)
 g1_out     = GetUserVar("g1");
 g2_out     = GetUserVar("g2");
 g3_out     = GetUserVar("g3");
 g1_pre     = GetUserVar("g1_pre");
 g2_pre     = GetUserVar("g2_pre");
 g3_pre     = GetUserVar("g3_pre");
+#endif
 
 
 mu=g_inputParam[MU];
@@ -86,14 +89,14 @@ tx=g_inputParam[T_x];  //Xray tenperature
 	#if (BODY_FORCE & VECTOR)
 	NVAR_LOOP(nv)  Vc[nv]=d->Vc[nv][k][j][i];
 	
-	BodyForceVector(Vc, g, x1[i], x2[j], x3[k]);
+	BodyForceVector(Vc, g, x1[i], x2[j], x3[k],i,j,k);
 	g1_out[k][j][i]=g[0];
 	g2_out[k][j][i]=g[1];
 	g3_out[k][j][i]=g[2];
 	
-	g1_pre[k][j][i]=d->rad_force_pre[0][k][j][i];
-	g2_pre[k][j][i]=d->rad_force_pre[1][k][j][i];
-	g3_pre[k][j][i]=d->rad_force_pre[2][k][j][i];
+	g1_pre[k][j][i]=g_rad_force_pre[0][k][j][i];
+	g2_pre[k][j][i]=g_rad_force_pre[1][k][j][i];
+	g3_pre[k][j][i]=g_rad_force_pre[2][k][j][i];
 	
 	#endif
 	
