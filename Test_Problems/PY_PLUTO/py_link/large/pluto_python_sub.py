@@ -289,6 +289,8 @@ def pre_calc(ifile):
 	line_c_pre=[]
 
 	odd=0.0
+	
+	itest=19900
 
 	for i in range(len(heatcool["rho"])):
 		if (heatcool["rho"][i]/(D.rho[heatcool["i"][i]][heatcool["j"][i]]*UNIT_DENSITY))-1.>1e-6:
@@ -296,50 +298,45 @@ def pre_calc(ifile):
 		nenh=D.ne[heatcool["i"][i]][heatcool["j"][i]]*D.nh[heatcool["i"][i]][heatcool["j"][i]]
 		nhnh=D.nh[heatcool["i"][i]][heatcool["j"][i]]*D.nh[heatcool["i"][i]][heatcool["j"][i]]
 		
-		test=(heatcool["heat_comp"][i]/(D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]*D.comp_h[heatcool["i"][i]][heatcool["j"][i]]*nenh))
-		if test<max_change*D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=max_change*D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]
-		elif test>(1./max_change)*D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=(1./max_change)*D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]
-		else:
-			test=test*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		comp_h_pre.append(test)
+		ideal_prefactor=(heatcool["heat_comp"][i]/(D.ch[heatcool["i"][i]][heatcool["j"][i]]*nenh))
+		change=ideal_prefactor/D.ch_pre[heatcool["i"][i]][heatcool["j"][i]]
+		if change<max_change:
+			change=max_change
+		elif change>(1./max_change):
+			change=(1./max_change)
+		comp_h_pre.append(change*D.ch_pre[heatcool["i"][i]][heatcool["j"][i]])
 			
-		test=(heatcool["cool_comp"][i]/(D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]*D.comp_c[heatcool["i"][i]][heatcool["j"][i]]*nenh))
-		if test<max_change*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=max_change*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		elif test>(1./max_change)*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=(1./max_change)*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		else:
-			test=test*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		comp_c_pre.append(test)	
+		ideal_prefactor=(heatcool["cool_comp"][i]/(D.cc[heatcool["i"][i]][heatcool["j"][i]]*nenh))
+		change=ideal_prefactor/D.cc_pre[heatcool["i"][i]][heatcool["j"][i]]
+		if change<max_change:
+			change=max_change
+		elif change>(1./max_change):
+			change=(1./max_change)
+		comp_c_pre.append(change*D.cc_pre[heatcool["i"][i]][heatcool["j"][i]])
 	
-		test=(heatcool["cool_lines"][i]/(D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]*D.line_c[heatcool["i"][i]][heatcool["j"][i]]*nenh))
-		if test<max_change*D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=max_change*D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		elif test>(1./max_change)*D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=(1./max_change)*D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		else:
-			test=test*D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		line_c_pre.append(test)	
+		ideal_prefactor=(heatcool["cool_lines"][i]/(D.lc[heatcool["i"][i]][heatcool["j"][i]]*nenh))
+		change=ideal_prefactor/D.lc_pre[heatcool["i"][i]][heatcool["j"][i]]
+		if change<max_change:
+			change=max_change
+		elif change>(1./max_change):
+			change=(1./max_change)
+		line_c_pre.append(change*D.lc_pre[heatcool["i"][i]][heatcool["j"][i]])
+		
+		ideal_prefactor=(heatcool["cool_ff"][i]/(D.bc[heatcool["i"][i]][heatcool["j"][i]]*nenh))
+		change=ideal_prefactor/D.bc_pre[heatcool["i"][i]][heatcool["j"][i]]
+		if change<max_change:
+			change=max_change
+		elif change>(1./max_change):
+			change=(1./max_change)
+		brem_c_pre.append(change*D.bc_pre[heatcool["i"][i]][heatcool["j"][i]])
 	
-		test=(heatcool["cool_ff"][i]/(D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]*D.brem_c[heatcool["i"][i]][heatcool["j"][i]]*nenh))
-		if test<max_change*D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=max_change*D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		elif test>(1./max_change)*D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=(1./max_change)*D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		else:
-			test=test*D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		brem_c_pre.append(test)	
-	
-		test=(heatcool["heat_xray"][i]/(D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]*D.xray_h[heatcool["i"][i]][heatcool["j"][i]]*nhnh))
-		if test<max_change*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=max_change*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]
-		elif test>(1./max_change)*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=(1./max_change)*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]
-		else:
-			test=test*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]
-		xray_h_pre.append(test)
+		ideal_prefactor=(heatcool["heat_xray"][i]/(D.xh[heatcool["i"][i]][heatcool["j"][i]]*nenh))
+		change=ideal_prefactor/D.xh_pre[heatcool["i"][i]][heatcool["j"][i]]
+		if change<max_change:
+			change=max_change
+		elif change>(1./max_change):
+			change=(1./max_change)
+		xray_h_pre.append(change*D.xh_pre[heatcool["i"][i]][heatcool["j"][i]])
 	
 	
 	fmt='%013.6e'
