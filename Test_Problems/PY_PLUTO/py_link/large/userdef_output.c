@@ -35,12 +35,15 @@ ne_out	= GetUserVar("ne");
 nH_out	= GetUserVar("nh");
 T_out     = GetUserVar("T");
 xi_out     = GetUserVar("XI");
+
+#if (BODY_FORCE & VECTOR)
 g1_out     = GetUserVar("g1");
 g2_out     = GetUserVar("g2");
 g3_out     = GetUserVar("g3");
 g1_pre     = GetUserVar("g1_pre");
 g2_pre     = GetUserVar("g2_pre");
 g3_pre     = GetUserVar("g3_pre");
+#endif
 
 
 mu=g_inputParam[MU];
