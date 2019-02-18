@@ -2,7 +2,7 @@
 #define  DIMENSIONS                     2
 #define  COMPONENTS                     3
 #define  GEOMETRY                       SPHERICAL
-#define  BODY_FORCE                     POTENTIAL
+#define  BODY_FORCE                     (VECTOR+POTENTIAL)
 #define  FORCED_TURB                    NO
 #define  COOLING                        BLONDIN
 #define  RECONSTRUCTION                 LINEAR

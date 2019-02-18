@@ -15,6 +15,7 @@ nproc_py=4
 nproc_pl=4
 
 rad_force=1
+python_ver="~/python/bin/py82k_rad"
 
 
 
@@ -78,13 +79,12 @@ data["NPHOT"]=1e7
 	
 
 
-t0=10000.0  #The run time for the initial zeus run - the first run is to produce a starting geometry
+t0=100.0  #The run time for the initial zeus run - the first run is to produce a starting geometry
 dt=1000.0   #
 den_tol=0.5 #We ask Zeus to log cells whose density has changed by 50% or more (can be a *LOT* more)
 nden=0.1    #The percentage of cells that can change before we call python again
 
 
-python_ver="~/python/bin/py82k"
 
 istart=0
 
@@ -149,7 +149,7 @@ for i in range(istart,10000):  #We will permit up to 500 calls to python (this i
 	py_cycles=py_cycles+2
 #	now make a prefactors file
 	out.write ("Makeing a prefactor file useing "+str(ifile)+" dbl file")
-	pps.pre_calc(ifile)	
+	pps.pre_calc(ifile,rad_force)	
 	cmdline="cp prefactors.dat "+root+"_prefactors.dat"  
 	out.write(cmdline+"\n")
 	subprocess.check_call(cmdline,shell=True)

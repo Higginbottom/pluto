@@ -89,10 +89,10 @@ tx=g_inputParam[T_x];  //Xray tenperature
 	#if (BODY_FORCE & VECTOR)
 	NVAR_LOOP(nv)  Vc[nv]=d->Vc[nv][k][j][i];
 	
-	BodyForceVector(Vc, g, x1[i], x2[j], x3[k],i,j,k);
-	g1_out[k][j][i]=g[0];
-	g2_out[k][j][i]=g[1];
-	g3_out[k][j][i]=g[2];
+	BodyForceVector(Vc, g, x1[i], x2[j], x3[k],i,j,k); //This returns r,theta,phi - we need w,y,z
+	g1_out[k][j][i]=g[0]*sin(x2[j])+g[1]*cos(x2[j]);
+	g2_out[k][j][i]=g[1];		
+	g3_out[k][j][i]=g[0]*cos(x2[j])-g[1]*sin(x2[j]);
 	
 	g1_pre[k][j][i]=g_rad_force_pre[0][k][j][i];
 	g2_pre[k][j][i]=g_rad_force_pre[1][k][j][i];

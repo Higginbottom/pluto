@@ -275,21 +275,27 @@ def pluto2py(ifile):
 	return
 
 
-def pre_calc(ifile):
+def pre_calc(ifile,radforce=0):
 	max_change=0.9
+	max_accel_change=0.9
+
 	heatcool=ascii.read("%08d"%(ifile)+"_py_heatcool.dat")
 	D=pp.pload(ifile)
 
 	# We need the definitions file - so we know the conversion factors.
 
 	UNIT_DENSITY,UNIT_LENGTH,UNIT_VELOCITY=get_units('definitions.h')
-	
+	UNIT_ACCELERATION=UNIT_VELOCITY*UNIT_VELOCITY/UNIT_LENGTH	
 
 	comp_h_pre=[]
 	comp_c_pre=[]
 	xray_h_pre=[]
 	brem_c_pre=[]
 	line_c_pre=[]
+	
+	g1_pre=[]
+	g2_pre=[]
+	g3_pre=[]
 
 	odd=0.0
 	
@@ -340,7 +346,31 @@ def pre_calc(ifile):
 		elif change>(1./max_change):
 			change=(1./max_change)
 		xray_h_pre.append(change*D.xh_pre[heatcool["i"][i]][heatcool["j"][i]])
-	
+		
+		
+		if radforce:
+			ideal_prefactor=(heatcool["rad_f_w"][i]/heatcool["rho"][i]/heatcool["vol"][i])/(D.g1[heatcool["i"][i]][heatcool["j"][i]]*UNIT_ACCELERATION)
+			change=ideal_prefactor/D.g1_pre[heatcool["i"][i]][heatcool["j"][i]]
+			if change<max_accel_change:
+				change=max_accel_change
+			elif change>(1./max_accel_change):
+				change=(1./max_accel_change)
+			g1_pre.append(change*D.g1_pre[heatcool["i"][i]][heatcool["j"][i]])
+			
+			g2_pre.append(1.0)
+			
+			ideal_prefactor=(heatcool["rad_f_z"][i]/heatcool["rho"][i]/heatcool["vol"][i])/(D.g3[heatcool["i"][i]][heatcool["j"][i]]*UNIT_ACCELERATION)
+			change=ideal_prefactor/D.g3_pre[heatcool["i"][i]][heatcool["j"][i]]
+			if change<max_accel_change:
+				change=max_accel_change
+			elif change>(1./max_accel_change):
+				change=(1./max_accel_change)
+			g3_pre.append(change*D.g3_pre[heatcool["i"][i]][heatcool["j"][i]])	
+		else:		
+			g1_pre.append(1.0)
+			g2_pre.append(1.0)
+			g3_pre.append(1.0)
+			
 	
 	fmt='%013.6e'
 
@@ -355,11 +385,15 @@ def pre_calc(ifile):
 		'xray_h_pre':fmt,
 		'line_c_pre':fmt,
 		'brem_c_pre':fmt,
+		'g1_pre':fmt,
+		'g2_pre':fmt,
+		'g3_pre':fmt,
 		}	
 
 	titles=[]
 	titles=titles+["ir","rcent","itheta","thetacent","rho"]
-	titles=titles+["comp_h_pre","comp_c_pre","xray_h_pre","brem_c_pre","line_c_pre"]	
+	titles=titles+["comp_h_pre","comp_c_pre","xray_h_pre","brem_c_pre","line_c_pre"]
+	titles=titles+["g1_pre","g2_pre","g3_pre"]	
 	
 	col0=heatcool["i"]
 	col1=heatcool["rcen"]
@@ -371,9 +405,12 @@ def pre_calc(ifile):
 	col7=xray_h_pre
 	col8=brem_c_pre
 	col9=line_c_pre
+	col10=g1_pre
+	col11=g2_pre
+	col12=g3_pre
 
 	out=open("prefactors.dat",'w')
 
-	out_dat=Table([col0,col1,col2,col3,col4,col5,col6,col7,col8,col9],names=titles)
+	out_dat=Table([col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12],names=titles)
 	ascii.write(out_dat,out,formats=fmts)
 	return(odd)

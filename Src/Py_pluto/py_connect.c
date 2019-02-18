@@ -32,6 +32,7 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 	char *fgets (), aline[LINELENGTH];
 	int ii,jj,nwords;
 	double dens,comp_h_pre,comp_c_pre,xray_h_pre,brem_c_pre,line_c_pre;
+	double g1_pre,g2_pre,g3_pre;
 	double rcen,thetacen;
 	int icount;
 	
@@ -66,7 +67,9 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 		icount=0;
 		while (fgets (aline, LINELENGTH, fptr) != NULL)	
 		{		
-			if ((nwords = sscanf (aline, "%d %le %d %le %le %le %le %le %le %le", &ii, &rcen, &jj, &thetacen, &dens, &comp_h_pre, &comp_c_pre, &xray_h_pre, &brem_c_pre, &line_c_pre)) == 10)
+			if ((nwords = sscanf (aline, "%d %le %d %le %le %le %le %le %le %le %le %le %le", &ii, &rcen, &jj, &thetacen, &dens,
+				&comp_h_pre, &comp_c_pre, &xray_h_pre, &brem_c_pre, &line_c_pre,
+				&g1_pre, &g2_pre, &g3_pre)) == 13)
 			{
 				DOM_LOOP(k,j,i)
 				{
@@ -82,6 +85,9 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 						d->xray_h_pre[k][j][i]=xray_h_pre;
 						d->line_c_pre[k][j][i]=line_c_pre;
 						d->brem_c_pre[k][j][i]=brem_c_pre;
+						g_rad_force_pre[0][k][j][i]=g1_pre;
+						g_rad_force_pre[1][k][j][i]=g2_pre;
+						g_rad_force_pre[2][k][j][i]=g3_pre;
 					}
 				}
 			}
