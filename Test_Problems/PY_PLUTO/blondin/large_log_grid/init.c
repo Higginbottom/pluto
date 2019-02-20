@@ -209,10 +209,6 @@ disk_trunc_rad=g_inputParam[DISK_TRUNC_RAD];  //Disk truncation radius
 				d->Vc[RHO][k][j][i]=(rho_0*pow((r/r_0),-1.0*rho_alpha))/UNIT_DENSITY;  //Set density at the midplane
 				
 			}
-			else
-			{
-		      d->Vc[RHO][k][j][i]=rho_0*pow((r/r_0),-1.0*rho_alpha)*exp(20.*(1.-(r/disk_trunc_rad)))/UNIT_DENSITY; //	
-			}
 			d->Vc[VX1][k][j][i]=0.0;									//Set radial velocity at the midplane to zero
 		    d->Vc[VX3][k][j][i]=(sqrt((CONST_G*cent_mass*sin(theta)*sin(theta))/r))/UNIT_VELOCITY;	  //Set v_phi to keplarian in code units			 
 		}
