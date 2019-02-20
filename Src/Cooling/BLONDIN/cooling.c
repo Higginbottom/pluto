@@ -178,7 +178,11 @@ double heatcool(double T)
 	h_comp=comp_h_pre*8.9e-36*xi*tx*(ne*nH);
 	c_comp=comp_c_pre*8.9e-36*xi*(4.0*T)*ne*nH;
 	h_xray=xray_h_pre*1.5e-21*(sqsqxi/st)*(1-(T/tx))*nH*nH;
-	l_line=line_c_pre*(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;	
+//	l_line=line_c_pre*(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;	
+	
+	l_line=(line_c_pre*((1e-16*exp(-1.3e5/T)/sqrt(xi)/T)+fmin(fmin(1e-24,5e-27*st),1.5e-17/T)))*ne*nH;
+	
+	
 	l_brem=brem_c_pre*3.3e-27*st*ne*nH;	
 	lambda=h_comp+h_xray-l_brem-l_line-c_comp;
 
@@ -209,7 +213,9 @@ double heatcool2(double xi,double T,int i, int j,int k, double ne, double nh)
 	comp_h[k][j][i]=h_comp=8.9e-36*xi*tx;
 	comp_c[k][j][i]=c_comp=8.9e-36*xi*(4.0*T);
 	xray_h[k][j][i]=h_xray=1.5e-21*(sqsqxi/st)*(1-(T/tx));
-	line_c[k][j][i]=l_line=(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24);	
+//	line_c[k][j][i]=l_line=(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24);
+	line_c[k][j][i]=l_line=(1e-16*exp(-1.3e5/T)/sqrt(xi)/T)+fmin(fmin(1e-24,5e-27*st),1.5e-17/T);
+		
 	brem_c[k][j][i]=l_brem=3.3e-27*st;	
 	lambda=(h_comp+h_xray-l_brem-l_line-c_comp);
 //	lambda=h_comp-c_comp-l_brem-l_line;
