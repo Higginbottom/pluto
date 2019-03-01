@@ -118,11 +118,14 @@ void BlondinCooling (Data_Arr VV, double dt, timeStep *Dts, Grid *grid)
 	 
 	T=E*(2.0/3.0)/(n*CONST_kB);
 	
+	xi_out[k][j][i]=xi=lx/nH/r/r;     //ionization parameter
 	
 	  
     if (T < g_minCoolingTemp) 
 	{
-		printf ("T %e too low in cell %i %i - continuuing\n",T,i,j);
+//		printf ("T %e too low in cell %i %i - continuuing\n",T,i,j);
+		xi_out[k][j][i]=-1;     //ionization parameter
+		
 		continue;  //Quit if the temperature is too cold - this may need tweeking
 	}
 	
