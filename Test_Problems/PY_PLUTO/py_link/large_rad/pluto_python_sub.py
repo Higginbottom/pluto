@@ -339,7 +339,7 @@ def pre_calc(ifile,radforce=0):
 			change=(1./max_change)
 		brem_c_pre.append(change*D.bc_pre[heatcool["i"][i]][heatcool["j"][i]])
 	
-		ideal_prefactor=(heatcool["heat_xray"][i]/(D.xh[heatcool["i"][i]][heatcool["j"][i]]*nenh))
+		ideal_prefactor=(heatcool["heat_xray"][i]/(D.xh[heatcool["i"][i]][heatcool["j"][i]]*nhnh))
 		change=ideal_prefactor/D.xh_pre[heatcool["i"][i]][heatcool["j"][i]]
 		if change<max_change:
 			change=max_change
