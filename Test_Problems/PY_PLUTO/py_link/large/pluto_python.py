@@ -77,13 +77,13 @@ data["NPHOT"]=1e7
 	
 
 
-t0=10000.0  #The run time for the initial zeus run - the first run is to produce a starting geometry
+t0=100.0  #The run time for the initial zeus run - the first run is to produce a starting geometry
 dt=1000.0   #
 den_tol=0.5 #We ask Zeus to log cells whose density has changed by 50% or more (can be a *LOT* more)
 nden=0.1    #The percentage of cells that can change before we call python again
 
 
-python_ver="~/python/bin/py82k"
+python_ver="~/python/bin/py82e"
 
 istart=0
 
@@ -127,7 +127,7 @@ for i in range(istart,10000):  #We will permit up to 500 calls to python (this i
 	ifile=int(proc.stdout.read().split()[0])
 	pps.pluto2py(ifile)   #We now make a python input file
 	root="%08d"%(ifile)
-	pps.python_input_file(root+".pluto",data,py_cycles)  #This generate a python parameter file
+	pps.python_input_file_82e(root+".pluto",data,py_cycles)  #This generate a python parameter file
 	cmdline="cp "+root+".pluto"+".pf input.pf"   #Copy the python file to a generaic name so windsave files persist
 	out.write(cmdline+"\n")
 	print (cmdline+"\n")
