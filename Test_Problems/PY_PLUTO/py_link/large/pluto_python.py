@@ -77,7 +77,7 @@ data["NPHOT"]=1e7
 	
 
 
-t0=100.0  #The run time for the initial zeus run - the first run is to produce a starting geometry
+t0=10000.0  #The run time for the initial zeus run - the first run is to produce a starting geometry
 dt=1000.0   #
 den_tol=0.5 #We ask Zeus to log cells whose density has changed by 50% or more (can be a *LOT* more)
 nden=0.1    #The percentage of cells that can change before we call python again

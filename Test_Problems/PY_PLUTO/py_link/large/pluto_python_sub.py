@@ -193,7 +193,7 @@ def python_input_file_82e(fname,data,cycles=2):
 		output.write("Line_transfer 3\n")
 		output.write("Thermal_balance_options(0=everything.on,1=no.adiabatic)                    1\n")
 		output.write("Disk_radiation(y=1)                               0\n")
-		output.write("Wind_radiation(y=1)                               1\n")
+		output.write("Wind_radiation(y=1)                               0\n")
 		output.write("QSO_BH_radiation                               1\n")
 		output.write("Rad_type_for_disk(0=bb,1=models)_to_make_wind     0\n")
 		output.write("Rad_type_for_agn(0=bb,1=models,3=power_law,4=cloudy_table)_to_make_wind)  5\n")
