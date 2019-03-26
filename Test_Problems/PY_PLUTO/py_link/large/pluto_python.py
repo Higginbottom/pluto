@@ -11,11 +11,11 @@ import pluto_python_sub as pps
 
 
 
-nproc_py=4  #The number of cores to use for python - 256 is good!
-nproc_pl=4  #The number of cores to use for pluto - no point going over 16
+nproc_py=48  #The number of cores to use for python - 256 is good!
+nproc_pl=48  #The number of cores to use for pluto - no point going over 16
 rad_force=0  #Including rad force? 
 
-python_ver="/home/nsh2m14/python/bin/py82e"  #the version of python to use
+python_ver="/home/nsh2m14/python/bin/py82k"  #the version of python to use
 
 
 
@@ -45,6 +45,7 @@ efficiency=0.083        #The efficiency of conversion of mass to lumonisity at t
 data["L_x"]=3.3e37       #The luminosity from 13.6eV to infinity
 data["BREM_ALPHA"]=0.0   #The power law for the bremstrahlung specrrum - should stay at zero unless there is a very goo reason
 data["DISK_MDOT"]=(data["L_x"]/c.c.cgs/c.c.cgs/efficiency).value   #THe disk massloss rate is only used to set the initial temperature
+data["PY_DISK_MDOT"]=data["DISK_MDOT"]*365.25*60*60*24/c.M_sun.cgs.value #The disk massloss rate for python
 
 #Finally, lets set up the grid - confusingly, rmin and rmax are scaled by the UNIT_LENGTH, disk truncation isn't
 
@@ -79,8 +80,8 @@ data["NPHOT"]=1e7
 	
 
 
-t0=10000.0  #The run time for the initial zeus run - the first run is to produce a starting geometry
-dt=1000.0   #
+t0=100.0  #The run time for the initial zeus run - the first run is to produce a starting geometry
+dt=100.0   #
 den_tol=0.5 #We ask Zeus to log cells whose density has changed by 50% or more (can be a *LOT* more)
 nden=0.1    #The percentage of cells that can change before we call python again
 
@@ -128,7 +129,7 @@ for i in range(istart,10000):  #We will permit up to 500 calls to python (this i
 	ifile=int(proc.stdout.read().split()[0])
 	pps.pluto2py(ifile)   #We now make a python input file
 	root="%08d"%(ifile)
-	pps.python_input_file_82e(root+".pluto",data,py_cycles)  #This generate a python parameter file
+	pps.python_input_file(root+".pluto",data,py_cycles)  #This generate a python parameter file
 	cmdline="cp "+root+".pluto"+".pf input.pf"   #Copy the python file to a generaic name so windsave files persist
 	out.write(cmdline+"\n")
 	print (cmdline+"\n")
