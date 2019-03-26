@@ -11,8 +11,8 @@ import pluto_python_sub as pps
 
 
 
-nproc_py=48  #The number of cores to use for python - 256 is good!
-nproc_pl=48  #The number of cores to use for pluto - no point going over 16
+nproc_py=256  #The number of cores to use for python - 256 is good!
+nproc_pl=16  #The number of cores to use for pluto - no point going over 16
 rad_force=0  #Including rad force? 
 
 python_ver="/home/nsh2m14/python/bin/py82k"  #the version of python to use

@@ -45,6 +45,7 @@ efficiency=0.083        #The efficiency of conversion of mass to lumonisity at t
 data["L_x"]=3.3e37       #The luminosity from 13.6eV to infinity
 data["BREM_ALPHA"]=0.0   #The power law for the bremstrahlung specrrum - should stay at zero unless there is a very goo reason
 data["DISK_MDOT"]=(data["L_x"]/c.c.cgs/c.c.cgs/efficiency).value   #THe disk massloss rate is only used to set the initial temperature
+data["PY_DISK_MDOT"]=data["DISK_MDOT"]*365.25*60*60*24/c.M_sun.cgs.value #The disk massloss rate for python
 
 #Finally, lets set up the grid - confusingly, rmin and rmax are scaled by the UNIT_LENGTH, disk truncation isn't
 
