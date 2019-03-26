@@ -122,7 +122,11 @@ def python_input_file(fname,data,cycles=2):
 	output.write("\n")
 	output.write("### Parameters for the Disk (if there is one)\n")
 	output.write("\n")
-	output.write("Disk.type(none,flat,vertically.extended)       none\n")
+	output.write("Disk.type(none,flat,vertically.extended)       flat\n")
+	output.write("Disk.radiation(yes,no)      no\n")
+	output.write("Disk.temperature.profile(standard,readin,yso) standard\n")
+	output.write("Disk.mdot(msol/yr) "+str(data["PY_DISK_MDOT"])+"\n")
+	output.write("Disk.radmax(cm) "+str(data["DISK_TRUNC_RAD"])+"\n")
 	output.write("\n")
 	output.write("### Parameters for BL or AGN\n")
 	output.write("\n")
@@ -173,7 +177,8 @@ def python_input_file(fname,data,cycles=2):
 	
 	output.close()
 	return
-		
+	
+	
 def python_input_file_82e(fname,data,cycles=2):
 		output=open(fname+".pf",'w')
 		output.write("System_type(0=star,1=binary,2=agn)                    2\n")
@@ -182,7 +187,7 @@ def python_input_file_82e(fname,data,cycles=2):
 		output.write("Wind.dim.in.x_or_r.direction                     30\n")
 		output.write("Wind.dim.in.z_or_theta.direction                   30\n")
 		output.write("Number.of.wind.components 1\n") 
-		output.write("disk.type(0=no.disk,1=standard.flat.disk,2=vertically.extended.disk) 0\n") 
+		output.write("disk.type(0=no.disk,1=standard.flat.disk,2=vertically.extended.disk) 1\n") 
 		output.write("Atomic_data                         data/standard80\n")
 		output.write("write_atomicdata(0=no,1=yes)               0\n")        
 		output.write("photons_per_cycle                            "+str(data["NPHOT"])+"\n")
@@ -207,10 +212,10 @@ def python_input_file_82e(fname,data,cycles=2):
 		output.write("agn_power_law_index 							0.0\n")
 		output.write("agn_power_law_cutoff (0)						0\n")
 		output.write("Torus(0=no,1=yes)								0\n")
-		output.write("disk.mdot(msol/yr)   "+str(data["DISK_MDOT"]/c.M_sun.cgs.value*60.*60.*24.*365.25)+"\n")
+		output.write("disk.mdot(msol/yr)   "+str(data["PY_DISK_MDOT"])+"\n")
 		output.write("Disk.illumination.treatment 0\n")
 		output.write("Disk.temperature.profile(0=standard;1=readin)                    0\n")
-		output.write("disk.radmax(cm)                             2.4e+10\n")
+		output.write("disk.radmax(cm) "+str(data["DISK_TRUNC_RAD"])+"\n")
 		output.write("wind.radmax(cm)                               1e+11\n")
 		output.write("wind.t.init                                   40000\n")
 		output.write("hydro_file "+fname+"\n")
@@ -239,7 +244,7 @@ def python_input_file_82e(fname,data,cycles=2):
 		return
 	
 	
-	
+		
 	
 def pluto2py(ifile):
 
