@@ -11,9 +11,11 @@ import pluto_python_sub as pps
 
 
 
-nproc_py=4
-nproc_pl=4
-rad_force=0
+nproc_py=4  #The number of cores to use for python - 256 is good!
+nproc_pl=4  #The number of cores to use for pluto - no point going over 16
+rad_force=0  #Including rad force? 
+
+python_ver="/home/nsh2m14/python/bin/py82e"  #the version of python to use
 
 
 
@@ -77,13 +79,12 @@ data["NPHOT"]=1e7
 	
 
 
-t0=100.0  #The run time for the initial zeus run - the first run is to produce a starting geometry
+t0=10000.0  #The run time for the initial zeus run - the first run is to produce a starting geometry
 dt=1000.0   #
 den_tol=0.5 #We ask Zeus to log cells whose density has changed by 50% or more (can be a *LOT* more)
 nden=0.1    #The percentage of cells that can change before we call python again
 
 
-python_ver="~/python/bin/py82e"
 
 istart=0
 
