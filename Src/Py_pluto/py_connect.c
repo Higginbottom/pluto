@@ -138,7 +138,7 @@ double ne_rat(double temp,double xi)
 {
 	 double x1,x2,ne_rat;
 
-	x1=pow(10,(-51.59417133+12.27740153*log10(temp)));
+	x1=1e-2+pow(10,(-51.59417133+12.27740153*log10(temp)));
 	x2=pow(10,(-3.80749689+0.86092628*log10(temp)));
 	
 	ne_rat=fmin(x1,x2);
