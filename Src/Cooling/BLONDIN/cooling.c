@@ -14,7 +14,7 @@
 #define ITMAX 100
 #define EPS 3.0e-8
 
-double xi,sqsqxi,ne,nH,n,tx,E,hc_init,rho,dt_share;
+double xi,sqsqxi,sqxi,ne,nH,n,tx,E,hc_init,rho,dt_share;
 double comp_c_pre,comp_h_pre,line_c_pre,brem_c_pre,xray_h_pre;
 double heatcool();
 double zfunc();
@@ -111,6 +111,7 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 	
 	
 	sqsqxi=pow(xi,0.25);    //we use xi^0.25 in the cooling rates - expensive to recompute every call, so do it now and transmit externally	
+	sqxi=sqrt(xi);
 	hc_init=heatcool(T);    //Get the initial heating/cooling rate
 
 //   the next few lines bracket the solution temperature
@@ -180,7 +181,7 @@ double heatcool(double T)
 	h_xray=xray_h_pre*1.5e-21*(sqsqxi/st)*(1-(T/tx))*nH*nH;
 //	l_line=line_c_pre*(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;	
 	
-	l_line=(line_c_pre*((1e-16*exp(-1.3e5/T)/sqrt(xi)/T)+fmin(fmin(1e-24,5e-27*st),1.5e-17/T)))*ne*nH;
+	l_line=(line_c_pre*((1e-16*exp(-1.3e5/T)/sqxi/T)+fmin(fmin(1e-24,5e-27*st),1.5e-17/T)))*ne*nH;
 	
 	
 	l_brem=brem_c_pre*3.3e-27*st*ne*nH;	
@@ -212,7 +213,7 @@ double heatcool2(double xi,double T,int i, int j,int k, double ne, double nh)
 	st=sqrt(T);
 	comp_h[k][j][i]=h_comp=8.9e-36*xi*tx;
 	comp_c[k][j][i]=c_comp=8.9e-36*xi*(4.0*T);
-	xray_h[k][j][i]=h_xray=1.5e-21*(sqsqxi/st)*(1-(T/tx));
+	xray_h[k][j][i]=h_xray=1.5e-21*(pow(xi,0.25)/st)*(1-(T/tx));
 //	line_c[k][j][i]=l_line=(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24);
 	line_c[k][j][i]=l_line=(1e-16*exp(-1.3e5/T)/sqrt(xi)/T)+fmin(fmin(1e-24,5e-27*st),1.5e-17/T);
 		
