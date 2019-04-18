@@ -73,7 +73,9 @@ void BlondinCooling (Data_Arr VV, double dt, timeStep *Dts, Grid *grid)
   double  lx, r, test;
   double t_u,t_l,mu,t_new;
   double dt_min,***xi_out,***T_out,***comp_c_out,***xray_h_out,***comp_h_out,***line_c_out,***brem_c_out;
+  double ***t_es,kappa_es;
 
+  kappa_es=g_inputParam[KAPPA_ES]; 
 
   dt_share=dt*UNIT_TIME;  //We need to share the current time step so the zbrent code can use it - must be in real units
   lx=g_inputParam[L_x];  //Xray luminosiy
@@ -87,7 +89,7 @@ void BlondinCooling (Data_Arr VV, double dt, timeStep *Dts, Grid *grid)
   
 	T_out     = GetUserVar("T");
 	xi_out     = GetUserVar("XI");
-  
+  	t_es= GetUserVar("t_es");
   
 
   dE = 1.e-18;  //This is from the original cooling code - unsure if I need it.....
@@ -100,12 +102,25 @@ void BlondinCooling (Data_Arr VV, double dt, timeStep *Dts, Grid *grid)
 //printf ("BLAH\n");
   
   DOM_LOOP(k,j,i){
+	  
 
 
 	r=grid->x[IDIR][i]*UNIT_LENGTH;  //The radius - in real units
 
 
     rho = VV[RHO][k][j][i]*UNIT_DENSITY;  //density of the current cell in physical units
+	
+	if (i==IBEG)
+	{
+		t_es[k][j][i]=(grid->dx[IDIR][i]*UNIT_LENGTH/2.0)*rho*kappa_es;
+	}
+	else
+	{
+		t_es[k][j][i]=t_es[k][j][i-1]+(grid->dx[IDIR][i-1]*UNIT_LENGTH)/2.0*VV[RHO][k][j][i-1]*UNIT_DENSITY*kappa_es+(grid->dx[IDIR][i]*UNIT_LENGTH/2.0)*rho*kappa_es;
+		
+	}
+	
+//	printf ("%i x %e dx %e\n",i,grid->x[IDIR][i]*UNIT_LENGTH,grid->dx[IDIR][i]*UNIT_LENGTH);
 	 
     p   = VV[PRS][k][j][i];  //pressure of the current cell
     T   = VV[PRS][k][j][i]/VV[RHO][k][j][i]*KELVIN*mu;    //Compute initial temperature in Kelvin
@@ -118,7 +133,9 @@ void BlondinCooling (Data_Arr VV, double dt, timeStep *Dts, Grid *grid)
 	 
 	T=E*(2.0/3.0)/(n*CONST_kB);
 	
-	xi_out[k][j][i]=xi=lx/nH/r/r;     //ionization parameter
+	
+	
+	xi_out[k][j][i]=xi=lx*exp(-1*t_es[k][j][i])/nH/r/r;     //ionization parameter
 	
 	  
     if (T < g_minCoolingTemp) 
@@ -134,7 +151,7 @@ void BlondinCooling (Data_Arr VV, double dt, timeStep *Dts, Grid *grid)
 //E1   = T*n*CONST_kB/(g_gamma-1);
 	
 	
-	xi_out[k][j][i]=xi=lx/nH/r/r;     //ionization parameter
+	xi_out[k][j][i]=xi=lx*exp(-1*t_es[k][j][i])/nH/r/r;     //ionization parameter
 	sqsqxi=pow(xi,0.25);    //we use xi^0.25 in the cooling rates - expensive to recompute every call, so do it now and transmit externally	
 	hc_init=heatcool(T);    //Get the initial heating/cooling rate
 
