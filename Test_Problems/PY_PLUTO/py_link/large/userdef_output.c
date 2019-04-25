@@ -1,7 +1,7 @@
 #include "pluto.h"
 
 double heatcool2();
-
+double sqsqxi;
 
 /* *************************************************************** */
 void ComputeUserVar (const Data *d, Grid *grid)
