@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import subprocess
+import subprocess,sys
 import glob
 from astropy import constants as c
 from astropy import units as u
@@ -8,19 +8,43 @@ from scipy.integrate import quad
 import pyPLUTO as pp
 import numpy as np
 import pluto_python_sub as pps
+import re
+
+help= '''
+This is pluto_python - it needs to be called with at least one option
+
+The options are
+
+help         - show this message
+start_test   - test that the setup will run 
+start        - start a new run
+restart      - restart from an existing run
+restart_test - test the point at which a last run finished, and suggest restart parameters
+clean        - remove all runfiles - take care!!!
+'''
 
 
 
-nproc_py=32
-nproc_pl=16
+
+data={} #Set up the dictionary that will contain all of the information for the run
 
 
+data["rad_force"]=0  #Including rad force? 1=yes 0=no
+data["python_ver"]="/Users/nsh2m14/python/bin/py83a"  #the version of python to use
+data["nproc_py"]=1  #The number of cores to use for python - 256 is good!
+data["nproc_pl"]=1  #The number of cores to use for pluto
 
-UNIT_DENSITY,UNIT_LENGTH,UNIT_VELOCITY=pps.get_units()
+t0=100.0  #The run time for the initial pluto run - the first run is to produce a starting geometry
+dt=100.0   #The time between calls to pluto
+istart=0
+if t0==0.0:
+	print "We need to run for at least one second, dummy"
+	t0=1.0
+init_py_cycles=3
 
 
 #Set the parameters of the run here
-data={}
+
 #First set the temperature of the radiation and the central source mass
 data["T_x"]=5.6e7
 data["CENT_MASS"]=7.0*c.M_sun.cgs.value
@@ -38,120 +62,146 @@ data["RHO_0"]=16.e-12   #The density at that radius
 
 #Now lets set up the central source - we want everything to be consistent!
 
-efficiency=0.083        #The efficiency of conversion of mass to lumonisity at the central source - used to set the disk mdot
 data["L_x"]=3.3e37       #The luminosity from 13.6eV to infinity
+
+
+data["spectype"]='brem'
 data["BREM_ALPHA"]=0.0   #The power law for the bremstrahlung specrrum - should stay at zero unless there is a very goo reason
-data["DISK_MDOT"]=(data["L_x"]/c.c.cgs/c.c.cgs/efficiency).value   #THe disk massloss rate is only used to set the initial temperature
 
-#Finally, lets set up the grid - confusingly, rmin and rmax are scaled by the UNIT_LENGTH, disk truncation isn't
+#Finally, lets set up the grid 
 
-data["R_MIN"]=0.05*R_IC/UNIT_LENGTH
-data["R_MAX"]=20.*R_IC/UNIT_LENGTH
-data["N_R"]=200
+data["R_MIN"]=0.5*R_IC
+data["R_MAX"]=20.*R_IC
+data["N_R"]=20
 data["DISK_TRUNC_RAD"]=2*R_IC
 
 data["T_MIN"]=np.radians(0.0)
 data["T_MAX"]=np.radians(90.0)
 data["N_T"]=100
 
-#Now we work out the matching luminosity for the python simulation.
+data["NPHOT"]=1e4
 
-nu1=((13.6*u.eV).to(u.erg)/c.h.cgs).value
-nu2=((2000*u.eV).to(u.erg)/c.h.cgs).value
-nu3=((10000*u.eV).to(u.erg)/c.h.cgs).value
-numax=(data["T_x"]*u.K*c.k_B.cgs/c.h.cgs).value*100.
-L_x_test=quad(pps.brem,nu1,np.max([nu3,numax]),args=(data["T_x"],data["BREM_ALPHA"]))
-const=data["L_x"]/L_x_test[0]
-data["L_2_10"]=const*quad(pps.brem,nu2,nu3,args=(data["T_x"],data["BREM_ALPHA"]))[0]
-print "2-10 keV luminosity=",data["L_2_10"]
-
-data["NPHOT"]=1e7
+pps.data_complete(data) #Compute various dependant variables
 
 
 
-
-
-
-
+if len(sys.argv)<2:
+	print "We need one option to proceed"
+	print help
+	exit()
 	
-
-
-t0=10000.0  #The run time for the initial zeus run - the first run is to produce a starting geometry
-dt=1000.0   #
-den_tol=0.5 #We ask Zeus to log cells whose density has changed by 50% or more (can be a *LOT* more)
-nden=0.1    #The percentage of cells that can change before we call python again
-
-
-python_ver="~/python/bin/py82k"
-
-istart=0
-
-
-if t0==0.0:
-	print "We need to run for at least one second, dummy"
-	t0=1.0
-
-py_cycles=3
-
-
-
-
-py_cycles=py_cycles+istart*2
-
-
-out=open("pluto_py_logfile",'w',0)
-
-out.write("Starting run"+"\n")
-#out.write("zeus_ver="+zeus_ver+"\n")
-
-for i in range(istart,10000):  #We will permit up to 500 calls to python (this is a lot)
-	out.write("STARTING CYCLE "+str(i)+"\n")
-	print ("STARTING CYCLE "+str(i)+"\n")
 	
-	pps.pluto_input_file(t0+float(i)*dt,data)
-	out.write("Running for time="+str(t0+float(i)*dt)+"\n")
-	if i==0:   #This is the first step - 
-		out.write("Creating first zeus_file"+"\n")
-		cmdline="mpirun -n "+str(nproc_pl)+" ./pluto >"+"%08d"%i+"_pluto_log"
-	else:
-		out.write("generating restart zeus run \n")      #This should be the name of the restart file
-		cmdline="mpirun -n "+str(nproc_pl)+" ./pluto -restart "+str(ifile)+" > "+"%08d"%i+"_pluto_log"
+if sys.argv[1]=="start_test":
+	print "Testing setup and generating script file"
+	cmdline=python_ver+" -i input > output"
+	try:
+		subprocess.call(cmdline,shell=True)
+		print "python runs"
+	except OSError as e:
+		if e.errno == os.errno.ENOENT:
+			print python_ver,"Doesn't exist"
+		else:
+        # Something else went wrong while trying to run `wget`
+			print "Some error occured while trying to run python"
+	exit()
 		
-	out.write("Executing pluto with command line "+cmdline+"\n")
-	subprocess.call(cmdline,shell=True)    #Call zeus
-	out.write("Finished pluto run"+"\n")
-	cmdline="tail -1 dbl.out"   
-	out.write(cmdline+"\n")
-	proc=subprocess.Popen(cmdline,shell=True,stdout=subprocess.PIPE) #This mess gets the last hdffile	
-	ifile=int(proc.stdout.read().split()[0])
-	pps.pluto2py(ifile)   #We now make a python input file
-	root="%08d"%(ifile)
-	pps.python_input_file_82j_testing(root+".pluto",data,py_cycles)  #This generate a python parameter file
-	cmdline="cp "+root+".pluto"+".pf input.pf"   #Copy the python file to a generaic name so windsave files persist
-	out.write(cmdline+"\n")
-	print (cmdline+"\n")
 
-	subprocess.check_call(cmdline,shell=True)
-	if py_cycles==3: #This is the first time thruogh - so no restart""
-		cmdline="mpirun -n "+str(nproc_py)+" "+python_ver+" -z  -d input.pf > "+root+".python_log"  #We now run python
-	else:
-		cmdline="mpirun -n "+str(nproc_py)+" "+python_ver+" -z -r  -d input.pf > "+root+".python_log"  #We now run python
-	out.write("Running python"+"\n") 
-	print("Running python"+"\n") 	
-	out.write(cmdline+"\n")
-	print(cmdline+"\n")
-	subprocess.check_call(cmdline,shell=True)   #Well, here is the actual call
-	cmdline="cp py_heatcool.dat "+root+"_py_heatcool.dat"  
-	out.write(cmdline+"\n")
-	subprocess.check_call(cmdline,shell=True)   #And finally we take a copy of the python heatcool file for later investigation.
-	py_cycles=py_cycles+2
-#	now make a prefactors file
-	out.write ("Makeing a prefactor file useing "+str(ifile)+" dbl file")
-	pps.pre_calc(ifile)	
-	cmdline="cp prefactors.dat "+root+"_prefactors.dat"  
-	out.write(cmdline+"\n")
-	subprocess.check_call(cmdline,shell=True)
-	out.write("FINISHED CYCLE"+"\n")
+elif sys.argv[1]=="restart_test":
+	dbl_file_1,dbl_file_2,py_last_completed,py_last_requested=pps.get_status()
 	
-out.close()
+	if dbl_file_1!=dbl_file_2:
+		print ("There is a mismatch between the dbl file in the directory and in the dbl.out file - needs checking")
+	
+	py_test=3+(dbl_file_1-1)*2
+	print "Last requested python cycle :",py_last_requested
+	print "Last completed python cycle :",py_last_completed
+	print "Starting from dbl",dbl_file_1,"would normally call python with",py_test,"cycles"
 
+	if py_last_requested==py_last_completed:
+		print "I think that the sim was interrupted during a pluto run"
+		py_cycles=py_last_requested+2 
+		istart=np.min([dbl_file_1,dbl_file_2])		
+		print "Suggest restarting with command pluto_python restart ",istart,py_cycles	
+		print 3+(istart-1)*2,py_cycles			
+	elif (py_last_requested-py_last_completed)==2:
+		print "I think that the sim was interrupted before a python run had done one cycle"
+		print "So the last pluto .dbl file is different from the densities in the last prefactor"
+		py_cycles=py_last_requested	
+		istart=np.min([dbl_file_1,dbl_file_2])
+		print "Suggest restarting with command pluto_python restart ",istart,py_cycles		
+	elif (py_last_requested-py_last_completed)==1:
+		print "I think that the sim was interrupted midway through a python run"
+		print "We need to restart the python run"
+		py_cycles=py_last_requested	
+		istart=np.min([dbl_file_1,dbl_file_2])
+		print "Suggest restarting with command pluto_python restart ",istart,py_cycles
+	exit()
+	
+	
+elif sys.argv[1]=="clean":
+	request= raw_input("Are you sure (Y/N)?")
+	if request=="Y":
+		try:
+			subprocess.check_call("rm dbl*",shell=True)
+			subprocess.check_call("rm data*.dbl",shell=True)
+			subprocess.check_call("rm *_prefactors.dat",shell=True)		
+			subprocess.check_call("rm *_py_heatcool.dat",shell=True)		
+			subprocess.check_call("rm *_pluto_log",shell=True)		
+			subprocess.check_call("rm *.pluto",shell=True)		
+			subprocess.check_call("rm *.pluto.pf",shell=True)		
+			subprocess.check_call("rm *.python_log",shell=True)		
+			subprocess.check_call("rm *.wind_save",shell=True)
+			subprocess.check_call("rm -r diag*",shell=True)			
+			exit()
+		except:
+			print "Clean!"
+			exit()
+	else:
+		exit()
+		
+elif sys.argv[1]=="start":
+	istart=0
+	if t0==0.0:
+		print "We need to run for at least one second, dummy"
+		t0=1.0
+
+	py_cycles=3 #We start off with three python cycles
+	istart=0 #This is a start		
+		
+		
+elif sys.argv[1]=="restart":
+	if len(sys.argv)<4:
+		print "Need to include 1: dbl file to restart from 2: number of python cycles to do"
+	else:
+		istart=int(sys.argv[2])	
+		py_cycles=int(sys.argv[3])	
+		
+	dbl_file_1,dbl_file_2,py_last_completed,py_last_requested=pps.get_status()
+	
+	py_test=3+(istart-1)*2	
+	
+	print py_test,py_last_requested
+	
+	if py_test==py_last_requested:
+		print "We will be starting off by completing the last python run"
+		
+
+
+elif sys.argv[1]=="help" or sys.argv[1]=='h':
+	print help
+	exit ()
+	
+else:
+	print "Don't understand the input - exiting"
+	exit()
+
+	
+
+
+
+
+
+
+
+
+pps.loop(t0,dt,istart,py_cycles,data)

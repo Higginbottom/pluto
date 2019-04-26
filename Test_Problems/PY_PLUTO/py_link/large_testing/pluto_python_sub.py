@@ -73,7 +73,10 @@ def pluto_input_file(tlim,data):
 	output.write("\n")
 	output.write("[Static Grid Output]\n")
 	output.write("\n")
-	output.write("uservar    14    XI T comp_h comp_c line_c brem_c xray_h comp_h_pre comp_c_pre line_c_pre brem_c_pre xray_h_pre ne nh\n")
+	if data["rad_force"]==1:
+		output.write("uservar    20    XI T ch cc lc bc xh ch_pre cc_pre lc_pre bc_pre xh_pre ne nh g1 g2 g3 g1_pre g2_pre g3_pre\n")
+	else:
+		output.write("uservar    14    XI T ch cc lc bc xh ch_pre cc_pre lc_pre bc_pre xh_pre ne nh\n")
 	output.write("dbl        1000000000000   -1   single_file\n")
 	output.write("flt       -1.0  -1   single_file\n")
 	output.write("vtk       -1.0  -1   single_file\n")
@@ -107,71 +110,9 @@ def pluto_input_file(tlim,data):
 	
 	
 	
-def python_input_file(fname,data,cycles=2):
-	output=open(fname+".pf",'w')
-	output.write("System_type(0=star,1=binary,2=agn)                    2\n")
-	output.write("Wind_type                 3\n")	
-	output.write("Coord.system(0=spherical,1=cylindrical,2=spherical_polar,3=cyl_var)                    1\n")
-	output.write("Wind.dim.in.x_or_r.direction                     30\n")
-	output.write("Wind.dim.in.z_or_theta.direction                   30\n")
-	output.write("Number.of.wind.components 1\n") 
-	output.write("disk.type(0=no.disk,1=standard.flat.disk,2=vertically.extended.disk) 0\n") 
-	output.write("Atomic_data                         data/standard80\n")
-	output.write("write_atomicdata(0=no,1=yes)               0\n")        
-	output.write("photons_per_cycle                            "+str(data["NPHOT"])+"\n")
-	output.write("Ionization_cycles                                "+str(cycles)+"\n")
-	output.write("spectrum_cycles                                   0\n")
-	output.write("adjust_grid(0=no,1=yes)								0\n")
-	output.write("Wind_ionization 9\n")
-	output.write("Line_transfer 3\n")
-	output.write("Thermal_balance_options(0=everything.on,1=no.adiabatic)                    1\n")
-	output.write("Disk_radiation(y=1)                               0\n")
-	output.write("Wind_radiation(y=1)                               1\n")
-	output.write("QSO_BH_radiation                               1\n")
-	output.write("Rad_type_for_disk(0=bb,1=models)_to_make_wind     0\n")
-	output.write("Rad_type_for_agn(0=bb,1=models,3=power_law,4=cloudy_table)_to_make_wind)  5\n")
-	output.write("mstar(msol)        "+str(data["CENT_MASS"]/c.M_sun.cgs.value)+"\n")
-	output.write("rstar(cm)                                     7e+08\n")
-	output.write("tstar                                         40000\n")
-	output.write("lum_agn(ergs/s) "+str(data["L_2_10"])+"\n")
-	output.write("agn_bremsstrahlung_temp(K) "+str(data["T_x"])+"\n")
-	output.write("agn_bremsstrahlung_alpha "+str(data["BREM_ALPHA"])+"\n")
-	output.write("geometry_for_pl_source 0\n")
-	output.write("agn_power_law_index 							0.0\n")
-	output.write("agn_power_law_cutoff (0)						0\n")
-	output.write("Torus(0=no,1=yes)								0\n")
-	output.write("disk.mdot(msol/yr)   "+str(data["DISK_MDOT"]/c.M_sun.cgs.value*60.*60.*24.*365.25)+"\n")
-	output.write("Disk.illumination.treatment 0\n")
-	output.write("Disk.temperature.profile(0=standard;1=readin)                    0\n")
-	output.write("disk.radmax(cm)                             2.4e+10\n")
-	output.write("wind.radmax(cm)                               1e+11\n")
-	output.write("wind.t.init                                   40000\n")
-	output.write("hydro_file "+fname+"\n")
-	output.write("Hydro_thetamax(degrees)                        -1\n")
-	output.write("filling_factor(1=smooth,<1=clumped)                    1\n")
-	output.write("Rad_type_for_agn(3=power_law,4=cloudy_table)_in_final_spectrum 3\n")
-	output.write("Rad_type_for_disk(0=bb,1=models,2=uniform)_in_final_spectrum                    0\n")
-	output.write("spectrum_wavemin                               1450\n")
-	output.write("spectrum_wavemax                               1650\n")
-	output.write("no_observers                                      4\n")
-	output.write("angle(0=pole)                                    10\n")
-	output.write("angle(0=pole)                                    30\n")
-	output.write("angle(0=pole)                                    60\n")
-	output.write("angle(0=pole)                                    80\n")
-	output.write("live.or.die(0).or.extract(anything_else)                    1\n")
-	output.write("spec.type(flambda(1),fnu(2),basic(other)                    1\n")
-	output.write("Use.standard.care.factors(1=yes)						1\n")
-	output.write("reverb.type 0\n")
-	output.write("Photon.sampling.approach           8\n")
-	output.write("Num.of.frequency.bands(5) 10\n")
-	output.write("Lowest_energy_to_be_considered(eV) 1.03333\n")
-	output.write("Highest_energy_to_be_considered(eV) 50000 \n")
-	output.write("Extra.diagnostics(0=no,1=yes)   1\n")
-	output.write("keep_ioncycle_windsaves()   1\n")
-	output.close()
-	return
 
-def python_input_file_82j(fname,data,cycles=2):
+
+def python_input_file(fname,data,cycles=2):
 	output=open(fname+".pf",'w')
 	output.write("System_type(star,binary,agn,previous)            agn\n")
 	output.write("\n")
@@ -181,22 +122,28 @@ def python_input_file_82j(fname,data,cycles=2):
 	output.write("\n")
 	output.write("### Parameters for the Disk (if there is one)\n")
 	output.write("\n")
-	output.write("Disk.type(none,flat,vertically.extended)       none\n")
+	output.write("Disk.type(none,flat,vertically.extended)       flat\n")
+	output.write("Disk.radiation(yes,no)      no\n")
+	output.write("Disk.temperature.profile(standard,readin,yso) standard\n")
+	output.write("Disk.mdot(msol/yr) "+str(data["PY_DISK_MDOT"])+"\n")
+	output.write("Disk.radmax(cm) "+str(data["DISK_TRUNC_RAD"])+"\n")
 	output.write("\n")
 	output.write("### Parameters for BL or AGN\n")
 	output.write("\n")
-	output.write("QSO_BH_radiation(yes,no)     yes\n")
-	output.write("Rad_type_for_agn(0=bb,1=models,3=power_law,4=cloudy_table,5=bremsstrahlung)_to_make_wind   5\n")
-	output.write("lum_agn(ergs/s) "+str(data["L_2_10"])+"\n")
-	output.write("AGN.bremsstrahlung_temp(K) "+str(data["T_x"])+"\n")
-	output.write("AGN.bremsstrahlung_alpha() " +str(data["BREM_ALPHA"])+"\n")
-	output.write("AGN.geometry_for_pl_source(sphere,lamp_post) sphere\n")
+	output.write("BH.radiation(yes,no)     yes\n")
+	if data["spectype"]=="brem":
+		output.write("BH.rad_type_to_make_wind(bb,models,power,cloudy,brems)   brems\n")
+		output.write("AGN.bremsstrahlung_temp(K) "+str(data["T_x"])+"\n")
+		output.write("AGN.bremsstrahlung_alpha() " +str(data["BREM_ALPHA"])+"\n")
+	output.write("BH.lum(ergs/s) "+str(data["L_2_10"])+"\n")
+	
+	output.write("BH.geometry_for_pl_source(sphere,lamp_post) sphere\n")
 	output.write("\n")
 	output.write("### Parameters descibing the various winds or coronae in the system\n")
 	output.write("\n")
-	output.write("Wind_radiation(yes,no) no\n")
+	output.write("Wind.radiation(yes,no) no\n")
 	output.write("Wind.number_of_components  1\n")
-	output.write("Wind_type(SV,star,hydro,corona,kwd,homologous,yso,shell,imported)  hydro \n")
+	output.write("Wind.type(SV,star,hydro,corona,kwd,homologous,yso,shell,imported)  hydro \n")
 	output.write("Wind.coord_system(spherical,cylindrical,polar,cyl_var)  spherical\n")
 	output.write("Wind.dim.in.x_or_r.direction               30\n")
 	output.write("Wind.dim.in.z_or_theta.direction           30\n")
@@ -206,11 +153,11 @@ def python_input_file_82j(fname,data,cycles=2):
 	output.write("Photons_per_cycle        "+str(data["NPHOT"])+"\n")
 	output.write("Ionization_cycles        "+str(cycles)+"\n")
 	output.write("Spectrum_cycles          0\n")
-	output.write("Wind_ionization(on.the.spot,ML93,LTE_tr,LTE_te,fixed,matrix_bb,matrix_pow)  matrix_pow\n")
+	output.write("Wind.ionization(on.the.spot,ML93,LTE_tr,LTE_te,fixed,matrix_bb,matrix_pow)  matrix_pow\n")
 	output.write("Line_transfer(pure_abs,pure_scat,sing_scat,escape_prob,thermal_trapping,macro_atoms,macro_atoms_thermal_trapping)   escape_prob\n")
 	output.write("Atomic_data  data/standard80\n")
 	output.write("Surface.reflection.or.absorption(reflect,absorb,thermalized.rerad)    reflect\n")
-	output.write("Thermal_balance_options(0=everything.on,1=no.adiabatic)   1\n")
+	output.write("Wind_heating.extra_processes(none,adiabatic,nonthermal,both)   none\n")
 	output.write("\n")
 	output.write("### Parameters for Domain 0\n")
 	output.write("\n")
@@ -221,7 +168,7 @@ def python_input_file_82j(fname,data,cycles=2):
 	output.write("\n")
 	output.write("### Parameters for Reverberation Modeling (if needed)\n")
 	output.write("\n")	
-	output.write("Reverb.type(0=off,1=photon,2=wind,3=matom)   0\n")
+	output.write("Reverb.type(none,photon,wind,matom)   none\n")
 	output.write("\n")	
 	output.write("### Other parameters\n")
 	output.write("\n")	
@@ -232,82 +179,74 @@ def python_input_file_82j(fname,data,cycles=2):
 	
 	output.close()
 	return
+	
+	
+def python_input_file_82e(fname,data,cycles=2):
+		output=open(fname+".pf",'w')
+		output.write("System_type(0=star,1=binary,2=agn)                    2\n")
+		output.write("Wind_type                 3\n")	
+		output.write("Coord.system(0=spherical,1=cylindrical,2=spherical_polar,3=cyl_var)                    1\n")
+		output.write("Wind.dim.in.x_or_r.direction                     30\n")
+		output.write("Wind.dim.in.z_or_theta.direction                   30\n")
+		output.write("Number.of.wind.components 1\n") 
+		output.write("disk.type(0=no.disk,1=standard.flat.disk,2=vertically.extended.disk) 1\n") 
+		output.write("Atomic_data                         data/standard80\n")
+		output.write("write_atomicdata(0=no,1=yes)               0\n")        
+		output.write("photons_per_cycle                            "+str(data["NPHOT"])+"\n")
+		output.write("Ionization_cycles                                "+str(cycles)+"\n")
+		output.write("spectrum_cycles                                   0\n")
+		output.write("adjust_grid(0=no,1=yes)								0\n")
+		output.write("Wind_ionization 9\n")
+		output.write("Line_transfer 3\n")
+		output.write("Thermal_balance_options(0=everything.on,1=no.adiabatic)                    1\n")
+		output.write("Disk_radiation(y=1)                               0\n")
+		output.write("Wind_radiation(y=1)                               0\n")
+		output.write("QSO_BH_radiation                               1\n")
+		output.write("Rad_type_for_disk(0=bb,1=models)_to_make_wind     0\n")
+		output.write("Rad_type_for_agn(0=bb,1=models,3=power_law,4=cloudy_table)_to_make_wind)  5\n")
+		output.write("mstar(msol)        "+str(data["CENT_MASS"]/c.M_sun.cgs.value)+"\n")
+		output.write("rstar(cm)                                     7e+08\n")
+		output.write("tstar                                         40000\n")		
+		output.write("lum_agn(ergs/s) "+str(data["L_2_10"])+"\n")
+		output.write("agn_bremsstrahlung_temp(K) "+str(data["T_x"])+"\n")
+		output.write("agn_bremsstrahlung_alpha "+str(data["BREM_ALPHA"])+"\n")
+		output.write("geometry_for_pl_source 0\n")
+		output.write("agn_power_law_index 							0.0\n")
+		output.write("agn_power_law_cutoff (0)						0\n")
+		output.write("Torus(0=no,1=yes)								0\n")
+		output.write("disk.mdot(msol/yr)   "+str(data["PY_DISK_MDOT"])+"\n")
+		output.write("Disk.illumination.treatment 0\n")
+		output.write("Disk.temperature.profile(0=standard;1=readin)                    0\n")
+		output.write("disk.radmax(cm) "+str(data["DISK_TRUNC_RAD"])+"\n")
+		output.write("wind.radmax(cm)                               1e+11\n")
+		output.write("wind.t.init                                   40000\n")
+		output.write("hydro_file "+fname+"\n")
+		output.write("Hydro_thetamax(degrees)                        -1\n")
+		output.write("filling_factor(1=smooth,<1=clumped)                    1\n")
+		output.write("Rad_type_for_agn(3=power_law,4=cloudy_table)_in_final_spectrum 3\n")
+		output.write("Rad_type_for_disk(0=bb,1=models,2=uniform)_in_final_spectrum                    0\n")
+		output.write("spectrum_wavemin                               1450\n")
+		output.write("spectrum_wavemax                               1650\n")
+		output.write("no_observers                                      4\n")
+		output.write("angle(0=pole)                                    10\n")
+		output.write("angle(0=pole)                                    30\n")
+		output.write("angle(0=pole)                                    60\n")
+		output.write("angle(0=pole)                                    80\n")
+		output.write("live.or.die(0).or.extract(anything_else)                    1\n")
+		output.write("spec.type(flambda(1),fnu(2),basic(other)                    1\n")
+		output.write("Use.standard.care.factors(1=yes)						1\n")
+		output.write("reverb.type 0\n")
+		output.write("Photon.sampling.approach           8\n")
+		output.write("Num.of.frequency.bands(5) 10\n")
+		output.write("Lowest_energy_to_be_considered(eV) 1.03333\n")
+		output.write("Highest_energy_to_be_considered(eV) 50000 \n")
+		output.write("Extra.diagnostics(0=no,1=yes)   1\n")
+		output.write("keep_ioncycle_windsaves()   1\n")
+		output.close()
+		return
+	
+	
 		
-		
-def python_input_file_82j_testing(fname,data,cycles=2):
-	output=open(fname+".pf",'w')
-	output.write("System_type(star,binary,agn,previous)            agn\n")
-	output.write("\n")
-	output.write("### Parameters for the Central Object\n")
-	output.write("Central_object.mass(msol)                  7.0\n")
-	output.write("Central_object.radius(cm)                  7e+08\n")
-	output.write("\n")
-	output.write("### Parameters for the Disk (if there is one)\n")
-	output.write("\n")
-	output.write("Disk.type(none,flat,vertically.extended)       none\n")
-	output.write("\n")
-	output.write("### Parameters for BL or AGN\n")
-	output.write("\n")
-	output.write("QSO_BH_radiation(yes,no)     yes\n")
-	output.write("Rad_type_for_agn(0=bb,1=models,3=power_law,4=cloudy_table,5=bremsstrahlung)_to_make_wind   5\n")
-	output.write("lum_agn(ergs/s) "+str(data["L_2_10"])+"\n")
-	output.write("AGN.bremsstrahlung_temp(K) "+str(data["T_x"])+"\n")
-	output.write("AGN.bremsstrahlung_alpha() " +str(data["BREM_ALPHA"])+"\n")
-	output.write("AGN.geometry_for_pl_source(sphere,lamp_post) sphere\n")
-	output.write("\n")
-	output.write("### Parameters descibing the various winds or coronae in the system\n")
-	output.write("\n")
-	output.write("Wind_radiation(yes,no) no\n")
-	output.write("Wind.number_of_components  1\n")
-	output.write("Wind_type(SV,star,hydro,corona,kwd,homologous,yso,shell,imported)  hydro \n")
-	output.write("Wind.coord_system(spherical,cylindrical,polar,cyl_var)  spherical\n")
-	output.write("Wind.dim.in.x_or_r.direction               30\n")
-	output.write("Wind.dim.in.z_or_theta.direction           30\n")
-	output.write("\n")
-	output.write("### Parameters associated with photon number, cycles,ionization and radiative transfer options\n")
-	output.write("\n")
-	output.write("Photons_per_cycle        "+str(data["NPHOT"])+"\n")
-	output.write("Ionization_cycles        "+str(cycles)+"\n")
-	output.write("Spectrum_cycles          0\n")
-	output.write("Wind_ionization(on.the.spot,ML93,LTE_tr,LTE_te,fixed,matrix_bb,matrix_pow)  matrix_pow\n")
-	output.write("Line_transfer(pure_abs,pure_scat,sing_scat,escape_prob,thermal_trapping,macro_atoms,macro_atoms_thermal_trapping)   escape_prob\n")
-	output.write("Atomic_data  data/standard80\n")
-	output.write("Surface.reflection.or.absorption(reflect,absorb,thermalized.rerad)    reflect\n")
-	output.write("Thermal_balance_options(0=everything.on,1=no.adiabatic)   1\n")
-	output.write("\n")
-	output.write("### Parameters for Domain 0\n")
-	output.write("\n")
-	output.write("Hydro.file "+fname+"\n")
-	output.write("Hydro.thetamax(degrees:negative_means_no_maximum)  -1\n")
-	output.write("Wind.t.init                                40000\n")
-	output.write("Wind.filling_factor(1=smooth,<1=clumped)   1\n")
-	output.write("\n")
-	output.write("### Parameters for Reverberation Modeling (if needed)\n")
-	output.write("\n")	
-	output.write("Reverb.type(0=off,1=photon,2=wind,3=matom)   0\n")
-	output.write("\n")	
-	output.write("### Other parameters\n")
-	output.write("\n")	
-	output.write("Photon_sampling.approach(T_star,cv,yso,AGN,min_max_freq,user_bands,cloudy_test,wide,logarithmic)  logarithmic\n")
-	output.write("Photon_sampling.nbands                     10\n")
-	output.write("Photon_sampling.low_energy_limit(eV)       1.03333\n")
-	output.write("Photon_sampling.high_energy_limit(eV)      50000\n")
-	output.write("@Diag.write_atomicdata(0=no,anything_else=yes)                   0\n")
-	output.write("@Diag.adjust_grid(yes,no)                        no\n")
-	output.write("@Spectrum.select_specific_no_of_scatters_in_spectra(y,n)                    n\n")
-	output.write("@Spectrum.select_photons_by_position(y,n)                    n\n")
-	output.write("@Diag.use_standard_care_factors(1=yes)                    1\n")
-	output.write("@Diag.extra(yes,no)                             yes\n")
-	output.write("@Diag.save_cell_statistics                        0\n")
-	output.write("@Diag.keep_ioncycle_windsaves                    y\n")
-	output.write("@Diag.keep_ioncycle_windsaves                    1\n")
-	output.write("@Diag.make_ioncycle_tables                        0\n")
-	output.write("@Diag.save_photons                                0\n")
-	output.write("@Diag.save_extract_photons                        0\n")
-	output.write("@Diag.print_dvds_info                             0\n")
-	output.write("@Diag.track_resonant_scatters                     0\n")	
-	output.close()
-	return		
 	
 def pluto2py(ifile):
 
@@ -409,23 +348,31 @@ def pluto2py(ifile):
 	return
 
 
-def pre_calc(ifile):
+def pre_calc(ifile,radforce=0):
 	max_change=0.9
-	heatcool=ascii.read("py_heatcool.dat")
+	max_accel_change=0.9
+
+	heatcool=ascii.read("%08d"%(ifile)+"_py_heatcool.dat")
 	D=pp.pload(ifile)
 
 	# We need the definitions file - so we know the conversion factors.
 
 	UNIT_DENSITY,UNIT_LENGTH,UNIT_VELOCITY=get_units('definitions.h')
-	
+	UNIT_ACCELERATION=UNIT_VELOCITY*UNIT_VELOCITY/UNIT_LENGTH	
 
 	comp_h_pre=[]
 	comp_c_pre=[]
 	xray_h_pre=[]
 	brem_c_pre=[]
 	line_c_pre=[]
+	
+	g1_pre=[]
+	g2_pre=[]
+	g3_pre=[]
 
 	odd=0.0
+	
+	itest=19900
 
 	for i in range(len(heatcool["rho"])):
 		if (heatcool["rho"][i]/(D.rho[heatcool["i"][i]][heatcool["j"][i]]*UNIT_DENSITY))-1.>1e-6:
@@ -433,41 +380,70 @@ def pre_calc(ifile):
 		nenh=D.ne[heatcool["i"][i]][heatcool["j"][i]]*D.nh[heatcool["i"][i]][heatcool["j"][i]]
 		nhnh=D.nh[heatcool["i"][i]][heatcool["j"][i]]*D.nh[heatcool["i"][i]][heatcool["j"][i]]
 		
-		test=(heatcool["heat_comp"][i]/(D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]*D.comp_h[heatcool["i"][i]][heatcool["j"][i]]*nenh))
-		if test<max_change*D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=max_change*D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]
-		elif test>(1./max_change)*D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=(1./max_change)*D.comp_h_pre[heatcool["i"][i]][heatcool["j"][i]]
-		comp_h_pre.append(test)
+		ideal_prefactor=(heatcool["heat_comp"][i]/(D.ch[heatcool["i"][i]][heatcool["j"][i]]*nenh))
+		change=ideal_prefactor/D.ch_pre[heatcool["i"][i]][heatcool["j"][i]]
+		if change<max_change:
+			change=max_change
+		elif change>(1./max_change):
+			change=(1./max_change)
+		comp_h_pre.append(change*D.ch_pre[heatcool["i"][i]][heatcool["j"][i]])
 			
-		test=(heatcool["cool_comp"][i]/(D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]*D.comp_c[heatcool["i"][i]][heatcool["j"][i]]*nenh))
-		if test<max_change*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=max_change*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		elif test>(1./max_change)*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=(1./max_change)*D.comp_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		comp_c_pre.append(test)	
+		ideal_prefactor=(heatcool["cool_comp"][i]/(D.cc[heatcool["i"][i]][heatcool["j"][i]]*nenh))
+		change=ideal_prefactor/D.cc_pre[heatcool["i"][i]][heatcool["j"][i]]
+		if change<max_change:
+			change=max_change
+		elif change>(1./max_change):
+			change=(1./max_change)
+		comp_c_pre.append(change*D.cc_pre[heatcool["i"][i]][heatcool["j"][i]])
 	
-		test=(heatcool["cool_lines"][i]/(D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]*D.line_c[heatcool["i"][i]][heatcool["j"][i]]*nenh))
-		if test<max_change*D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=max_change*D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		elif test>(1./max_change)*D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=(1./max_change)*D.line_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		line_c_pre.append(test)	
+		ideal_prefactor=(heatcool["cool_lines"][i]/(D.lc[heatcool["i"][i]][heatcool["j"][i]]*nenh))
+		change=ideal_prefactor/D.lc_pre[heatcool["i"][i]][heatcool["j"][i]]
+		if change<max_change:
+			change=max_change
+		elif change>(1./max_change):
+			change=(1./max_change)
+		line_c_pre.append(change*D.lc_pre[heatcool["i"][i]][heatcool["j"][i]])
+		
+		ideal_prefactor=(heatcool["cool_ff"][i]/(D.bc[heatcool["i"][i]][heatcool["j"][i]]*nenh))
+		change=ideal_prefactor/D.bc_pre[heatcool["i"][i]][heatcool["j"][i]]
+		if change<max_change:
+			change=max_change
+		elif change>(1./max_change):
+			change=(1./max_change)
+		brem_c_pre.append(change*D.bc_pre[heatcool["i"][i]][heatcool["j"][i]])
 	
-		test=(heatcool["cool_ff"][i]/(D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]*D.brem_c[heatcool["i"][i]][heatcool["j"][i]]*nenh))
-		if test<max_change*D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=max_change*D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		elif test>(1./max_change)*D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=(1./max_change)*D.brem_c_pre[heatcool["i"][i]][heatcool["j"][i]]
-		brem_c_pre.append(test)	
-	
-		test=(heatcool["heat_xray"][i]/(D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]*D.xray_h[heatcool["i"][i]][heatcool["j"][i]]*nhnh))
-		if test<max_change*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=max_change*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]
-		elif test>(1./max_change)*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]:
-			test=(1./max_change)*D.xray_h_pre[heatcool["i"][i]][heatcool["j"][i]]
-		xray_h_pre.append(test)
-	
+		ideal_prefactor=(heatcool["heat_xray"][i]/(D.xh[heatcool["i"][i]][heatcool["j"][i]]*nhnh))
+		change=ideal_prefactor/D.xh_pre[heatcool["i"][i]][heatcool["j"][i]]
+		if change<max_change:
+			change=max_change
+		elif change>(1./max_change):
+			change=(1./max_change)
+		xray_h_pre.append(change*D.xh_pre[heatcool["i"][i]][heatcool["j"][i]])
+		
+		
+		if radforce:
+			ideal_prefactor=(heatcool["rad_f_w"][i]/heatcool["rho"][i]/heatcool["vol"][i])/(D.g1[heatcool["i"][i]][heatcool["j"][i]]*UNIT_ACCELERATION)
+			change=ideal_prefactor/D.g1_pre[heatcool["i"][i]][heatcool["j"][i]]
+			if change<max_accel_change:
+				change=max_accel_change
+			elif change>(1./max_accel_change):
+				change=(1./max_accel_change)
+			g1_pre.append(change*D.g1_pre[heatcool["i"][i]][heatcool["j"][i]])
+			
+			g2_pre.append(1.0)
+			
+			ideal_prefactor=(heatcool["rad_f_z"][i]/heatcool["rho"][i]/heatcool["vol"][i])/(D.g3[heatcool["i"][i]][heatcool["j"][i]]*UNIT_ACCELERATION)
+			change=ideal_prefactor/D.g3_pre[heatcool["i"][i]][heatcool["j"][i]]
+			if change<max_accel_change:
+				change=max_accel_change
+			elif change>(1./max_accel_change):
+				change=(1./max_accel_change)
+			g3_pre.append(change*D.g3_pre[heatcool["i"][i]][heatcool["j"][i]])	
+		else:		
+			g1_pre.append(1.0)
+			g2_pre.append(1.0)
+			g3_pre.append(1.0)
+			
 	
 	fmt='%013.6e'
 
@@ -482,11 +458,15 @@ def pre_calc(ifile):
 		'xray_h_pre':fmt,
 		'line_c_pre':fmt,
 		'brem_c_pre':fmt,
+		'g1_pre':fmt,
+		'g2_pre':fmt,
+		'g3_pre':fmt,
 		}	
 
 	titles=[]
 	titles=titles+["ir","rcent","itheta","thetacent","rho"]
-	titles=titles+["comp_h_pre","comp_c_pre","xray_h_pre","brem_c_pre","line_c_pre"]	
+	titles=titles+["comp_h_pre","comp_c_pre","xray_h_pre","brem_c_pre","line_c_pre"]
+	titles=titles+["g1_pre","g2_pre","g3_pre"]	
 	
 	col0=heatcool["i"]
 	col1=heatcool["rcen"]
@@ -498,10 +478,140 @@ def pre_calc(ifile):
 	col7=xray_h_pre
 	col8=brem_c_pre
 	col9=line_c_pre
+	col10=g1_pre
+	col11=g2_pre
+	col12=g3_pre
 
 	out=open("prefactors.dat",'w')
 
-	out_dat=Table([col0,col1,col2,col3,col4,col5,col6,col7,col8,col9],names=titles)
+	out_dat=Table([col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12],names=titles)
 	ascii.write(out_dat,out,formats=fmts)
 	return(odd)
+	
+def data_complete(data):
+	try:
+		UNIT_DENSITY,UNIT_LENGTH,UNIT_VELOCITY=get_units()
+	except:
+		print "Unable to open definitions.h file - big problems"
+		exit()
+	data["efficiency"]=0.083        #The efficiency of conversion of mass to lumonisity at the central source - used to set the disk mdot
+	data["DISK_MDOT"]=(data["L_x"]/c.c.cgs/c.c.cgs/data["efficiency"]).value   #THe disk massloss rate is only used to set the initial temperature
+	data["PY_DISK_MDOT"]=data["DISK_MDOT"]*365.25*60*60*24/c.M_sun.cgs.value #The disk massloss rate for python
+	
+	#Now we work out the matching luminosity for the python simulation.
+
+	nu1=((13.6*u.eV).to(u.erg)/c.h.cgs).value
+	nu2=((2000*u.eV).to(u.erg)/c.h.cgs).value
+	nu3=((10000*u.eV).to(u.erg)/c.h.cgs).value
+	numax=(data["T_x"]*u.K*c.k_B.cgs/c.h.cgs).value*100.
+	L_x_test=quad(brem,nu1,np.max([nu3,numax]),args=(data["T_x"],data["BREM_ALPHA"]))
+	const=data["L_x"]/L_x_test[0]
+	data["L_2_10"]=const*quad(brem,nu2,nu3,args=(data["T_x"],data["BREM_ALPHA"]))[0]	
+	
+	#Rescale the grid
+	
+	data["R_MIN"]=data["R_MIN"]/UNIT_LENGTH
+	data["R_MAX"]=data["R_MAX"]/UNIT_LENGTH
+	
+	return()
+
+def get_status():
+	cmdline="tail -1 dbl.out"   
+	proc=subprocess.Popen(cmdline,shell=True,stdout=subprocess.PIPE) 
+	dbl_file_1=int(proc.stdout.read().split()[0])
+	print "Last file listed in dbl file:",dbl_file_1
+	cmdline="ls  *.dbl | tail -1"
+	proc=subprocess.Popen(cmdline,shell=True,stdout=subprocess.PIPE) 
+	dbl_file_2=int(proc.stdout.read().split('.')[1])
+	print "last dbl file in directory:  ",dbl_file_2
+	cmdline="tail -50 input.sig | grep Finished | grep cycle | tail -1"
+	proc=subprocess.Popen(cmdline,shell=True,stdout=subprocess.PIPE) 
+	test=proc.stdout.read().split()
+	py_last_completed=int(test[8])+1
+	cmdline="tail -50 input.sig | grep Starting | grep cycle | tail -1"
+	proc=subprocess.Popen(cmdline,shell=True,stdout=subprocess.PIPE) 
+	test=proc.stdout.read().split()
+	py_last_requested=int(test[10])
+	return dbl_file_1,dbl_file_2,py_last_completed,py_last_requested	
+	
+	
+def loop(t0,dt,istart,py_cycles,data):
+	flag=0 #Flag to say wether we are running a pluto run
+	
+	ifile=istart #If this is a restart - we need to populate ifile
+	
+	if 3+(istart-1)*2==py_cycles: #We will need to restart the last python run rather than running pluto
+		flag=1
+		root="%08d"%(istart)
+	
+	out=open("pluto_py_logfile",'w',0)
+	out.write("Starting run"+"\n")
+	#out.write("zeus_ver="+zeus_ver+"\n")
+
+	for i in range(istart,10000):  #We will permit up to 500 calls to python (this is a lot)
+		out.write("STARTING CYCLE "+str(i)+"\n")
+		print ("STARTING CYCLE "+str(i)+"\n")
+	
+		pluto_input_file(t0+float(i)*dt,data)
+		out.write("Running for time="+str(t0+float(i)*dt)+"\n")
+		if flag==0:
+			if i==0:   #This is the first step - 
+				out.write("Creating first zeus_file"+"\n")
+				cmdline="mpirun -n "+str(data["nproc_pl"])+" ./pluto >"+"%08d"%i+"_pluto_log"
+			else:
+				out.write("generating restart zeus run \n")      #This should be the name of the restart file
+				cmdline="mpirun -n "+str(data["nproc_pl"])+" ./pluto -restart "+str(ifile)+" > "+"%08d"%i+"_pluto_log"
+			print "Executing pluto with command line "+cmdline
+			out.write("Executing pluto with command line "+cmdline+"\n")
+			subprocess.call(cmdline,shell=True)    #Call pluto
+			out.write("Finished pluto run"+"\n")
+			print "Finished pluto run"
+			
+			cmdline="tail -1 dbl.out"   
+			out.write(cmdline+"\n")
+			proc=subprocess.Popen(cmdline,shell=True,stdout=subprocess.PIPE) #This mess gets the last dblfile	
+			ifile=int(proc.stdout.read().split()[0])
+			pluto2py(ifile)   #We now make a python input file
+			root="%08d"%(ifile)
+			python_input_file(root+".pluto",data,py_cycles)  #This generate a python parameter file
+			cmdline="cp "+root+".pluto"+".pf input.pf"   #Copy the python file to a generaic name so windsave files persist
+			out.write(cmdline+"\n")
+			print (cmdline+"\n")
+			subprocess.check_call(cmdline,shell=True)
 		
+		if py_cycles==3: #This is the first time through - so no restart""
+			cmdline="mpirun -n "+str(data["nproc_py"])+" "+data["python_ver"]+" -z  input.pf > "+root+".python_log"  #We now run python
+		else:
+			cmdline="mpirun -n "+str(data["nproc_py"])+" "+data["python_ver"]+" -z -r  input.pf > "+root+".python_log"  #We now run python
+		out.write("Running python"+"\n") 
+		print("Running python"+"\n") 	
+		out.write(cmdline+"\n")
+		print(cmdline+"\n")
+		subprocess.check_call(cmdline,shell=True)   #Well, here is the actual call
+		cmdline="cp py_heatcool.dat "+root+"_py_heatcool.dat"  
+		out.write(cmdline+"\n")
+		subprocess.check_call(cmdline,shell=True)   #And finally we take a copy of the python heatcool file for later investigation.
+		py_cycles=py_cycles+2
+		flag=0 #reset the flag that may have been set on entry to run python first
+	#	now make a prefactors file
+		out.write ("Making a prefactor file using "+str(ifile)+" dbl file")
+		pre_calc(ifile,data["rad_force"])	
+		cmdline="cp prefactors.dat "+root+"_prefactors.dat"  
+		out.write(cmdline+"\n")
+		subprocess.check_call(cmdline,shell=True)
+		cmdline="cp input.wind_save "+root+"_input.wind_save"  
+		out.write(cmdline+"\n")
+		subprocess.check_call(cmdline,shell=True)
+		if ifile>2:
+			cmdline="rm "+"%08d"%(ifile-2)+"_input.wind_save"
+			out.write(cmdline+"\n")
+			try:
+				subprocess.check_call(cmdline,shell=True)
+			except:
+				out.write("Could not delete\n")
+				
+				
+			
+		out.write("FINISHED CYCLE"+"\n")
+	out.close()
+	
