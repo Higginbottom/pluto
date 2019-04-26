@@ -101,7 +101,7 @@ int    g_intStage;    /**< Gives the current integration stage of the time
                              corrector = 1, and so on). */
 double g_maxCoolingRate = 0.1;  /**< The maximum fractional variation due to 
                                      cooling from one step to the next. */
-double g_minCoolingTemp = 500.0; /**< The minimum temperature (in K) below which
+double g_minCoolingTemp = 1000.0; /**< The minimum temperature (in K) below which
                                      cooling is suppressed. */
 
 int    g_maxIMEXIter;     /**< Maximum number if iterations in IMEX scheme */    
