@@ -35,7 +35,7 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 	double rcen,thetacen;
 	int icount;
 	#if (BODY_FORCE & VECTOR)
-	double g1_pre,g2_pre,g3_pre;
+	double gx_pre,gy_pre,gz_pre;
 	#endif
 	
 	
@@ -73,7 +73,7 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 				#if (BODY_FORCE & VECTOR)
 				((nwords = sscanf (aline, "%d %le %d %le %le %le %le %le %le %le %le %le %le", &ii, &rcen, &jj, &thetacen, &dens,
 				&comp_h_pre, &comp_c_pre, &xray_h_pre, &brem_c_pre, &line_c_pre,
-				&g1_pre, &g2_pre, &g3_pre)) == 13)
+				&gx_pre, &gy_pre, &gz_pre)) == 13)
 				#else
 				((nwords = sscanf (aline, "%d %le %d %le %le %le %le %le %le %le", &ii, &rcen, &jj, &thetacen, &dens,
 				&comp_h_pre, &comp_c_pre, &xray_h_pre, &brem_c_pre, &line_c_pre)) == 10)
@@ -94,9 +94,9 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 						d->line_c_pre[k][j][i]=line_c_pre;
 						d->brem_c_pre[k][j][i]=brem_c_pre;
 						#if (BODY_FORCE & VECTOR)
-							g_rad_force_pre[0][k][j][i]=g1_pre;
-							g_rad_force_pre[1][k][j][i]=g2_pre;
-							g_rad_force_pre[2][k][j][i]=g3_pre;
+							g_rad_force_pre[0][k][j][i]=gx_pre;
+							g_rad_force_pre[1][k][j][i]=gy_pre;
+							g_rad_force_pre[2][k][j][i]=gz_pre;
 						#endif
 					}
 				}

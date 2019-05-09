@@ -325,14 +325,14 @@ void BodyForceVector(double *v, double *g, double x1, double x2, double x3,int i
 {
 	double rad, rs,theta;
 	double Lx;
-	double rho,nH,ne,F_r,F_t,F_p;
-	double F_w,F_y,F_z;
+	double rho,nH,ne,g_r,g_t,g_p;
+	double g_x,g_y,g_z;
 	
 	
 	
 	
 	
-	
+//	printf ("x1=%e x2=%e x3=%e\n",x1,x2,x3);
 	
 	
 	
@@ -366,23 +366,33 @@ void BodyForceVector(double *v, double *g, double x1, double x2, double x3,int i
 		theta = x2; /* spherical radius in sph. coords */
 	#endif	
 		
+//	printf ("rs=%e theta=%e \n",rs,theta);
 		
-	//First compute the theoertical radiation force rom the central source in spherical coords	
+		
+		
+	//First compute the theoretical radiation force from the central source in spherical coords	
 		
 		
 	rs*=UNIT_LENGTH; //We will work in cgs
-	F_r=CONST_sigmaT*ne*Lx/4./CONST_PI/rs/rs/CONST_c/rho;
-	F_t=0.0;
-	F_p=0.0;
+	g_r=CONST_sigmaT*ne*Lx/4./CONST_PI/rs/rs/CONST_c/rho;
+	g_t=0.0;
+	g_p=0.0;
 	
-	//We now convert to cylindrical coordinates - this is to make it easuer to apply scaling factors
+//	printf ("F_r=%e F_t=%e F_p=%e\n",g_r,g_t,g_p);
+//	printf ("ANGLES sin=%e cos=%e\n",sin(theta),cos(theta));
 	
-	F_w=g_rad_force_pre[0][k][j][i]*(F_r*sin(theta)+F_t*cos(theta))/UNIT_ACCELERATION;
-	F_z=g_rad_force_pre[2][k][j][i]*(F_r*cos(theta)-F_t*sin(theta))/UNIT_ACCELERATION;
-	F_y=g_rad_force_pre[1][k][j][i]*F_p/UNIT_ACCELERATION;
+	/*We now convert to cylindrical coordinates - this is to make it easier to apply scaling factors since python computes
+	the forces in cartesian coordinates. If we were to try and apply prefactors in spol - then we would never get 
+	theta (or phi) accelerations */
 	
+	g_x=g_rad_force_pre[0][k][j][i]*(g_r*sin(theta)+g_t*cos(theta))/UNIT_ACCELERATION;
+	g_y=g_rad_force_pre[1][k][j][i]*g_p/UNIT_ACCELERATION;
+	g_z=g_rad_force_pre[2][k][j][i]*(g_r*cos(theta)-g_t*sin(theta))/UNIT_ACCELERATION;
 	
-	
+//	printf ("omega pre %e f %e tot %e\n",g_rad_force_pre[0][k][j][i],(g_r*sin(theta)+g_t*cos(theta)),g_x);
+//	printf ("y pre     %e f %e tot %e\n",g_rad_force_pre[1][k][j][i],g_p,g_y);
+//	printf ("z pre     %e f %e tot %e\n",g_rad_force_pre[2][k][j][i],(g_r*cos(theta)-g_t*sin(theta)),g_z);
+//	printf ("rho %e\n",rho);
 
 	#if GEOMETRY == CARTESIAN
 	printf ("Rad force not implemented for cartesian")
@@ -390,14 +400,18 @@ void BodyForceVector(double *v, double *g, double x1, double x2, double x3,int i
 		g[JDIR] = 0.0;
 		g[KDIR] = 0.0;
 	#elif GEOMETRY == CYLINDRICAL
-		g[IDIR] = F_w;
-		g[JDIR] = F_y;
-		g[KDIR] = F_z;
+		g[IDIR] = g_x;
+		g[JDIR] = g_y;
+		g[KDIR] = g_z;
 	#elif GEOMETRY == SPHERICAL
-		g[IDIR] = F_w*sin(theta)+F_z*cos(theta);
-		g[JDIR] = F_w*cos(theta)-F_z*sin(theta);
-		g[KDIR] = F_y;
+		g[IDIR] = g_x*sin(theta)+g_z*cos(theta);
+		g[JDIR] = g_x*cos(theta)-g_z*sin(theta);
+		g[KDIR] = g_y;		
 	#endif
+		
+//		printf ("g[IDIR]=%e g[JDIR]=%e g[KDIR]=%e\n",g[IDIR],g[JDIR],g[KDIR]);
+//		printf ("g[IDIR]=%e g[JDIR]=%e g[KDIR]=%e\n",g[IDIR]*UNIT_ACCELERATION,g[JDIR]*UNIT_ACCELERATION,g[KDIR]*UNIT_ACCELERATION);
+		
 
 }
 /* ********************************************************************* */

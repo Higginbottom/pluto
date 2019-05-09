@@ -1,7 +1,7 @@
 #include "pluto.h"
 
 double heatcool2();
-
+double sqsqxi;
 
 /* *************************************************************** */
 void ComputeUserVar (const Data *d, Grid *grid)
@@ -19,8 +19,8 @@ void ComputeUserVar (const Data *d, Grid *grid)
 double ***comp_h_pre, ***comp_c_pre, ***line_c_pre, ***brem_c_pre, ***xray_h_pre, ***T_out, ***xi_out, ***ne_out, ***nH_out;
 
 #if (BODY_FORCE & VECTOR)
-double ***g1_out, ***g2_out, ***g3_out, g[3], Vc[NVAR];
-double ***g1_pre, ***g2_pre, ***g3_pre;
+double ***gr_out, ***gt_out, ***gp_out, g[3], Vc[NVAR];
+double ***gx_pre, ***gy_pre, ***gz_pre;
 #endif
 
 double rho,p,T,xi,ne,nH,n,mu,lx,tx,r;
@@ -37,12 +37,12 @@ T_out     = GetUserVar("T");
 xi_out     = GetUserVar("XI");
 
 #if (BODY_FORCE & VECTOR)
-g1_out     = GetUserVar("g1");
-g2_out     = GetUserVar("g2");
-g3_out     = GetUserVar("g3");
-g1_pre     = GetUserVar("g1_pre");
-g2_pre     = GetUserVar("g2_pre");
-g3_pre     = GetUserVar("g3_pre");
+gr_out     = GetUserVar("gr");
+gt_out     = GetUserVar("gt");
+gp_out     = GetUserVar("gp");
+gx_pre     = GetUserVar("gx_pre");
+gy_pre     = GetUserVar("gy_pre");
+gz_pre     = GetUserVar("gz_pre");
 #endif
 
 
@@ -86,17 +86,27 @@ tx=g_inputParam[T_x];  //Xray tenperature
 	line_c_pre[k][j][i]=d->line_c_pre[k][j][i];
 	brem_c_pre[k][j][i]=d->brem_c_pre[k][j][i];
 	
+/* If we have a vector pody force we need to popkluate and output the relevent arrays.
+	Note that there is a complecity here - the forces are in sphperical polar, but the prefactors are in cartesian
+	This is to allow us to deal with non radial forces. */	
+	
+	
 	#if (BODY_FORCE & VECTOR)
-	NVAR_LOOP(nv)  Vc[nv]=d->Vc[nv][k][j][i];
+	NVAR_LOOP(nv)  Vc[nv]=d->Vc[nv][k][j][i];	
 	
-	BodyForceVector(Vc, g, x1[i], x2[j], x3[k],i,j,k); //This returns r,theta,phi - we need w,y,z
-	g1_out[k][j][i]=g[0]*sin(x2[j])+g[1]*cos(x2[j]);
-	g2_out[k][j][i]=g[1];		
-	g3_out[k][j][i]=g[0]*cos(x2[j])-g[1]*sin(x2[j]);
+	BodyForceVector(Vc, g, x1[i], x2[j], x3[k],i,j,k);
 	
-	g1_pre[k][j][i]=g_rad_force_pre[0][k][j][i];
-	g2_pre[k][j][i]=g_rad_force_pre[1][k][j][i];
-	g3_pre[k][j][i]=g_rad_force_pre[2][k][j][i];
+/* The acceleration vectors are spherical polar */	
+	
+	gr_out[k][j][i]=g[0];
+	gt_out[k][j][i]=g[1];
+	gp_out[k][j][i]=g[2];
+	
+/* The prefactors are cartesian */	
+	
+	gx_pre[k][j][i]=g_rad_force_pre[0][k][j][i];
+	gy_pre[k][j][i]=g_rad_force_pre[1][k][j][i];
+	gz_pre[k][j][i]=g_rad_force_pre[2][k][j][i];
 	
 	#endif
 	
