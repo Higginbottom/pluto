@@ -21,6 +21,8 @@ double zfunc();
 double zbrent();
 double zfunc2();
 
+int flag;
+
 /* ********************************************************************* */
 void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 /*!
@@ -32,19 +34,22 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
  *
  *********************************************************************** */
 {
-  int     i, j, k;
+  int     i, j, k,iii;
+  double tmin,tmax,dT;
   double  cost, dE, E1,E_f;
   double  p, T, p_f, T_f;
   double  lx, r, test;
   double t_u,t_l,mu,t_new;
   double dt_min,***xi_out,***T_out;
+  double hc_final;
+  double T_test;
 
 
   dt_share=dt*UNIT_TIME;  //We need to share the current time step so the zbrent code can use it - must be in real units
   lx=g_inputParam[L_x];  //Xray luminosiy
   tx=g_inputParam[T_x];  //Xray tenperature
   mu=g_inputParam[MU];  //Mean particle mass  
-
+  flag=0;
   
 /*  mu=MeanMolecularWeight(v); This is how it should be done - but we are ionized and get the wrong answer */
   
@@ -91,7 +96,7 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 	
 	xi=lx/nH/r/r;     //ionization parameter
 	ne=nH*ne_rat(T,xi);
-	
+	ne=1.21*nH;
 //	ne=1.21*nH;             //electron number density assuming full ionization
 	
 	n=rho/(mu*CONST_mp);    //particle density
@@ -101,7 +106,10 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 	
 	
 	  
-    if (T < g_minCoolingTemp) continue;  //Quit if the temperature is too cold - this may need tweeking
+    if (T < g_minCoolingTemp)
+		{
+			continue;  //Quit if the temperature is too cold - this may need tweeking
+		}	
 	
 	
 
@@ -113,6 +121,10 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 	sqsqxi=pow(xi,0.25);    //we use xi^0.25 in the cooling rates - expensive to recompute every call, so do it now and transmit externally	
 	sqxi=sqrt(xi);
 	hc_init=heatcool(T);    //Get the initial heating/cooling rate
+
+//	if (i==2 && j==101 && g_time>0.05) flag=1;
+
+
 
 //   the next few lines bracket the solution temperature
 	t_l=T*0.9;
@@ -127,8 +139,18 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 	
 
 //we now search for the solution temperature
-	
+
     T_f=zbrent(zfunc,t_l,t_u,1.0);
+	flag=0;
+	
+	hc_final=heatcool(T_f);
+	
+	
+	if (hc_final*hc_init<0.)   //We have crossed the equilibrium temperature
+	{
+		T_test=zbrent(heatcool,fmin(T_f,T),fmax(T_f,T),1.0);
+		T_f=T_test;
+	}
 	
 	
 /*  ----  Update Energy  ----  */
@@ -162,10 +184,34 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 	*/
 
     Dts->dt_cool = MIN(Dts->dt_cool, dt*g_maxCoolingRate/dE); 
+/*	if (i==2 && j==101)
+	{
+	printf ("cell %i %i xi %e T_i %e T_f %e dt %e dE/dt %e E %e Ef %e P %e Pf %e time %e test %e T_test %e\n",i,j,xi,T,T_f,dt*g_maxCoolingRate/dE,(E_f-E)/dt,E,E_f,p,p_f,g_time,hc_init*hc_final,T_test);
+	if (g_time>0.05)
+	{
+//		exit(0);
+		
+	flag=1;
 	
+	tmin=20000.;
+	tmax=25000.;
+	
+	dT=(tmax-tmin)/1000.;
+	for (iii=0;iii<1001;iii++)
+	{
+		heatcool(tmin+iii*dT);
+		zfunc(tmin+iii*dT);
+	}
+	
+	exit(0);
+	
+	
+	
+	flag=0;
+	}
+	}*/
   }
 }
-
 
 
 
@@ -186,6 +232,10 @@ double heatcool(double T)
 	
 	l_brem=brem_c_pre*3.3e-27*st*ne*nH;	
 	lambda=h_comp+h_xray-l_brem-l_line-c_comp;
+	if (flag==1)
+	{
+		printf ("T %e xi %e h_comp %e c_comp %e h_xray %e l_line %e l_brem %e lambda %e E %e dt %e\n",T,xi,h_comp,c_comp,h_xray,l_line,l_brem,lambda,T*n*CONST_kB/(2.0/3.0),dt_share);
+	}
 
 	return (lambda);
 	
@@ -242,6 +292,8 @@ double zfunc(double temp)
 {	
 	double ans;
 	ans=(temp*n*CONST_kB/(2.0/3.0))-E-dt_share*(hc_init+heatcool(temp))/2.0;
+	if (flag==1)
+		printf ("t %e ANS= %e hc_init %e heatcool %e E1 %e E2 %e mean_hc %e\n",temp,ans,hc_init,heatcool(temp),E,(temp*n*CONST_kB/(2.0/3.0)),dt_share*(hc_init+heatcool(temp))/2.0);
 	return (ans);
 }
 
