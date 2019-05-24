@@ -43,6 +43,8 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
   double dt_min,***xi_out,***T_out;
   double hc_final;
   double T_test;
+  int imin,jmin,reset_flag;
+  double tstore1,tstore2,nenh_store;
 
 
   dt_share=dt*UNIT_TIME;  //We need to share the current time step so the zbrent code can use it - must be in real units
@@ -51,12 +53,13 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
   mu=g_inputParam[MU];  //Mean particle mass  
   flag=0;
   
+  
 /*  mu=MeanMolecularWeight(v); This is how it should be done - but we are ionized and get the wrong answer */
   
 //  mu=0.6;
   
 
-  
+  reset_flag=0;
 
   dE = 1.e-18;  //This is from the original cooling code - unsure if I need it.....
   
@@ -65,7 +68,6 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
   i(r) from 2 to 201
     this is for 100 theta and 200 r points - so ignores ghost zones...  
   */
-//printf ("BLAH\n");
   
   DOM_LOOP(k,j,i){
 	  
@@ -122,9 +124,6 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 	sqxi=sqrt(xi);
 	hc_init=heatcool(T);    //Get the initial heating/cooling rate
 
-//	if (i==2 && j==101 && g_time>0.05) flag=1;
-
-
 
 //   the next few lines bracket the solution temperature
 	t_l=T*0.9;
@@ -138,19 +137,19 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 	}
 	
 
-//we now search for the solution temperature
 
     T_f=zbrent(zfunc,t_l,t_u,1.0);
 	flag=0;
 	
 	hc_final=heatcool(T_f);
-	
-	
+
+
 	if (hc_final*hc_init<0.)   //We have crossed the equilibrium temperature
 	{
 		T_test=zbrent(heatcool,fmin(T_f,T),fmax(T_f,T),1.0);
 		T_f=T_test;
 	}
+
 	
 	
 /*  ----  Update Energy  ----  */
@@ -170,7 +169,8 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 	if that happens. */
 	
 	
-    dE = (fabs(1.0 - p_f/p)) + 1.e-18;  //The fractional change in pressure (or energy since they are proportional)
+    dE = (fabs(1.0 - E_f/E)) + 1.e-18;  //The fractional change in pressure (or energy since they are proportional)
+
 	
     data->Vc[PRS][k][j][i] = p_f;  //Set the pressure in the cell to the new value
 
@@ -182,8 +182,18 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 	max cooling rate / dE will be equal to 1 if our change in energy is at the max, so dt will equal the largest
 	acceptable time step. If this is less than the current time step then we will be reducing it next time. 
 	*/
-
+	if (Dts->dt_cool> dt*g_maxCoolingRate/dE)
+	{
+//		printf ("%i %i %e %e\n",i,j,Dts->dt_cool,dt*g_maxCoolingRate/dE);
+		
     Dts->dt_cool = MIN(Dts->dt_cool, dt*g_maxCoolingRate/dE); 
+	imin=i;
+	jmin=j;
+	tstore1=T;
+	tstore2=T_f;
+	nenh_store=ne*nH*ne_rat(T,xi);
+	reset_flag=1;
+	}
 /*	if (i==2 && j==101)
 	{
 	printf ("cell %i %i xi %e T_i %e T_f %e dt %e dE/dt %e E %e Ef %e P %e Pf %e time %e test %e T_test %e\n",i,j,xi,T,T_f,dt*g_maxCoolingRate/dE,(E_f-E)/dt,E,E_f,p,p_f,g_time,hc_init*hc_final,T_test);
@@ -211,6 +221,11 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 	}
 	}*/
   }
+//   if (reset_flag==1)
+//    {
+//  printf ("min_dt i=%i j=%i T_i %e T_f %e nenh %e\n",imin,jmin,tstore1,tstore2,nenh_store);
+  //}
+//printf ("%e %e %e %e\n",data->Vc[RHO][0][98][3]*UNIT_DENSITY,data->Vc[RHO][0][99][3]*UNIT_DENSITY,data->Vc[RHO][0][100][3]*UNIT_DENSITY,data->Vc[RHO][0][102][3]*UNIT_DENSITY);
 }
 
 
