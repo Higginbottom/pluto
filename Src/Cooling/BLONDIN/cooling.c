@@ -45,7 +45,8 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
   double T_test;
   int imin,jmin,reset_flag;
   double tstore1,tstore2,nenh_store;
-
+  double ***dt_out;
+  dt_out     = GetUserVar("dt");
 
   dt_share=dt*UNIT_TIME;  //We need to share the current time step so the zbrent code can use it - must be in real units
   lx=g_inputParam[L_x];  //Xray luminosiy
@@ -194,6 +195,8 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 	nenh_store=ne*nH*ne_rat(T,xi);
 	reset_flag=1;
 	}
+	dt_out[k][j][i]=dt*g_maxCoolingRate/dE;
+	
 /*	if (i==2 && j==101)
 	{
 	printf ("cell %i %i xi %e T_i %e T_f %e dt %e dE/dt %e E %e Ef %e P %e Pf %e time %e test %e T_test %e\n",i,j,xi,T,T_f,dt*g_maxCoolingRate/dE,(E_f-E)/dt,E,E_f,p,p_f,g_time,hc_init*hc_final,T_test);

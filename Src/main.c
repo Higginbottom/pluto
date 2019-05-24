@@ -454,7 +454,7 @@ double NextTimeStep (timeStep *Dts, Runtime *ini, Grid *grid)
    -------------------------------------------------------- */
 
 #if SHOW_TIME_STEPS == YES
-  if (g_stepNumber%ini->log_freq == 0) {
+  if (g_stepNumber%ini->log_freq == 1) {
     char *str = IndentString();
     print("%s [dt(adv)       = cfl x %10.4e]\n",str, 1.0/Dts->invDt_hyp);
     #if PARABOLIC_FLUX != NO
