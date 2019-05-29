@@ -144,9 +144,9 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 				printf ("brem_c_prefactor<0.0 for i=%i j=%i comp_h_pre=%e\n",i,j,d->brem_c_pre[k][j][i]);
 			}
 		}
-	}
+	
 		printf ("Read in %i prefectors\n",icount);
-	}
+	}}
 }
 
 
