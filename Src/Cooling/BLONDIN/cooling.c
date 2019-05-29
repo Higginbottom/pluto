@@ -146,8 +146,10 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 
 
 	if (hc_final*hc_init<0.)   //We have crossed the equilibrium temperature
-	{
+	{			
 		T_test=zbrent(heatcool,fmin(T_f,T),fmax(T_f,T),1.0);
+//		if (i==7 && j==86)
+//			printf ("We have crossed equilibrium %e %e %e\n",T,T_f,T_test);
 		T_f=T_test;
 	}
 
@@ -197,10 +199,18 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 	}
 	dt_out[k][j][i]=dt*g_maxCoolingRate/dE;
 	
-/*	if (i==2 && j==101)
-	{
-	printf ("cell %i %i xi %e T_i %e T_f %e dt %e dE/dt %e E %e Ef %e P %e Pf %e time %e test %e T_test %e\n",i,j,xi,T,T_f,dt*g_maxCoolingRate/dE,(E_f-E)/dt,E,E_f,p,p_f,g_time,hc_init*hc_final,T_test);
+//	if (i==7 && j==86)
+//	{
+//	printf ("cell1 %i %i xi %e T_i %e T_f %e dt %e dE/dt %e E %e Ef %e P %e Pf %e time %e test %e\n",i,j,xi,T,T_f,dt*g_maxCoolingRate/dE,(E_f-E)/dt,E,E_f,p,p_f,g_time,hc_init*hc_final);
+	//} 
+//	if (i==7 && j==87)
+//	{
+//	printf ("cell2 %i %i xi %e T_i %e T_f %e dt %e dE/dt %e E %e Ef %e P %e Pf %e time %e test %e\n",i,j,xi,T,T_f,dt*g_maxCoolingRate/dE,(E_f-E)/dt,E,E_f,p,p_f,g_time,hc_init*hc_final);
+	//} 
+/*
+	
 	if (g_time>0.05)
+
 	{
 //		exit(0);
 		

@@ -53,11 +53,23 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 	}
 	else
 	{
-		if ((fptr = fopen ("prefactors.dat", "r")) == NULL)
+		fptr = fopen ("prefactors.dat", "r");
+		if (fptr==NULL)
 		{
+		    DOM_LOOP(k,j,i){
+				d->comp_h_pre[k][j][i]=1.0;
+				d->comp_c_pre[k][j][i]=1.0;
+				d->xray_h_pre[k][j][i]=1.0;
+				d->line_c_pre[k][j][i]=1.0;
+				d->brem_c_pre[k][j][i]=1.0;
+				g_rad_force_pre[0][k][j][i]=1.0;
+				g_rad_force_pre[1][k][j][i]=1.0;
+				g_rad_force_pre[2][k][j][i]=1.0;		
+			}
 			printf ("NO prefactor file\n");
-			exit(0);
 		}
+		else
+		{
 	    DOM_LOOP(k,j,i){ //Initialise
 			d->comp_h_pre[k][j][i]=-1.0;
 			d->comp_c_pre[k][j][i]=-1.0;
@@ -132,6 +144,7 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 				printf ("brem_c_prefactor<0.0 for i=%i j=%i comp_h_pre=%e\n",i,j,d->brem_c_pre[k][j][i]);
 			}
 		}
+	}
 		printf ("Read in %i prefectors\n",icount);
 	}
 }
