@@ -186,7 +186,10 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
         WARNING(
           print("! ConsToPrim: p(E) < 0 (%8.2e), ", v[PRS]);
           Where (i, NULL);
+	 
         )
+		printf ("BAILING OUT - pressure negative\n");
+		exit(0);
         v[PRS]   = g_smallPressure;
         u[ENG]   = v[PRS]/gmm1 + kin; /* -- redefine energy -- */
         flag[i] |= FLAG_CONS2PRIM_FAIL;
