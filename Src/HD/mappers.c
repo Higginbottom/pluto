@@ -86,7 +86,7 @@ void PrimToCons (double **uprim, double **ucons, int ibeg, int iend)
 }
 /* ********************************************************************* */
 int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend, 
-                unsigned char *flag)
+                unsigned char *flag,int j)
 /*!
  * Convert from conservative to primitive variables.
  *
@@ -110,7 +110,7 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
   int  use_entropy, use_energy=1;
   double tau, rho, gmm1, rhoe, T;
   double kin, m2, rhog1;
-  double *u, *v;
+  double *u, *v,p_store;
 
 #if EOS == IDEAL
   gmm1 = g_gamma - 1.0;
@@ -123,7 +123,6 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
     v = uprim[i];
    
     m2  = EXPAND(u[MX1]*u[MX1], + u[MX2]*u[MX2], + u[MX3]*u[MX3]);
-    
   /* -- Check density positivity -- */
   
     if (u[RHO] < 0.0) {
@@ -187,6 +186,7 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
           print("! ConsToPrim: p(E) < 0 (%8.2e), ", v[PRS]);
           Where (i, NULL);
         )
+	                    printf ("We have triggered the low pressure %i %i %e %e\n",i,j,rho,g_time);
         v[PRS]   = g_smallPressure;
         u[ENG]   = v[PRS]/gmm1 + kin; /* -- redefine energy -- */
         flag[i] |= FLAG_CONS2PRIM_FAIL;

@@ -189,6 +189,11 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 	{
 //		printf ("%i %i %e %e\n",i,j,Dts->dt_cool,dt*g_maxCoolingRate/dE);
 		
+		if (Dts->dt_cool < 1e-5 && g_time>100.)
+                {
+                printf ("Very short dt - time %e\n",g_time);
+                exit(0);
+                }
     Dts->dt_cool = MIN(Dts->dt_cool, dt*g_maxCoolingRate/dE); 
 	imin=i;
 	jmin=j;
@@ -197,8 +202,9 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 	nenh_store=ne*nH*ne_rat(T,xi);
 	reset_flag=1;
 	}
+	 if ((g_stepNumber%2) != 0){
 	dt_out[k][j][i]=dt*g_maxCoolingRate/dE;
-	
+	}
 //	if (i==7 && j==86)
 //	{
 //	printf ("cell1 %i %i xi %e T_i %e T_f %e dt %e dE/dt %e E %e Ef %e P %e Pf %e time %e test %e\n",i,j,xi,T,T_f,dt*g_maxCoolingRate/dE,(E_f-E)/dt,E,E_f,p,p_f,g_time,hc_init*hc_final);

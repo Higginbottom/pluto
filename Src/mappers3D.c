@@ -64,7 +64,7 @@ void ConsToPrim3D (Data_Arr U, Data_Arr V, unsigned char ***flag, RBox *box)
       for (i = ibeg; i <= iend; i++)  NormalizeIons(U[k][j][i]);
     }  
 #endif  
-    err = ConsToPrim (U[k][j], v, ibeg, iend, flag[k][j]);
+    err = ConsToPrim (U[k][j], v, ibeg, iend, flag[k][j],j);
     for (i = ibeg; i <= iend; i++) NVAR_LOOP(nv) V[nv][k][j][i] = v[i][nv];
   }}
   g_dir = current_dir;

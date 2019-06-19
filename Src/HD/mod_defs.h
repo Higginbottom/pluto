@@ -103,7 +103,7 @@ enum KWAVES {
                    Prototyping goes here          
    *********************************************************** */
 
-int  ConsToPrim   (double **, double **, int, int, unsigned char *);
+int  ConsToPrim   (double **, double **, int, int, unsigned char *,int);
 void Eigenvalues (double **, double *, double **, int, int);
 void PrimEigenvectors (const State *, int, int);
 void ConsEigenvectors (double *, double *, double, 
