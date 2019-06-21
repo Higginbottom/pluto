@@ -147,7 +147,7 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 
 	if (hc_final*hc_init<0.)   //We have crossed the equilibrium temperature
 	{			
-		T_test=zbrent(heatcool,fmin(T_f,T),fmax(T_f,T),1.0);
+		T_test=zbrent(heatcool,fmin(T_f,T),fmax(T_f,T),1.0); //Find the equilibrium
 //		if (i==7 && j==86)
 //			printf ("We have crossed equilibrium %e %e %e\n",T,T_f,T_test);
 		T_f=T_test;
@@ -185,10 +185,8 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 	max cooling rate / dE will be equal to 1 if our change in energy is at the max, so dt will equal the largest
 	acceptable time step. If this is less than the current time step then we will be reducing it next time. 
 	*/
-	if (Dts->dt_cool> dt*g_maxCoolingRate/dE)
-	{
-//		printf ("%i %i %e %e\n",i,j,Dts->dt_cool,dt*g_maxCoolingRate/dE);
-		
+	if (Dts->dt_cool > dt*g_maxCoolingRate/dE)
+	{		
     Dts->dt_cool = MIN(Dts->dt_cool, dt*g_maxCoolingRate/dE); 
 	imin=i;
 	jmin=j;

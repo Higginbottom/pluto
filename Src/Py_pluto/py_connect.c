@@ -146,7 +146,8 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 		}
 	
 		printf ("Read in %i prefectors\n",icount);
-	}}
+	}
+}
 }
 
 
