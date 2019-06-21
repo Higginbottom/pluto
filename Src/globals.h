@@ -99,7 +99,7 @@ int    g_hydroStep = 0;   /**< Tells whether we're in a hydro step (=1)
 int    g_intStage;    /**< Gives the current integration stage of the time
                              stepping method (predictor = 0, 1st
                              corrector = 1, and so on). */
-double g_maxCoolingRate = 0.5;  /**< The maximum fractional variation due to 
+double g_maxCoolingRate = 0.1;  /**< The maximum fractional variation due to 
                                      cooling from one step to the next. */
 double g_minCoolingTemp = 1000.0; /**< The minimum temperature (in K) below which
                                      cooling is suppressed. */
