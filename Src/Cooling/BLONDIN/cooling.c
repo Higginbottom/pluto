@@ -18,13 +18,15 @@ double xi,sqsqxi,sqxi,ne,nH,n,tx,E,hc_init,rho,dt_share;
 double comp_c_pre,comp_h_pre,line_c_pre,brem_c_pre,xray_h_pre;
 double heatcool();
 double zfunc();
+double heatcool3(double);
+
 double zbrent();
 double zfunc2();
 
 int flag;
 
 /* ********************************************************************* */
-void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
+void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Grid *grid)
 /*!
  * \param [in,out]  VV    a pointer to the PLUTO 3D data array containing
  *                        pimitive variables.
@@ -72,13 +74,17 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
   
   DOM_LOOP(k,j,i){
 	  
-	comp_c_pre=data->comp_c_pre[k][j][i];
-	comp_h_pre=data->comp_h_pre[k][j][i];
-	line_c_pre=data->line_c_pre[k][j][i];
-	brem_c_pre=data->brem_c_pre[k][j][i];
-	xray_h_pre=data->xray_h_pre[k][j][i];
+//	comp_c_pre=data->comp_c_pre[k][j][i];
+//	comp_h_pre=data->comp_h_pre[k][j][i];
+//	line_c_pre=data->line_c_pre[k][j][i];
+//	brem_c_pre=data->brem_c_pre[k][j][i];
+//	xray_h_pre=data->xray_h_pre[k][j][i];
 	  
-	  
+      comp_c_pre=1.0;
+      comp_h_pre=1.0;
+      line_c_pre=1.0;
+      brem_c_pre=1.0;
+      xray_h_pre=1.0; 
 
 
 	r=grid->x[IDIR][i]*UNIT_LENGTH;  //The radius - in real units
@@ -89,30 +95,34 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 	
 
 
-    rho = data->Vc[RHO][k][j][i]*UNIT_DENSITY;  //density of the current cell in physical units
-	 
-    p   = data->Vc[PRS][k][j][i];  //pressure of the current cell
-    T   = data->Vc[PRS][k][j][i]/data->Vc[RHO][k][j][i]*KELVIN*mu;    //Compute initial temperature in Kelvin
-    E   = (p*UNIT_PRESSURE)/(g_gamma-1);     //Compute internal energy in physical units
+//   rho = data->Vc[RHO][k][j][i]*UNIT_DENSITY;  //density of the current cell in physical units
+//    p   = data->Vc[PRS][k][j][i];  //pressure of the current cell
+//    T   = data->Vc[PRS][k][j][i]/data->Vc[RHO][k][j][i]*KELVIN*mu;    //Compute initial temperature in Kelvin
+//    E   = (p*UNIT_PRESSURE)/(g_gamma-1);     //Compute internal energy in physical units
+
+
+
+
+
+    rho = VV[RHO][k][j][i]*UNIT_DENSITY; 
+    p   = VV[PRS][k][j][i];  //pressure of the current cell
+    T   = VV[PRS][k][j][i]/VV[RHO][k][j][i]*KELVIN*mu;    //Compute initial temperature in Kelvin
+    E   = (p*UNIT_PRESSURE)/(g_gamma-1);     //Compute internal energy in physical unit
 	 
 	nH=rho/(1.43*CONST_mp);   //Work out hydrogen number density assuming stellar abundances
 	
 	xi=lx/nH/r/r;     //ionization parameter
 	ne=nH*ne_rat(T,xi);
-	ne=1.21*nH;
+//	ne=1.21*nH;
 //	ne=1.21*nH;             //electron number density assuming full ionization
 	
 	n=rho/(mu*CONST_mp);    //particle density
-
 	 
 	T=E*(2.0/3.0)/(n*CONST_kB);
 	
 	
 	  
-    if (T < g_minCoolingTemp)
-		{
-			continue;  //Quit if the temperature is too cold - this may need tweeking
-		}	
+    if (T < g_minCoolingTemp) continue;  //Quit if the temperature is too cold - this may need tweeking	
 	
 	
 
@@ -130,30 +140,44 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 	t_l=T*0.9;
 	t_u=T*1.1;
 	test=zfunc(t_l)*zfunc(t_u);
- 	while (test > 0)
+//	if (i==2 && j==101) printf ("Test %e   %e (%e) %e (%e) ne %e nh %e\n",test,t_l,zfunc(t_l),t_u,zfunc(t_u),ne,nH);
+
+ 	while (test > 0 && test==test)
 	{
 		t_l=t_l*0.9;
 		t_u=t_u*1.1;
   		test=zfunc(t_l)*zfunc(t_u);
+		 //       if (i==2 && j==101) {printf ("Test %e   %e (%e) %e (%e) xi %e dt %e  t_l %e E_l %e hc(TL) %e E %e HC %e t_u %e E_u %e hc(TU) %e\n",test,t_l,zfunc(t_l),t_u,zfunc(t_u),xi,dt,t_l,t_l*n*CONST_kB/(2.0/3.0),heatcool(t_l)*dt,E,hc_init*dt,t_u,t_u*n*CONST_kB/(2.0/3.0),heatcool(t_u)*dt);
+//heatcool3(t_l);
+//heatcool3(t_u);
+//			}
 	}
-	
+	if (test!=test)  //Test has returned a NAN - which means T cannot be bracketed
+	{
+//		printf ("I suspect there is a NAN here %e %e\n",zfunc(t_l),zfunc(t_u));
+		T_f=T;
+
+	}
+	else  //We are fine - look for a solution
+	{
+//if (i==2 && j==101) printf ("Searching between  %e %e\n",t_l,t_u);
 
 
     T_f=zbrent(zfunc,t_l,t_u,1.0);
-	flag=0;
-	
-	hc_final=heatcool(T_f);
+//if (i==2 && j==100) printf ("BLAH1 T %e rho %e P %e xi %e\n",T,rho,p,xi);	
+//if (i==2 && j==101) printf ("BLAH2 T %e rho %e P %e xi %e\n",T,rho,p,xi);
 
+hc_final=heatcool(T_f);
 
 	if (hc_final*hc_init<0.)   //We have crossed the equilibrium temperature
 	{			
 		T_test=zbrent(heatcool,fmin(T_f,T),fmax(T_f,T),1.0); //Find the equilibrium
-//		if (i==7 && j==86)
-//			printf ("We have crossed equilibrium %e %e %e\n",T,T_f,T_test);
+//		if (i==2 && j==101)
+//		printf ("We have crossed equilibrium %e %e %e\n",T,T_f,T_test);
 		T_f=T_test;
 	}
 
-	
+	}
 	
 /*  ----  Update Energy  ----  */
 	T_f = MAX (T_f, g_minCoolingTemp); //if the temperature has dropped too low - use the floor (50K)
@@ -172,10 +196,15 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 	if that happens. */
 	
 	
-    dE = (fabs(1.0 - E_f/E)) + 1.e-18;  //The fractional change in pressure (or energy since they are proportional)
+    dE = (fabs(1.0 - p_f/p)) + 1.e-18;  //The fractional change in pressure (or energy since they are proportional)
 
 	
-    data->Vc[PRS][k][j][i] = p_f;  //Set the pressure in the cell to the new value
+//    data->Vc[PRS][k][j][i] = p_f;  //Set the pressure in the cell to the new value
+    VV[PRS][k][j][i] = p_f;  //Set the pressure in the cell to the new value
+
+//if (i==2 && j==100) printf ("BLAH1 T %e rho %e Pf %e\n",T_f,rho,p_f);
+//if (i==2 && j==101) printf ("BLAH2 T %e rho %e Pf %e\n",T_f,rho,p_f);
+
 
 	/* This is a bit obscure - it is from the original code, and appears to set the cooling timescale
 	to a value that means the change in energy will be less than the max cooling rate. It needs a bit 
@@ -185,61 +214,13 @@ void BlondinCooling (const Data *data, double dt, timeStep *Dts, Grid *grid)
 	max cooling rate / dE will be equal to 1 if our change in energy is at the max, so dt will equal the largest
 	acceptable time step. If this is less than the current time step then we will be reducing it next time. 
 	*/
-	if (Dts->dt_cool > dt*g_maxCoolingRate/dE)
-	{		
-    Dts->dt_cool = MIN(Dts->dt_cool, dt*g_maxCoolingRate/dE); 
-	imin=i;
-	jmin=j;
-	tstore1=T;
-	tstore2=T_f;
-	nenh_store=ne*nH*ne_rat(T,xi);
-	reset_flag=1;
-	}
-	dt_out[k][j][i]=dt*g_maxCoolingRate/dE;
-	
-//	if (i==7 && j==86)
-//	{
-//	printf ("cell1 %i %i xi %e T_i %e T_f %e dt %e dE/dt %e E %e Ef %e P %e Pf %e time %e test %e\n",i,j,xi,T,T_f,dt*g_maxCoolingRate/dE,(E_f-E)/dt,E,E_f,p,p_f,g_time,hc_init*hc_final);
-	//} 
-//	if (i==7 && j==87)
-//	{
-//	printf ("cell2 %i %i xi %e T_i %e T_f %e dt %e dE/dt %e E %e Ef %e P %e Pf %e time %e test %e\n",i,j,xi,T,T_f,dt*g_maxCoolingRate/dE,(E_f-E)/dt,E,E_f,p,p_f,g_time,hc_init*hc_final);
-	//} 
-/*
-	
-	if (g_time>0.05)
-
-	{
-//		exit(0);
-		
-	flag=1;
-	
-	tmin=20000.;
-	tmax=25000.;
-	
-	dT=(tmax-tmin)/1000.;
-	for (iii=0;iii<1001;iii++)
-	{
-		heatcool(tmin+iii*dT);
-		zfunc(tmin+iii*dT);
-	}
-	
-	exit(0);
-	
-	
-	
-	flag=0;
-	}
-	}*/
+//	if (Dts->dt_cool > dt*g_maxCoolingRate/dE)
+//	{		
+//    Dts->dt_cool = MIN(Dts->dt_cool, dt*g_maxCoolingRate/dE); 
+//	}
+//	dt_out[k][j][i]=dt*g_maxCoolingRate/dE;
   }
-//   if (reset_flag==1)
-//    {
-//  printf ("min_dt i=%i j=%i T_i %e T_f %e nenh %e\n",imin,jmin,tstore1,tstore2,nenh_store);
-  //}
-//printf ("%e %e %e %e\n",data->Vc[RHO][0][98][3]*UNIT_DENSITY,data->Vc[RHO][0][99][3]*UNIT_DENSITY,data->Vc[RHO][0][100][3]*UNIT_DENSITY,data->Vc[RHO][0][102][3]*UNIT_DENSITY);
-}
-
-
+  }
 
 
 double heatcool(double T)
@@ -250,22 +231,47 @@ double heatcool(double T)
 	st=sqrt(T);
 	h_comp=comp_h_pre*8.9e-36*xi*tx*(ne*nH);
 	c_comp=comp_c_pre*8.9e-36*xi*(4.0*T)*ne*nH;
-	h_xray=xray_h_pre*1.5e-21*(sqsqxi/st)*(1-(T/tx))*nH*nH;
+	h_xray=xray_h_pre*1.5e-21*(sqsqxi/st)*(1-(T/tx))*ne*nH;
 //	l_line=line_c_pre*(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;	
-	
 	l_line=(line_c_pre*((1e-16*exp(-1.3e5/T)/sqxi/T)+fmin(fmin(1e-24,5e-27*st),1.5e-17/T)))*ne*nH;
 	
 	
 	l_brem=brem_c_pre*3.3e-27*st*ne*nH;	
 	lambda=h_comp+h_xray-l_brem-l_line-c_comp;
-	if (flag==1)
-	{
-		printf ("T %e xi %e h_comp %e c_comp %e h_xray %e l_line %e l_brem %e lambda %e E %e dt %e\n",T,xi,h_comp,c_comp,h_xray,l_line,l_brem,lambda,T*n*CONST_kB/(2.0/3.0),dt_share);
-	}
 
 	return (lambda);
 	
 	
+}
+
+double heatcool3(double T)
+{
+        double lambda,st,h_comp,c_comp,h_xray,l_line,l_brem;
+        ne=nH*ne_rat(T,xi);
+	printf ("ne %e %e\n",ne,nH*1.21);
+        st=sqrt(T);
+
+h_comp=comp_h_pre*8.9e-36*xi*tx*(ne*nH);
+        c_comp=comp_c_pre*8.9e-36*xi*(4.0*T)*ne*nH;
+        h_xray=xray_h_pre*1.5e-21*(sqsqxi/st)*(1-(T/tx))*ne*nH;
+        l_line=line_c_pre*(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;
+        l_brem=brem_c_pre*3.3e-27*st*ne*nH;
+
+
+//        h_comp=comp_h_pre*8.9e-36*xi*tx;
+//        c_comp=comp_c_pre*8.9e-36*xi*(4.0*T);
+  //      h_xray=xray_h_pre*1.5e-21*(sqsqxi/st)*(1-(T/tx));
+   //     l_line=line_c_pre*(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24);
+//	        l_brem=brem_c_pre*3.3e-27*st;
+
+//      l_line=(line_c_pre*((1e-16*exp(-1.3e5/T)/sqxi/T)+fmin(fmin(1e-24,5e-27*st),1.5e-17/T)))*ne*nH;
+printf ("T %e h_comp %eh_xray %e l_brem %e l_line %e c_comp %e total %e (%e)\n",T,h_comp,h_xray,l_brem,l_line,c_comp,(h_comp+h_xray-l_brem-l_line-c_comp),(h_comp+h_xray-l_brem-l_line-c_comp)*ne*nH);
+
+        lambda=h_comp+h_xray-l_brem-l_line-c_comp;
+
+        return (lambda*ne*nH);
+
+
 }
 
 
@@ -295,8 +301,6 @@ double heatcool2(double xi,double T,int i, int j,int k, double ne, double nh)
 		
 	brem_c[k][j][i]=l_brem=3.3e-27*st;	
 	lambda=(h_comp+h_xray-l_brem-l_line-c_comp);
-//	lambda=h_comp-c_comp-l_brem-l_line;
-//	printf ("BLAH5 %e %e %e %e %e %e %e %e %e %e %e\n",g_time,xi,T,E,h_comp,c_comp,l_brem,l_line,h_xray,lambda,dt_share);	
 	return (lambda);
 	
 	
@@ -318,11 +322,8 @@ double zfunc(double temp)
 {	
 	double ans;
 	ans=(temp*n*CONST_kB/(2.0/3.0))-E-dt_share*(hc_init+heatcool(temp))/2.0;
-	if (flag==1)
-		printf ("t %e ANS= %e hc_init %e heatcool %e E1 %e E2 %e mean_hc %e\n",temp,ans,hc_init,heatcool(temp),E,(temp*n*CONST_kB/(2.0/3.0)),dt_share*(hc_init+heatcool(temp))/2.0);
 	return (ans);
 }
-
 
 
 
