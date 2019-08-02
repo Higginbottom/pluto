@@ -74,35 +74,17 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
   
   DOM_LOOP(k,j,i){
 	  
-//	comp_c_pre=data->comp_c_pre[k][j][i];
-//	comp_h_pre=data->comp_h_pre[k][j][i];
-//	line_c_pre=data->line_c_pre[k][j][i];
-//	brem_c_pre=data->brem_c_pre[k][j][i];
-//	xray_h_pre=data->xray_h_pre[k][j][i];
+	  comp_c_pre=data->comp_c_pre[k][j][i];
+	  comp_h_pre=data->comp_h_pre[k][j][i];
+	  line_c_pre=data->line_c_pre[k][j][i];
+	  brem_c_pre=data->brem_c_pre[k][j][i];
+	  xray_h_pre=data->xray_h_pre[k][j][i];
 	  
-      comp_c_pre=1.0;
-      comp_h_pre=1.0;
-      line_c_pre=1.0;
-      brem_c_pre=1.0;
-      xray_h_pre=1.0; 
+
 
 
 	r=grid->x[IDIR][i]*UNIT_LENGTH;  //The radius - in real units
 	
-	
-	
-	
-	
-
-
-//   rho = data->Vc[RHO][k][j][i]*UNIT_DENSITY;  //density of the current cell in physical units
-//    p   = data->Vc[PRS][k][j][i];  //pressure of the current cell
-//    T   = data->Vc[PRS][k][j][i]/data->Vc[RHO][k][j][i]*KELVIN*mu;    //Compute initial temperature in Kelvin
-//    E   = (p*UNIT_PRESSURE)/(g_gamma-1);     //Compute internal energy in physical units
-
-
-
-
 
     rho = VV[RHO][k][j][i]*UNIT_DENSITY; 
     p   = VV[PRS][k][j][i];  //pressure of the current cell
@@ -113,7 +95,6 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
 	
 	xi=lx/nH/r/r;     //ionization parameter
 	ne=nH*ne_rat(T,xi);
-//	ne=1.21*nH;
 //	ne=1.21*nH;             //electron number density assuming full ionization
 	
 	n=rho/(mu*CONST_mp);    //particle density
@@ -122,13 +103,7 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
 	
 	
 	  
-    if (T < g_minCoolingTemp) continue;  //Quit if the temperature is too cold - this may need tweeking	
-	
-	
-
-	
-//E1   = T*n*CONST_kB/(g_gamma-1);
-	
+    if (T < g_minCoolingTemp) continue;  //Quit if the temperature is too cold - this may need tweeking		
 	
 	
 	sqsqxi=pow(xi,0.25);    //we use xi^0.25 in the cooling rates - expensive to recompute every call, so do it now and transmit externally	
@@ -140,40 +115,25 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
 	t_l=T*0.9;
 	t_u=T*1.1;
 	test=zfunc(t_l)*zfunc(t_u);
-//	if (i==2 && j==101) printf ("Test %e   %e (%e) %e (%e) ne %e nh %e\n",test,t_l,zfunc(t_l),t_u,zfunc(t_u),ne,nH);
 
  	while (test > 0 && test==test)
 	{
 		t_l=t_l*0.9;
 		t_u=t_u*1.1;
   		test=zfunc(t_l)*zfunc(t_u);
-		 //       if (i==2 && j==101) {printf ("Test %e   %e (%e) %e (%e) xi %e dt %e  t_l %e E_l %e hc(TL) %e E %e HC %e t_u %e E_u %e hc(TU) %e\n",test,t_l,zfunc(t_l),t_u,zfunc(t_u),xi,dt,t_l,t_l*n*CONST_kB/(2.0/3.0),heatcool(t_l)*dt,E,hc_init*dt,t_u,t_u*n*CONST_kB/(2.0/3.0),heatcool(t_u)*dt);
-//heatcool3(t_l);
-//heatcool3(t_u);
-//			}
 	}
 	if (test!=test)  //Test has returned a NAN - which means T cannot be bracketed
 	{
-//		printf ("I suspect there is a NAN here %e %e\n",zfunc(t_l),zfunc(t_u));
 		T_f=T;
-
 	}
 	else  //We are fine - look for a solution
 	{
-//if (i==2 && j==101) printf ("Searching between  %e %e\n",t_l,t_u);
-
-
     T_f=zbrent(zfunc,t_l,t_u,1.0);
-//if (i==2 && j==100) printf ("BLAH1 T %e rho %e P %e xi %e\n",T,rho,p,xi);	
-//if (i==2 && j==101) printf ("BLAH2 T %e rho %e P %e xi %e\n",T,rho,p,xi);
-
-hc_final=heatcool(T_f);
+	 hc_final=heatcool(T_f);
 
 	if (hc_final*hc_init<0.)   //We have crossed the equilibrium temperature
 	{			
 		T_test=zbrent(heatcool,fmin(T_f,T),fmax(T_f,T),1.0); //Find the equilibrium
-//		if (i==2 && j==101)
-//		printf ("We have crossed equilibrium %e %e %e\n",T,T_f,T_test);
 		T_f=T_test;
 	}
 
@@ -188,22 +148,15 @@ hc_final=heatcool(T_f);
 	
 	p_f=E_f*(g_gamma-1)/UNIT_PRESSURE; 
 	
-//    p_f = T_f*VV[RHO][k][j][i]/(KELVIN*mu);  //Compute the new pressure from the new temperature - code units
-	 	
-	
 	/*I need to understand this a bit more clearly - p_f/p will give the ratio of the new pressure over the initial pressure
 	so 1 minus that will give zero if there is no change - the +1e-18 is there to stop a divide by zero error in the next step
 	if that happens. */
 	
-	
     dE = (fabs(1.0 - p_f/p)) + 1.e-18;  //The fractional change in pressure (or energy since they are proportional)
 
 	
-//    data->Vc[PRS][k][j][i] = p_f;  //Set the pressure in the cell to the new value
     VV[PRS][k][j][i] = p_f;  //Set the pressure in the cell to the new value
 
-//if (i==2 && j==100) printf ("BLAH1 T %e rho %e Pf %e\n",T_f,rho,p_f);
-//if (i==2 && j==101) printf ("BLAH2 T %e rho %e Pf %e\n",T_f,rho,p_f);
 
 
 	/* This is a bit obscure - it is from the original code, and appears to set the cooling timescale
@@ -218,7 +171,6 @@ hc_final=heatcool(T_f);
 //	{		
 //    Dts->dt_cool = MIN(Dts->dt_cool, dt*g_maxCoolingRate/dE); 
 //	}
-//	dt_out[k][j][i]=dt*g_maxCoolingRate/dE;
   }
   }
 
@@ -248,10 +200,9 @@ double heatcool3(double T)
 {
         double lambda,st,h_comp,c_comp,h_xray,l_line,l_brem;
         ne=nH*ne_rat(T,xi);
-	printf ("ne %e %e\n",ne,nH*1.21);
         st=sqrt(T);
 
-h_comp=comp_h_pre*8.9e-36*xi*tx*(ne*nH);
+		  h_comp=comp_h_pre*8.9e-36*xi*tx*(ne*nH);
         c_comp=comp_c_pre*8.9e-36*xi*(4.0*T)*ne*nH;
         h_xray=xray_h_pre*1.5e-21*(sqsqxi/st)*(1-(T/tx))*ne*nH;
         l_line=line_c_pre*(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;
@@ -265,7 +216,6 @@ h_comp=comp_h_pre*8.9e-36*xi*tx*(ne*nH);
 //	        l_brem=brem_c_pre*3.3e-27*st;
 
 //      l_line=(line_c_pre*((1e-16*exp(-1.3e5/T)/sqxi/T)+fmin(fmin(1e-24,5e-27*st),1.5e-17/T)))*ne*nH;
-printf ("T %e h_comp %eh_xray %e l_brem %e l_line %e c_comp %e total %e (%e)\n",T,h_comp,h_xray,l_brem,l_line,c_comp,(h_comp+h_xray-l_brem-l_line-c_comp),(h_comp+h_xray-l_brem-l_line-c_comp)*ne*nH);
 
         lambda=h_comp+h_xray-l_brem-l_line-c_comp;
 
