@@ -47,8 +47,6 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
   double T_test;
   int imin,jmin,reset_flag;
   double tstore1,tstore2,nenh_store;
-  double ***dt_out;
-  dt_out     = GetUserVar("dt");
 
   dt_share=dt*UNIT_TIME;  //We need to share the current time step so the zbrent code can use it - must be in real units
   lx=g_inputParam[L_x];  //Xray luminosiy
@@ -148,29 +146,10 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
 	
 	p_f=E_f*(g_gamma-1)/UNIT_PRESSURE; 
 	
-	/*I need to understand this a bit more clearly - p_f/p will give the ratio of the new pressure over the initial pressure
-	so 1 minus that will give zero if there is no change - the +1e-18 is there to stop a divide by zero error in the next step
-	if that happens. */
-	
-    dE = (fabs(1.0 - p_f/p)) + 1.e-18;  //The fractional change in pressure (or energy since they are proportional)
-
 	
     VV[PRS][k][j][i] = p_f;  //Set the pressure in the cell to the new value
 
 
-
-	/* This is a bit obscure - it is from the original code, and appears to set the cooling timescale
-	to a value that means the change in energy will be less than the max cooling rate. It needs a bit 
-	more understanding - to see if it is what I want. g_maxCoolingRate is the "maximum fractional variation
-	due to cooling from one step to the next" and is set to 0.1 in globals.h 
-	
-	max cooling rate / dE will be equal to 1 if our change in energy is at the max, so dt will equal the largest
-	acceptable time step. If this is less than the current time step then we will be reducing it next time. 
-	*/
-//	if (Dts->dt_cool > dt*g_maxCoolingRate/dE)
-//	{		
-//    Dts->dt_cool = MIN(Dts->dt_cool, dt*g_maxCoolingRate/dE); 
-//	}
   }
   }
 
