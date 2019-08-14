@@ -19,11 +19,11 @@
 #define EPS 3.0e-8
 
 
-double xi,ne,nH,dt_share,hc_init;
+double xi,ne,nH,dt_share,hc_init,E,n;
 
 double heatcool();
 double zbrent();
-double zfunc2();
+double zfunc();
 int read_heatcool(char*);
 
 int flag;
@@ -40,9 +40,9 @@ void LookupCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Grid
  *********************************************************************** */
 {
     int i,j,k;
-	double T;
+	double T,T_f,t_u,t_l,T_test,test;
 	double lx,mu,rho;
-	double r,p,E,n;
+	double r,p,p_f,E_f,hc_final;
 	
 	
     dt_share=dt*UNIT_TIME;  //We need to share the current time step so the zbrent code can use it - must be in real units
@@ -61,7 +61,7 @@ void LookupCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Grid
 	    rho = VV[RHO][k][j][i]*UNIT_DENSITY; 
 	    p   = VV[PRS][k][j][i];  //pressure of the current cell
 	    T   = VV[PRS][k][j][i]/VV[RHO][k][j][i]*KELVIN*mu;    //Compute initial temperature in Kelvin
-	    E   = (p*UNIT_PRESSURE)/(g_gamma-1);     //Compute internal energy in physical unit	 
+	    E   = (p*UNIT_PRESSURE)/(g_gamma-1);     //Compute current internal energy in physical units	 
 		nH=rho/(1.43*CONST_mp);   //Work out hydrogen number density assuming stellar abundances	
 		xi=lx/nH/r/r;     //ionization parameter
 		ne=1.21*nH;             //electron number density assuming full ionization	
@@ -71,30 +71,66 @@ void LookupCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Grid
 	
 		if (T < T_lu[0]) 
 		{
-			printf ("T below lowest lookup T %e %e\n",T,T_lu[0]);
+//			printf ("T below lowest lookup T %e %e\n",T,T_lu[0]);
 			continue;  //Quit if the temperature is too cold - this may need tweeking		
 		}
 		else if (T > T_lu[n_T_lu-1]) 
 		{
-			printf ("T above highest lookup T %e %e\n",T,T_lu[n_T_lu-1]);
+//			printf ("T above highest lookup T %e %e\n",T,T_lu[n_T_lu-1]);
 			continue;  //Quit if the temperature is too cold - this may need tweeking		
 		}
 		else if (xi > xi_lu[n_xi_lu-1]) 
 		{
-			printf ("xi above highest lookup xi %e %e\n",xi,xi_lu[n_xi_lu-1]);
+//			printf ("xi above highest lookup xi %e %e\n",xi,xi_lu[n_xi_lu-1]);
 			continue;  //Quit if the temperature is too cold - this may need tweeking		
 		}
 		else if (xi < xi_lu[0]) 
 		{
-			printf ("xi below lowest lookup xi %e %e\n",xi,xi_lu[0]);
+//			printf ("xi below lowest lookup xi %e %e\n",xi,xi_lu[0]);
 			continue;  //Quit if the temperature is too cold - this may need tweeking		
 		}
-	
 		hc_init=heatcool(T);    //Get the initial heating/cooling rate
-		printf ("test %e %e %e\n",T,xi,hc_init);
-	}
-	exit(0);
+	
+//   the next few lines bracket the solution temperature
+	t_l=T*0.9;
+	t_u=T*1.1;
+	
+	test=zfunc(t_l)*zfunc(t_u);
 
+ 	while (test > 0 && test==test)
+	{
+		t_l=t_l*0.9;
+		t_u=t_u*1.1;
+  		test=zfunc(t_l)*zfunc(t_u);
+	}
+	if (test!=test)  //Test has returned a NAN - which means T cannot be bracketed
+	{
+		T_f=T;
+	}
+	else  //We are fine - look for a solution
+	{
+    T_f=zbrent(zfunc,t_l,t_u,1.0);
+	 hc_final=heatcool(T_f);
+
+	if (hc_final*hc_init<0.)   //We have crossed the equilibrium temperature
+	{			
+		T_test=zbrent(heatcool,fmin(T_f,T),fmax(T_f,T),1.0); //Find the equilibrium
+		T_f=T_test;
+	}
+
+	}
+	
+/*  ----  Update Energy  ----  */
+	T_f = MAX (T_f, g_minCoolingTemp); //if the temperature has dropped too low - use the floor (50K)
+	
+//	heatcool2(data,T,i,j,k);
+
+	E_f=T_f/(2.0/3.0)*(n*CONST_kB); //convert back to energy
+	
+	p_f=E_f*(g_gamma-1)/UNIT_PRESSURE; //and pressure
+	
+    VV[PRS][k][j][i] = p_f;  //Set the pressure in the cell to the new value
+ }
 }
 
 
@@ -165,12 +201,71 @@ int
 
 double heatcool(double T)
 {	
-	double lambda;
+	double lambda,T_temp;
+	if (T < T_lu[0]) 
+	{
+		T=T_lu[0];
+	}
+	else if (T > T_lu[n_T_lu-1]) 
+	{
+		T=T_lu[n_T_lu-1];
+	}
 	lambda=gsl_spline2d_eval(spline,xi,T, xacc, yacc)*nH*ne;
 	return (lambda);
 }
 
 
+
+double heatcool2(double xi,double T,int i, int j,int k, double ne, double nh)
+{
+	double lambda,st,h_comp,c_comp,h_xray,l_line,l_brem;
+	double ***comp_h, ***comp_c, ***line_c, ***brem_c, ***xray_h ;
+	
+	if (lookup_flag==0) //If this is the first time through, set up the interpolators
+	{
+		read_heatcool("heatcool_lookup.dat");		
+		lookup_flag=1;
+	}
+
+	comp_h  = GetUserVar("ch");
+	comp_c  = GetUserVar("cc");
+	xray_h  = GetUserVar("xh");
+	line_c  = GetUserVar("lc");
+	brem_c  = GetUserVar("bc");
+	
+	
+	
+	comp_c[k][j][i]=0.0;
+	xray_h[k][j][i]=0.0;
+	line_c[k][j][i]=0.0;
+	brem_c[k][j][i]=0.0;
+	
+	
+		
+	if (T < T_lu[0]) 
+	{
+		comp_h[k][j][i]=-1.;
+	}
+	else if (T > T_lu[n_T_lu-1]) 
+	{
+		comp_h[k][j][i]=-1.;
+	}
+	lambda=comp_h[k][j][i]=gsl_spline2d_eval(spline,xi,T, xacc, yacc);
+
+	return (lambda);
+	
+	
+}
+
+
+
+
+double zfunc(double temp) 
+{	
+	double ans;
+	ans=(temp*n*CONST_kB/(2.0/3.0))-E-dt_share*(hc_init+heatcool(temp))/2.0;
+	return (ans);
+}
 
 
 //A simple copy of zbrent from python....
