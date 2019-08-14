@@ -504,6 +504,12 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
     fgets(str_var, sizeof(str_var), fp); /* use fgets to advance to next line */
   }
   fclose(fp);
+  
+  /* Set up some tabulation prarameters */
+  
+#if COOLING == BLONDIN
+  lookup_flag=0;
+#endif
 
   return(0);
 }

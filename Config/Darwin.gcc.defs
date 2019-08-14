@@ -7,7 +7,7 @@
 CC       = gcc
 FFLAGS   = -c -O -w
 CFLAGS   = -c -O3 
-LDFLAGS  = -lm 
+LDFLAGS  = -lm -lgsl
 
 PARALLEL = FALSE
 USE_HDF5 = FALSE

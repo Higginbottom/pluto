@@ -232,6 +232,9 @@ void Trace (double);
  #if COOLING == BLONDIN
  void  BlondinCooling (Data_Arr,const Data *, double, timeStep *, Grid *);
  #endif
+#if COOLING == LOOKUP
+void  LookupCooling (Data_Arr,const Data *, double, timeStep *, Grid *);
+#endif
  /* move the following elsewhere ?  */
 /*
 double SolveODE_CK45  (double *, double *, double *, double, double);

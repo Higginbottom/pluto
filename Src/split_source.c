@@ -48,6 +48,8 @@ void SplitSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
   KromeCooling (d, dt, Dts, grid);
   #elif COOLING == BLONDIN
   BlondinCooling (d->Vc,d, dt, Dts, grid);
+  #elif COOLING == LOOKUP
+  LookupCooling (d->Vc,d, dt, Dts, grid);
   #else
   CoolingSource (d, dt, Dts, grid);
   #endif

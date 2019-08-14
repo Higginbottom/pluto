@@ -166,7 +166,7 @@ class DefineProblem(object):
     geolist = ['CARTESIAN','CYLINDRICAL','POLAR','SPHERICAL']
     bfolist = ['NO','VECTOR', 'POTENTIAL', '(VECTOR+POTENTIAL)']
     ftblist = ['NO','YES']
-    coolist = ['NO','POWER_LAW','TABULATED','SNEq','MINEq','H2_COOL', 'KROME','BLONDIN']
+    coolist = ['NO','POWER_LAW','TABULATED','SNEq','MINEq','H2_COOL', 'KROME','BLONDIN','LOOKUP']
     intlist = ['FLAT','LINEAR','LimO3','WENO3','PARABOLIC']
     tmslist = ['EULER','RK2','RK3','HANCOCK','CHARACTERISTIC_TRACING']
     dislist = ['YES','NO']
@@ -528,7 +528,7 @@ class DefineProblem(object):
     if self.flag_dict['WITH-FD']:
       self.additional_files += ['fd_states.o', 'fd_reconstruct.o', 'fd_flux.o']
 
-    if self.default[self.entries.index('COOLING')] not in ['NO', 'POWER_LAW', 'KROME', 'BLONDIN']:
+    if self.default[self.entries.index('COOLING')] not in ['NO', 'POWER_LAW', 'KROME', 'BLONDIN', 'LOOKUP']:
       self.additional_files += ['cooling_source.o','cooling_ode_solver.o']
 
     if self.phymodule == 'MHD' or self.phymodule == 'RMHD':

@@ -112,6 +112,7 @@
 #define H2_COOL      7
 #define KROME	     8
 #define BLONDIN	     9
+#define LOOKUP       10
 
 
 /*----- Particle Labels ----- */
