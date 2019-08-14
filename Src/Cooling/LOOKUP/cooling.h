@@ -20,4 +20,4 @@ gsl_spline2d *spline;
 gsl_interp_accel *xacc;
 gsl_interp_accel *yacc;
 
-const gsl_interp2d_type *T;
+const gsl_interp2d_type *interpolator;

@@ -19,9 +19,9 @@
 #define EPS 3.0e-8
 
 
+double xi,ne,nH,dt_share,hc_init;
 
-
-
+double heatcool();
 double zbrent();
 double zfunc2();
 int read_heatcool(char*);
@@ -39,11 +39,15 @@ void LookupCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Grid
  *
  *********************************************************************** */
 {
-    int i,j,nx,ny;
-	double xi_test;
-	double T_test;
-	double dt_test;
+    int i,j,k;
+	double T;
+	double lx,mu,rho;
+	double r,p,E,n;
 	
+	
+    dt_share=dt*UNIT_TIME;  //We need to share the current time step so the zbrent code can use it - must be in real units
+    lx=g_inputParam[L_x];  //Xray luminosiy
+    mu=g_inputParam[MU];  //Mean particle mass  
 
 	if (lookup_flag==0) //If this is the first time through, set up the interpolators
 	{
@@ -51,16 +55,47 @@ void LookupCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Grid
 		lookup_flag=1;
 	}
 	
+    DOM_LOOP(k,j,i){
 	
+		r=grid->x[IDIR][i]*UNIT_LENGTH;  //The radius - in real units
+	    rho = VV[RHO][k][j][i]*UNIT_DENSITY; 
+	    p   = VV[PRS][k][j][i];  //pressure of the current cell
+	    T   = VV[PRS][k][j][i]/VV[RHO][k][j][i]*KELVIN*mu;    //Compute initial temperature in Kelvin
+	    E   = (p*UNIT_PRESSURE)/(g_gamma-1);     //Compute internal energy in physical unit	 
+		nH=rho/(1.43*CONST_mp);   //Work out hydrogen number density assuming stellar abundances	
+		xi=lx/nH/r/r;     //ionization parameter
+		ne=1.21*nH;             //electron number density assuming full ionization	
+		n=rho/(mu*CONST_mp);    //particle density
+	 
+		T=E*(2.0/3.0)/(n*CONST_kB);
 	
+		if (T < T_lu[0]) 
+		{
+			printf ("T below lowest lookup T %e %e\n",T,T_lu[0]);
+			continue;  //Quit if the temperature is too cold - this may need tweeking		
+		}
+		else if (T > T_lu[n_T_lu-1]) 
+		{
+			printf ("T above highest lookup T %e %e\n",T,T_lu[n_T_lu-1]);
+			continue;  //Quit if the temperature is too cold - this may need tweeking		
+		}
+		else if (xi > xi_lu[n_xi_lu-1]) 
+		{
+			printf ("xi above highest lookup xi %e %e\n",xi,xi_lu[n_xi_lu-1]);
+			continue;  //Quit if the temperature is too cold - this may need tweeking		
+		}
+		else if (xi < xi_lu[0]) 
+		{
+			printf ("xi below lowest lookup xi %e %e\n",xi,xi_lu[0]);
+			continue;  //Quit if the temperature is too cold - this may need tweeking		
+		}
 	
-	
-	
-	
-	
-	
-}
+		hc_init=heatcool(T);    //Get the initial heating/cooling rate
+		printf ("test %e %e %e\n",T,xi,hc_init);
+	}
+	exit(0);
 
+}
 
 
 int
@@ -68,7 +103,7 @@ int
 {
     FILE *fopen (), *fptr;
 	char line[1000];
-	int n,number,i,j,count;
+	int n,number,i,j;
 	double x,y,z;
 	char label[1000];
 	printf ("We will read in the lookup table\n");
@@ -93,30 +128,20 @@ int
 		n_T_lu=number;
 	}
 	
-	T= gsl_interp2d_bilinear;
+	interpolator= gsl_interp2d_bilinear;
 	
 	xi_lu=malloc(n_xi_lu*sizeof(double));
 	T_lu=malloc(n_T_lu*sizeof(double));
 	hc_lu=malloc(n_xi_lu*n_T_lu*sizeof(double));
 	
-	spline = gsl_spline2d_alloc(T, n_xi_lu, n_T_lu);	
+	spline = gsl_spline2d_alloc(interpolator, n_xi_lu, n_T_lu);	
 	xacc = gsl_interp_accel_alloc();
-	yacc = gsl_interp_accel_alloc();	
-
+	yacc = gsl_interp_accel_alloc();		
 	
-			
-	
-	
-
-		
-	
-	count=0;
 	for (i=0;i<n_xi_lu;i++)
 	{
 		for (j=0;j<n_T_lu;j++)
 		{	
-			count++;
-			printf ("%i %i %i %i\n",i,j,count,n_xi_lu*n_T_lu);
 			fgets (line, 1000, fptr);
 			n = sscanf (line, "%lf %lf %lf",&x,&y,&z);
 			xi_lu[i]=x;
@@ -137,6 +162,13 @@ int
 	return(0);
 }
 
+
+double heatcool(double T)
+{	
+	double lambda;
+	lambda=gsl_spline2d_eval(spline,xi,T, xacc, yacc)*nH*ne;
+	return (lambda);
+}
 
 
 
