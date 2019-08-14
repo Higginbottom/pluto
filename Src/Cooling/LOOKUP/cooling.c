@@ -45,42 +45,20 @@ void LookupCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Grid
 	double dt_test;
 	
 
-	if (lookup_flag==0)
+	if (lookup_flag==0) //If this is the first time through, set up the interpolators
 	{
-		read_heatcool("heatcool_lookup.dat");
-		printf ("We will read in the lookup table\n");	
-		printf ("Finished reading in everything\n");		
+		read_heatcool("heatcool_lookup.dat");		
 		lookup_flag=1;
 	}
-	else
-	{
-		printf ("We are in Lookupcooling lookupflag=%i\n",lookup_flag);
-		printf ("We have read in the heatcool file\n");
-
-		dt_test=(T_lu[30]-T_lu[22])/100.;
-		xi_test=xi_lu[0];
-
-		
-
-		
-		
-		for (i=0;i<101;i++)
-		{
-			T_test=T_lu[22]+i*dt_test;
-			printf ("TEST %e %e %e\n",T_test,xi_test,gsl_spline2d_eval(spline,xi_test , T_test, xacc, yacc));
-		}
-
-
-
-		exit(0);
-
-		
-			
-//	gsl_interp2d_alloc(const gsl_interp2d_type * T, const size_t xsize, const size_t ysize)				
-			
-
 	
-	}
+	
+	
+	
+	
+	
+	
+	
+	
 }
 
 
