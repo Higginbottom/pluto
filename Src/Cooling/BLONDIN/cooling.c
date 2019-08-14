@@ -206,7 +206,7 @@ void BlondinCooling (Data_Arr VV, double dt, timeStep *Dts, Grid *grid)
 //		heatcool2(T_f);
 // 	}
 
-    Dts->dt_cool = MIN(Dts->dt_cool, dt*g_maxCoolingRate/dE); 
+//    Dts->dt_cool = MIN(Dts->dt_cool, dt*g_maxCoolingRate/dE); 
 //    printf ("cooling dt=%e unit_time=%e\n",dt_min,UNIT_TIME);
 //    exit(0);	
   }
