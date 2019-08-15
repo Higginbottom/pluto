@@ -43,18 +43,20 @@ void LookupCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Grid
 	double T,T_f,t_u,t_l,T_test,test;
 	double lx,mu,rho;
 	double r,p,p_f,E_f,hc_final;
+	int T_lo,T_hi,xi_lo,xi_hi;
 	
 	
     dt_share=dt*UNIT_TIME;  //We need to share the current time step so the zbrent code can use it - must be in real units
     lx=g_inputParam[L_x];  //Xray luminosiy
-    mu=g_inputParam[MU];  //Mean particle mass  
+    mu=g_inputParam[MU];  //Mean particle mass
+	 
 
 	if (lookup_flag==0) //If this is the first time through, set up the interpolators
 	{
 		read_heatcool("heatcool_lookup.dat");		
 		lookup_flag=1;
 	}
-	
+	T_lo=0,T_hi=0,xi_lo=0,xi_hi=0;
     DOM_LOOP(k,j,i){
 	
 		r=grid->x[IDIR][i]*UNIT_LENGTH;  //The radius - in real units
@@ -71,22 +73,22 @@ void LookupCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Grid
 	
 		if (T < T_lu[0]) 
 		{
-//			printf ("T below lowest lookup T %e %e\n",T,T_lu[0]);
+			T_lo++;
 			continue;  //Quit if the temperature is too cold - this may need tweeking		
 		}
 		else if (T > T_lu[n_T_lu-1]) 
 		{
-//			printf ("T above highest lookup T %e %e\n",T,T_lu[n_T_lu-1]);
+			T_hi++;
 			continue;  //Quit if the temperature is too cold - this may need tweeking		
 		}
 		else if (xi > xi_lu[n_xi_lu-1]) 
 		{
-//			printf ("xi above highest lookup xi %e %e\n",xi,xi_lu[n_xi_lu-1]);
+			xi_lo++;
 			continue;  //Quit if the temperature is too cold - this may need tweeking		
 		}
 		else if (xi < xi_lu[0]) 
 		{
-//			printf ("xi below lowest lookup xi %e %e\n",xi,xi_lu[0]);
+			xi_hi++;
 			continue;  //Quit if the temperature is too cold - this may need tweeking		
 		}
 		hc_init=heatcool(T);    //Get the initial heating/cooling rate
@@ -131,6 +133,8 @@ void LookupCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Grid
 	
     VV[PRS][k][j][i] = p_f;  //Set the pressure in the cell to the new value
  }
+ if (T_lo>0 || T_hi>0 || xi_lo>0 || xi_hi>0)
+ printf ("T_lo=%i T_hi=%i xi_lo=%i xi_hi=%i\n",T_lo,T_hi,xi_lo,xi_hi);
 }
 
 
