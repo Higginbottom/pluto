@@ -463,7 +463,7 @@ void Initialize(int argc, char *argv[], Data *data,
 #endif  
 
 
-#ifdef PY_CONNECT
+
   data->comp_h_pre=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->comp_c_pre=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->xray_h_pre=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
@@ -476,7 +476,7 @@ void Initialize(int argc, char *argv[], Data *data,
   data->brem_c=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);	  
   g_rad_force_pre = ARRAY_4D(3,NX3_TOT, NX2_TOT, NX1_TOT, double);  //This is a global variable because rad force doesnt have access to data
   
-#endif
+
 
 
 

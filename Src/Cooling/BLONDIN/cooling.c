@@ -92,7 +92,7 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
 	nH=rho/(1.43*CONST_mp);   //Work out hydrogen number density assuming stellar abundances
 	
 	xi=lx/nH/r/r;     //ionization parameter
-	ne=nH*ne_rat(T,xi);
+//	ne=nH*ne_rat(T,xi);
 //	ne=1.21*nH;             //electron number density assuming full ionization
 	
 	n=rho/(mu*CONST_mp);    //particle density
@@ -122,7 +122,9 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
 	}
 	if (test!=test)  //Test has returned a NAN - which means T cannot be bracketed
 	{
+		printf ("Search has errored\n");
 		T_f=T;
+		
 	}
 	else  //We are fine - look for a solution
 	{
@@ -136,6 +138,8 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
 	}
 
 	}
+//	if (T_f>1e10)
+//		printf ("%i %i %i %15.10e %15.10e %e\n",i,j,k,T,T_f,dt_share);
 	
 /*  ----  Update Energy  ----  */
 	T_f = MAX (T_f, g_minCoolingTemp); //if the temperature has dropped too low - use the floor (50K)
@@ -157,50 +161,31 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
 double heatcool(double T)
 {
 	double lambda,st,h_comp,c_comp,h_xray,l_line,l_brem;
-	ne=nH*ne_rat(T,xi);
-	
 	st=sqrt(T);
+	
+	#if PY_CONNECT
+	ne=nH*ne_rat(T,xi);
+	h_comp=comp_h_pre*8.9e-36*xi*tx*(ne*nH);
+	c_comp=comp_c_pre*8.9e-36*xi*(4.0*T)*ne*nH;
+	h_xray=xray_h_pre*1.5e-21*(sqsqxi/st)*(1-(T/tx))*nH*nH;
+	l_line=(line_c_pre*((1e-16*exp(-1.3e5/T)/sqxi/T)+fmin(fmin(1e-24,5e-27*st),1.5e-17/T)))*ne*nH;	
+	l_brem=brem_c_pre*3.3e-27*st*ne*nH;		
+	#else
+	ne=1.21*nH;
 	h_comp=comp_h_pre*8.9e-36*xi*tx*(ne*nH);
 	c_comp=comp_c_pre*8.9e-36*xi*(4.0*T)*ne*nH;
 	h_xray=xray_h_pre*1.5e-21*(sqsqxi/st)*(1-(T/tx))*ne*nH;
-//	l_line=line_c_pre*(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;	
-	l_line=(line_c_pre*((1e-16*exp(-1.3e5/T)/sqxi/T)+fmin(fmin(1e-24,5e-27*st),1.5e-17/T)))*ne*nH;
-	
-	
+	l_line=line_c_pre*(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;	
+//	l_line=(line_c_pre*((1e-16*exp(-1.3e5/T)/sqxi/T)+fmin(fmin(1e-24,5e-27*st),1.5e-17/T)))*ne*nH;	
 	l_brem=brem_c_pre*3.3e-27*st*ne*nH;	
+	#endif	
+	
+	
 	lambda=h_comp+h_xray-l_brem-l_line-c_comp;
 
 	return (lambda);
 	
 	
-}
-
-double heatcool3(double T)
-{
-        double lambda,st,h_comp,c_comp,h_xray,l_line,l_brem;
-        ne=nH*ne_rat(T,xi);
-        st=sqrt(T);
-
-		  h_comp=comp_h_pre*8.9e-36*xi*tx*(ne*nH);
-        c_comp=comp_c_pre*8.9e-36*xi*(4.0*T)*ne*nH;
-        h_xray=xray_h_pre*1.5e-21*(sqsqxi/st)*(1-(T/tx))*ne*nH;
-        l_line=line_c_pre*(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;
-        l_brem=brem_c_pre*3.3e-27*st*ne*nH;
-
-
-//        h_comp=comp_h_pre*8.9e-36*xi*tx;
-//        c_comp=comp_c_pre*8.9e-36*xi*(4.0*T);
-  //      h_xray=xray_h_pre*1.5e-21*(sqsqxi/st)*(1-(T/tx));
-   //     l_line=line_c_pre*(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24);
-//	        l_brem=brem_c_pre*3.3e-27*st;
-
-//      l_line=(line_c_pre*((1e-16*exp(-1.3e5/T)/sqxi/T)+fmin(fmin(1e-24,5e-27*st),1.5e-17/T)))*ne*nH;
-
-        lambda=h_comp+h_xray-l_brem-l_line-c_comp;
-
-        return (lambda*ne*nH);
-
-
 }
 
 
@@ -222,13 +207,19 @@ double heatcool2(double xi,double T,int i, int j,int k, double ne, double nh)
 	
 		
 	st=sqrt(T);
+	#if PY_CONNECT
 	comp_h[k][j][i]=h_comp=8.9e-36*xi*tx;
 	comp_c[k][j][i]=c_comp=8.9e-36*xi*(4.0*T);
 	xray_h[k][j][i]=h_xray=1.5e-21*(pow(xi,0.25)/st)*(1-(T/tx));
-//	line_c[k][j][i]=l_line=(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24);
-	line_c[k][j][i]=l_line=(1e-16*exp(-1.3e5/T)/sqrt(xi)/T)+fmin(fmin(1e-24,5e-27*st),1.5e-17/T);
-		
+	line_c[k][j][i]=l_line=(1e-16*exp(-1.3e5/T)/sqrt(xi)/T)+fmin(fmin(1e-24,5e-27*st),1.5e-17/T);		
 	brem_c[k][j][i]=l_brem=3.3e-27*st;	
+	#else
+	comp_h[k][j][i]=h_comp=8.9e-36*xi*tx;
+	comp_c[k][j][i]=c_comp=8.9e-36*xi*(4.0*T);
+	xray_h[k][j][i]=h_xray=1.5e-21*(pow(xi,0.25)/st)*(1-(T/tx));
+	line_c[k][j][i]=l_line=(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24);
+	brem_c[k][j][i]=l_brem=3.3e-27*st;
+	#endif
 	lambda=(h_comp+h_xray-l_brem-l_line-c_comp);
 	return (lambda);
 	
@@ -253,6 +244,20 @@ double zfunc(double temp)
 	ans=(temp*n*CONST_kB/(2.0/3.0))-E-dt_share*(hc_init+heatcool(temp))/2.0;
 	return (ans);
 }
+
+double ne_rat(double temp,double xi)
+{
+	 double x1,x2,ne_rat;
+
+	x1=1e-2+pow(10,(-51.59417133+12.27740153*log10(temp)));
+	x2=pow(10,(-3.80749689+0.86092628*log10(temp)));
+	
+	ne_rat=fmin(x1,x2);
+	ne_rat=fmin(ne_rat,1.21);
+//	printf ("%e %e %e %e\n",temp,x1,x2,ne_rat);
+	return (ne_rat);
+ }
+
 
 
 

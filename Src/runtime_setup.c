@@ -507,7 +507,7 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
   
   /* Set up some tabulation prarameters */
   
-#if COOLING == BLONDIN
+#if COOLING == LOOKUP
   lookup_flag=0;
 #endif
 

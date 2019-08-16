@@ -151,16 +151,4 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 }
 
 
-double ne_rat(double temp,double xi)
-{
-	 double x1,x2,ne_rat;
-
-	x1=1e-2+pow(10,(-51.59417133+12.27740153*log10(temp)));
-	x2=pow(10,(-3.80749689+0.86092628*log10(temp)));
-	
-	ne_rat=fmin(x1,x2);
-	ne_rat=fmin(ne_rat,1.21);
-//	printf ("%e %e %e %e\n",temp,x1,x2,ne_rat);
-	return (ne_rat);
- }
 

@@ -222,19 +222,25 @@ void Trace (double);
           Prototype for cooling functions
    --------------------------------------------------------------------- */
    
+void  read_py_heatcool (Data *, Grid *,int);
+double ne_rat(double temp,double xi); 
+   
+   
 #if COOLING != NO
  void Numerical_Jacobian (double *v, double **J);
  void Jacobian (double *v, double *rhs, double **dfdy);
  void CoolingSource (const Data *, double, timeStep *, Grid *);
+#endif
  #if COOLING == POWER_LAW
   void  PowerLawCooling (Data_Arr, double, timeStep *, Grid *);
  #endif
  #if COOLING == BLONDIN
  void  BlondinCooling (Data_Arr,const Data *, double, timeStep *, Grid *);
+
  #endif
 #if COOLING == LOOKUP
 void  LookupCooling (Data_Arr,const Data *, double, timeStep *, Grid *);
-#endif
+
  /* move the following elsewhere ?  */
 /*
 double SolveODE_CK45  (double *, double *, double *, double, double);
@@ -278,9 +284,5 @@ double GetEntropy (double x);
 
 void   WriteAsciiFile (char *fname, double *q, int nvar);
 
-#if PY_CONNECT
-void  read_py_heatcool (Data *, Grid *,int);
-#endif
 
-double ne_rat(double temp,double xi);
 
