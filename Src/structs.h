@@ -48,7 +48,7 @@ typedef struct Data_{
   double ****Vuser; /**< Array storing user-defined supplementary variables 
                          written to disk. */ 
 	  
-#if COOLING==BLONDIN
+#if COOLING==BLONDIN || COOLING==LOOKUP
   double ***comp_h_pre;   //
   double ***comp_c_pre;   //
   double ***line_c_pre;   //
