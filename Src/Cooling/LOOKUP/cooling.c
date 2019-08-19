@@ -59,12 +59,18 @@ void LookupCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Grid
 	T_lo=0,T_hi=0,xi_lo=0,xi_hi=0;
     DOM_LOOP(k,j,i){
 	
+
 		r=grid->x[IDIR][i]*UNIT_LENGTH;  //The radius - in real units
 	    rho = VV[RHO][k][j][i]*UNIT_DENSITY; 
 	    p   = VV[PRS][k][j][i];  //pressure of the current cell
 	    T   = VV[PRS][k][j][i]/VV[RHO][k][j][i]*KELVIN*mu;    //Compute initial temperature in Kelvin
 	    E   = (p*UNIT_PRESSURE)/(g_gamma-1);     //Compute current internal energy in physical units	 
-		nH=rho/(1.43*CONST_mp);   //Work out hydrogen number density assuming stellar abundances	
+	
+    
+    if (T < g_minCoolingTemp) continue;  //Quit if the temperature is too cold - this may need tweeking         
+
+
+	    nH=rho/(1.43*CONST_mp);   //Work out hydrogen number density assuming stellar abundances	
 		xi=lx/nH/r/r;     //ionization parameter
 		ne=1.21*nH;             //electron number density assuming full ionization	
 		n=rho/(mu*CONST_mp);    //particle density
