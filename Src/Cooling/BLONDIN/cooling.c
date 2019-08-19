@@ -124,9 +124,8 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
 	{
 		printf ("Search has errored\n");
 		T_f=T;
-		
 	}
-	else  //We are fine - look for a solution
+//	else  //We are fine - look for a solution
 	{
     T_f=zbrent(zfunc,t_l,t_u,1.0);
 	 hc_final=heatcool(T_f);

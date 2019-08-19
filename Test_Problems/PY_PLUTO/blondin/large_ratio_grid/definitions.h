@@ -9,7 +9,8 @@
 #define  TIME_STEPPING                  EULER
 #define  DIMENSIONAL_SPLITTING          NO
 #define  NTRACER                        0
-#define  USER_DEF_PARAMETERS            9
+#define  USER_DEF_PARAMETERS            10
+#define  PY_CONNECT                     NO
 
 /* -- physics dependent declarations -- */
 
@@ -30,6 +31,7 @@
 #define  L_x                            6
 #define  T_x                            7
 #define  DISK_TRUNC_RAD                 8
+#define  MU                             9
 
 /* [Beg] user-defined constants (do not change this line) */
 
