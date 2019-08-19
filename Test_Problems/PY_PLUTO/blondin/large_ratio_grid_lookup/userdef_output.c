@@ -66,8 +66,11 @@ tx=g_inputParam[T_x];  //Xray tenperature
 	  nH=rho/(1.43*CONST_mp);   //Work out hydrogen number density assuming stellar abundances
 	  
   	  xi_out[k][j][i]=xi=lx/nH/r/r;     //ionization parameter
-	  
+#if PY_CONNECT
       ne=nH*ne_rat(T,xi);
+#else
+	  ne=nH*1.21;
+#endif
 	  
 //	  ne=1.21*nH;             //electron number density assuming full ionization
 	  n=rho/(mu*CONST_mp);    //particle density

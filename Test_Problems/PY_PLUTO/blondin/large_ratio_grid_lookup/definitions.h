@@ -4,7 +4,7 @@
 #define  GEOMETRY                       SPHERICAL
 #define  BODY_FORCE                     POTENTIAL
 #define  FORCED_TURB                    NO
-#define  COOLING                        BLONDIN
+#define  COOLING                        LOOKUP
 #define  RECONSTRUCTION                 LINEAR
 #define  TIME_STEPPING                  EULER
 #define  DIMENSIONAL_SPLITTING          NO
