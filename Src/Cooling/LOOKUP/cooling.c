@@ -197,8 +197,6 @@ int
 	
 	
 	
-	printf ("Finished reading in everything\n");
-	
 	return(0);
 }
 
@@ -214,7 +212,9 @@ double heatcool(double T)
 	{
 		T=T_lu[n_T_lu-1];
 	}
+//	printf ("T=%e\n",T);
 	lambda=gsl_spline2d_eval(spline,xi,T, xacc, yacc)*nH*ne;
+
 	return (lambda);
 }
 
@@ -254,8 +254,10 @@ double heatcool2(double xi,double T,int i, int j,int k, double ne, double nh)
 	{
 		comp_h[k][j][i]=-1.;
 	}
+	else
+	{
 	lambda=comp_h[k][j][i]=gsl_spline2d_eval(spline,xi,T, xacc, yacc);
-
+	}
 	return (lambda);
 	
 	
