@@ -657,7 +657,7 @@ class DefineProblem(object):
         self.pluto_path.append('Cooling/'+ cool_mode +'/')
 		
     py_mode = self.default[self.entries.index('PY_CONNECT')]
-    if py_mode != 'NO' or cool_mode == 'BLONDIN':
+    if py_mode != 'NO' or cool_mode == 'BLONDIN' or cool_mode =='LOOKUP':
       self.pluto_path.append('Py_pluto/')
 
     if 'EOS' in self.mod_entries:

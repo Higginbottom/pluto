@@ -132,7 +132,9 @@ int main (int argc, char *argv[])
   read_py_heatcool (&data, grd,0); //Ensure the prefectors are initialiased if we are in blondin mode
 #endif 
   
-  
+#if COOLING == LOOKUP
+  read_py_heatcool (&data, grd,0); //Ensure the prefectors are initialiased if we are in blondin mode
+#endif   
   
 #if PY_CONNECT
   if (cmd_line.restart == NO)
