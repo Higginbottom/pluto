@@ -175,4 +175,4 @@ double g_inputParam[32]; /**< Array containing the user-defined parameters.
 #endif	
 
 
-  double ****g_rad_force_pre; // 
+  double ****g_rad; // 

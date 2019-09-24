@@ -777,7 +777,7 @@ extern double g_smallDensity, g_smallPressure;
 extern double g_time, g_dt;
 extern int    g_hydroStep;
 extern double g_maxMach;
-extern double ****g_rad_force_pre; // 
+extern double ****g_rad; // 
 
 #if ROTATING_FRAME
  extern double g_OmegaZ;
