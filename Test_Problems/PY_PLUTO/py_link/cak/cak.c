@@ -87,14 +87,17 @@ int main(int argc, char** argv)
 						line_nu= trans_freq[itrans];
 						kappa_l = (B_lu*lev_pops[iion][lower] - B_ul*lev_pops[iion][upper]) * param1[i]; 
 						delta_doppler = line_nu * v_thermal[icell]/C;
-						flux_factor = model_jnu(line_nu, trans_lfreq[itrans],icell,trans_iband[itrans])/J[icell];							
+						if (J[icell]==0.0)
+							flux_factor=0.0;
+						else
+							flux_factor = model_jnu(line_nu, trans_lfreq[itrans],icell,trans_iband[itrans])/J[icell];							
 						if ( (test = kappa_l*t[icell][v_uv_x]/sigma_e[icell]) > 1.e-6) //If we have a large opacity
 						{	
 							M_array[icell][v_uv_x] += delta_doppler * flux_factor * (1. - exp1(-1.*test)) / t[icell][v_uv_x];  //increment the fore multiplier for this t
 							if (!isfinite(M_array[icell][v_uv_x]))
 							{
-								printf("Non-finite M. Abort.\n");
-								printf("%g %g %g %g\n", delta_doppler,flux_factor,exp1(-1.*test), t[icell][v_uv_x]);
+								printf("Non-finite M1. Abort.\n");
+								printf("%i %i %i %g %g %g %g\n", icell,cell_i[icell],cell_j[icell],delta_doppler,flux_factor,exp1(-1.*test), t[icell][v_uv_x]);
 								exit(0);
 							}				
 						}
@@ -103,7 +106,7 @@ int main(int argc, char** argv)
 							M_array[icell][v_uv_x] += delta_doppler * flux_factor * kappa_l / sigma_e[icell];						
 							if (!isfinite(M_array[icell][v_uv_x]))
 							{
-								printf("Non-finite M. Abort.\n");
+								printf("Non-finite M2. Abort.\n");
 								printf("%g %g %g\n", delta_doppler,flux_factor,kappa_l);
 								exit(0);
 							}
