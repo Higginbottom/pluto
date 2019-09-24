@@ -6,7 +6,7 @@
 
 CC       = mpicc
 CFLAGS   = -c -O3 
-LDFLAGS  = -lm -lgsl -lgslcblas
+LDFLAGS  = -lm -lgsl -lgslcblas 
 
 PARALLEL = TRUE
 USE_HDF5 = FALSE

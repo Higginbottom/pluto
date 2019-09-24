@@ -1,7 +1,7 @@
 
 CC = cc
 CFLAGS = -O3 -m64 
-LDFLAGS= -lm -m64 -lgsl 
+LDFLAGS= -lm -m64 
 
 cak_objects = cak.o
 
