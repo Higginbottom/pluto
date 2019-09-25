@@ -23,7 +23,7 @@ class ploadparticles(object):
         try:
             self.GetParticleDataFileName()
         except (IOError):
-            print "!ERROR! - Particle Data file not found : %s"%self.fname
+            print(("!ERROR! - Particle Data file not found : %s"%self.fname))
         else:
             if self.ext == 'vtk':
                 Part_Data_dict = self.GetParticleDataVTK()
@@ -61,7 +61,7 @@ class ploadparticles(object):
                 self.Header.update(dict([t]))
             
     def ReadParticleFile(self):
-        print "Reading Particle Data file : %s"%self.fname
+        print(("Reading Particle Data file : %s"%self.fname))
         fp_ = open(self.fname,'rb')
         for l in fp_.readlines():
             if l.split()[0] == '#':
@@ -82,7 +82,7 @@ class ploadparticles(object):
         fp_.close()
 
     def GetParticleDataVTK(self):
-        print "Reading Particle Data file : %s"%self.fname
+        print(("Reading Particle Data file : %s"%self.fname))
         fp_ = open(self.fname,'rb')
         ks_ = []
         vtk_scalars_ = []
@@ -147,7 +147,7 @@ class ploadparticles(object):
             if l == '':
                 break
         ks_ = ['id', 'color', 'tinj']
-        vtkvardict = dict(zip(ks_,vtk_scalars_))
+        vtkvardict = dict(list(zip(ks_,vtk_scalars_)))
         tup_ = [('x1', pos1_),('x2', pos2_),('x3', pos3_),\
                 ('vx1', vel1_),('vx2', vel2_),('vx3', vel3_)]
         vtkvardict.update(dict(tup_))
