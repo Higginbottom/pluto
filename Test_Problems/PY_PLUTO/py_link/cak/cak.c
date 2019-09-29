@@ -26,7 +26,25 @@ int main(int argc, char** argv)
   int icell,iband,itrans,iion,ilev;
   int n_used_lines;
   int v_uv_x; //An index used to decide if we are incremeneting the vis(0), uv(1)or xray(2) band 
+  int my_rank;                  // these two variables are used regardless of parallel mode
+  int np_mpi;                   // rank and number of processes, 0 and 1 in non-parallel
+  int my_nmin,my_nmax;
+  int np_mpi_global,num_mpi_cells,num_mpi_extra,rank_global,ndo;
+  double *M_array_transmit;
+  double *M_array_transmit2;
 
+
+#ifdef MPI_ON
+  MPI_Init (&argc, &argv);
+  MPI_Comm_rank (MPI_COMM_WORLD, &my_rank);
+  MPI_Comm_size (MPI_COMM_WORLD, &np_mpi);
+#else
+  my_rank = 0;
+  np_mpi = 1;
+#endif
+np_mpi_global = np_mpi;
+rank_global=my_rank;
+  printf ("BLAH doing it myrank=%i/%i\n",my_rank,np_mpi);
   g_usedMemory=0.0;
   
 
@@ -48,7 +66,39 @@ int main(int argc, char** argv)
 	printf ("Calculating\n");
 	
 	printf ("icell=%i itrans=%i\n",ncells,nline_tot);
-	for (icell=0; icell<ncells; icell++)  //We are gping to loop over all cells
+    
+    my_nmin = 0;
+    my_nmax = ncells;
+#ifdef MPI_ON
+  num_mpi_cells = floor (ncells / np_mpi_global);
+  num_mpi_extra = ncells - (np_mpi_global * num_mpi_cells);
+  
+  printf ("BLAH num_mpi_cells=%i num_mpi_extra=%i\n",num_mpi_cells,num_mpi_extra);
+
+  /* this section distributes the remainder over the threads if the cells
+     do not divide evenly by thread */
+  if (rank_global < num_mpi_extra)
+  {
+    my_nmin = rank_global * (num_mpi_cells + 1);
+    my_nmax = (rank_global + 1) * (num_mpi_cells + 1);
+  }
+  else
+  {
+    my_nmin = num_mpi_extra * (num_mpi_cells + 1) + (rank_global - num_mpi_extra) * (num_mpi_cells);
+    my_nmax = num_mpi_extra * (num_mpi_cells + 1) + (rank_global - num_mpi_extra + 1) * (num_mpi_cells);
+  }
+  ndo = my_nmax - my_nmin;
+#endif
+    
+    
+    
+    
+    
+    
+  printf ("This thread doing cells %i to %i\n",my_nmin,my_nmax);
+    
+//	for (icell=0; icell<ncells; icell++)  //We are gping to loop over all cells
+    for (icell = my_nmin; icell < my_nmax; icell++)
 	{
 		n_used_lines=0;
 /* first thing we need to do is set up the level populations for this cell*/
@@ -122,6 +172,40 @@ int main(int argc, char** argv)
 	}//End of the loop over all cells
 
 	printf ("Done all the calculations\n");
+    
+#ifdef MPI_ON                   // these routines should only be called anyway in parallel but we need these to compile
+    MPI_Barrier (MPI_COMM_WORLD);
+    
+	M_array_transmit=malloc(ncells*3.*sizeof(double));
+	M_array_transmit2=malloc(ncells*3.*sizeof(double));
+    
+    for (i=0;i<ncells;i++)
+    {
+        M_array_transmit[i]=M_array[i][0];
+        M_array_transmit[i+ncells]=M_array[i][1];
+        M_array_transmit[i+2*ncells]=M_array[i][2];
+    }
+    MPI_Barrier (MPI_COMM_WORLD);    
+    MPI_Reduce (M_array_transmit, M_array_transmit2, ncells*3, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    MPI_Barrier (MPI_COMM_WORLD);
+    MPI_Bcast (M_array_transmit2, ncells*3, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Barrier (MPI_COMM_WORLD);
+    for (i=0;i<ncells;i++)
+    {
+        M_array[i][0]=M_array_transmit2[i];
+        M_array[i][1]=M_array_transmit2[i+ncells];
+        M_array[i][2]=M_array_transmit2[i+2*ncells];
+    }
+    MPI_Barrier (MPI_COMM_WORLD);
+    
+#endif
+    
+    
+    
+#ifdef MPI_ON
+  if (rank_global == 0)
+  {
+#endif
 
 
     if ((output = fopen("M_data.dat", "w")) == NULL)
@@ -138,8 +222,14 @@ int main(int argc, char** argv)
 		fprintf(output,"\n");
 	}
     fclose(output);
+#ifdef MPI_ON
+  }
+#endif
     
-
+    
+#ifdef MPI_ON
+  MPI_Finalize ();
+#endif
 
 }
 
