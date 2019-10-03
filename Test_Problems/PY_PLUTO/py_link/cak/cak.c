@@ -1,11 +1,13 @@
 #include "cak.h"
 
-//#define f_uv_lower 7.5e14
-//#define f_uv_upper 3e16
 
 #define f_uv_lower 7.5e14
 #define f_uv_upper 3e16
 
+
+
+
+int my_rank;
 
 double scale=1.0;
 
@@ -13,23 +15,23 @@ double scale=1.0;
 int main(int argc, char** argv)
 {
 
-  int nelem, nion, nlvl, ntran;
-  FILE *line_list, *atom_models, *output, *spew;
-  int i,j;
-  int dum1, dum2, dum3, dum4, dum5, dum6, dum7, dum8;
-  float dum10, dum11, dum12, dum13, dum14, dum15;
-  double partition;
+  FILE *output;
   double line_nu;
   double A_ul, B_ul, B_lu;
   double kappa_l, delta_doppler, flux_factor, test;
   int upper, lower;
+
   int icell,iband,itrans,iion,ilev;
   int n_used_lines;
   int v_uv_x; //An index used to decide if we are incremeneting the vis(0), uv(1)or xray(2) band 
-  int my_rank;                  // these two variables are used regardless of parallel mode
+
+//  int my_rank;                  // these two variables are used regardless of parallel mode
   int np_mpi;                   // rank and number of processes, 0 and 1 in non-parallel
   int my_nmin,my_nmax;
-  int np_mpi_global,num_mpi_cells,num_mpi_extra,rank_global,ndo;
+  int np_mpi_global,num_mpi_cells,num_mpi_extra,rank_global;
+  int i;
+  double *part;
+  
   double *M_array_transmit;
   double *M_array_transmit2;
 
@@ -44,28 +46,22 @@ int main(int argc, char** argv)
 #endif
 np_mpi_global = np_mpi;
 rank_global=my_rank;
-  printf ("BLAH doing it myrank=%i/%i\n",my_rank,np_mpi);
   g_usedMemory=0.0;
   
 
 
-  read_ionfs();  //Read in the ion fractions and also the 
+  read_ionfs();  //Read in the ion fractions and also the     
     
   read_cont();  //Read in the continuum
   
   read_line_data(); //Read in all the line data
 
-//  exp_lookup_init();
-
-//	M_array=ARRAY_2D(ncells,nbands,double); This is the way we need to do it once we have bands!
 	M_array=ARRAY_2D(ncells,3,double); //Three bands, vis, UV and Xray
-	
-	part=malloc(nions*sizeof(double));
+	part=calloc(nions,sizeof(double));
 	  
-	printf ("Set up working arrays - currently using %f Mb\n",g_usedMemory/1e6);
-	printf ("Calculating\n");
+	if (my_rank==0) printf ("Set up working arrays - currently using %f Mb\n",g_usedMemory/1e6);
+	if (my_rank==0) printf ("Calculating\n");
 	
-	printf ("icell=%i itrans=%i\n",ncells,nline_tot);
     
     my_nmin = 0;
     my_nmax = ncells;
@@ -73,7 +69,7 @@ rank_global=my_rank;
   num_mpi_cells = floor (ncells / np_mpi_global);
   num_mpi_extra = ncells - (np_mpi_global * num_mpi_cells);
   
-  printf ("BLAH num_mpi_cells=%i num_mpi_extra=%i\n",num_mpi_cells,num_mpi_extra);
+  if (my_rank==0)  printf ("BLAH num_mpi_cells=%i num_mpi_extra=%i\n",num_mpi_cells,num_mpi_extra);
 
   /* this section distributes the remainder over the threads if the cells
      do not divide evenly by thread */
@@ -87,15 +83,13 @@ rank_global=my_rank;
     my_nmin = num_mpi_extra * (num_mpi_cells + 1) + (rank_global - num_mpi_extra) * (num_mpi_cells);
     my_nmax = num_mpi_extra * (num_mpi_cells + 1) + (rank_global - num_mpi_extra + 1) * (num_mpi_cells);
   }
-  ndo = my_nmax - my_nmin;
 #endif
     
     
     
     
     
-    
-  printf ("This thread doing cells %i to %i\n",my_nmin,my_nmax);
+  if (my_rank==0) printf ("Thread 0 doing cells %i to %i\n",my_nmin,my_nmax);
     
 //	for (icell=0; icell<ncells; icell++)  //We are gping to loop over all cells
     for (icell = my_nmin; icell < my_nmax; icell++)
@@ -107,6 +101,7 @@ rank_global=my_rank;
 			part[iion]=0.0;
 			for (ilev=0;ilev<ion_info_nlevels[iion];ilev++) //loop over all the levels for this ion
 			{
+//                if (ilev>NLEVELS) printf ("BOOM\n");
 				lev_pops[iion][ilev]=lev_weight[iion][ilev]*exp1(-1. * lev_energy[iion][ilev] *EV/KB/T_e[icell]); //Level population - based on boltzmann distribution
 				part[iion] += lev_pops[iion][ilev]; 					
 			}
@@ -117,116 +112,178 @@ rank_global=my_rank;
 			}			
 		}					
 /*We now have level populations and partition function for all the ions in this cell*/ 		
-//		for (iband=0; iband<nbands; iband++) //qLoop over all the bands	
-			for (itrans=0;itrans<nline_tot;itrans++) //Loop over all lines
+		for (itrans=0;itrans<nline_tot;itrans++) //Loop over all lines
+		{
+			if (trans_freq[itrans] > 0.0) 
 			{
-				if (trans_freq[itrans] > 0.0) 
+				iion = trans_ion[itrans]; //This gets the link into the various ion related arrays
+//                if (iion>NIONS) printf ("BOOM\n");
+				if (ion_fracs[icell][iion]>0.0)
 				{
-					iion = trans_ion[itrans]; //This gets the link into the various ion related arrays
-					if (ion_fracs[icell][iion]>0.0)
-					{
-						if (trans_freq[itrans]<f_uv_lower) v_uv_x=0;
-						else if (trans_freq[itrans]>f_uv_upper) v_uv_x=2;
-						else v_uv_x=1;
-						n_used_lines++;
-						A_ul = trans_A_ul[itrans];
-						B_ul = trans_B_ul[itrans];
-						B_lu = trans_B_lu[itrans];
-						lower= trans_lower[itrans];
-						upper= trans_upper[itrans];
-						line_nu= trans_freq[itrans];
-						kappa_l = (B_lu*lev_pops[iion][lower] - B_ul*lev_pops[iion][upper]) * param1[i]; 
-						delta_doppler = line_nu * v_thermal[icell]/C;
-						if (J[icell]==0.0)
-							flux_factor=0.0;
-						else
-							flux_factor = model_jnu(line_nu, trans_lfreq[itrans],icell,trans_iband[itrans])/J[icell];							
-						if ( (test = kappa_l*t[icell][v_uv_x]/sigma_e[icell]) > 1.e-6) //If we have a large opacity
-						{	
-							M_array[icell][v_uv_x] += delta_doppler * flux_factor * (1. - exp1(-1.*test)) / t[icell][v_uv_x];  //increment the fore multiplier for this t
-							if (!isfinite(M_array[icell][v_uv_x]))
-							{
-								printf("Non-finite M1. Abort.\n");
-								printf("%i %i %i %g %g %g %g\n", icell,cell_i[icell],cell_j[icell],delta_doppler,flux_factor,exp1(-1.*test), t[icell][v_uv_x]);
-								exit(0);
-							}				
-						}
-						else
-						{
-							M_array[icell][v_uv_x] += delta_doppler * flux_factor * kappa_l / sigma_e[icell];						
-							if (!isfinite(M_array[icell][v_uv_x]))
-							{
-								printf("Non-finite M2. Abort.\n");
-								printf("%g %g %g\n", delta_doppler,flux_factor,kappa_l);
-								exit(0);
-							}
-						}
-					} //End of loop to only do computations if ion frac is greater than zero							
-				} //End of loop to compute M if the trans freq is greater than zero 
-				else
-				{					
-					printf ("Dodgy line %i ion %i lev %i-%i  freq %e ignoring\n",itrans,trans_ion[itrans],trans_upper[itrans],trans_lower[itrans],trans_freq[itrans]);
-				}					
-			}	//End of the loop over all lines for this ion 
-			printf ("Cell %i %i lines used\n",icell,n_used_lines);
+					if (trans_freq[itrans]<f_uv_lower) v_uv_x=0;
+					else if (trans_freq[itrans]>f_uv_upper) v_uv_x=2;
+					else v_uv_x=1;
+					n_used_lines++;
+					A_ul = trans_A_ul[itrans];
+					B_ul = trans_B_ul[itrans];
+					B_lu = trans_B_lu[itrans];
+					lower= trans_lower[itrans];
+					upper= trans_upper[itrans];
+					line_nu= trans_freq[itrans];
+					kappa_l = (B_lu*lev_pops[iion][lower] - B_ul*lev_pops[iion][upper]) * param1[icell]; 
+					delta_doppler = line_nu * v_thermal[icell]/C;
+					if (J[icell]==0.0 || trans_iband[itrans]<0)
+						flux_factor=0.0; //There is no flux, and so no force multiplier
+					else
+                    {
+						flux_factor = model_jnu(line_nu, trans_lfreq[itrans],icell,trans_iband[itrans])/J[icell];							
+    					if ( (test = kappa_l*t[icell][v_uv_x]/sigma_e[icell]) > 1.e-6) //If we have a large opacity
+    					{	
+    						M_array[icell][v_uv_x] += delta_doppler * flux_factor * (1. - exp1(-1.*test)) / t[icell][v_uv_x];  //increment the fore multiplier for this t
+    						if (!isfinite(M_array[icell][v_uv_x]))
+    						{
+    							printf("Non-finite M1. Abort.\n");
+    							printf("%i %i %i %g %g %g %g\n", icell,cell_i[icell],cell_j[icell],delta_doppler,flux_factor,exp1(-1.*test), t[icell][v_uv_x]);
+    							exit(0);
+    						}				
+    					}
+    					else
+    					{
+    						M_array[icell][v_uv_x] += delta_doppler * flux_factor * kappa_l / sigma_e[icell];						
+    						if (!isfinite(M_array[icell][v_uv_x]))
+    						{
+    							printf("Non-finite M2. Abort.\n");
+    							printf("%g %g %g\n", delta_doppler,flux_factor,kappa_l);
+    							exit(0);
+    						}
+    					}
+                    } //End of check for non zero flux factor   
+				} //End of loop to only do computations if ion frac is greater than zero							
+			} //End of loop to compute M if the trans freq is greater than zero 
+			else
+			{					
+				printf ("Dodgy line %i ion %i lev %i-%i  freq %e ignoring\n",itrans,trans_ion[itrans],trans_upper[itrans],trans_lower[itrans],trans_freq[itrans]);
+			}					
+		}	//End of the loop over all lines
 	}//End of the loop over all cells
 
-	printf ("Done all the calculations\n");
+	if (my_rank==0) printf ("Done all the calculations\n");
+    
+    
+
+    
     
 #ifdef MPI_ON                   // these routines should only be called anyway in parallel but we need these to compile
     MPI_Barrier (MPI_COMM_WORLD);
     
-	M_array_transmit=malloc(ncells*3.*sizeof(double));
-	M_array_transmit2=malloc(ncells*3.*sizeof(double));
+	M_array_transmit=calloc(ncells*3,sizeof(double));
+	M_array_transmit2=calloc(ncells*3,sizeof(double));
     
-    for (i=0;i<ncells;i++)
+    for (icell=0;icell<ncells;icell++)
     {
-        M_array_transmit[i]=M_array[i][0];
-        M_array_transmit[i+ncells]=M_array[i][1];
-        M_array_transmit[i+2*ncells]=M_array[i][2];
+        M_array_transmit[icell]=M_array[icell][0];
+        M_array_transmit[icell+ncells]=M_array[icell][1];
+        M_array_transmit[icell+2*ncells]=M_array[icell][2];
     }
     MPI_Barrier (MPI_COMM_WORLD);    
     MPI_Reduce (M_array_transmit, M_array_transmit2, ncells*3, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
     MPI_Barrier (MPI_COMM_WORLD);
     MPI_Bcast (M_array_transmit2, ncells*3, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Barrier (MPI_COMM_WORLD);
-    for (i=0;i<ncells;i++)
+    for (icell=0;icell<ncells;icell++)
     {
-        M_array[i][0]=M_array_transmit2[i];
-        M_array[i][1]=M_array_transmit2[i+ncells];
-        M_array[i][2]=M_array_transmit2[i+2*ncells];
+        M_array[icell][0]=M_array_transmit2[icell];
+        M_array[icell][1]=M_array_transmit2[icell+ncells];
+        M_array[icell][2]=M_array_transmit2[icell+2*ncells];
     }
     MPI_Barrier (MPI_COMM_WORLD);
     
+    free(M_array_transmit);
+    free(M_array_transmit2);
+	if (my_rank==0) printf ("Communicated all the arrays\n");
+        
 #endif
-    
     
     
 #ifdef MPI_ON
   if (rank_global == 0)
   {
 #endif
-
+      
+      printf ("outputting the file\n");
 
     if ((output = fopen("M_data.dat", "w")) == NULL)
       {
 	printf("Cannot open M_data.dat\n");
 	abort();
       }
-	fprintf(output, "i j M_vis M_uv M_xray\n");
-	  	  
-	  
+	fprintf(output, "i j M_vis M_uv M_xray\n");	  	  
 	for (icell = 0; icell < ncells; icell++)
 	{
 		fprintf(output, "%i %i %e %e %e", cell_i[icell], cell_j[icell], M_array[icell][0], M_array[icell][1], M_array[icell][2]);
 		fprintf(output,"\n");
 	}
     fclose(output);
+    
+    printf ("output the file\n");
+    
 #ifdef MPI_ON
   }
 #endif
     
     
+  /*
+  printf ("1");
+  
+//  free(M_array);
+  free(part);
+  free(ion_info_z);
+  free(ion_info_state);
+  free(ion_info_nlevels);
+  free(ion_info_nlines);
+  free(ion_info_xi);	
+  free(cell_i); 
+  free(cell_j); 
+  free(T_e); 
+  free(nnh);
+  free(nne);
+  free(rho);
+  free(v_thermal);
+  free(sigma_e);
+  free(param1);
+//  free(t);
+  printf ("2");
+//  free(ion_fracs);  
+//  free(f1);
+//  free(f2);
+//  free(model);	
+//  free(pl_w);
+//  free(pl_alpha);
+//  free(exp_w);
+//  free(exp_temp);
+  
+  free(mod_fmin);
+  free(mod_fmax);
+  free(J);
+  
+//  free(lev_energy);
+//  free(lev_weight);
+//  free(lev_pops);
+  
+  free(trans_ion);
+  free(trans_lower);
+  free(trans_upper);
+  free(trans_iband);
+  printf ("3");
+
+
+  free(trans_freq);
+  free(trans_lfreq);
+  free(trans_A_ul);
+  free(trans_B_ul);
+  free(trans_B_lu);
+  printf ("4");*/
+
 #ifdef MPI_ON
   MPI_Finalize ();
 #endif
@@ -249,10 +306,9 @@ int read_ionfs()
   FILE *abund,*pcon;
   char filename[100];
   char junk[LINELENGTH];
-  float dum1,dum2,dum3,dum4,dum5,dum6,dum7;
+  double dum1,dum2,dum3,dum4,dum5,dum6,dum7;
   int idum1,idum2;
   char *found;
-  
   
 /* A loop over the elements - NB at present we need *all* the elements in place - in files which comtain the number of the element as the filename*/  
 
@@ -263,20 +319,19 @@ int read_ionfs()
 	  abort();
   }
   
-	fscanf(abund, "%*s %g", &dum1);
-	nions=dum1;
-	printf ("We have %i ions\n",nions);
+	fscanf(abund, "%*s %d", &idum1);
+	nions=idum1;
+	if (my_rank==0) printf ("We have %i ions\n",nions);
 	
   	fgets(junk, 1000, abund); 
 	
 	
-	ion_info_z=malloc(nions*sizeof(int));
-	ion_info_state=malloc(nions*sizeof(int));
-	ion_info_nlevels=malloc(nions*sizeof(int));
-	ion_info_nlines=malloc(nions*sizeof(int));
-	ion_info_xi=malloc(nions*sizeof(double));
-	
-	
+	ion_info_z=calloc(nions,sizeof(int));
+	ion_info_state=calloc(nions,sizeof(int));
+	ion_info_nlevels=calloc(nions,sizeof(int));
+	ion_info_nlines=calloc(nions,sizeof(int));
+	ion_info_xi=calloc(nions,sizeof(double));
+
 	g_usedMemory+=4.*nions*sizeof(int);
 	g_usedMemory+=nions*sizeof(double);
 
@@ -293,13 +348,12 @@ int read_ionfs()
 		ion_info_state[i]=idum2;
 	}
 	
-	printf ("We have read in the ion data - last element is z=%i state=%i\n",ion_info_z[nions-1],ion_info_state[nions-1]);
 		
 	fscanf(abund, "%*s %d", &idum1);
-	ncells=idum1;
-	
-	printf("We have %i cells\n",ncells);
-	
+	ncells=idum1;	
+	if (my_rank==0) printf ("We have %i cells\n",ncells);
+    
+    
 	ion_fracs=ARRAY_2D(ncells,nions,double); //Set up the ion fracs array
 		
 	for (i=0;i<ncells;i++)
@@ -308,13 +362,13 @@ int read_ionfs()
 		fscanf(abund, " %d", &idum2);
 		for (j=0;j<nions;j++)
 		{
-			fscanf(abund, "%e",&dum1);
+			fscanf(abund, "%le",&dum1);
 			ion_fracs[i][j]=dum1;
 		}
 	}
     fclose(abund);  //Close the file
 	
-	printf ("Read ion data - currently using %f Mb\n",g_usedMemory/1e6);
+	if (my_rank==0) printf ("Read ion data - currently using %f Mb\n",g_usedMemory/1e6);
 	
 	
 	
@@ -339,20 +393,18 @@ int read_ionfs()
 		abort();
 	}
 
+	cell_j=calloc(ncells,sizeof(int)); 
+	cell_i=calloc(ncells,sizeof(int));
 
-	cell_i=malloc(ncells*sizeof(int)); 
-	cell_j=malloc(ncells*sizeof(int)); 
-
-
-	T_e=malloc(ncells*sizeof(double)); 
-	nnh=malloc(ncells*sizeof(double));
-	nne=malloc(ncells*sizeof(double));
-	rho=malloc(ncells*sizeof(double));
-	v_thermal=malloc(ncells*sizeof(double));
-	sigma_e=malloc(ncells*sizeof(double));
-	param1=malloc(ncells*sizeof(double));
+	T_e=calloc(ncells,sizeof(double)); 
+	nnh=calloc(ncells,sizeof(double));
+	nne=calloc(ncells,sizeof(double));
+	rho=calloc(ncells,sizeof(double));
+	v_thermal=calloc(ncells,sizeof(double));
+	sigma_e=calloc(ncells,sizeof(double));
+	param1=calloc(ncells,sizeof(double));
 	
-	g_usedMemory+=8.*ncells*sizeof(double);
+	g_usedMemory+=7.*ncells*sizeof(double);
 	g_usedMemory+=2.*ncells*sizeof(int);
 	
 	
@@ -366,25 +418,24 @@ int read_ionfs()
          	printf ("Error reading pcon data %i of %i\n",i,ncells);
          	abort();
         }
-		sscanf (junk, "%d %d %e %e %e %e %e %e %e", &idum1,&idum2,&dum1, &dum2,&dum3,&dum4,&dum5,&dum6,&dum7);
-		cell_i[i]=idum1;
+		sscanf (junk, "%d %d %le %le %le %le %le %le %le", &idum1,&idum2,&dum1, &dum2,&dum3,&dum4,&dum5,&dum6,&dum7);
+        cell_i[i]=idum1;
 		cell_j[i]=idum2;
 		T_e[i]=dum1;
 		rho[i]=dum2;
 		nnh[i]=dum3;
 		nne[i]=dum4;
-		t[i][0]=dum5;	
-		t[i][1]=dum6;	
+		t[i][0]=dum5;
+		t[i][1]=dum6;
 		t[i][2]=dum7;	
-		
-		v_thermal[i] = pow((2. * KB * T_e[i]/MH),0.5);
-		sigma_e[i] = SIGMA_T * nne[i] / rho[i]; //electron scattering sigma	
-		param1[i]=HCLIGHTOVERFOURPI / rho[i] / v_thermal[i];
+		v_thermal[i] = pow((2. * KB * T_e[i]/MH),0.5);		
+        sigma_e[i] = SIGMA_T * nne[i] / rho[i]; //electron scattering sigma	
+        param1[i]=HCLIGHTOVERFOURPI / rho[i] / v_thermal[i];
 		
 	}
 	
 	
-	printf ("Read physical data - currently using %f Mb\n",g_usedMemory/1e6);
+	if (my_rank==0) printf ("Read physical data - currently using %f Mb\n",g_usedMemory/1e6);
 	
 	
 	return(0);
@@ -403,8 +454,7 @@ int read_cont()
   double dum1, dum2, dum3, dum4, dum5, dum6, dum7, dum8, dum9, dum10;
   int idum1,idum2;
   int i,j;
-  
-  
+    
 	if ((contf = fopen("py_spec_data.dat", "r")) == NULL)
 	{
 		printf("Cannot open py_spec_data.dat\n");
@@ -414,10 +464,11 @@ int read_cont()
 	fscanf(contf, "%*s %d", &idum1);
 	nbands=idum1;
 	
-	printf ("We have %i bands\n",nbands);
+	printf ("We have %i J bands\n",nbands);
 	
-	
-	band_limits=malloc(nbands*sizeof(double));
+	band_limits=calloc(nbands+1,sizeof(double));
+    
+    
 	
 	fscanf(contf, "%*s %d", &idum1);
 
@@ -427,13 +478,14 @@ int read_cont()
 			abort();
 		}
 	
-	printf ("We have %i cells\n",ncells);
 	
 	for (j=0;j<nbands+1;j++)
 	{
 		fscanf(contf, "%le ",&dum1);
 		band_limits[j]=dum1;
 	}
+
+	if (my_rank==0) printf ("We have %i J bands running from %e to %e Hz\n",nbands,band_limits[0],band_limits[nbands]);
 
 	
 	f1=ARRAY_2D(ncells,nbands,double);
@@ -444,9 +496,9 @@ int read_cont()
 	exp_w=ARRAY_2D(ncells,nbands,double);
 	exp_temp=ARRAY_2D(ncells,nbands,double);
 	
-	mod_fmin=malloc(ncells*sizeof(double));
-	mod_fmax=malloc(ncells*sizeof(double));
-	J=malloc(ncells*sizeof(double));
+	mod_fmin=calloc(ncells,sizeof(double));
+	mod_fmax=calloc(ncells,sizeof(double));
+	J=calloc(ncells,sizeof(double));
 	
 	T_max=-1e99; //initialise the maximum temperature
 	T_min=1e99; //initialise the maximum temperature
@@ -471,25 +523,15 @@ int read_cont()
 			exp_temp[i][j]=dum6;
 			if (model[i][j]!=SPEC_MOD_FAIL && f1[i][j]<mod_fmin[i]) mod_fmin[i]=f1[i][j];
 			if (model[i][j]!=SPEC_MOD_FAIL && f2[i][j]>mod_fmax[i]) mod_fmax[i]=f2[i][j];
-			if (i==0) printf ("%e %e %d %e %e %e %e\n",f1[i][j],f2[i][j],model[i][j],pl_w[i][j],pl_alpha[i][j],exp_w[i][j],exp_temp[i][j]);
+			if (i==0 && my_rank==0) printf ("%e %e %d %e %e %e %e\n",f1[i][j],f2[i][j],model[i][j],pl_w[i][j],pl_alpha[i][j],exp_w[i][j],exp_temp[i][j]);            
 			if (model[i][j]!=SPEC_MOD_FAIL)
 			{
 				J[i]+=int_jnu(i,j);
-			}
-//			if (model[i][j]==SPEC_MOD_EXP) //Lines used in an attempt to speed things up with an exp lookup
-//			{
-//				if (exp_temp[i][j] > T_max) T_max=exp_temp[i][j];
-//				if (exp_temp[i][j] < T_min) T_min=exp_temp[i][j];				
-//			}
-
-			
+			}		
 		}
 	}
 	
-		
-	printf ("Read spectral data - currently using %f Mb\n",g_usedMemory/1e6);
-	printf ("In cell 0, spectral models run from %e to %e J=%e\n",mod_fmin[ncells-1],mod_fmax[ncells-1],J[ncells-1]);
-	printf ("T_Max=%e T_min=%e\n",T_max,T_min);
+	if (my_rank==0) printf ("Read spectral data - currently using %f Mb\n",g_usedMemory/1e6);
 
 
 	return(0);
@@ -511,12 +553,14 @@ int read_line_data()
 	double dum1,dum10,dum11,dum2;
 	int nlvl,nlevels,nlvl_max;
 	int nlines;
-	int count;
+    int nline_count;
 	
     line_fmin=1e99;
     line_fmax=0.0;
+    
+    nline_count=0;
 	
-	printf ("Reading atomic model data\n");	  
+	if (my_rank==0) printf ("Reading atomic model data\n");	  
 	//These lines look thruogh the atomic models file to see how much space we need to assign for models
 	if ((atom_models = fopen("atomic_models.txt", "r")) == NULL)  //Try to open atom models data
 	{
@@ -547,15 +591,14 @@ int read_line_data()
 	}
 	fclose(atom_models);
 	
-	
+
 	lev_energy=ARRAY_2D(nions,nlvl_max,double);
-	lev_weight=ARRAY_2D(nions,nlvl_max,double);
-	lev_pops=ARRAY_2D(nions,nlvl_max,double); //We will not be filling this array here - but lets set it up while we know nht max number of levels
+    lev_weight=ARRAY_2D(nions,nlvl_max,double);
+    lev_pops=ARRAY_2D(nions,nlvl_max,double); //We will not be filling this array here - but lets set it up while we know nht max number of levels
 	
 	
 	//Now read in the data for real
 	
-	count=0;
 	if ((atom_models = fopen("atomic_models.txt", "r")) == NULL)  //Try to open atom models data
 	{
 		printf("Cannot open adata.txt.\n");
@@ -591,9 +634,8 @@ int read_line_data()
 		
 
 	fclose(atom_models);	
-	printf ("Read level data - currently using %f Mb\n",g_usedMemory*1e-6);
+	if (my_rank==0) printf ("Read level data - currently using %f Mb\n",g_usedMemory*1e-6);
 		
-	printf ("Reading line data\n");
 	
 	
 	
@@ -626,22 +668,20 @@ int read_line_data()
 	}
 	fclose(line_list);
 	
-	printf ("There are a total of %i lines linked to ions in our model\n",nline_tot);
+	if (my_rank==0) printf ("There are a total of %i lines linked to ions in our model\n",nline_tot);
 	
 	//Now we know how many lines we will be reading, we can set up the arrays
-	
-	
-	trans_ion=malloc(nline_tot*sizeof(int));
-	trans_lower=malloc(nline_tot*sizeof(int));
-	trans_upper=malloc(nline_tot*sizeof(int));
-	trans_iband=malloc(nline_tot*sizeof(int));
-	
-	
-	trans_freq=malloc(nline_tot*sizeof(double));
-	trans_lfreq=malloc(nline_tot*sizeof(double));
-	trans_A_ul=malloc(nline_tot*sizeof(double));
-	trans_B_ul=malloc(nline_tot*sizeof(double));
-	trans_B_lu=malloc(nline_tot*sizeof(double));
+		
+	trans_ion=calloc(nline_tot,sizeof(int));
+	trans_lower=calloc(nline_tot,sizeof(int));
+	trans_upper=calloc(nline_tot,sizeof(int));
+	trans_iband=calloc(nline_tot,sizeof(int));
+		
+	trans_freq=calloc(nline_tot,sizeof(double));
+	trans_lfreq=calloc(nline_tot,sizeof(double));
+	trans_A_ul=calloc(nline_tot,sizeof(double));
+	trans_B_ul=calloc(nline_tot,sizeof(double));
+	trans_B_lu=calloc(nline_tot,sizeof(double));
 	
 	g_usedMemory+=4*nline_tot*sizeof(int);
 	g_usedMemory+=5*nline_tot*sizeof(double);
@@ -691,19 +731,27 @@ int read_line_data()
 															lev_weight[ion_index][trans_lower[nline_tot]]; //B_luq
 				if (trans_freq[nline_tot]<line_fmin) line_fmin=trans_freq[nline_tot];
 				if (trans_freq[nline_tot]>line_fmax) line_fmax=trans_freq[nline_tot];
+//                trans_iband[nline_tot]=-1; //Set to an error condition                
 				for (ib=0;ib<nbands;ib++) //Discover which band this line lies in - saves having to search every time in future.			
 				{ 	
-					if (trans_freq[nline_tot]>band_limits[ib] && trans_freq[nline_tot]<band_limits[ib+1])	trans_iband[nline_tot]=ib;
+//                    trans_iband[nline_tot]=-1; //Set to an error condition
+					if (trans_freq[nline_tot]>band_limits[ib] && trans_freq[nline_tot]<band_limits[ib+1])	
+                    {
+                        trans_iband[nline_tot]=ib;
+                        nline_count++;
+                    }
 				}
 				nline_tot++;
 			}			
  		}
 	}
 	fclose(line_list);
-	printf ("Fmin=%e Fmax=%e\n",line_fmin,line_fmax);
-	printf ("Emin=%e Emax=%e\n",line_fmin/(EV/H),line_fmax/(EV/H));
+	if (my_rank==0) printf ("There are a total of %i lines in modelled bands\n",nline_count);
+    
+	if (my_rank==0) printf ("Line Fmin=%e Fmax=%e\n",line_fmin,line_fmax);
+	if (my_rank==0) printf ("Line Emin=%e Emax=%e\n",line_fmin/(EV/H),line_fmax/(EV/H));
 	
-	printf ("Read transition data - currently using %f Mb\n",g_usedMemory*1.e-6);	
+	if (my_rank==0) printf ("Read transition data - currently using %f Mb\n",g_usedMemory*1.e-6);	
 	
 	return(0);
 }
@@ -813,38 +861,11 @@ double exp1(double x) {
 	}
 	else
 	{ 
-//		indx=(int)(-1000.*x+0.5);
-//		ans=exp_lookup[indx-10];
-//		printf ("%e %e %e\n",ans,exp(x),ans-exp(x));
 		ans=exp(x);
 	}
 		
   
   return ans;
 }
-/* Attempt to speed things up with lookup - but not much faster and errors mounted up
-double exp_lookup_init()
-{
-	int npoints,i;
-	double exp_min,exp_max,test;
-	double x,dx,xmin;
-	dx=0.1;
-	xmin=1.0;
-	
-	npoints=500000;
-	
-	exp_lookup=malloc(npoints*sizeof(double));
-	
-	for (i=0;i<npoints;i++)
-	{
-		x=(xmin+i*dx)/100.;
-		exp_lookup[i]=exp(-1.*x);
-	}
-	
-	
 
-	return(npoints);
-}
-*/
 
-  

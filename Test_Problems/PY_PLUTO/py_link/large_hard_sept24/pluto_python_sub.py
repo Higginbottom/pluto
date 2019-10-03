@@ -180,8 +180,8 @@ def python_input_file(fname,data,cycles=2):
     output.write("\n")    
     output.write("Photon_sampling.approach(T_star,cv,yso,AGN,min_max_freq,user_bands,cloudy_test,wide,logarithmic)  logarithmic\n")
     output.write("Photon_sampling.nbands                     10\n")
-    output.write("Photon_sampling.low_energy_limit(eV)       1.03333\n")
-    output.write("Photon_sampling.high_energy_limit(eV)      50000\n")
+    output.write("Photon_sampling.low_energy_limit(eV)       0.13333\n")
+    output.write("Photon_sampling.high_energy_limit(eV)      100000\n")
     
     output.close()
     return
@@ -558,8 +558,13 @@ def get_status():
     print("Last file listed in dbl file:",dbl_file_1)
     cmdline="ls  *.dbl | tail -1"
     proc=subprocess.Popen(cmdline,shell=True,stdout=subprocess.PIPE) 
-    dbl_file_2=int(proc.stdout.read().split('.')[1])
-    print("last dbl file in directory:  ",dbl_file_2)
+    dbl_file_2=int(proc.stdout.read().split(b'.')[1])
+    print("last dbl file in directory:  ",dbl_file_2)    
+    cmdline="grep tstop pluto.ini"
+    proc=subprocess.Popen(cmdline,shell=True,stdout=subprocess.PIPE) 
+    dbl_time_requested=float(proc.stdout.read().split()[1])
+    print ("Last dbl file was for time:  ",last_dbl_time)
+    print ("Last dbl file requested time:",dbl_time_requested)
     cmdline="tail -50 input.sig | grep Finished | grep cycle | tail -1"
     proc=subprocess.Popen(cmdline,shell=True,stdout=subprocess.PIPE) 
     test=proc.stdout.read().split()
@@ -568,7 +573,41 @@ def get_status():
     proc=subprocess.Popen(cmdline,shell=True,stdout=subprocess.PIPE) 
     test=proc.stdout.read().split()
     py_last_requested=int(test[10])
-    return dbl_file_1,dbl_file_2,last_dbl_time,py_last_completed,py_last_requested    
+    return dbl_file_1,dbl_file_2,last_dbl_time,dbl_time_requested,py_last_completed,py_last_requested    
+    
+def python_input_gen(ifile,py_cycles,data):
+    pluto2py(ifile)   #We now make a python input file
+    root="%08d"%(ifile)
+    python_input_file(root+".pluto",data,py_cycles)  #This generate a python parameter file
+    cmdline="cp "+root+".pluto"+".pf input.pf"   #Copy the python file to a generaic name so windsave files persist
+    print((cmdline+"\n"))
+    subprocess.check_call(cmdline,shell=True)
+    return
+    
+def pluto_input_gen(ifile,data):
+    root="%08d"%(ifile)
+    cmdline="cp py_heatcool.dat "+root+"_py_heatcool.dat"  
+    subprocess.check_call(cmdline,shell=True)   #And finally we take a copy of the python heatcool file for later investigation.
+    if data["rad_force"]:
+        print ("Running CAK\n")
+        cmdline="mpirun -n "+str(data["nproc_cak"])+" ./cak > cak_output" 
+        print (cmdline)         
+        subprocess.check_call(cmdline,shell=True)   #And finally we take a copy of the python heatcool file for later investigation.
+#    now make a prefactors file
+    print ("Making a prefactor file using "+str(ifile)+" dbl file")
+    pre_calc(ifile,data["rad_force"])    
+    cmdline="cp prefactors.dat "+root+"_prefactors.dat"  
+    subprocess.check_call(cmdline,shell=True)
+    cmdline="cp input.wind_save "+root+"_input.wind_save"  
+    subprocess.check_call(cmdline,shell=True)
+    if ifile>2:
+        cmdline="rm "+"%08d"%(ifile-2)+"_input.wind_save"
+        print (cmdline+"\n")
+        try:
+            subprocess.check_call(cmdline,shell=True)
+        except:
+            print("Could not delete\n")
+    
     
     
 def loop(t0,dt,istart,py_cycles,data,flag):
@@ -579,13 +618,13 @@ def loop(t0,dt,istart,py_cycles,data,flag):
     out=open("pluto_py_logfile",'w')
     out.write("Starting run"+"\n")
     #out.write("zeus_ver="+zeus_ver+"\n")
-    for i in range(istart,10000):  #We will permit up to 500 calls to python (this is a lot)
+    for i in range(istart,10000):  
         out.write("STARTING CYCLE "+str(i)+"\n")
         print(("STARTING CYCLE "+str(i)+"\n"))
-        pluto_input_file(t0+float(i)*dt,data)
-        out.write("Running for time="+str(t0+float(i)*dt)+"\n")
-        print(("Running for time="+str(t0+float(i)*dt)))
         if flag==0: #If flag is not set - then we run pluto first 
+            pluto_input_file(t0+float(i)*dt,data)
+            out.write("Running for time="+str(t0+float(i)*dt)+"\n")
+            print(("Running for time="+str(t0+float(i)*dt)))
             if i==0:   #This is the first step - 
                 out.write("Creating first zeus_file"+"\n")
                 cmdline="mpirun -n "+str(data["nproc_pl"])+" ./pluto >"+"%08d"%i+"_pluto_log"
@@ -600,7 +639,6 @@ def loop(t0,dt,istart,py_cycles,data,flag):
             else:    
                 out.write("Pluto run crashed"+"\n")
                 exit(0)
-            
             cmdline="tail -1 dbl.out"   
             out.write(cmdline+"\n")
             proc=subprocess.Popen(cmdline,shell=True,stdout=subprocess.PIPE) #This mess gets the last dblfile    
@@ -630,7 +668,7 @@ def loop(t0,dt,istart,py_cycles,data,flag):
         flag=0 #reset the flag that may have been set on entry to run python first
         if data["rad_force"]:
             out.write ("Running CAK\n")
-            cmdline="./cak > cak_output" 
+            cmdline="mpirun -n "+str(data["nproc_cak"])+" ./cak > cak_output" 
             out.write (cmdline)
              
             subprocess.check_call(cmdline,shell=True)   #And finally we take a copy of the python heatcool file for later investigation.

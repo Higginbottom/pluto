@@ -34,8 +34,9 @@ data["rad_force"]=1  #Including rad force? 1=yes 0=no
 data["python_ver"]="py83c_flux"  #the version of python to use
 #data["python_ver"]="py83c"  #the version of python to use
 
-data["nproc_py"]=2  #The number of cores to use for python - 256 is good!
-data["nproc_pl"]=2  #The number of cores to use for pluto
+data["nproc_py"]=128  #The number of cores to use for python - 256 is good!
+data["nproc_pl"]=128  #The number of cores to use for pluto
+data["nproc_cak"]=128  #The number of cores to use for cak
 
 t0=1000.0  #The run time for the initial pluto run - the first run is to produce a starting geometry
 dt=1000.0   #The time between calls to pluto
@@ -81,14 +82,17 @@ data["model"]='model.ls'   #The power law for the bremstrahlung spectrum - shoul
 
 #Finally, lets set up the grid 
 
-data["R_MIN"]=62.5e9
+
+
+data["R_MIN"]=6.25e9
 data["R_MAX"]=1e12
-data["N_R"]=20
+data["N_R"]=220
+
 data["DISK_TRUNC_RAD"]=3.7e12
 
 data["T_MIN"]=np.radians(0.0)
 data["T_MAX"]=np.radians(90.0)
-data["N_T"]=40
+data["N_T"]=100
 
 data["NPHOT"]=1e7
 
@@ -118,32 +122,45 @@ if sys.argv[1]=="start_test":
         
 
 elif sys.argv[1]=="restart_test":
-    dbl_file_1,dbl_file_2,last_dbl_time,py_last_completed,py_last_requested=pps.get_status()
+    dbl_file_1,dbl_file_2,last_dbl_time,dbl_time_requested,py_last_completed,py_last_requested=pps.get_status()
     
     if dbl_file_1!=dbl_file_2:
         print ("There is a mismatch between the dbl file in the directory and in the dbl.out file - needs checking")
-    print(("Last dbl file was for time",last_dbl_time))    
+#    print("Last dbl file was for time",last_dbl_time)
     py_test=3+(dbl_file_1-1)*2
-    print(("Last requested python cycle :",py_last_requested))
-    print(("Last completed python cycle :",py_last_completed))
+    print("Last requested python cycle :",py_last_requested)
+    print("Last completed python cycle :",py_last_completed)
 
-    if py_last_requested==py_last_completed:
+    if py_last_requested==py_last_completed and last_dbl_time != dbl_time_requested:
         print ("I think that the sim was interrupted during a pluto run")
         istart=np.min([dbl_file_1,dbl_file_2])
         py_cycles=py_last_requested  #We add on two more cycles for python            
-        print(("Suggest restarting with command pluto_python restart ",istart,py_cycles))    
+        print("Suggest restarting with command pluto_python restart ",istart,py_cycles)   
     elif (py_last_requested-py_last_completed)==2:
         print ("I think that the sim was interrupted before a python run had done one cycle")
         print ("So the last pluto .dbl file is different from the densities in the last prefactor")
         py_cycles=py_last_requested    
         istart=np.min([dbl_file_1,dbl_file_2])
-        print(("Suggest restarting with command pluto_python restart ",istart,py_cycles))        
+        print("Suggest restarting with command pluto_python restart ",istart,py_cycles)        
     elif (py_last_requested-py_last_completed)==1:
         print ("I think that the sim was interrupted midway through a python run")
         print ("We need to restart the python run")
         py_cycles=py_last_requested    
         istart=np.min([dbl_file_1,dbl_file_2])
-        print(("Suggest restarting with command pluto_python restart ",istart,py_cycles))
+        print("Suggest restarting with command pluto_python restart ",istart,py_cycles)
+    else:
+        print("Stopped between python and pluto")
+        expected_py_cycles=3+(dbl_file_1-1)*2
+        if expected_py_cycles>py_last_requested:
+            print ("I think we have stopped after pluto but before python - we need to make python input files")
+            print ("Execute the code with                ./pluto_python.py py_input ",dbl_file_1,py_last_requested+2)
+            print ("Then restart the whole program with  ./pluto_python.py restart  ",dbl_file_1,py_last_requested+2)
+        else:
+            print ("Best guess is that we have stopped during CAK - need to run CAK and make pluto input file")
+            print ("Execute the code with ./pluto_python.py pluto_input ",dbl_file_1)
+            print ("Then restart the whole program with ./pluto_python.py restart  ",dbl_file_1,py_last_requested)
+            
+                
     exit()
     
     
@@ -168,6 +185,25 @@ elif sys.argv[1]=="clean":
     else:
         exit()
         
+elif sys.argv[1]=="py_input":
+    print (len(sys.argv))
+    if len(sys.argv)!=4:
+        print ("Usage should be ./pluto_python.py py_input <dbl file> <number of python cycles>")
+    else:
+        print ("Creating python input files from dbl file ",sys.argv[2])
+        pps.python_input_gen(int(sys.argv[2]),int(sys.argv[3]),data)
+    exit()
+    
+elif sys.argv[1]=="pluto_input":
+    if len(sys.argv)!=3:
+        print ("Usage should be ./pluto_python.py pluto_input <last dbl file>") 
+    else:
+        print ("Creating pluto input files from dbl file ",sys.argv[2])
+        pps.pluto_input_gen(int(sys.argv[2]),data)
+    exit()    
+    
+    
+        
 elif sys.argv[1]=="start":
     istart=0
     flag=0  #This flag means that pluto will run first 
@@ -187,7 +223,7 @@ elif sys.argv[1]=="restart":
         istart=int(sys.argv[2])    
         py_cycles=int(sys.argv[3])    
         
-    dbl_file_1,dbl_file_2,last_dbl_time,py_last_completed,py_last_requested=pps.get_status()
+    dbl_file_1,dbl_file_2,last_dbl_time,dbl_time_requested,py_last_completed,py_last_requested=pps.get_status()
     
     py_test=3+(istart-1)*2    
     
@@ -196,6 +232,7 @@ elif sys.argv[1]=="restart":
     if py_cycles>py_last_completed:
         print ("We will be starting off by completing the last python run")
         flag=1
+        t0=t0-dt
         
     else:
         print ("We will be starting off with a pluto run")
