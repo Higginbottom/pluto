@@ -85,7 +85,7 @@ data["model"]='model.ls'   #The power law for the bremstrahlung spectrum - shoul
 
 
 data["R_MIN"]=6.25e9
-data["R_MAX"]=1e12
+data["R_MAX"]=1e13
 data["N_R"]=220
 
 data["DISK_TRUNC_RAD"]=3.7e12
