@@ -15,12 +15,38 @@
 
 
 
+
 #define ARRAY_2D(nx,ny,type)       (type   **)Array2D(nx,ny,sizeof(type))
 
+//ion data - all of size nion
+
+int *ion_info_z;          //atomic number
+int *ion_info_state;      //state
+int *ion_info_nlevels;    //number of levels
+int *ion_info_nlines;     //number of lines
+double *ion_info_xi;      //ionization state - not used  
+
+
+//int ion_info_z[NIONS];          //atomic number
+//int ion_info_state[NIONS];      //state
+//int ion_info_nlevels[NIONS];    //number of levels
+//int ion_info_nlines[NIONS];
+//double ion_info_xi[NIONS];      //ionization state - not used  
+
+
+
+//cell data
+
 //double ion_fracs[nelements][nelements+1];
-double *T_e, *nnh, *nne, *rho, **t, *v_thermal, *sigma_e;
-int *cell_i; 
+double *T_e, *nnh, *nne, *rho, *v_thermal, *sigma_e;
+//double T_e[NCELLS], nnh[NCELLS], nne[NCELLS], rho[NCELLS], v_thermal[NCELLS], sigma_e[NCELLS];
 int *cell_j; 
+int *cell_i;
+
+
+
+double **t;
+
 double *param1; //hc/4pi/rho/vth
 
 
@@ -31,20 +57,14 @@ double line_fmax; //the maximum line frequency
 
 int nions,nline_tot;
 double **ion_fracs;
-int *ion_info_z;
-int *ion_info_state;
-int *ion_info_nlevels;
-int *ion_info_nlines;
 
-double *ion_info_xi;
-
-//double *exp_lookup;
+//2D arrays for level data of size n_ions x n_levels
 
 double **lev_energy;
 double **lev_weight;
-
 double **lev_pops;
-double *part;
+
+
 
 int *trans_ion;
 int *trans_lower;
@@ -60,6 +80,7 @@ int *trans_iband; //The band of the spectral model that this line lies in
 /* Things to do with spectral model */
 
 int nbands;
+
 double **f1;
 double **f2;
 int **model;
@@ -67,6 +88,7 @@ double **pl_w;
 double **pl_alpha;
 double **exp_w;
 double **exp_temp;
+
 double *mod_fmin;
 double *mod_fmax;
 double *band_limits;
@@ -92,13 +114,11 @@ int npts_cont;
 double *cont, *cont_nu;
 double cont_norm;
 
-double delta_log_t;
-double M[n_t];
-double M_cont[n_t][nelements];
+
+
 double *level_energy;
 double *level_pops;
 double *level_weights;
-int Z, NI, NLEVELS;
 
 
 int read_ionfs();
