@@ -136,7 +136,7 @@ rank_global=my_rank;
 						flux_factor=0.0; //There is no flux, and so no force multiplier
 					else
                     {
-						flux_factor = model_jnu(line_nu, trans_lfreq[itrans],icell,trans_iband[itrans])/J[icell];							
+						flux_factor = model_jnu(line_nu, trans_lfreq[itrans],icell,trans_iband[itrans],0)/J[icell];							
     					if ( (test = kappa_l*t[icell][v_uv_x]/sigma_e[icell]) > 1.e-6) //If we have a large opacity
     					{	
     						M_array[icell][v_uv_x] += delta_doppler * flux_factor * (1. - exp1(-1.*test)) / t[icell][v_uv_x];  //increment the fore multiplier for this t
@@ -153,7 +153,8 @@ rank_global=my_rank;
     						if (!isfinite(M_array[icell][v_uv_x]))
     						{
     							printf("Non-finite M2. Abort.\n");
-    							printf("%g %g %g\n", delta_doppler,flux_factor,kappa_l);
+    							printf("cell=%i ddop=%g ff=%g J=%e kappa_l=%g line_nu=%g\n",icell, delta_doppler,flux_factor,J[icell],kappa_l,line_nu);
+                                model_jnu(line_nu, trans_lfreq[itrans],icell,trans_iband[itrans],1);
     							exit(0);
     						}
     					}
@@ -464,7 +465,6 @@ int read_cont()
 	fscanf(contf, "%*s %d", &idum1);
 	nbands=idum1;
 	
-	printf ("We have %i J bands\n",nbands);
 	
 	band_limits=calloc(nbands+1,sizeof(double));
     
@@ -529,6 +529,7 @@ int read_cont()
 				J[i]+=int_jnu(i,j);
 			}		
 		}
+//        printf ("%i %e\n",i,J[i]);
 	}
 	
 	if (my_rank==0) printf ("Read spectral data - currently using %f Mb\n",g_usedMemory/1e6);
@@ -786,7 +787,7 @@ char **Array2D (int nx, int ny, size_t dsize)
 }
 
 
-double model_jnu(double freq, double lfreq, int icell,int iband)
+double model_jnu(double freq, double lfreq, int icell,int iband,int debug)
 {
 	int i,j;
 	double j_nu;
@@ -811,6 +812,13 @@ double model_jnu(double freq, double lfreq, int icell,int iband)
 	{
 		j_nu=0.0; //There is no model - so no flux
 	}
+    
+    if (debug==1)
+    {
+        printf ("Freq %e is in band %i with fmin %e fmax %e model %i\n",freq,iband,f1[icell][iband],f2[icell][iband],model[icell][iband]);
+        printf ("exp_w=%e exp_temp=%e exponent=%e\n",exp_w[icell][iband],exp_temp[icell][iband],(-1.0 * H * freq) / (KB * exp_temp[icell][iband]) );
+        printf ("exp1=%e exp=%e J_nu=%e\n",exp ((-1.0 * H * freq) / (KB * exp_temp[icell][iband])),exp1 ((-1.0 * H * freq) / (KB * exp_temp[icell][iband])),j_nu);
+    }
 	
 	return(j_nu);
 	
@@ -826,9 +834,16 @@ double int_jnu(int icell,int iband)
 		integral=0.0; //No model in this band - should have been caught already but belt and braces
 	else if (model[icell][iband]==SPEC_MOD_PL)
 	{
-	    a = pow (10.0, (pl_w[icell][iband] + (log10(f2[icell][iband]) * (pl_alpha[icell][iband] + 1.0))));
-	    b = pow (10.0, (pl_w[icell][iband] + (log10(f1[icell][iband]) * (pl_alpha[icell][iband] + 1.0))));
-		integral=(a - b) / (pl_alpha[icell][iband] + 1.0);
+        if (pl_alpha[icell][iband] == -1.0)            //deal with the pathological case
+        {
+          integral = pow(10.0,pl_w[icell][iband]) * (log(f2[icell][iband])-log(f1[icell][iband]));
+        }
+        else
+        {        
+    	    a = pow (10.0, (pl_w[icell][iband] + (log10(f2[icell][iband]) * (pl_alpha[icell][iband] + 1.0))));
+    	    b = pow (10.0, (pl_w[icell][iband] + (log10(f1[icell][iband]) * (pl_alpha[icell][iband] + 1.0))));
+    	    integral=(a - b) / (pl_alpha[icell][iband] + 1.0);
+        }            
 	}
 	else if (model[icell][iband]==SPEC_MOD_EXP)
 	{
