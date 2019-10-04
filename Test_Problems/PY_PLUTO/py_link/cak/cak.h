@@ -124,7 +124,7 @@ double *level_weights;
 int read_ionfs();
 int read_cont();
 int read_orig_cont();
-double model_jnu(double freq, double lfreq,int icell,int iband);
+double model_jnu(double freq, double lfreq,int icell,int iband,int debug);
 double int_jnu(int icell, int iband);
 double exp1(double x); 
 double exp_lookup_init(); 
