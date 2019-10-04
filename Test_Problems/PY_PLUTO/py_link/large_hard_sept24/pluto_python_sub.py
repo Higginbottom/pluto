@@ -377,9 +377,24 @@ def pre_calc(ifile,radforce=0):
     brem_c_pre=[]
     line_c_pre=[]
     
+    gx_es=[]
+    gy_es=[]
+    gz_es=[]
+    
+    gx_bf=[]
+    gy_bf=[]
+    gz_bf=[]
+    
+    gx_line=[]
+    gy_line=[]
+    gz_line=[]
+    
     gx=[]
     gy=[]
     gz=[]
+    
+    
+    
 
     odd=0.0
     
@@ -431,11 +446,23 @@ def pre_calc(ifile,radforce=0):
             change=(1./max_change)
         xray_h_pre.append(change*D.xh_pre[heatcool["i"][i]][heatcool["j"][i]])
         
-        
         if radforce:
-            gx.append((flux["F_vis_x"][i]+flux["F_UV_x"][i]+flux["F_Xray_x"][i])*c.sigma_T.cgs.value*heatcool["ne"][i]/heatcool["rho"][i]/c.c.cgs.value)
+            #Electron scattering acceleration is taken directly from the python heatcool file
+            gx_es.append(heatcool["rad_f_w"][i]/(heatcool["rho"][i]*heatcool["vol"][i]))
+            gy_es.append(heatcool["rad_f_phi"][i]/(heatcool["rho"][i]*heatcool["vol"][i]))
+            gz_es.append(heatcool["rad_f_z"][i]/(heatcool["rho"][i]*heatcool["vol"][i]))
+            #BF scattering acceleration is taken directly from the python heatcool file
+            gx_bf.append(heatcool["bf_f_w"][i]/(heatcool["rho"][i]*heatcool["vol"][i]))
+            gy_bf.append(heatcool["bf_f_phi"][i]/(heatcool["rho"][i]*heatcool["vol"][i]))
+            gz_bf.append(heatcool["bf_f_z"][i]/(heatcool["rho"][i]*heatcool["vol"][i]))
+            #Line scattering acceleration is computed using the fluxes and the force multiplicayion factors
+            gx_line.append((flux["F_vis_x"][i]*M["M_vis"][i]+flux["F_UV_x"][i]*M["M_uv"][i]+flux["F_Xray_x"][i]*M["M_xray"][i])*c.sigma_T.cgs.value*heatcool["ne"][i]/heatcool["rho"][i]/c.c.cgs.value)
+            gy_line.append((flux["F_vis_y"][i]*M["M_vis"][i]+flux["F_UV_y"][i]*M["M_uv"][i]+flux["F_Xray_y"][i]*M["M_xray"][i])*c.sigma_T.cgs.value*heatcool["ne"][i]/heatcool["rho"][i]/c.c.cgs.value)
+            gz_line.append((flux["F_vis_z"][i]*M["M_vis"][i]+flux["F_UV_z"][i]*M["M_uv"][i]+flux["F_Xray_z"][i]*M["M_xray"][i])*c.sigma_T.cgs.value*heatcool["ne"][i]/heatcool["rho"][i]/c.c.cgs.value)
+            #Add all the accelerations together
+            gx.append(gx_es[-1]+gx_bf[-1]+gx_line[-1])
             gy.append(0.0)    
-            gz.append((flux["F_vis_z"][i]+flux["F_UV_z"][i]+flux["F_Xray_z"][i])*c.sigma_T.cgs.value*heatcool["ne"][i]/heatcool["rho"][i]/c.c.cgs.value)
+            gz.append(gz_es[-1]+gz_bf[-1]+gz_line[-1])
 #            gx.append(heatcool["rad_f_w"][i]/heatcool["rho"][i]/heatcool["vol"][i])    
 #            gy.append(0.0)    
 #            gz.append(heatcool["rad_f_z"][i]/heatcool["rho"][i]/heatcool["vol"][i])    
@@ -461,8 +488,8 @@ def pre_calc(ifile,radforce=0):
         'gx':fmt,
         'gy':fmt,
         'gz':fmt,
-        }    
-
+        }  
+          
     titles=[]
     titles=titles+["ir","rcent","itheta","thetacent","rho"]
     titles=titles+["comp_h_pre","comp_c_pre","xray_h_pre","brem_c_pre","line_c_pre"]
@@ -486,6 +513,36 @@ def pre_calc(ifile,radforce=0):
 
     out_dat=Table([col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12],names=titles)
     ascii.write(out_dat,out,formats=fmts)
+    out.close()
+    
+    if radforce:
+        fmts2={'ir':'%03i',
+            'rcent':fmt,
+            'itheta':'%03i',
+            'thetacent':fmt,    
+            'gx_es':fmt,
+            'gy_es':fmt,
+            'gz_es':fmt,
+            'gx_bf':fmt,
+            'gx_bf':fmt,
+            'gx_bf':fmt,
+            'gx_line':fmt,
+            'gx_line':fmt,
+            'gx_line':fmt,
+            }
+    
+        titles=[]
+        titles=titles+["ir","rcent","itheta","thetacent"]
+        titles=titles+["gx_es","gy_es","gz_es"]
+        titles=titles+["gx_bf","gy_bf","gz_bf"]
+        titles=titles+["gx_line","gy_line","gz_line"]
+    
+        out=open("accelerations.dat",'w')
+        out_dat=Table([col0,col1,col2,col3,gx_es,gy_es,gz_es,gx_bf,gy_bf,gz_bf,gx_line,gy_line,gz_line],names=titles)
+        ascii.write(out_dat,out,formats=fmts2)
+        out.close()    
+    
+    
     return(odd)
         
     
@@ -678,6 +735,10 @@ def loop(t0,dt,istart,py_cycles,data,flag):
         cmdline="cp prefactors.dat "+root+"_prefactors.dat"  
         out.write(cmdline+"\n")
         subprocess.check_call(cmdline,shell=True)
+        if data["rad_force"]:
+            cmdline="cp accelerations.dat "+root+"_accelerations.dat"  
+            out.write(cmdline+"\n")
+            subprocess.check_call(cmdline,shell=True)
         cmdline="cp input.wind_save "+root+"_input.wind_save"  
         out.write(cmdline+"\n")
         subprocess.check_call(cmdline,shell=True)
