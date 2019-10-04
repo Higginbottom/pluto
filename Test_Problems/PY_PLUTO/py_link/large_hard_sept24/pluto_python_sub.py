@@ -630,7 +630,11 @@ def get_status():
     proc=subprocess.Popen(cmdline,shell=True,stdout=subprocess.PIPE) 
     test=proc.stdout.read().split()
     py_last_requested=int(test[10])
-    return dbl_file_1,dbl_file_2,last_dbl_time,dbl_time_requested,py_last_completed,py_last_requested    
+    return dbl_file_1,dbl_file_2,last_dbl_time,dbl_time_requested,py_last_completed,py_last_requested 
+    
+    
+    
+       
     
 def python_input_gen(ifile,py_cycles,data):
     pluto2py(ifile)   #We now make a python input file
@@ -647,7 +651,7 @@ def pluto_input_gen(ifile,data):
     subprocess.check_call(cmdline,shell=True)   #And finally we take a copy of the python heatcool file for later investigation.
     if data["rad_force"]:
         print ("Running CAK\n")
-        cmdline="mpirun -n "+str(data["nproc_cak"])+" ./cak > cak_output" 
+        cmdline=" ./cak > cak_output" 
         print (cmdline)         
         subprocess.check_call(cmdline,shell=True)   #And finally we take a copy of the python heatcool file for later investigation.
 #    now make a prefactors file
@@ -679,9 +683,17 @@ def loop(t0,dt,istart,py_cycles,data,flag):
         out.write("STARTING CYCLE "+str(i)+"\n")
         print(("STARTING CYCLE "+str(i)+"\n"))
         if flag==0: #If flag is not set - then we run pluto first 
-            pluto_input_file(t0+float(i)*dt,data)
-            out.write("Running for time="+str(t0+float(i)*dt)+"\n")
-            print(("Running for time="+str(t0+float(i)*dt)))
+            if i==0: #We are on our first cycle
+                time=t0
+            else: #We have already done at least one pluto run - we need to increase the time
+                 cmdline="tail -1 dbl.out"   
+                 proc=subprocess.Popen(cmdline,shell=True,stdout=subprocess.PIPE)
+                 last_dbl_time=float(proc.stdout.read().split()[1])
+                 time=last_dbl_time+dt
+            pluto_input_file(time,data)
+            out.write("Running for time="+str(time)+"\n")
+            print("Running for time="+str(time)+"\n")
+            
             if i==0:   #This is the first step - 
                 out.write("Creating first zeus_file"+"\n")
                 cmdline="mpirun -n "+str(data["nproc_pl"])+" ./pluto >"+"%08d"%i+"_pluto_log"
