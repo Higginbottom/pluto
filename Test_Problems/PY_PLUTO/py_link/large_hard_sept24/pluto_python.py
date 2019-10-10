@@ -170,14 +170,16 @@ elif sys.argv[1]=="clean":
         try:
             subprocess.check_call("rm dbl*",shell=True)
             subprocess.check_call("rm data*.dbl",shell=True)
-            subprocess.check_call("rm *_prefactors.dat",shell=True)        
+            subprocess.check_call("rm *_prefactors.dat",shell=True)
+            subprocess.check_call("rm *_accelerations.dat",shell=True)                
             subprocess.check_call("rm *_py_heatcool.dat",shell=True)        
             subprocess.check_call("rm *_pluto_log",shell=True)        
             subprocess.check_call("rm *.pluto",shell=True)        
             subprocess.check_call("rm *.pluto.pf",shell=True)        
             subprocess.check_call("rm *.python_log",shell=True)        
             subprocess.check_call("rm *.wind_save",shell=True)
-            subprocess.check_call("rm -r diag*",shell=True)            
+            subprocess.check_call("rm -r diag*",shell=True)  
+            subprocess.check_call("rm -r zzz*",shell=True)                        
             exit()
         except:
             print ("Clean!")

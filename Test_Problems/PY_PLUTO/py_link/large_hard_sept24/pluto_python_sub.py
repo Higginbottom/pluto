@@ -13,6 +13,10 @@ from scipy.interpolate import interp1d
 import pyPLUTO as pp
 import numpy as np
 
+files=['M_data.dat','accelerations.dat','prefactors.dat','py_flux.dat','py_heatcool.dat','py_ion_data.dat']
+files=files+['py_pcon_data.dat','py_spec_data.dat','input.wind_save','input.pf','dbl.out','grid.out','restart.out']
+files=files+['input.sig']
+
 
 def get_units(fname='definitions.h'):
     inp=open('definitions.h','r')
@@ -765,5 +769,32 @@ def loop(t0,dt,istart,py_cycles,data,flag):
                 
             
         out.write("FINISHED CYCLE"+"\n")
+        if i==0: #First run
+            cmdline="mkdir zzz_last_cycle"
+            subprocess.check_call(cmdline,shell=True)
+        else:
+            cmdline="rm -r zzz_penultimate_cycle ; mv zzz_last_cycle zzz_penultimate_cycle"
+            try: 
+                subprocess.check_call(cmdline,shell=True)
+            except:
+                out.write("Could not delete last cycle directory\n")
+            cmdline="mkdir zzz_last_cycle"
+            subprocess.check_call(cmdline,shell=True)
+        for fname in files:
+            cmdline="cp "+fname+" zzz_last_cycle"
+            subprocess.check_call(cmdline,shell=True)
+        cmdline="tail -1 dbl.out" 
+        proc=subprocess.Popen(cmdline,shell=True,stdout=subprocess.PIPE) #This mess gets the last dblfile     
+        idblfile=int(proc.stdout.read().split()[0])
+        dblfile="data."+"%04d"%(ifile)+".dbl"
+        cmdline="cp "+dblfile+" zzz_last_cycle"
+        subprocess.check_call(cmdline,shell=True)
+            
+            
+            
+            
+            
+            
+             
     out.close()
     
