@@ -99,10 +99,11 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
 	 
 	T=E*(2.0/3.0)/(n*CONST_kB);
 	
-	
+    if (i==2 && j==70) printf ("BLAH rho=%e n=%e E=%e T=%e\n",rho,n,E,T);
+    
 	  
     if (T < g_minCoolingTemp) continue;  //Quit if the temperature is too cold - this may need tweeking		
-	
+	if (T>1e12) printf ("BOOM - we are in trouble here %i %i %e\n",i,j,T);
 	
 	sqsqxi=pow(xi,0.25);    //we use xi^0.25 in the cooling rates - expensive to recompute every call, so do it now and transmit externally	
 	sqxi=sqrt(xi);
@@ -127,7 +128,19 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
 	}
 //	else  //We are fine - look for a solution
 	{
+        if (t_l<1)
+        {
+    printf ("SEARCHING %i %i %e %e t_init=%e\n",i,j,t_l,t_u,T);
+}
     T_f=zbrent(zfunc,t_l,t_u,1.0);
+        if (t_l<1)
+        {
+    printf ("New %i %i %e %e  T_f=%e\n",i,j,t_l,t_u,T_f);
+}
+    if (T_f<t_l || T_f>t_u)
+    {
+        printf ("OOOOOPs!!! %a is not between %e and %e!!\n",T_f,t_l,t_u);
+    }
 	 hc_final=heatcool(T_f);
 
 	if (hc_final*hc_init<0.)   //We have crossed the equilibrium temperature
@@ -135,6 +148,10 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
 		T_test=zbrent(heatcool,fmin(T_f,T),fmax(T_f,T),1.0); //Find the equilibrium
 		T_f=T_test;
 	}
+    if (T_f<t_l || T_f>t_u)
+    {
+        printf ("OOOOOPs2!!! %a is not between %e and %e!!\n",T_f,t_l,t_u);
+    }
 
 	}
 //	if (T_f>1e10)
@@ -143,7 +160,16 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
 /*  ----  Update Energy  ----  */
 	T_f = MAX (T_f, g_minCoolingTemp); //if the temperature has dropped too low - use the floor (50K)
 	
+    
+    
+        if (t_l<1)
+        {
+    printf ("Real New %i %i %e %e  T_f=%e\n",i,j,t_l,t_u,T_f);
+}
 //	heatcool2(data,T,i,j,k);
+
+
+
 
 	E_f=T_f/(2.0/3.0)*(n*CONST_kB); //convert back to energy
 	
@@ -345,7 +371,7 @@ zbrent (func, x1, x2, tol)
       b += (xm > 0.0 ? fabs (tol1) : -fabs (tol1));
     fb = (*func) (b);
   }
-  printf ("Maximum number of iterations exceeded in ZBRENT\n");
+  printf ("Maximum number of iterations exceeded in ZBRENT ans will be set to %e (%e %e)\n",b,x1,x2);
   return b;
 }
 

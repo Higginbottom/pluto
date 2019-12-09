@@ -130,6 +130,7 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
       print("! ConsToPrim: rho < 0 (%8.2e), ", u[RHO]);
       Where (i, NULL);
       u[RHO]   = g_smallDensity;
+      printf ("g_smallDensity=%e\n",g_smallDensity);
       flag[i] |= FLAG_CONS2PRIM_FAIL;
       ifail    = 1;
     }
