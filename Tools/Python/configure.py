@@ -44,16 +44,16 @@ def check(pluto_dir, get_arch):
  #  print a short system summary 
  # ------------------------------
  
-  print ("User.......................",user)
-  print ("System name................",PLATFORM[0])
-  print ("Node name..................",PLATFORM[1])
-  print ("Release....................",PLATFORM[2])
-  print ("Arch.......................",PLATFORM[4])
-  print ("Byteorder..................",sys.byteorder)
-  print ("Version....................",PLATFORM[3])
-  print ("Working_dir................",work_dir)
-  print ("PLUTO main dir.............",pluto_dir)
-  print ("PLUTO version..............",vers)
+  print(("User.......................",user))
+  print(("System name................",PLATFORM[0]))
+  print(("Node name..................",PLATFORM[1]))
+  print(("Release....................",PLATFORM[2]))
+  print(("Arch.......................",PLATFORM[4]))
+  print(("Byteorder..................",sys.byteorder))
+  print(("Version....................",PLATFORM[3]))
+  print(("Working_dir................",work_dir))
+  print(("PLUTO main dir.............",pluto_dir))
+  print(("PLUTO version..............",vers))
 
   
 # --------------------------------------
@@ -65,7 +65,7 @@ def check(pluto_dir, get_arch):
  
   for x in compiler_list:
     if (CHECK_FOR(x) == 'YES'):
-      print ("C Compiler................. ",x)
+      print(("C Compiler................. ",x))
       COMPILER_NAME = x
       break
 
@@ -81,7 +81,7 @@ def check(pluto_dir, get_arch):
 
   for x in mpi_compiler_list:
     if (CHECK_FOR(x) == 'YES'):
-      print ("MPI Compiler .............. ",x)
+      print(("MPI Compiler .............. ",x))
       MPI_COMPILER_NAME = x
       break
    
@@ -92,8 +92,8 @@ def check(pluto_dir, get_arch):
   if (get_arch):
     print ("\n")
     print ("Proposed makefile names: \n")
-    print ("> "+PLATFORM[0]+"."+PLATFORM[4]+"."+COMPILER_NAME+".defs")
-    print ("> "+PLATFORM[0]+"."+PLATFORM[4]+"."+MPI_COMPILER_NAME+".defs")
+    print(("> "+PLATFORM[0]+"."+PLATFORM[4]+"."+COMPILER_NAME+".defs"))
+    print(("> "+PLATFORM[0]+"."+PLATFORM[4]+"."+MPI_COMPILER_NAME+".defs"))
 
 # ---------------------------------------------------
 #  Build log list, that will be compared to the 

@@ -81,7 +81,7 @@ class DefineProblem(object):
     # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     
     #Updates Options, default based on FLAGS.
-    if True in self.flag_dict.values():
+    if True in list(self.flag_dict.values()):
       self.AfterFlagLists() 
 
     #Read the exsisting definition.h file or Browse the menu for Setting up problem.
@@ -700,7 +700,7 @@ class DefineProblem(object):
           cmms.append('')
 
     for x in self.udef_params:
-      if x in paradict.keys():
+      if x in list(paradict.keys()):
         pf.InsertLine(x.ljust(28) + paradict[x] +'  '+cmms[self.udef_params.index(x)]+'\n', ipos)
       else:
         try:
