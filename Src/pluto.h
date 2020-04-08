@@ -13,6 +13,8 @@
 #ifndef PLUTO_H
 #define PLUTO_H
 
+double dvdr_array[100000];
+
 #define PLUTO_VERSION  "4.3"
 
 #include <stdio.h>

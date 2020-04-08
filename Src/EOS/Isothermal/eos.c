@@ -33,7 +33,6 @@ void SoundSpeed2 (const State *p, int beg, int end, int pos, Grid *grid)
    x3 = grid->x[KDIR];
 
    i = g_i; j = g_j; k = g_k;
-    
    if (g_dir == IDIR) {
 
      x1 = (pos == FACE_CENTER ? grid->xr[IDIR] : grid->x[IDIR]);
