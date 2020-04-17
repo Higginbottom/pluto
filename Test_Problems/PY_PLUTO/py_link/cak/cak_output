@@ -1,0 +1,35 @@
+We have 178 ions
+We have 800 cells
+We have 10 J bands
+We have 10 J bands
+We have 10 J bands
+Read ion data - currently using 1.143472 Mb
+Read physical data - currently using 1.213872 Mb
+We have 10 J bands
+We have 10 J bands running from 3.223490e+13 to 2.417678e+19 Hz
+3.223490e+13 1.000000e+15 2 -1.124698e+01 5.551505e-01 3.926241e-04 -3.835749e+04
+1.000000e+15 3.162000e+15 2 -2.339262e+00 -4.235967e-02 1.077275e-03 2.217565e+06
+3.162000e+15 1.000000e+16 1 -1.277809e+01 6.181541e-01 5.122856e-04 -4.939303e+05
+1.000000e+16 2.813366e+16 2 -7.618145e+00 2.920256e-01 9.980004e-04 -3.013538e+06
+3.162000e+16 1.000000e+17 2 4.966624e+00 -4.741798e-01 1.678355e-03 6.150706e+06
+1.000000e+17 3.162000e+17 1 1.903233e+01 -1.298333e+00 1.610471e-03 6.850312e+06
+3.162000e+17 1.000000e+18 2 2.451870e+01 -1.595424e+00 8.143477e-04 1.739120e+07
+1.000000e+18 3.162000e+18 1 6.074988e+00 -5.720567e-01 7.555762e-05 1.605405e+08
+3.162000e+18 1.200000e+19 1 1.122268e+01 -8.517922e-01 3.833985e-05 3.766691e+08
+1.200000e+19 2.417678e+19 1 2.144035e+01 -1.383221e+00 2.777592e-05 5.993685e+08
+Read spectral data - currently using 1.629872 Mb
+Reading atomic model data
+Read level data - currently using 5.252528 Mb
+There are a total of 453309 lines linked to ions in our model
+There are a total of 446184 lines in modelled bands
+Line Fmin=8.993775e+08 Fmax=2.154153e+18
+Line Emin=3.719528e-06 Emax=8.908866e+03
+Read transition data - currently using 30.637832 Mb
+Set up working arrays - currently using 30.657032 Mb
+Calculating
+BLAH num_mpi_cells=200 num_mpi_extra=0
+Thread 0 doing cells 0 to 200
+Done all the calculations
+Communicated all the arrays
+outputting the file
+output the file
