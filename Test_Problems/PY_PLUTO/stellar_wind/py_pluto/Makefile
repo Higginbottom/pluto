@@ -1,6 +1,6 @@
 CC = mpicc
-CFLAGS = -O3 -m64 $(MPI_FLAG)
-LDFLAGS= -lm -lgsl -m64  
+CFLAGS = -O3 -m64   -I$(PYTHON)/include $(MPI_FLAG)
+LDFLAGS= -L$(PYTHON)/lib -lm -lgsl -lgslcblas -m64  
 
 cak_objects = cak.o
 
