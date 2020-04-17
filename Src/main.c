@@ -139,11 +139,24 @@ int main (int argc, char *argv[])
 #if PY_CONNECT
   if (cmd_line.restart == NO)
     {
-	    read_py_heatcool (&data, grd,0); 
+        #if COOLING == BLONDIN
+	    read_py_heatcool (&data, grd,0);
+        #endif
+        #if (BODY_FORCE & VECTOR)
+        read_py_rad_driv(&data, grd,0);
+        #endif
     }
   else
     {
-    read_py_heatcool (&data, grd,1); 
+        #if COOLING == BLONDIN
+        read_py_heatcool (&data, grd,1);
+        #endif
+        #if EOS == ISOTHERMAL //We will read in new temperatures from python
+        read_py_iso_temp (&data, grd,1);
+        #endif
+        #if (BODY_FORCE & VECTOR)
+        read_py_rad_driv(&data, grd,1);
+        #endif
     }  
 #endif
   

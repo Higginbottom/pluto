@@ -223,6 +223,15 @@ void Trace (double);
    --------------------------------------------------------------------- */
    
 void  read_py_heatcool (Data *, Grid *,int);
+void  read_py_iso_temp (Data *, Grid *,int);
+
+#if (BODY_FORCE & VECTOR)
+void read_py_rad_driv (Data *, Grid *,int);
+#endif
+
+
+
+
 double ne_rat(double temp,double xi); 
    
    
@@ -236,8 +245,11 @@ double ne_rat(double temp,double xi);
  #endif
  #if COOLING == BLONDIN
  void  BlondinCooling (Data_Arr,const Data *, double, timeStep *, Grid *);
-
  #endif
+ 
+ 
+ 
+ 
 #if COOLING == LOOKUP
 void  LookupCooling (Data_Arr,const Data *, double, timeStep *, Grid *);
 
