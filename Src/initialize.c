@@ -476,6 +476,10 @@ void Initialize(int argc, char *argv[], Data *data,
       data->line_c=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
       data->brem_c=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);	
   #endif  
+  #if EOS == ISOTHERMAL
+      py_temp=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);	
+  #endif      
+      
   g_rad = ARRAY_4D(3,NX3_TOT, NX2_TOT, NX1_TOT, double);  //This is a global variable because rad force doesnt have access to data
 #endif  
 

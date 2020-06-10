@@ -59,7 +59,8 @@ typedef struct Data_{
   double ***line_c;   //
   double ***xray_h;   //
   double ***brem_c;   // 
-#endif	  
+#endif	
+
 	  
 	  
   double ***Ax1;    /**< Vector potential comp. in the \f$x_1\f$ dir.*/

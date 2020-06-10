@@ -142,6 +142,9 @@ int main (int argc, char *argv[])
         #if COOLING == BLONDIN
 	    read_py_heatcool (&data, grd,0);
         #endif
+        #if EOS == ISOTHERMAL //We will read in new temperatures from python
+        read_py_iso_temp (&data, grd,0);
+        #endif
         #if (BODY_FORCE & VECTOR)
         read_py_rad_driv(&data, grd,0);
         #endif

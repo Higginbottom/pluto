@@ -233,7 +233,7 @@ void read_py_rad_driv (Data *d, Grid *grid,int flag)
 	double rcen,thetacen,dens,gx,gy,gz;
 	int icount;
 
-	
+	printf ("Reding in accelerations from python\n");
     if (flag==1)
     {
         fptr = fopen ("py_accelerations.dat", "r");
@@ -250,9 +250,12 @@ void read_py_rad_driv (Data *d, Grid *grid,int flag)
                 if (fabs((dens-d->Vc[RHO][k][jj+JBEG][ii+IBEG]*UNIT_DENSITY)/dens) > 1e-6)
                     printf ("NOT SAME  %e %e %e %e\n",thetacen,dens,gx,d->Vc[RHO][k][jj+JBEG][ii+IBEG]*UNIT_DENSITY);
                 else
+                {
+                    icount++;
     				g_rad[0][k][jj+JBEG][ii+IBEG]=gx/UNIT_ACCELERATION;
     				g_rad[1][k][jj+JBEG][ii+IBEG]=gy/UNIT_ACCELERATION;
     				g_rad[2][k][jj+JBEG][ii+IBEG]=gz/UNIT_ACCELERATION;
+                }
                 
             }
             else
@@ -260,6 +263,7 @@ void read_py_rad_driv (Data *d, Grid *grid,int flag)
                 printf ("Incorrectly formatted\n");
             }
     	}
+        printf ("matched %i accelerations\n",icount);
     }
     else
     {

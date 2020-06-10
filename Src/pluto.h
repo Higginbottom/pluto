@@ -780,6 +780,9 @@ extern double g_time, g_dt;
 extern int    g_hydroStep;
 extern double g_maxMach;
 extern double ****g_rad; // 
+#if EOS==ISOTHERMAL && PY_CONNECT
+  extern double ***py_temp;   //
+#endif
 
 #if ROTATING_FRAME
  extern double g_OmegaZ;
