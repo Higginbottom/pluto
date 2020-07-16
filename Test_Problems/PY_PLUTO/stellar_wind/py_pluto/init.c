@@ -20,7 +20,8 @@ void Init (double *v, double x1, double x2, double x3)
 {
 	
     double temp,cisosqrd,cent_mass,rho_alpha,disk_mdot,rho_0,r_0,r,v_0;
-    
+    double H0; //The density scale weight in an isothermal wind
+    double g0; //base of the wind
     
     cent_mass=g_inputParam[CENT_MASS];
 	rho_0=g_inputParam[RHO_0];
@@ -29,12 +30,23 @@ void Init (double *v, double x1, double x2, double x3)
     
     
     r=x1*UNIT_LENGTH;
-    temp=g_inputParam[T_ISO];
-    
-    g_isoSoundSpeed=sqrt(CONST_Rgas*temp/0.6)/UNIT_VELOCITY;
+
         
+    temp=1e5;    
+    g0=CONST_G*cent_mass/r_0/r_0;    
+    H0=CONST_Rgas*temp/0.6/g0;
         
-    v[RHO]=rho_0*exp(-(r-r_0)/r_0)/UNIT_DENSITY;
+//    if (r<r_0) //Ghost zones
+//        {
+//            v[RHO]=rho_0/UNIT_DENSITY;
+//        } 
+//    else
+//        {
+            v[RHO]=rho_0*exp(-1*(r-r_0)/H0*r_0/r)/UNIT_DENSITY;
+//        }   
+
+
+//    v[RHO]=rho_0*exp(-(r-r_0)/r_0)/UNIT_DENSITY;
     
     v[VX1]=v_0*r/r_0/UNIT_VELOCITY;
     v[VX2]=0.0;
@@ -64,6 +76,7 @@ void InitDomain (Data *d, Grid *grid)
  *
  *********************************************************************** */
 {
+
 }
 
 /* ********************************************************************* */
@@ -94,27 +107,33 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
     v_0=g_inputParam[V_0];
     r_0=g_inputParam[R_0];
     
-    if (side == 0) 
-  
-    {    /* -- check solution inside domain -- */
-  	TOT_LOOP(k,j,i)
-  	{
-        r=x1[i]*UNIT_LENGTH;
-  	if (i<=2)  
-  		{
-            d->Vc[RHO][k][j][i]=rho_0/UNIT_DENSITY;            
-//            d->Vc[RHO][k][j][i]=rho_0/UNIT_DENSITY;
-//            printf ("BLAH %i %e ",i,d->Vc[VX1][k][j][i]);
-//            printf ("BLAH %e \n",d->Vc[VX1][k][j][i]);
-            d->flag[k][j][i] |= FLAG_INTERNAL_BOUNDARY;
-//            printf ("BLAH %e %e %e\n",x1[i],d->Vc[RHO][k][j][i],d->Vc[VX1][k][j][i]);
+    
+//Set boundary conditions at the inner boundary    
+   
+    if (side == X1_BEG){ /* -- select the boundary side -- */
+        BOX_LOOP(box,k,j,i)
+        { /* -- Loop over boundary zones -- */            
+            d->Vc[VX1][k][j][i]=((grid->x[IDIR][i]*UNIT_LENGTH)/r_0)*v_0/UNIT_VELOCITY;
+            d->Vc[RHO][k][j][i]=rho_0/UNIT_DENSITY;
             
-  		}
+//            printf ("BOOM1 %i %i %i %e %e\n",i,j,k,x1[i]/r_0,d->Vc[VX1][k][j][i]*UNIT_VELOCITY);
+        }
+    }
+
+    
+    /* -- check solution inside domain -- */
+  	DOM_LOOP(k,j,i)
+  	{
+        if (i==IBEG) 
+        {
+            d->Vc[VX1][k][j][i]=v_0/UNIT_VELOCITY;
+            d->Vc[RHO][k][j][i]=rho_0/UNIT_DENSITY;
+        }
   		if (d->Vc[RHO][k][j][i]*UNIT_DENSITY < 1.e-30) //Set a lower density throughout the domain
   		{
   	         d->Vc[RHO][k][j][i] = 1.e-30/UNIT_DENSITY;				
   		 }
-//         d->Vc[VX1][k][j][i]=v_0*i/UNIT_VELOCITY;
+//         d->Vc[VX1][k][j][i]=v_0/UNIT_VELOCITY;
  //        printf ("BOOM %i %e\n",i,d->Vc[VX1][k][j][i]);
   	 }
    	TOT_LOOP(k,j,i) //Now compute dvdr for use in line driving calculations
@@ -142,7 +161,6 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
         } 
         dvdr_array[i]=(v_r-v_l)/(grid->xr[IDIR][i]-grid->xl[IDIR][i]);
 //        printf ("BOOM %i %e\n",i,dvdr_array[i]);
-    }
 	
     }
 
@@ -167,10 +185,17 @@ void BodyForceVector(double *v, double *g, double x1, double x2, double x3,int i
  *********************************************************************** */
 {
   double A,cent_mass,Gamma,g_const,L_UV,L_x;
-  double F_UV,F_x,M,temp,r;
+  double F_UV,F_x,temp,r;
   double A_test,g_r,sigma_e;
   double dvdr,t,rho,v_th,M_max;
-  double lum,g_es,ne,nH,test;
+  double k_rad,alpha_rad,***M;
+  double test,M_test;
+  
+  
+  k_rad=1./12.;
+  alpha_rad=0.67;
+  
+  M = GetUserVar("M");
   
     M_max=g_inputParam[M_rad];
     
@@ -183,30 +208,46 @@ void BodyForceVector(double *v, double *g, double x1, double x2, double x3,int i
     F_UV=L_UV/4.0/CONST_PI/r/r;
     F_x=L_x/4.0/CONST_PI/r/r;
     
-    v_th=sqrt(3.)*g_isoSoundSpeed*UNIT_VELOCITY;
-     
-    t=0.4*rho*v_th/fabs(dvdr_array[i]*UNIT_VELOCITY/UNIT_LENGTH);   
-    M=1./30.*pow(t,-0.7);
-    if (M>M_max) M=M_max;
+#if PY_CONNECT
+    v_th=sqrt(2.*CONST_kB*py_temp[k][j][i]/CONST_amu);        
+#else
+    v_th=sqrt(2.*CONST_kB*g_inputParam[T_ISO]/CONST_amu);        
+#endif
+    
+    sigma_e=CONST_sigmaT/CONST_amu/1.18;
+//    sigma_e=0.32;
+    
+ //   v_th=sqrt(3.)*ciso*UNIT_VELOCITY;
+    t=sigma_e*rho*v_th/fabs(dvdr_array[i]*UNIT_VELOCITY/UNIT_LENGTH);   
+    M[k][j][i]=k_rad*pow(t,-1.0*alpha_rad);
+    if (M[k][j][i]>M_max) M[k][j][i]=M_max;
  //   printf ("BLAH %i dvdr=%e t=%e M=%e\n",i,dvdr_array[i],t,M);
 //    printf ("VECTOR %i %e\n",i,x1);
     
-    sigma_e=CONST_sigmaT/CONST_amu;
+
     
-//    {
-//       test=M*sigma_e*F_UV/CONST_c/UNIT_ACCELERATION;
-//    }
-//    else
-//    {
-        test=sqrt(g_rad[0][k][j][i]*g_rad[0][k][j][i]+g_rad[2][k][j][i]*g_rad[2][k][j][i]);
-//    }
+ //   printf ("Boom %e %e %e %e %e %e\n",r,rho,t,v_th,dvdr_array[i],(1.+M)*sigma_e*F_UV/CONST_c/UNIT_ACCELERATION);
+
+#if PY_CONNECT
+    if (g_rad[0][k][j][i]==12345678 && g_rad[1][k][j][i]==12345678 && g_rad[2][k][j][i]==12345678) //First time thruogh, we will be using an approximation
+    {
+        g[IDIR]=(1.+M[k][j][i])*sigma_e*F_UV/CONST_c/UNIT_ACCELERATION;
+        g[JDIR] = 0.0;
+        g[KDIR] = 0.0;
+    }
+    else
+    {
+        g[IDIR]=g_rad[0][k][j][i];
+        g[JDIR]=g_rad[1][k][j][i];
+        g[KDIR]=g_rad[2][k][j][i];  
+        M[k][j][i]=g[IDIR]/(sigma_e*F_UV/CONST_c/UNIT_ACCELERATION)-1.;     
+    }
+#else
+    g[IDIR]=(1.+M[k][j][i])*sigma_e*F_UV/CONST_c/UNIT_ACCELERATION;
+    g[JDIR] = 0.0;
+    g[KDIR] = 0.0;
+#endif
     
-  g[IDIR]=test;
-  g[JDIR] = 0.0;
-  g[KDIR] = 0.0;
-  
-  
-  
 }
 /* ********************************************************************* */
 double BodyForcePotential(double x1, double x2, double x3)
