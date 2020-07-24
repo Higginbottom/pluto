@@ -63,6 +63,8 @@ double line_fmax; //the maximum line frequency
 int nions,nline_tot;
 double **ion_fracs;
 
+double **by_ion;
+
 //2D arrays for level data of size n_ions x n_levels
 
 double **lev_energy;

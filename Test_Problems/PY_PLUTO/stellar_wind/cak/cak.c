@@ -19,6 +19,7 @@ int main(int argc, char** argv)
 {
 
   FILE *output;
+  
   double line_nu;
   double A_ul, B_ul, B_lu;
   double kappa_l, delta_doppler, flux_factor, test;
@@ -32,7 +33,7 @@ int main(int argc, char** argv)
   int np_mpi;                   // rank and number of processes, 0 and 1 in non-parallel
   int my_nmin,my_nmax;
   int np_mpi_global,num_mpi_cells,num_mpi_extra,rank_global;
-  int i;
+  int i,ii;
   double *part;
   
   double *M_array_transmit;
@@ -155,6 +156,8 @@ rank_global=my_rank;
     					if ( (test = kappa_l*t[icell][v_uv_x]/sigma_e[icell]) > 1.e-6) //If we have a large opacity
     					{	
     						M_array[icell][v_uv_x] += delta_doppler * flux_factor * (1. - exp1(-1.*test)) / t[icell][v_uv_x];  //increment the fore multiplier for this t
+                            by_ion[icell][iion]+=  delta_doppler * flux_factor * (1. - exp1(-1.*test)) / t[icell][v_uv_x];
+                            
     						if (!isfinite(M_array[icell][v_uv_x]))
     						{
     							printf("Non-finite M1. Abort.\n");
@@ -164,7 +167,9 @@ rank_global=my_rank;
     					}
     					else
     					{
-    						M_array[icell][v_uv_x] += delta_doppler * flux_factor * kappa_l / sigma_e[icell];						
+    						M_array[icell][v_uv_x] += delta_doppler * flux_factor * kappa_l / sigma_e[icell];	
+                            by_ion[icell][iion]+=  delta_doppler * flux_factor * kappa_l / sigma_e[icell];
+                            					
     						if (!isfinite(M_array[icell][v_uv_x]))
     						{
     							printf("Non-finite M2. Abort.\n");
@@ -173,7 +178,7 @@ rank_global=my_rank;
     							exit(0);
     						}
     					}
-                    } //End of check for non zero flux factor   
+                    } //End of check for non zero flux factor 
 				} //End of loop to only do computations if ion frac is greater than zero							
 			} //End of loop to compute M if the trans freq is greater than zero 
 			else
@@ -242,6 +247,34 @@ rank_global=my_rank;
     fclose(output);
     
     printf ("output the file\n");
+    
+    
+    if ((output = fopen("M_data_by_ion.dat", "w")) == NULL)
+        {
+        printf("Cannot open M_data.dat\n");
+        abort();
+        }
+        
+    fprintf (output, "nions %i\n", nions);
+        for (i = 0; i < nions; i++)
+        {
+          fprintf (output, "ion %i dummy %i %i\n", i, ion_info_z[i], ion_info_state[i]);
+        }
+        fprintf (output, "nplasma %i\n", ncells);
+        
+    for (icell = 0; icell < ncells; icell++)
+    	{
+    		fprintf(output, "%i %i ", cell_i[icell], cell_j[icell]);
+            
+                for (ii = 0; ii < nions; ii++)
+                {
+          fprintf (output, "%e ", by_ion[icell][ii]);
+      }
+        fprintf (output, "\n");
+    }
+    
+
+    
     
 #ifdef MPI_ON
   }
@@ -371,6 +404,7 @@ int read_ionfs()
     
     
 	ion_fracs=ARRAY_2D(ncells,nions,double); //Set up the ion fracs array
+	by_ion=ARRAY_2D(ncells,nions,double); //Set up the ion fracs array
 		
 	for (i=0;i<ncells;i++)
 	{
