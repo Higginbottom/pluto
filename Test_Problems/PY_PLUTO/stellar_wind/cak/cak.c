@@ -101,7 +101,7 @@ rank_global=my_rank;
 		n_used_lines=0;
 /* first thing we need to do is set up the level populations for this cell*/
 		for (iion=0;iion<nions;iion++)  //loop over all ions
-		{
+		{            
 			part[iion]=0.0;
 			for (ilev=0;ilev<ion_info_nlevels[iion];ilev++) //loop over all the levels for this ion
 			{
@@ -139,12 +139,12 @@ rank_global=my_rank;
 					if (J[icell]==0.0 || trans_iband[itrans]<0)
 						flux_factor=0.0; //There is no flux, and so no force multiplier
 					else
-                    {
+                    {                        
                     	if (model_type==IONMODE_MATRIX_SPECTRALMODEL)  // matrix solver spectral model based on power laws
                     	{
 						flux_factor = model_jnu(line_nu, trans_lfreq[itrans],icell,trans_iband[itrans],0)/J[icell];	
                         }
-                        else if (model_type==IONMODE_MATRIX_BB)
+                        else if (model_type==IONMODE_MATRIX_BB || model_type == IONMODE_ML93)
                         {
                             flux_factor = bb2(trans_freq[itrans],W[icell],t_r[icell])/J[icell];	         
                         }  
@@ -574,7 +574,7 @@ int read_cont()
     //        printf ("%i %e\n",i,J[i]);
     	}
     }
-    else if (model_type==IONMODE_MATRIX_BB)
+    else if (model_type==IONMODE_MATRIX_BB || model_type == IONMODE_ML93)
     {
     	fscanf(contf, "%*s %d", &idum1);
     	if (ncells!=idum1)
