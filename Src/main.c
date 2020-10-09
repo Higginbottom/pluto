@@ -272,7 +272,11 @@ int main (int argc, char *argv[])
          Do it every two steps if cooling or dimensional
          splitting are used.
      ------------------------------------------------------ */
-
+    
+    g_last_dt3=g_last_dt2;
+    g_last_dt2=g_last_dt1;
+    g_last_dt1=g_dt;
+    
     #if (COOLING == NO) && ((DIMENSIONS == 1) || (DIMENSIONAL_SPLITTING == NO))
     g_dt = NextTimeStep(&Dts, &ini, grd);
     #else
@@ -312,7 +316,7 @@ int main (int argc, char *argv[])
       print("> Average time/step       %10.2e  (sec)  \n", 
            difftime(tend,tbeg)/(double)g_stepNumber);
   else print("> Average time/step       %10.2e  (sec)  \n",difftime(tend,tbeg));
-
+  print(     "> Last full timesteps     %10.2e %10.2e %10.2e (sec)  \n",g_last_dt1,g_last_dt2,g_last_dt3);
   print("> Local time                %s",asctime(localtime(&tend)));
   print("> Done\n");
 
@@ -450,7 +454,6 @@ double NextTimeStep (timeStep *Dts, Runtime *ini, Grid *grid)
    1. Take the maximum of invDt_hyp, invDt_par, etc...
       across all processors
    -------------------------------------------------------- */
-
 #ifdef PARALLEL
   xloc = Dts->invDt_hyp;
   MPI_Allreduce (&xloc, &xglob, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);

@@ -92,6 +92,10 @@ int g_dir; /**< Specifies the current sweep or direction of integration.
                 - KDIR, for integration in the X3 dir; */
 
 double g_dt;       /**< The current integration time step. */
+double g_last_dt1;       /**< The previous integration time step. */
+double g_last_dt2;       /**< The previous integration time step. */
+double g_last_dt3;       /**< The previous integration time step. */
+
 
 int    g_hydroStep = 0;   /**< Tells whether we're in a hydro step (=1)
                            or SplitSource step (=0)                  */
