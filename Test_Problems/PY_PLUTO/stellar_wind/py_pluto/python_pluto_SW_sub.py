@@ -15,14 +15,14 @@ import numpy as np
 
 
 
-def pluto_input_file(tlim,data):
+def pluto_input_file(tlim,clim,data):
     output=open('pluto.ini','w')
     output.write("[Grid]\n")
     output.write("\n")
     if data["STRETCH_GRID"]:
         output.write("X1-grid 2 "+str(data["R_MIN"])+" "+str(data["N_R"])+" l+ "+str(data["R_MAX"])+" "+str(data["N_STRETCH"])+" s "+str(data["STRETCH_RMAX"])+"\n")
     else:
-        output.write("X1-grid 2 "+str(data["R_MIN"])+" "+str(data["N_R"])+" l+ "+str(data["R_MAX"])+"\n")
+        output.write("X1-grid 1 "+str(data["R_MIN"])+" "+str(data["N_R"])+" l+ "+str(data["R_MAX"])+"\n")
     output.write("X2-grid 1    0.0    1    u    1.0\n")
     output.write("X3-grid 1    0.0    1    u    1.0\n")
     output.write("\n")
@@ -50,8 +50,8 @@ def pluto_input_file(tlim,data):
     output.write("\n")
     output.write("[Boundary]\n")
     output.write("\n")
-    output.write("X1-beg        outflow\n")
-    output.write("X1-end        outflow\n")
+    output.write("X1-beg        userdef\n")
+    output.write("X1-end        userdef\n")
     output.write("X2-beg        outflow\n")
     output.write("X2-end        outflow\n")
     output.write("X3-beg        outflow\n")
@@ -63,7 +63,10 @@ def pluto_input_file(tlim,data):
         output.write("uservar    4 dvdr M g_r T\n")
     else:
         output.write("uservar    14    XI T ch cc lc bc xh ch_pre cc_pre lc_pre bc_pre xh_pre ne nh\n")
-    output.write("dbl        1000000000000   -1   single_file\n")
+    if clim==0:
+        output.write("dbl        1000000000000   -1   single_file\n")
+    else:
+        output.write("dbl        1000000000000   "+str(clim)+"   single_file\n")     
     output.write("flt       -1.0  -1   single_file\n")
     output.write("vtk       -1.0  -1   single_file\n")
     output.write("dbl.h5    -1.0  -1\n")
@@ -92,7 +95,7 @@ def pluto_input_file(tlim,data):
     output.close()
     return
 
-def pluto2py_1d(ifile):
+def pluto2py_1d(ifile,data):
     
     D=pp.pload(ifile)
     
@@ -107,33 +110,49 @@ def pluto2py_1d(ifile):
     v_r=[]
     density=[]
     T=[]
+    dvdr=D.dvdr*UNIT_VELOCITY/UNIT_LENGTH
+    
+    pluto_r=D.x1r[:-1]*UNIT_LENGTH #Python expects a model file to have the inner radius of each shell
+    pluto_c=D.x1*UNIT_LENGTH #Central point of each pluto cell - where the velocity is defined
+    pluto_vr_c=D.vx1*UNIT_VELOCITY #The velocity in each pluto cell - defined at cell centre
+    
+    
+    #First, find the velocity at the edge of each cell...
+    
+    pluto_vr_r=[] #Set up a list to hold the edge velocities.
+    
+    
+    for i in range(len(pluto_c)):
+        pluto_vr_r.append(pluto_vr_c[i]-dvdr[i]*(pluto_c[i]-pluto_r[i]))
     
     
     #The first element is a ghost cell
     ir.append(0)
-    r.append(D.x1[0]*UNIT_LENGTH)
-    v_r.append(D.vx1[0]*UNIT_VELOCITY)
+    r.append(pluto_r[0]*0.99) #The inner cell has to be inside the next cell.
+    v_r.append(pluto_vr_r[0]-dvdr[0]*(pluto_r[0]-r[0]))
     density.append(D.rho[0]*UNIT_DENSITY)
     T.append(D.T[0])
     
-    for i in range(len(D.x1)):
+    #now we fill in the bulk of the "real" cells
+    
+    for i in range(len(pluto_r)):
         ir.append(i+1)
-        r.append(D.x1[i]*UNIT_LENGTH)
-        v_r.append(D.vx1[i]*UNIT_VELOCITY)
+        r.append(pluto_r[i])
+        v_r.append(pluto_vr_r[i])
         density.append(D.rho[i]*UNIT_DENSITY)       
         T.append(D.T[i])
         
     #We need two extra ghost cells
     
-    ir.append(i+1)
-    r.append(D.x1[-1]*UNIT_LENGTH*1.1)
-    v_r.append(D.vx1[-1]*UNIT_VELOCITY)
+    ir.append(i+2)
+    r.append(data["R_MAX"]*UNIT_LENGTH)
+    v_r.append(v_r[-1]+dvdr[-1]*(r[-1]-r[-2]))
     density.append(D.rho[-1]*UNIT_DENSITY)
     T.append(D.T[-1])    
         
-    ir.append(i+2)
-    r.append(D.x1[-1]*UNIT_LENGTH*1.2)
-    v_r.append(D.vx1[-1]*UNIT_VELOCITY)
+    ir.append(i+3)
+    r.append(data["R_MAX"]*UNIT_LENGTH*1.1)
+    v_r.append(v_r[-1]+dvdr[-1]*(r[-1]-r[-2]))
     density.append(D.rho[-1]*UNIT_DENSITY)
     T.append(D.T[-1])
     
@@ -211,14 +230,14 @@ def python_input_file_stellar_wind(fname,data,cycles=2):
     output.write("\n")    
     output.write("Photon_sampling.approach(T_star,cv,yso,AGN,min_max_freq,user_bands,cloudy_test,wide,logarithmic)  logarithmic\n")
     output.write("Photon_sampling.nbands                     10\n")
-    output.write("Photon_sampling.low_energy_limit(eV)       1.3333\n")
-    output.write("Photon_sampling.high_energy_limit(eV)      200\n")
+    output.write("Photon_sampling.low_energy_limit(eV)       0.5437\n")
+    output.write("Photon_sampling.high_energy_limit(eV)      54.379\n")
     
     output.close()
     return    
 
 
-def driving_calc(ifile):
+def driving_calc(ifile,data):
 
 
     max_accel_change=0.9
@@ -229,57 +248,93 @@ def driving_calc(ifile):
     M=ascii.read("M_data.dat")
         
 
-    print (flux.keys())
 
     # We need the definitions file - so we know the conversion factors.
 
     UNIT_DENSITY,UNIT_LENGTH,UNIT_VELOCITY=get_units('definitions.h')
     UNIT_ACCELERATION=UNIT_VELOCITY*UNIT_VELOCITY/UNIT_LENGTH    
     
-    gx_es=[]
-    gy_es=[]
-    gz_es=[]
     
-    gx_bf=[]
-    gy_bf=[]
-    gz_bf=[]
+    gr_es=[]
+    gt_es=[]
+    gp_es=[]
     
-    gx_line=[]
-    gy_line=[]
-    gz_line=[]
+    gr_bf=[]
+    gt_bf=[]
+    gp_bf=[]
     
-    gx=[]
-    gy=[]
-    gz=[]
+    gr_line=[]
+    gt_line=[]
+    gp_line=[]
     
+    gr=[]
+    gt=[]
+    gp=[]            
+ 
     
-    
-
     odd=0.0
     
     itest=0
     
-    for i in range(len(flux["rho"])):
-#        if (flux["rho"][i]/(D.rho[flux["i"][i]][flux["j"][i]]*UNIT_DENSITY))-1.>1e-6:
-#            odd=odd+1
-        
+    L_pluto=3.77e+39
+    r=D.x1*UNIT_LENGTH
+    
+    limit1=[]
+    limit2=[]
+    limit3=[]
 
-        #Electron scattering acceleration is taken directly from the python heatcool file
-        gx_es.append(flux["rad_f_w"][i]/(flux["rho"][i]*flux["vol"][i]))
-        gy_es.append(flux["rad_f_phi"][i]/(flux["rho"][i]*flux["vol"][i]))
-        gz_es.append(flux["rad_f_z"][i]/(flux["rho"][i]*flux["vol"][i]))
-        #BF scattering acceleration is taken directly from the python flux file
-        gx_bf.append(flux["bf_f_w"][i]/(flux["rho"][i]*flux["vol"][i]))
-        gy_bf.append(flux["bf_f_phi"][i]/(flux["rho"][i]*flux["vol"][i]))
-        gz_bf.append(flux["bf_f_z"][i]/(flux["rho"][i]*flux["vol"][i]))
-        #Line scattering acceleration is computed using the fluxes and the force multiplicayion factors
-        gx_line.append((flux["F_vis_x"][i]*M["M_vis"][i]+flux["F_UV_x"][i]*M["M_uv"][i]+flux["F_Xray_x"][i]*M["M_xray"][i])*c.sigma_T.cgs.value*flux["ne"][i]/flux["rho"][i]/c.c.cgs.value)
-        gy_line.append((flux["F_vis_y"][i]*M["M_vis"][i]+flux["F_UV_y"][i]*M["M_uv"][i]+flux["F_Xray_y"][i]*M["M_xray"][i])*c.sigma_T.cgs.value*flux["ne"][i]/flux["rho"][i]/c.c.cgs.value)
-        gz_line.append((flux["F_vis_z"][i]*M["M_vis"][i]+flux["F_UV_z"][i]*M["M_uv"][i]+flux["F_Xray_z"][i]*M["M_xray"][i])*c.sigma_T.cgs.value*flux["ne"][i]/flux["rho"][i]/c.c.cgs.value)
-        #Add all the accelerations together
-        gx.append(gx_es[-1]+gx_bf[-1]+gx_line[-1])
-        gy.append(0.0)    
-        gz.append(gz_es[-1]+gz_bf[-1]+gz_line[-1])
+    
+    for i in range(len(flux["rho"])):
+        if data["geometry"]=="rtheta":
+    #        if (flux["rho"][i]/(D.rho[flux["i"][i]][flux["j"][i]]*UNIT_DENSITY))-1.>1e-6:
+    #            odd=odd+1
+            #Electron scattering acceleration is taken directly from the python heatcool file
+            print ("R-theta py accelerartion needs fixing")
+            exit(0)
+            gx_es.append(flux["rad_f_w"][i]/(flux["rho"][i]*flux["vol"][i]))
+            gy_es.append(flux["rad_f_phi"][i]/(flux["rho"][i]*flux["vol"][i]))
+            gz_es.append(flux["rad_f_z"][i]/(flux["rho"][i]*flux["vol"][i]))
+            #BF scattering acceleration is taken directly from the python flux file
+            gx_bf.append(flux["bf_f_w"][i]/(flux["rho"][i]*flux["vol"][i]))
+            gy_bf.append(flux["bf_f_phi"][i]/(flux["rho"][i]*flux["vol"][i]))
+            gz_bf.append(flux["bf_f_z"][i]/(flux["rho"][i]*flux["vol"][i]))
+            #Line scattering acceleration is computed using the fluxes and the force multiplicayion factors
+            gx_line.append((flux["F_vis_x"][i]*M["M_vis"][i]+flux["F_UV_x"][i]*M["M_uv"][i]+flux["F_Xray_x"][i]*M["M_xray"][i])*c.sigma_T.cgs.value*flux["ne"][i]/flux["rho"][i]/c.c.cgs.value)
+            gy_line.append((flux["F_vis_y"][i]*M["M_vis"][i]+flux["F_UV_y"][i]*M["M_uv"][i]+flux["F_Xray_y"][i]*M["M_xray"][i])*c.sigma_T.cgs.value*flux["ne"][i]/flux["rho"][i]/c.c.cgs.value)
+            gz_line.append((flux["F_vis_z"][i]*M["M_vis"][i]+flux["F_UV_z"][i]*M["M_uv"][i]+flux["F_Xray_z"][i]*M["M_xray"][i])*c.sigma_T.cgs.value*flux["ne"][i]/flux["rho"][i]/c.c.cgs.value)
+            #Add all the accelerations together
+            gx.append(gx_es[-1]+gx_bf[-1]+gx_line[-1])
+            gy.append(0.0)    
+            gz.append(gz_es[-1]+gz_bf[-1]+gz_line[-1])
+        else:
+            gr_es.append(flux["es_f_r"][i]/(flux["rho"][i]*flux["vol"][i]))            
+            gr_bf.append(flux["bf_f_r"][i]/(flux["rho"][i]*flux["vol"][i]))
+            gr_line.append((flux["F_vis_r"][i]*M["M_vis"][i]+flux["F_UV_r"][i]*M["M_uv"][i]+flux["F_Xray_r"][i]*M["M_xray"][i])*c.sigma_T.cgs.value*flux["ne"][i]/flux["rho"][i]/c.c.cgs.value)
+#            gr.append(gr_es[-1]+gr_bf[-1]+gr_line[-1])
+#            gr.append((1+D.M[i])*0.4/1.18*L_pluto/r[i]/r[i]/4./np.pi/c.c.cgs.value)
+#            print (D.M[i]/(D.g_r[i]*UNIT_ACCELERATION/(0.4/1.18*L_pluto/r[i]/r[i]/4./np.pi/c.c.cgs.value)-1.))
+#            print ((gr_line[-1]+gr_es[-1])/(D.g_r[i]*UNIT_ACCELERATION))
+            if ((gr_line[-1]+gr_es[-1])/(D.g_r[i]*UNIT_ACCELERATION)) < max_accel_change:
+                gr.append((D.g_r[i]*UNIT_ACCELERATION)*max_accel_change)
+#                print ("limit low",((gr_line[-1]+gr_es[-1])/(D.g_r[i]*UNIT_ACCELERATION)),(gr[-1]/(D.g_r[i]*UNIT_ACCELERATION)))
+                
+            elif ((gr_line[-1]+gr_es[-1])/(D.g_r[i]*UNIT_ACCELERATION)) > 1./max_accel_change:
+                gr.append((D.g_r[i]*UNIT_ACCELERATION)/max_accel_change)
+#                print ("limit hi",((gr_line[-1]+gr_es[-1])/(D.g_r[i]*UNIT_ACCELERATION)),(gr[-1]/(D.g_r[i]*UNIT_ACCELERATION)))
+                
+            else:
+                gr.append(gr_line[-1]+gr_es[-1])
+#                print ("no limit",(gr[-1]/(D.g_r[i]*UNIT_ACCELERATION)))
+                
+            limit1.append(D.g_r[i]*UNIT_ACCELERATION)
+            limit2.append(gr_line[-1]+gr_es[-1])
+            limit3.append(gr[-1])
+            
+            gt.append(0.0)
+            gp.append(0.0)
+            
+#    gr[-1]=gr[-2]
+#    gr[0]=gr[1]        
 
 
     
@@ -288,16 +343,15 @@ def driving_calc(ifile):
     #This next line defines formats for the output variables. This is set in a dictionary
 
     fmts2={'ir':'%03i',
-        'rcent':fmt,
-        'itheta':'%03i',
-        'thetacent':fmt,    
-        'gx':fmt,
-        'gy':fmt,
-        'gz':fmt,
-        }
-
+            'rcent':fmt,
+            'itheta':'%03i',
+            'thetacent':fmt,    
+            'g_r':fmt,
+            'g_theta':fmt,
+            'g_phi':fmt}
     titles=["ir","rcent","itheta","thetacent","rho"]
-    titles=titles+["gx","gy","gz"]
+    titles=titles+["g_r","g_theta","g_phi"]
+    
 
 
     col0=flux["i"]
@@ -307,12 +361,32 @@ def driving_calc(ifile):
     col4=flux["rho"]
 
     out=open("py_accelerations.dat",'w')
-    out_dat=Table([col0,col1,col2,col3,col4,gx,gy,gz],names=titles)
+    
+    out_dat=Table([col0,col1,col2,col3,col4,gr,gt,gp],names=titles)
+    
+        
     ascii.write(out_dat,out,formats=fmts2)
     out.close()   
     
+    
+    fmts2={'ir':'%03i',
+            'rcent':fmt,
+            'itheta':'%03i',
+            'thetacent':fmt,    
+            'last_pluto':fmt,
+            'new_python':fmt,
+            'new_limited':fmt}
+    titles=["ir","rcent","itheta","thetacent"]
+    titles=titles+["last_pluto","new_python","new_limited"]
+    
 
-     
+    out=open("acceleration_limits.dat","w")
+    out_dat=Table([col0,col1,col2,col3,limit1,limit2,limit3],names=titles)
+
+    ascii.write(out_dat,out,formats=fmts2)
+    out.close() 
+    
+
         
     return(odd)    
 

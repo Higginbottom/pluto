@@ -185,32 +185,53 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
          }
      }
   
+    	TOT_LOOP(k,j,i) //Now compute dvdr for use in line driving calculations
+        {
+            printf ("%i %e %e %e %e %e\n",i,grid->xl[IDIR][i]*UNIT_LENGTH,grid->x[IDIR][i]*UNIT_LENGTH,grid->xr[IDIR][i]*UNIT_LENGTH,d->Vc[VX1][k][j][i]*UNIT_VELOCITY,d->Vc[RHO][k][j][i]*UNIT_DENSITY);
+        }
   
      
    	TOT_LOOP(k,j,i) //Now compute dvdr for use in line driving calculations
     {
-        if (i==0)
+        if (i==0) //The first 'ghost' cell
         {
-            v_l=d->Vc[VX1][k][j][0];
+            v_l=(d->Vc[VX1][k][j][1]-d->Vc[VX1][k][j][0])/(grid->x[IDIR][1]-grid->x[IDIR][0]);
+            v_l=d->Vc[VX1][k][j][0]-v_l*(grid->x[IDIR][0]-grid->xl[IDIR][0]);
+                
             v_r=(d->Vc[VX1][k][j][1]-d->Vc[VX1][k][j][0])/(grid->x[IDIR][1]-grid->x[IDIR][0]);
             v_r=d->Vc[VX1][k][j][0]+v_r*(grid->xr[IDIR][0]-grid->x[IDIR][0]);
+//            printf ("BOOM first cell %e %e ( %e %e %e )",v_l,v_r,grid->x[IDIR][0]*UNIT_LENGTH,grid->xr[IDIR][0]*UNIT_LENGTH,grid->x[IDIR][1]*UNIT_LENGTH);
         }
         else if (i==IEND+2)
         {
             v_l=(d->Vc[VX1][k][j][i]-d->Vc[VX1][k][j][i-1])/(grid->x[IDIR][i]-grid->x[IDIR][i-1]);
-            v_l=d->Vc[VX1][k][j][i-1]+v_l*(grid->xr[IDIR][i-1]-grid->x[IDIR][i-1]); 
-            v_r=d->Vc[VX1][k][j][i]; 
+            v_l=d->Vc[VX1][k][j][i]-v_l*(grid->x[IDIR][i]-grid->xl[IDIR][i]); 
+            v_r=(d->Vc[VX1][k][j][i]-d->Vc[VX1][k][j][i-1])/(grid->x[IDIR][i]-grid->x[IDIR][i-1]);
+            v_r=d->Vc[VX1][k][j][i]+v_r*(grid->xr[IDIR][i]-grid->x[IDIR][i]);  
+                
+//            printf ("BOOM last cell %e %e ( %e %e %e )",v_l,v_r,grid->x[IDIR][i-1]*UNIT_LENGTH,grid->xr[IDIR][i-1]*UNIT_LENGTH,grid->x[IDIR][i]*UNIT_LENGTH);
                       
         }
         else
         {
+//            v_r=(d->Vc[VX1][k][j][i+1]-d->Vc[VX1][k][j][i])/(grid->x[IDIR][i+1]-grid->x[IDIR][i]);
+//            v_r=d->Vc[VX1][k][j][i]+v_r*(grid->xr[IDIR][i]-grid->x[IDIR][i]);   
+//            v_l=(d->Vc[VX1][k][j][i]-d->Vc[VX1][k][j][i-1])/(grid->x[IDIR][i]-grid->x[IDIR][i-1]);
+//            v_l=d->Vc[VX1][k][j][i-1]+v_l*(grid->xr[IDIR][i-1]-grid->x[IDIR][i-1]);  
+
+
             v_r=(d->Vc[VX1][k][j][i+1]-d->Vc[VX1][k][j][i])/(grid->x[IDIR][i+1]-grid->x[IDIR][i]);
-            v_r=d->Vc[VX1][k][j][i]+v_r*(grid->xr[IDIR][i]-grid->x[IDIR][i]);   
+            v_r=d->Vc[VX1][k][j][i]+v_r*(grid->xr[IDIR][i]-grid->x[IDIR][i]);
+            
             v_l=(d->Vc[VX1][k][j][i]-d->Vc[VX1][k][j][i-1])/(grid->x[IDIR][i]-grid->x[IDIR][i-1]);
-            v_l=d->Vc[VX1][k][j][i-1]+v_l*(grid->xr[IDIR][i-1]-grid->x[IDIR][i-1]);  
+            v_l=d->Vc[VX1][k][j][i]-v_l*(grid->x[IDIR][i]-grid->xl[IDIR][i]);
+            
+            
+//            printf ("BOOM  cell %i %e %e ( %e %e %e )",i,v_l,v_r,grid->x[IDIR][i-1]*UNIT_LENGTH,grid->xr[IDIR][i-1]*UNIT_LENGTH,grid->x[IDIR][i]*UNIT_LENGTH);
            
         } 
         dvdr_array[i]=(v_r-v_l)/(grid->xr[IDIR][i]-grid->xl[IDIR][i]);	
+        printf ("%i %e %e %e %e %e %e %e \n",i,grid->xl[IDIR][i]*UNIT_LENGTH,grid->x[IDIR][i]*UNIT_LENGTH,grid->xr[IDIR][i]*UNIT_LENGTH,v_l*UNIT_VELOCITY,d->Vc[VX1][k][j][i]*UNIT_VELOCITY,v_r*UNIT_VELOCITY,dvdr_array[i]*UNIT_VELOCITY/UNIT_LENGTH);
     }    
 }
 
