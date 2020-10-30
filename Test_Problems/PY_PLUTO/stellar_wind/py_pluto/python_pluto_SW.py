@@ -37,7 +37,7 @@ data={} #Set up the dictionary that will contain all of the information for the 
 
 
 data["rad_force"]=1  #Including rad force? 1=yes 0=no
-data["python_ver"]="84f"  #the version of python to use
+data["python_ver"]="84g"  #the version of python to use
 data['debug']=0
 
 data["geometry"]="spherical_1d"
@@ -125,7 +125,7 @@ else:
         istart=0
         time=t0
 
-for i in range(istart,1):
+for i in range(istart,10000):
     
     ifile=i+1
     root="%08d"%(ifile)
@@ -179,9 +179,9 @@ for i in range(istart,1):
         print (cmdline)
         subprocess.check_call(cmdline,shell=True)   
         subprocess.check_call("cp new.wind_save input.wind_save",shell=True) 
-        cmdline="mpirun -n "+str(data["nproc_py"])+" py"+data["python_ver"]+" -f -r input.pf > "+root+".python_log"        
+        cmdline="mpirun -n "+str(data["nproc_py"])+" py"+data["python_ver"]+" -f -r -classic input.pf > "+root+".python_log"        
     else:   
-        cmdline="mpirun -n "+str(data["nproc_py"])+" py"+data["python_ver"]+" -f  input.pf > "+root+".python_log"
+        cmdline="mpirun -n "+str(data["nproc_py"])+" py"+data["python_ver"]+" -f  -classic input.pf > "+root+".python_log"
     print ("Running python")
     print (cmdline)
     subprocess.check_call(cmdline,shell=True)
