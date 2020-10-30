@@ -185,10 +185,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
          }
      }
   
-    	TOT_LOOP(k,j,i) //Now compute dvdr for use in line driving calculations
-        {
-            printf ("%i %e %e %e %e %e\n",i,grid->xl[IDIR][i]*UNIT_LENGTH,grid->x[IDIR][i]*UNIT_LENGTH,grid->xr[IDIR][i]*UNIT_LENGTH,d->Vc[VX1][k][j][i]*UNIT_VELOCITY,d->Vc[RHO][k][j][i]*UNIT_DENSITY);
-        }
+
   
      
    	TOT_LOOP(k,j,i) //Now compute dvdr for use in line driving calculations
@@ -197,41 +194,24 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
         {
             v_l=(d->Vc[VX1][k][j][1]-d->Vc[VX1][k][j][0])/(grid->x[IDIR][1]-grid->x[IDIR][0]);
             v_l=d->Vc[VX1][k][j][0]-v_l*(grid->x[IDIR][0]-grid->xl[IDIR][0]);
-                
             v_r=(d->Vc[VX1][k][j][1]-d->Vc[VX1][k][j][0])/(grid->x[IDIR][1]-grid->x[IDIR][0]);
             v_r=d->Vc[VX1][k][j][0]+v_r*(grid->xr[IDIR][0]-grid->x[IDIR][0]);
-//            printf ("BOOM first cell %e %e ( %e %e %e )",v_l,v_r,grid->x[IDIR][0]*UNIT_LENGTH,grid->xr[IDIR][0]*UNIT_LENGTH,grid->x[IDIR][1]*UNIT_LENGTH);
         }
         else if (i==IEND+2)
         {
             v_l=(d->Vc[VX1][k][j][i]-d->Vc[VX1][k][j][i-1])/(grid->x[IDIR][i]-grid->x[IDIR][i-1]);
             v_l=d->Vc[VX1][k][j][i]-v_l*(grid->x[IDIR][i]-grid->xl[IDIR][i]); 
             v_r=(d->Vc[VX1][k][j][i]-d->Vc[VX1][k][j][i-1])/(grid->x[IDIR][i]-grid->x[IDIR][i-1]);
-            v_r=d->Vc[VX1][k][j][i]+v_r*(grid->xr[IDIR][i]-grid->x[IDIR][i]);  
-                
-//            printf ("BOOM last cell %e %e ( %e %e %e )",v_l,v_r,grid->x[IDIR][i-1]*UNIT_LENGTH,grid->xr[IDIR][i-1]*UNIT_LENGTH,grid->x[IDIR][i]*UNIT_LENGTH);
-                      
+            v_r=d->Vc[VX1][k][j][i]+v_r*(grid->xr[IDIR][i]-grid->x[IDIR][i]);                     
         }
         else
         {
-//            v_r=(d->Vc[VX1][k][j][i+1]-d->Vc[VX1][k][j][i])/(grid->x[IDIR][i+1]-grid->x[IDIR][i]);
-//            v_r=d->Vc[VX1][k][j][i]+v_r*(grid->xr[IDIR][i]-grid->x[IDIR][i]);   
-//            v_l=(d->Vc[VX1][k][j][i]-d->Vc[VX1][k][j][i-1])/(grid->x[IDIR][i]-grid->x[IDIR][i-1]);
-//            v_l=d->Vc[VX1][k][j][i-1]+v_l*(grid->xr[IDIR][i-1]-grid->x[IDIR][i-1]);  
-
-
             v_r=(d->Vc[VX1][k][j][i+1]-d->Vc[VX1][k][j][i])/(grid->x[IDIR][i+1]-grid->x[IDIR][i]);
-            v_r=d->Vc[VX1][k][j][i]+v_r*(grid->xr[IDIR][i]-grid->x[IDIR][i]);
-            
+            v_r=d->Vc[VX1][k][j][i]+v_r*(grid->xr[IDIR][i]-grid->x[IDIR][i]);            
             v_l=(d->Vc[VX1][k][j][i]-d->Vc[VX1][k][j][i-1])/(grid->x[IDIR][i]-grid->x[IDIR][i-1]);
-            v_l=d->Vc[VX1][k][j][i]-v_l*(grid->x[IDIR][i]-grid->xl[IDIR][i]);
-            
-            
-//            printf ("BOOM  cell %i %e %e ( %e %e %e )",i,v_l,v_r,grid->x[IDIR][i-1]*UNIT_LENGTH,grid->xr[IDIR][i-1]*UNIT_LENGTH,grid->x[IDIR][i]*UNIT_LENGTH);
-           
+            v_l=d->Vc[VX1][k][j][i]-v_l*(grid->x[IDIR][i]-grid->xl[IDIR][i]);          
         } 
         dvdr_array[i]=(v_r-v_l)/(grid->xr[IDIR][i]-grid->xl[IDIR][i]);	
-        printf ("%i %e %e %e %e %e %e %e \n",i,grid->xl[IDIR][i]*UNIT_LENGTH,grid->x[IDIR][i]*UNIT_LENGTH,grid->xr[IDIR][i]*UNIT_LENGTH,v_l*UNIT_VELOCITY,d->Vc[VX1][k][j][i]*UNIT_VELOCITY,v_r*UNIT_VELOCITY,dvdr_array[i]*UNIT_VELOCITY/UNIT_LENGTH);
     }    
 }
 
@@ -288,15 +268,11 @@ void BodyForceVector(double *v, double *g, double x1, double x2, double x3,int i
 #endif
     
     sigma_e=CONST_sigmaT/CONST_amu/1.18;
-//    sigma_e=0.32;
     
- //   v_th=sqrt(3.)*ciso*UNIT_VELOCITY;
     t=sigma_e*rho*v_th/fabs(dvdr_array[i]*UNIT_VELOCITY/UNIT_LENGTH); 
       
     M[k][j][i]=k_rad*pow(t,-1.0*alpha_rad);
     if (M[k][j][i]>M_max) M[k][j][i]=M_max;
- //   printf ("BLAH %i dvdr=%e t=%e M=%e\n",i,dvdr_array[i],t,M);
-//    printf ("VECTOR %i %e\n",i,x1);
     
     sigma_fc=fabs(r/v_r*(dvdr_array[i])*UNIT_VELOCITY/UNIT_LENGTH-1.);
     mu_fc=sqrt(1-(Rstar/r)*(Rstar/r));    
@@ -304,10 +280,7 @@ void BodyForceVector(double *v, double *g, double x1, double x2, double x3,int i
     D_fc=D_fc/(1-mu_fc*mu_fc);
     D_fc=D_fc/(alpha_rad+1.)/sigma_fc;
     D_fc=D_fc/(pow((1+sigma_fc),alpha_rad));
-//    printf ("BOOM %i %e %e %e \n",i,D_fc,sigma_fc,mu_fc);
      M[k][j][i]= M[k][j][i]*D_fc;
- //   printf ("Boom %e %e %e %e %e %e\n",r,rho,t,v_th,dvdr_array[i],(1.+M)*sigma_e*F_UV/CONST_c/UNIT_ACCELERATION);
-//    M[k][j][i]=2.8;
 #if PY_CONNECT
     if (g_rad[0][k][j][i]==12345678 && g_rad[1][k][j][i]==12345678 && g_rad[2][k][j][i]==12345678) //First time thruogh, we will be using an approximation
     {
