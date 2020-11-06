@@ -410,10 +410,12 @@ void MakeGrid (int idim, Runtime *rtime, double *xlft, double *xrgt, double *dx)
  
       log_inc = rtime->patch_type[idim][iseg] == LOGARITHMIC_INC_GRID;
       log_dec = rtime->patch_type[idim][iseg] == LOGARITHMIC_DEC_GRID;
-
+      printf ("BOOM xR=%e xL=%e npoint=%i\n",xR,xL,npoint);
       dy  = log10( (xR + fabs(xL) - xL)/fabs(xL));
+      printf ("BOOM dy=%e ",dy);
       dy /= (double) (npoint);
-
+      printf ("BOOM dy=%e \n",dy);
+      printf ("BOOM iL=%i iR=%i\n",iL,iR);
       if (log_dec) dy *= -1.0;
 
       xlft[iL] = xL;

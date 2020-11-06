@@ -117,45 +117,91 @@ def pluto2py_1d(ifile,data):
     pluto_vr_c=D.vx1*UNIT_VELOCITY #The velocity in each pluto cell - defined at cell centre
     
     
+    pluto_first=2.0*(pluto_c[0]-pluto_r[0])
+    pluto_last=2.0*(pluto_c[-1]-pluto_r[-1])
+    
+    
+    
     #First, find the velocity at the edge of each cell...
     
     pluto_vr_r=[] #Set up a list to hold the edge velocities.
     
     
-    for i in range(len(pluto_c)):
-        pluto_vr_r.append(pluto_vr_c[i]-dvdr[i]*(pluto_c[i]-pluto_r[i]))
+    for i in range(len(pluto_c)-1):
+#        pluto_vr_r.append(pluto_vr_c[i]-dvdr[i]*(pluto_c[i]-pluto_r[i]))
+         pluto_vr_r.append((pluto_vr_c[i-1]+pluto_vr_c[i])/2.0)
+    
+#    pluto_vr_r.append(pluto_vr_r[-1])
+   #The first element is a ghost cell - it should have the same width as the first real cell - to allow gradients to work to compute v_r
+#    ir.append(0)
+#    r.append(pluto_r[0]-pluto_first) #The inner cell has to be inside the next cell.
+#    v_r.append(pluto_vr_r[0]-dvdr[0]*(pluto_r[0]-r[0]))
+#    density.append(D.rho[0]*UNIT_DENSITY)
+#    T.append(D.T[0])
     
     
-    #The first element is a ghost cell
-    ir.append(0)
-    r.append(pluto_r[0]*0.99) #The inner cell has to be inside the next cell.
-    v_r.append(pluto_vr_r[0]-dvdr[0]*(pluto_r[0]-r[0]))
-    density.append(D.rho[0]*UNIT_DENSITY)
-    T.append(D.T[0])
+    ir=np.arange(0,len(pluto_r)+3)
+    r=np.zeros(len(pluto_r)+3)
+    v_r=np.zeros(len(pluto_r)+3)
+    density=np.zeros(len(pluto_r)+3)
+    T=np.zeros(len(pluto_r)+3)
     
-    #now we fill in the bulk of the "real" cells
+    #first, we fill in the bulk of the "real" cells
     
-    for i in range(len(pluto_r)):
-        ir.append(i+1)
-        r.append(pluto_r[i])
-        v_r.append(pluto_vr_r[i])
-        density.append(D.rho[i]*UNIT_DENSITY)       
-        T.append(D.T[i])
+    for i in range(len(pluto_r)-1):
+        r[i+1]=pluto_r[i]
+        v_r[i+1]=pluto_vr_r[i]
+        density[i+1]=D.rho[i]*UNIT_DENSITY       
+        T[i+1]=D.T[i]
         
-    #We need two extra ghost cells
+    #the first 'real' cell needs an extrapolated velocity at the inner vertex
     
-    ir.append(i+2)
-    r.append(data["R_MAX"]*UNIT_LENGTH)
-    v_r.append(v_r[-1]+dvdr[-1]*(r[-1]-r[-2]))
-    density.append(D.rho[-1]*UNIT_DENSITY)
-    T.append(D.T[-1])    
+    v_r[1]=v_r[2]-dvdr[0]*(r[2]-r[1])
         
-    ir.append(i+3)
-    r.append(data["R_MAX"]*UNIT_LENGTH*1.1)
-    v_r.append(v_r[-1]+dvdr[-1]*(r[-1]-r[-2]))
-    density.append(D.rho[-1]*UNIT_DENSITY)
-    T.append(D.T[-1])
+        
+    #We also need a ghost cell inside the first one
     
+    r[0]=r[1]-pluto_first 
+    density[0]=D.rho[0]*UNIT_DENSITY       
+    T[0]=D.T[0]      
+    v_r[0]=v_r[1]-dvdr[0]*(r[1]-r[0])
+    
+    #The last real cell needs an extrpolated velocity too
+    
+    r[-3]=pluto_r[-1]
+    v_r[-3]=v_r[-4]+dvdr[-1]*(r[-3]-r[-4])
+    T[-3]=D.T[-1]
+    density[-3]=D.rho[-1]*UNIT_DENSITY       
+    
+    
+    #We now need two final ghost cells
+        
+    r[-2]=data["R_MAX"]*UNIT_LENGTH
+    v_r[-2]=v_r[-3]+dvdr[-1]*(r[-2]-r[-3])
+    T[-2]=D.T[-1]
+    density[-2]=D.rho[-1]*UNIT_DENSITY       
+    
+    
+    
+    r[-1]=r[-2]+pluto_last
+    v_r[-1]=v_r[-2]+dvdr[-1]*(r[-1]-r[-2])
+    T[-1]=D.T[-1]
+    density[-1]=D.rho[-1]*UNIT_DENSITY
+        
+    #We need two extra ghost cells 
+       
+#    ir.append(i+2)
+#    r.append(data["R_MAX"]*UNIT_LENGTH)
+#    v_r.append(v_r[-1]+dvdr[-1]*(r[-1]-r[-2]))
+#    density.append(D.rho[-1]*UNIT_DENSITY)
+#    T.append(D.T[-1])    
+        
+#    ir.append(i+3)
+#    r.append(data["R_MAX"]*UNIT_LENGTH*1.1)
+#    v_r.append(v_r[-1]+dvdr[-1]*(r[-1]-r[-2]))
+#    density.append(D.rho[-1]*UNIT_DENSITY)
+#    T.append(D.T[-1])
+   
    
     fmt='%13.6e'
 
@@ -231,7 +277,7 @@ def python_input_file_stellar_wind(fname,data,cycles=2):
     output.write("Photon_sampling.approach(T_star,cv,yso,AGN,min_max_freq,user_bands,cloudy_test,wide,logarithmic)  logarithmic\n")
     output.write("Photon_sampling.nbands                     10\n")
     output.write("Photon_sampling.low_energy_limit(eV)       0.5437\n")
-    output.write("Photon_sampling.high_energy_limit(eV)      54.379\n")
+    output.write("Photon_sampling.high_energy_limit(eV)      60.0\n")
     
     output.close()
     return    
