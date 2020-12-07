@@ -49,7 +49,7 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
   double tstore1,tstore2,nenh_store;
 
   dt_share=dt*UNIT_TIME;  //We need to share the current time step so the zbrent code can use it - must be in real units
-  lx=g_inputParam[L_x];  //Xray luminosiy
+  lx=g_inputParam[L_star];  //Xray luminosiy
   tx=g_inputParam[T_x];  //Xray tenperature
   mu=g_inputParam[MU];  //Mean particle mass  
   flag=0;
