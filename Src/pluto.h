@@ -13,7 +13,6 @@
 #ifndef PLUTO_H
 #define PLUTO_H
 
-double dvdr_array[100000];
 
 #define PLUTO_VERSION  "4.3"
 
@@ -780,9 +779,13 @@ extern double g_time, g_dt;
 extern int    g_hydroStep;
 extern double g_maxMach;
 extern double ****g_rad; // 
+extern double *dvdr_array;
+
 #if EOS==ISOTHERMAL && PY_CONNECT
   extern double ***py_temp;   //
 #endif
+
+  
 
 #if ROTATING_FRAME
  extern double g_OmegaZ;

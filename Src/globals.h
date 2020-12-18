@@ -180,6 +180,7 @@ double g_inputParam[32]; /**< Array containing the user-defined parameters.
 
 
 double ****g_rad; // 
+double *dvdr_array; // 
 
 #if EOS==ISOTHERMAL && PY_CONNECT
   double ***py_temp;   //
