@@ -482,7 +482,7 @@ void Initialize(int argc, char *argv[], Data *data,
       
   g_rad = ARRAY_4D(3,NX3_TOT, NX2_TOT, NX1_TOT, double);  //This is a global variable because rad force doesnt have access to data
 #endif  
-  dvdr_array = ARRAY_1D(NX1_TOT,double);
+  dvdr_array = ARRAY_3D(NX3_TOT, NX2_TOT,NX1_TOT,double);
 
 
 
