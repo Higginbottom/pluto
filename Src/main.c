@@ -145,7 +145,7 @@ int main (int argc, char *argv[])
         #if EOS == ISOTHERMAL //We will read in new temperatures from python
         read_py_iso_temp (&data, grd,0);
         #endif
-        #if (BODY_FORCE & VECTOR)
+        #if (BODY_FORCE & VECTOR & EOS == ISOTHERMAL) //In this case, we read in accelerations from a seperate file
         read_py_rad_driv(&data, grd,0);
         #endif
     }
@@ -157,7 +157,8 @@ int main (int argc, char *argv[])
         #if EOS == ISOTHERMAL //We will read in new temperatures from python
         read_py_iso_temp (&data, grd,1);
         #endif
-        #if (BODY_FORCE & VECTOR)
+        #if (BODY_FORCE & VECTOR & EOS == ISOTHERMAL)
+        printf ("BOOM\n");
         read_py_rad_driv(&data, grd,1);
         #endif
     }  

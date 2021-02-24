@@ -58,7 +58,6 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
 /*  mu=MeanMolecularWeight(v); This is how it should be done - but we are ionized and get the wrong answer */
   
 //  mu=0.6;
-  
 
   reset_flag=0;
 
@@ -89,6 +88,12 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
     T   = VV[PRS][k][j][i]/VV[RHO][k][j][i]*KELVIN*mu;    //Compute initial temperature in Kelvin
     E   = (p*UNIT_PRESSURE)/(g_gamma-1);     //Compute internal energy in physical unit
 	 
+     
+     
+//    printf ("HEATCOOL %e %e %e %e %e T_init %e",comp_c_pre,comp_h_pre,line_c_pre,brem_c_pre,xray_h_pre,T);  
+     
+     
+     
 	nH=rho/(1.43*CONST_mp);   //Work out hydrogen number density assuming stellar abundances
 	
 	xi=lx/nH/r/r;     //ionization parameter
@@ -177,9 +182,10 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
 	
 	
     VV[PRS][k][j][i] = p_f;  //Set the pressure in the cell to the new value
-
+//    printf (" T_f %e\n",T_f);
 
   }
+//  printf ("DONE HC");
   }
 
 
