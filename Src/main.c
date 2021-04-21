@@ -57,7 +57,7 @@ int main (int argc, char *argv[])
  *
  *********************************************************************** */
 {
-  int    nv, idim, err;
+  int    nv, idim, err,restart_flag;
   char   first_step=1, last_step = 0;
   double scrh;
   Data   data;
@@ -139,27 +139,31 @@ int main (int argc, char *argv[])
 #if PY_CONNECT
   if (cmd_line.restart == NO)
     {
+        restart_flag=0;
         #if COOLING == BLONDIN
-	    read_py_heatcool (&data, grd,0);
+	    read_py_heatcool (&data, grd,restart_flag); //This reads in heating and cooling rates, and also forces if needed. Could be much smarter here.
         #endif
         #if EOS == ISOTHERMAL //We will read in new temperatures from python
-        read_py_iso_temp (&data, grd,0);
-        #endif
-        #if (BODY_FORCE & VECTOR & EOS == ISOTHERMAL) //In this case, we read in accelerations from a seperate file
-        read_py_rad_driv(&data, grd,0);
+        printf ("Off to read py iso temp\n");
+        read_py_iso_temp (&data, grd,restart_flag);
+            #if (BODY_FORCE & VECTOR) //We are also reading in forces
+            printf ("Heading off to py_rad_driv\n");
+            read_py_rad_driv(&data, grd,restart_flag);
+            #endif
         #endif
     }
   else
     {
+        restart_flag=1;
         #if COOLING == BLONDIN
-        read_py_heatcool (&data, grd,1);
+        read_py_heatcool (&data, grd,restart_flag);
         #endif
         #if EOS == ISOTHERMAL //We will read in new temperatures from python
-        read_py_iso_temp (&data, grd,1);
-        #endif
-        #if (BODY_FORCE & VECTOR & EOS == ISOTHERMAL)
-        printf ("BOOM\n");
-        read_py_rad_driv(&data, grd,1);
+        read_py_iso_temp (&data, grd,restart_flag);
+            #if (BODY_FORCE & VECTOR) //We are also reading in forces
+            printf ("Heading off to py_rad_driv\n");
+            read_py_rad_driv(&data, grd,restart_flag);
+            #endif
         #endif
     }  
 #endif
