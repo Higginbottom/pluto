@@ -180,6 +180,12 @@ double g_inputParam[32]; /**< Array containing the user-defined parameters.
 
 
 double ****g_rad; // 
+
+double ****flux_opt; // 
+double ****flux_UV; // 
+double ****flux_Xray; // 
+
+
 double ***dvr_dr_array; // 
 double ***dvz_dz_array; // 
 

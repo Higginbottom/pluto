@@ -479,8 +479,17 @@ void Initialize(int argc, char *argv[], Data *data,
   #if EOS == ISOTHERMAL
       py_temp=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);	
   #endif      
-      
-  g_rad = ARRAY_4D(3,NX3_TOT, NX2_TOT, NX1_TOT, double);  //This is a global variable because rad force doesnt have access to data
+  #if PY_RAD_DRIV==ACCELERATIONS  
+      g_rad = ARRAY_4D(3,NX3_TOT, NX2_TOT, NX1_TOT, double);  //This is a global variable because rad force doesnt have access to data
+  #endif
+  #if PY_RAD_DRIV ==FLUXES
+    printf ("Setting up flux arrays\n");
+    flux_opt = ARRAY_4D(3,NX3_TOT, NX2_TOT, NX1_TOT, double);  //This is a global variable because rad force doesnt have access to data
+    flux_UV = ARRAY_4D(3,NX3_TOT, NX2_TOT, NX1_TOT, double);  //This is a global variable because rad force doesnt have access to data
+    flux_Xray = ARRAY_4D(3,NX3_TOT, NX2_TOT, NX1_TOT, double);  //This is a global variable because rad force doesnt have access to data
+
+  #endif
+
 #endif  
   dvr_dr_array = ARRAY_3D(NX3_TOT, NX2_TOT,NX1_TOT,double);
   dvz_dz_array = ARRAY_3D(NX3_TOT, NX2_TOT,NX1_TOT,double);

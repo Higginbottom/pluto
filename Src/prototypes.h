@@ -226,7 +226,13 @@ void  read_py_heatcool (Data *, Grid *,int);
 void  read_py_iso_temp (Data *, Grid *,int);
 
 #if (BODY_FORCE & VECTOR)
-void read_py_rad_driv (Data *, Grid *,int);
+    #if (PY_RAD_DRIV==FLUXES)
+        void read_py_fluxes (Data *, Grid *);
+        void VGradCalc (const Data *, Grid *);
+    #endif
+    #if (PY_RAD_DRIV==ACCELERATIONS)
+        void read_py_rad_driv (Data *, Grid *,int);
+    #endif
 #endif
 
 

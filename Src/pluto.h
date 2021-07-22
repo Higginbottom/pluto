@@ -52,6 +52,13 @@
 #define BAROTROPIC    4
 #define ISOTHERMAL    5
 
+
+/* ---- python radiation driving labels  ----  */
+
+#define FLUXES        1
+#define ACCELERATIONS      2
+
+
 /* ---- Entropy switch options ----- */
 
 #define  SELECTIVE      1
@@ -779,6 +786,13 @@ extern double g_time, g_dt;
 extern int    g_hydroStep;
 extern double g_maxMach;
 extern double ****g_rad; // 
+extern double ****flux_opt; // 
+extern double ****flux_UV; // 
+extern double ****flux_Xray; // 
+
+
+
+
 extern double ***dvr_dr_array;
 extern double ***dvz_dz_array;
 

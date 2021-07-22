@@ -81,7 +81,7 @@ int main (int argc, char *argv[])
 
   time (&tbeg);
   Initialize (argc, argv, &data, &ini, grd, &cmd_line);
-
+  printf ("back from initialise\n");
   data.Dts = &Dts;
 
 /* -- 0a. Initialize members of timeStep structure -- */
@@ -101,8 +101,10 @@ int main (int argc, char *argv[])
 #endif
 
   Dts.invDt_particles = 1.0/ini.first_dt;
+  printf ("about to set solver\n");
   
   Solver = SetSolver (ini.solv_type);
+  printf ("set solver\n");
   
   g_stepNumber = 0;
   
@@ -123,11 +125,10 @@ int main (int argc, char *argv[])
     CheckForAnalysis (&data, &ini, grd);
   }
   
-  
 /* --------------------------------------------------------------
   1a.  If we are running py_pluto - we now go and see if we have a python heatcool file 
    -------------------------------------------------------------- */
-  
+  printf ("Entering my new bits of code\n");
 #if COOLING == BLONDIN
   read_py_heatcool (&data, grd,0); //Ensure the prefectors are initialiased if we are in blondin mode
 #endif 
@@ -147,8 +148,13 @@ int main (int argc, char *argv[])
         printf ("Off to read py iso temp\n");
         read_py_iso_temp (&data, grd,restart_flag);
             #if (BODY_FORCE & VECTOR) //We are also reading in forces
-            printf ("Heading off to py_rad_driv\n");
-            read_py_rad_driv(&data, grd,restart_flag);
+                printf ("Heading off to py_rad_driv\n");
+                #if (PY_RAD_DRIV == ACCELERATIONS)
+                    read_py_rad_driv(&data, grd,restart_flag);
+                #endif
+                #if (PY_RAD_DRIV == FLUXES)
+                    read_py_fluxes(&data, grd);                
+                #endif
             #endif
         #endif
     }
@@ -161,8 +167,13 @@ int main (int argc, char *argv[])
         #if EOS == ISOTHERMAL //We will read in new temperatures from python
         read_py_iso_temp (&data, grd,restart_flag);
             #if (BODY_FORCE & VECTOR) //We are also reading in forces
-            printf ("Heading off to py_rad_driv\n");
-            read_py_rad_driv(&data, grd,restart_flag);
+                printf ("Heading off to py_rad_driv\n");
+                #if (PY_RAD_DRIV == ACCELERATIONS)
+                    read_py_rad_driv(&data, grd,restart_flag);
+                #endif
+                #if (PY_RAD_DRIV == FLUXES)
+                    read_py_fluxes(&data, grd);                
+                #endif
             #endif
         #endif
     }  
