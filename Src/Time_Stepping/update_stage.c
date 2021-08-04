@@ -133,7 +133,6 @@ void UpdateStage(Data *d, Data_Arr UU, double **aflux,
   
 #if (BODY_FORCE & VECTOR)
     #if (PY_RAD_DRIV == FLUXES)
-  printf ("BOOM about to loop over RHS - make the array of velocity gradients here %i\n",g_stepNumber);
    VGradCalc(d, grid); 
     #endif  
 #endif

@@ -40,11 +40,11 @@ class DefineProblem(object):
     self.entries = ['PHYSICS', 'DIMENSIONS', 'COMPONENTS', 'GEOMETRY',
                     'BODY_FORCE', 'FORCED_TURB','COOLING', 'RECONSTRUCTION', 
             'TIME_STEPPING','DIMENSIONAL_SPLITTING', 'NTRACER', 
-            'USER_DEF_PARAMETERS','PY_CONNECT']
+            'USER_DEF_PARAMETERS','PY_CONNECT','PY_RAD_DRIV']
     self.default = ['HD', '1', '1', 'CARTESIAN',
                    'NO', 'NO','NO','LINEAR',
                     'RK2','NO', '0', 
-                    '0','NO']
+                    '0','NO','FLUXES']
 
     # Creating a dictionary of flags that are invoked by giving arguments.
     flag_keys = ['WITH-CHOMBO', 'FULL', 'WITH-FD', 'WITH-SB', 'WITH-FARGO',
@@ -174,11 +174,12 @@ class DefineProblem(object):
     udplist = ['%d'%n for n in range(32)]
     udclist = ['%d'%n for n in range(32)]
     pyllist = ['NO','YES']
+    pdrlist = ['FLUXES','ACCELERATIONS']
 	
 
     self.options = [phylist, dimlist, comlist, geolist, bfolist,ftblist,
                     coolist, intlist, tmslist,
-                    dislist, ntrlist, udplist,pyllist,
+                    dislist, ntrlist, udplist,pyllist,pdrlist,
                     udclist]
 
   def AfterFlagLists(self):

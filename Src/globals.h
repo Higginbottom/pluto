@@ -181,14 +181,21 @@ double g_inputParam[32]; /**< Array containing the user-defined parameters.
 
 double ****g_rad; // 
 
-double ****flux_opt; // 
-double ****flux_UV; // 
-double ****flux_Xray; // 
-
-
-double ***dvr_dr_array; // 
-double ***dvz_dz_array; // 
-
+#if (BODY_FORCE & VECTOR)
+    #if (PY_RAD_DRIV==FLUXES)
+        double ****flux_opt; // 
+        double ****flux_UV; // 
+        double ****flux_Xray; // 
+        double ****flux_cart_opt; // 
+        double ****flux_cart_UV; // 
+        double ****flux_cart_Xray; // 
+        double ***dv_ds_array; // 
+        double ****x11_interp;//
+        double ****x22_interp;//
+        double ****dvds_offset;
+        int dvds_setup_flag;//
+    #endif        
+#endif
 
 #if EOS==ISOTHERMAL && PY_CONNECT
   double ***py_temp;   //

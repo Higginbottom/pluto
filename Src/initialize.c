@@ -484,15 +484,22 @@ void Initialize(int argc, char *argv[], Data *data,
   #endif
   #if PY_RAD_DRIV ==FLUXES
     printf ("Setting up flux arrays\n");
-    flux_opt = ARRAY_4D(3,NX3_TOT, NX2_TOT, NX1_TOT, double);  //This is a global variable because rad force doesnt have access to data
-    flux_UV = ARRAY_4D(3,NX3_TOT, NX2_TOT, NX1_TOT, double);  //This is a global variable because rad force doesnt have access to data
-    flux_Xray = ARRAY_4D(3,NX3_TOT, NX2_TOT, NX1_TOT, double);  //This is a global variable because rad force doesnt have access to data
-
+    flux_opt = ARRAY_4D(4,NX3_TOT, NX2_TOT, NX1_TOT, double);  //This is a global variable because rad force doesnt have access to data
+    flux_UV = ARRAY_4D(4,NX3_TOT, NX2_TOT, NX1_TOT, double);  //This is a global variable because rad force doesnt have access to data
+    flux_Xray = ARRAY_4D(4,NX3_TOT, NX2_TOT, NX1_TOT, double);  //This is a global variable because rad force doesnt have access to data
+    flux_cart_opt = ARRAY_4D(4,NX3_TOT, NX2_TOT, NX1_TOT, double);  //This is a global variable because rad force doesnt have access to data
+    flux_cart_UV = ARRAY_4D(4,NX3_TOT, NX2_TOT, NX1_TOT, double);  //This is a global variable because rad force doesnt have access to data
+    flux_cart_Xray = ARRAY_4D(4,NX3_TOT, NX2_TOT, NX1_TOT, double);  //This is a global variable because rad force doesnt have access to data
+    x11_interp= ARRAY_4D(2,NX3_TOT, NX2_TOT, NX1_TOT, double);
+    x22_interp= ARRAY_4D(2,NX3_TOT, NX2_TOT, NX1_TOT, double);
+    dvds_offset= ARRAY_4D(4,NX3_TOT, NX2_TOT, NX1_TOT, double);
+    
+    
+    dv_ds_array = ARRAY_3D(NX3_TOT, NX2_TOT,NX1_TOT,double);
   #endif
 
 #endif  
-  dvr_dr_array = ARRAY_3D(NX3_TOT, NX2_TOT,NX1_TOT,double);
-  dvz_dz_array = ARRAY_3D(NX3_TOT, NX2_TOT,NX1_TOT,double);
+
 
 
 

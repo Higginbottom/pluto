@@ -785,16 +785,29 @@ extern double g_smallDensity, g_smallPressure;
 extern double g_time, g_dt;
 extern int    g_hydroStep;
 extern double g_maxMach;
+
+
+
 extern double ****g_rad; // 
-extern double ****flux_opt; // 
-extern double ****flux_UV; // 
-extern double ****flux_Xray; // 
 
 
-
-
-extern double ***dvr_dr_array;
-extern double ***dvz_dz_array;
+#if PY_CONNECT
+    #if PY_RAD_DRIV==FLUXES
+        extern double ***dv_ds_array;
+        extern double ****flux_opt; // 
+        extern double ****flux_UV; // 
+        extern double ****flux_Xray; // 
+        extern double ****flux_cart_opt; // 
+        extern double ****flux_cart_UV; // 
+        extern double ****flux_cart_Xray; // 
+        extern double ****x11_interp;//
+        extern double ****x22_interp;//
+        extern double ****dvds_offset;
+        
+        extern int dvds_setup_flag;
+    #endif
+#endif
+        
 
 #if EOS==ISOTHERMAL && PY_CONNECT
   extern double ***py_temp;   //

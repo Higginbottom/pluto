@@ -153,7 +153,8 @@ int main (int argc, char *argv[])
                     read_py_rad_driv(&data, grd,restart_flag);
                 #endif
                 #if (PY_RAD_DRIV == FLUXES)
-                    read_py_fluxes(&data, grd);                
+                    read_py_fluxes(&data, grd);  
+                    printf ("Read fluxes\n");              
                 #endif
             #endif
         #endif
@@ -182,6 +183,8 @@ int main (int argc, char *argv[])
 
   if (cmd_line.maxsteps == 0) last_step = 1;
   print ("> Starting computation... \n\n");  
+  printf ("> Starting computation... \n\n");  
+  
 
 /* =====================================================================
    2.  M A I N      L O O P      S T A R T S      H E R E
@@ -210,7 +213,6 @@ int main (int argc, char *argv[])
   /* ------------------------------------------------------
      2b. Update log file
      ------------------------------------------------------ */
-
     if (g_stepNumber%ini.log_freq == 0) OutputLogPre(&data, &Dts, &ini, grd);
 
   /* ----------------------------------------------------
