@@ -797,6 +797,8 @@ extern double ****g_rad; //
         extern double ****flux_opt; // 
         extern double ****flux_UV; // 
         extern double ****flux_Xray; // 
+        extern double ***k_UV_array;
+        extern double ***alpha_UV_array;
         extern double ****flux_cart_opt; // 
         extern double ****flux_cart_UV; // 
         extern double ****flux_cart_Xray; // 

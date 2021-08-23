@@ -193,6 +193,8 @@ double ****g_rad; //
         double ****x11_interp;//
         double ****x22_interp;//
         double ****dvds_offset;
+        double ***k_UV_array;
+        double ***alpha_UV_array;
         int dvds_setup_flag;//
     #endif        
 #endif

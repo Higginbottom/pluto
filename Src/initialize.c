@@ -493,6 +493,8 @@ void Initialize(int argc, char *argv[], Data *data,
     x11_interp= ARRAY_4D(2,NX3_TOT, NX2_TOT, NX1_TOT, double);
     x22_interp= ARRAY_4D(2,NX3_TOT, NX2_TOT, NX1_TOT, double);
     dvds_offset= ARRAY_4D(4,NX3_TOT, NX2_TOT, NX1_TOT, double);
+    k_UV_array=ARRAY_3D(NX3_TOT, NX2_TOT,NX1_TOT,double);
+    alpha_UV_array=ARRAY_3D(NX3_TOT, NX2_TOT,NX1_TOT,double);
     
     
     dv_ds_array = ARRAY_3D(NX3_TOT, NX2_TOT,NX1_TOT,double);
