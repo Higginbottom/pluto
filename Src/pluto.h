@@ -793,20 +793,54 @@ extern double ****g_rad; //
 
 #if PY_CONNECT
     #if PY_RAD_DRIV==FLUXES
-        extern double ***dv_ds_array;
-        extern double ****flux_opt; // 
-        extern double ****flux_UV; // 
-        extern double ****flux_Xray; // 
+
+	extern int NFLUX_ANGLES;
+
+	extern double ****flux_x_UV;
+	extern double ****flux_y_UV;
+	extern double ****flux_z_UV;
+
+	extern double ****flux_r_UV;
+	extern double ****flux_t_UV;
+	extern double ****flux_p_UV;
+	
+	
+	extern double ****dvds_x_offset;
+	extern double ****dvds_z_offset;
+	extern double ****dvds_mod_offset;
+	
+	extern double ****dvds_array;
+
+
+
+//    	extern double ****disk_flux_opt; // 
+//    	extern double ****disk_flux_UV; // 
+//		extern double ****disk_flux_Xray; // 
+//		extern double ****disk_flux_cart_opt; // 
+//		extern double ****disk_flux_cart_UV; // 
+//		extern double ****disk_flux_cart_Xray; // 
+//		extern double ****cent_flux_opt; // 
+//		extern double ****cent_flux_UV; // 
+//		extern double ****cent_flux_Xray; // 
+//		extern double ****cent_flux_cart_opt; // 
+//      extern double ****cent_flux_cart_UV; // 
+//    extern double ****cent_flux_cart_Xray; // 
+		
         extern double ***k_UV_array;
         extern double ***alpha_UV_array;
-        extern double ****flux_cart_opt; // 
-        extern double ****flux_cart_UV; // 
-        extern double ****flux_cart_Xray; // 
         extern double ****x11_interp;//
         extern double ****x22_interp;//
-        extern double ****dvds_offset;
+		
+        extern double ****disk_dvds_offset;
+        extern double ****cent_dvds_offset;
+		
+        extern double ***disk_dv_ds_array;
+        extern double ***cent_dv_ds_array;
+		
         
         extern int dvds_setup_flag;
+		extern int disk_flux_flag;
+		extern int cent_flux_flag;
     #endif
 #endif
         
