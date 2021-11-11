@@ -185,7 +185,10 @@ double ****g_rad; //
     #if (PY_RAD_DRIV==FLUXES)
 
 		int NFLUX_ANGLES;
-
+		int MPOINTS;
+		
+		double ****M_UV_fit;
+		double *t_fit;
 
 		double ****flux_x_UV;
 		double ****flux_y_UV;
@@ -195,39 +198,19 @@ double ****g_rad; //
 		double ****flux_t_UV;
 		double ****flux_p_UV;
 		
-		double ****dvds_x_offset;
-		double ****dvds_z_offset;
+		double ****dvds_r_offset;
+		double ****dvds_t_offset;
 		double ****dvds_mod_offset;
 		
 		double ****dvds_array;
 
-		/*
-        double ****disk_flux_opt; // 
-        double ****disk_flux_UV; // 
-        double ****disk_flux_Xray; // 
-        double ****disk_flux_cart_opt; // 
-        double ****disk_flux_cart_UV; // 
-        double ****disk_flux_cart_Xray; // 
-        double ****cent_flux_opt; // 
-        double ****cent_flux_UV; // 
-        double ****cent_flux_Xray; // 
-        double ****cent_flux_cart_opt; // 
-        double ****cent_flux_cart_UV; // 
-        double ****cent_flux_cart_Xray; // 
-		*/
-        double ***disk_dv_ds_array; //
-        double ***cent_dv_ds_array; // 
 		 
         double ****x11_interp;//
         double ****x22_interp;//
-        double ****disk_dvds_offset;
-        double ****cent_dvds_offset;
         double ***k_UV_array;
         double ***alpha_UV_array;
         int dvds_setup_flag;//
 		
-		int disk_flux_flag;
-		int cent_flux_flag;
     #endif        
 #endif
 

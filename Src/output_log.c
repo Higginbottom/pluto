@@ -146,7 +146,6 @@ int SetLogFile(char *log_dir, Cmd_Line *cmd)
   //if (LOG_FILE_FOLDER ) {
   //  mkdir("Log_Files",0777);
   //}
- 
   sprintf (log_file_name, "%s/pluto.%d.log",log_dir,prank);
 
   if (cmd->restart == NO && cmd->h5restart == NO){

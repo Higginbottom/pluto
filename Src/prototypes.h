@@ -230,6 +230,8 @@ void  read_py_iso_temp (Data *, Grid *,int);
         void read_py_fluxes (Data *, Grid *);
         void VGradCalc (const Data *, Grid *);
         void bilinear (double x11[2],double x22[2],double v11[2],double v12[2],double v21[2],double v22[2],double test[2],double ans[2],int flag);
+		double linterp (double x, double xarray[], double yarray[], int nelem);
+		
     #endif
     #if (PY_RAD_DRIV==ACCELERATIONS)
         void read_py_rad_driv (Data *, Grid *,int);
