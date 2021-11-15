@@ -1,7 +1,7 @@
 #include "pluto.h"
 
 /* ********************************************************** */
-double GetMaxRate (real *v0, real *k1, real T0)
+double GetMaxRate (double *v0, double *k1, double T0)
 /*
  *
  *  PURPOSE:

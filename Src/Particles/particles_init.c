@@ -9,10 +9,11 @@
  In case of evolution with spectra, the initial spectral profile is also
  prescribed here.
  
- \authors A. Mignone (mignone@ph.unito.it)\n
+ \authors A. Mignone (mignone@to.infn.it)\n
           B. Vaidya (bvaidya@unito.it)\n
- 
- \date    May 13, 2018
+          D. Mukherjee
+          
+ \date    March 21, 2021
  */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -27,13 +28,12 @@ void Particles_Init(Data *d, Grid *grid)
  *
  *********************************************************************** */
 {
-  int i,j,k, np, dir;
+  int i,j,k, np, dir, nc;
   int np_glob = RuntimeGet()->Nparticles_glob;
   int np_cell = RuntimeGet()->Nparticles_cell;
   static int first_call = 1;
   double xbeg[3], xend[3];
   Particle p;
-
 
   if (first_call){
     RandomSeed(time(NULL),0);
@@ -53,16 +53,17 @@ void Particles_Init(Data *d, Grid *grid)
 
     for (np = 0; np < np_glob; np++){
       Particles_LoadUniform(np, np_glob, xbeg, xend, p.coord);
-      #if (PARTICLES_TYPE == LAGRANGIAN) && (PARTICLES_LP_SPECTRA == YES)
+      #if (PARTICLES == PARTICLES_LP) && (PARTICLES_LP_SPECTRA == YES)
       Particles_LP_InitSpectra(&p);  
+      for (nc = 0; nc < PARTICLES_LP_NCOLORS; nc++) p.color[nc] = 0.0;
       #endif
-      #if PARTICLES_TYPE == COSMIC_RAYS
+      #if PARTICLES == PARTICLES_CR
       p.speed[IDIR] = 0.0;
       p.speed[JDIR] = 0.0;
       p.speed[KDIR] = 0.0;
-      p.rho   = 1.e-3;
+      p.mass        = 1.e-3*grid->dV[k][j][i];;
+      p.color       = 0.0;
       #endif
-      p.color = 0.0; 
       Particles_Insert (&p, d, PARTICLES_CREATE, grid);
     }
   }
@@ -86,19 +87,46 @@ void Particles_Init(Data *d, Grid *grid)
 
         Particles_LoadUniform(np, np_cell, xbeg, xend, p.coord);
 
-        #if (PARTICLES_TYPE == LAGRANGIAN) && (PARTICLES_LP_SPECTRA == YES)
+        #if (PARTICLES == PARTICLES_LP) && (PARTICLES_LP_SPECTRA == YES)
         Particles_LP_InitSpectra(&p);
+        for (nc = 0; nc < PARTICLES_LP_NCOLORS; nc++) p.color[nc] = 0.0;
         #endif
 
-     /* -- Velocity distribution -- */
+        #if PARTICLES == PARTICLES_CR
 
-        #if (PARTICLES_TYPE == COSMIC_RAYS)
+      /* -- Random distribution -- */
+
         p.speed[IDIR] = RandomNumber(-1,1);
         p.speed[JDIR] = RandomNumber(-1,1);
         p.speed[KDIR] = RandomNumber(-1,1);
-        p.rho         = 1.e-3/np_cell;
+
+      /* -- Gaussian Distribution -- */
+  
+        double mu    = 0.0;
+        double sigma = 5.0;
+        p.speed[IDIR] = GaussianRandomNumber(mu, sigma);
+        p.speed[JDIR] = GaussianRandomNumber(mu, sigma);
+        p.speed[KDIR] = GaussianRandomNumber(mu, sigma);    
+
+      /* -- Power law distribution (gamma^-q) based on inversion
+            of the cumulative distribution function,  -- */
+/*
+        double q   = 2.0;
+        double xi  = RandomNumber(0,1);
+        double th  = 2.0*CONST_PI*RandomNumber(0,1);
+        double phi = 2.0*CONST_PI*RandomNumber(0,1);
+
+        double lor1 = 1.0;
+        double lor2 = 1.e3;
+        double f    = pow(lor1,1.0-q) + xi*(pow(lor2,1.0-q) - pow(lor1,1.-q));
+        double lor  = pow(f, 1.0/(1.0 - q));
+        double u    = sqrt(lor*lor - 1.0);
+        p.speed[IDIR] = u*sin(th)*cos(phi);
+        p.speed[JDIR] = u*sin(th)*sin(phi);
+        p.speed[KDIR] = u*cos(phi);
+*/
+        p.mass = 1.e-3/np_cell;
         #endif
-        p.color = 0.0;
         Particles_Insert (&p, d, PARTICLES_CREATE, grid);
       }
     }
@@ -124,35 +152,56 @@ void Particles_LP_InitSpectra(Particle* pl)
   Emax = 1.0e4;
   lnEmin = log10(Emin);
   lnEmax = log10(Emax);
-  dlnE = (lnEmax - lnEmin)/((double)PARTICLES_LP_NEBINS-1);
+  dlnE = (lnEmax - lnEmin)/((double)PARTICLES_LP_NEBINS);
     
   pl->nmicro = 0.001; /* The number density of micro-particles */
-  for (i=0; i< PARTICLES_LP_NEBINS; i++){
-    scrh  = lnEmin + i*dlnE;
+
+/* --------------------------------------------------------
+   0. Initialize structure members
+   -------------------------------------------------------- */
+
+  pl->cmp_ratio = 1.0;
+  pl->shkflag = 0;
+  pl->Vshk_upst[RHO] = -1.0;
+  pl->Vshk_dnst[RHO] = -1.0;
+  pl->cr = 0.0;
+
+/* --------------------------------------------------------
+   1. Initialize energy grid.
+      Note that pl->eng[i] gives the location of the
+      *left* interface of an energy bins.
+      There're therefore NBINS+1 nodes in the grid.
+   -------------------------------------------------------- */
+
+  for (i = 0; i <= PARTICLES_LP_NEBINS; i++){
+    scrh       = lnEmin + i*dlnE;
     pl->eng[i] = pow(10.0, scrh);
-          
-    /* /\*Single Power Law*\/ */
-    alpha1 = 3.0;
-    N_0 = (pl->nmicro)*(1.0-alpha1)/(pow(Emax,1.0-alpha1)-pow(Emin,1.0-alpha1));
-    pl->chi[i] = N_0 * pow(pl->eng[i],-alpha1);
-    pl->cmp_ratio = 1.0;
-    pl->shkflag = 0;
-    pl->shk_vL[RHO] = -1.0;
-    pl->shk_vR[RHO] = -1.0;
-    pl->ca = 0.0;
-    pl->cr = 0.0;
 
     /* Relativistic Maxwellian Distribution*/
-    /* double mu = 2.0; // mu = m_0c^2/kT_e */
-    /* double k2_mu = BesselKn(2,mu); */
-    /* pl->chi[i] = (pl->nmicro)*(mu/k2_mu)*(pl->eng[i] + 1.0)*sqrt(pl->eng[i]*(pl->eng[i] + 2.0))*exp(-mu*(pl->eng[i] + 1.0)); */
-    /* pl->cmp_ratio = 1.0; */
-    /* pl->shkflag = 0;*/
-    /* pl->rho_min = -1.0;*/
-    /*pl->rho_max = -1.0;*/
-    /*pl->ca = 0.0; */
-    /*pl->cr = 0.0; */
+    /* double mu = 2.0; // mu = m_0c^2/kT_e 
+     double k2_mu = BesselKn(2,mu); 
+     pl->chi[i] = (pl->nmicro)*(mu/k2_mu)*(pl->eng[i] + 1.0)
+                  *sqrt(pl->eng[i]*(pl->eng[i] + 2.0))*exp(-mu*(pl->eng[i] + 1.0)); 
+     pl->cmp_ratio = 1.0; 
+     pl->shkflag = 0;
+     pl->rho_min = -1.0;
+     pl->rho_max = -1.0;
+     pl->cr = 0.0; */
+
   }
+
+/* ----------------------------------------------------------------------
+   2. Initialize spectral distribution to power law.
+      Chi in each bin is assigned as an average over the energy interval.
+      chi_i = \int^Eh_El E^(-p) dE /(Eh - El)
+   ---------------------------------------------------------------------- */
+  alpha1 = 3.0;
+  scrh = (pl->nmicro)/(pow(Emax,1.0-alpha1)-pow(Emin,1.0-alpha1));
+  for (i = 0; i < PARTICLES_LP_NEBINS; i++){
+    pl->chi[i]  = scrh*(  pow(pl->eng[i+1],1.0-alpha1) 
+                        - pow(pl->eng[i],1.0-alpha1))/(pl->eng[i+1] - pl->eng[i]);
+  }
+
 }
 #endif
 

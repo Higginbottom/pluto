@@ -1,6 +1,6 @@
 # *********************************************************
 #                                                     
-#                  PLUTO 4.2  Makefile  
+#                  PLUTO 4.4  Makefile  
 #                                                     
 # *********************************************************
 
@@ -19,17 +19,17 @@ include $(PLUTO_DIR)/Config/$(ARCH)
 # ---------------------------------------------------------
 
 HEADERS = pluto.h prototypes.h structs.h definitions.h macros.h mod_defs.h plm_coeffs.h
-OBJ = adv_flux.o arrays.o boundary.o check_states.o  \
-      cmd_line_opt.o entropy_switch.o  \
-      flag_shock.o flatten.o get_nghost.o   \
+OBJ = adv_flux.o arrays.o array_reconstruct.o boundary.o check_states.o  \
+      cmd_line_opt.o debug_tools.o entropy_switch.o  \
+      flag_shock.o flatten.o fluid_interface_boundary.o get_nghost.o   \
       init.o int_bound_reset.o input_data.o \
       mappers3D.o mean_mol_weight.o \
-      parse_file.o plm_coeffs.o rbox.o \
+      parse_file.o plm_coeffs.o rbox.o reconstruct.o \
       set_indexes.o set_geometry.o set_output.o \
       tools.o var_names.o  
 
 OBJ += bin_io.o colortable.o initialize.o jet_domain.o \
-       main.o output_log.o restart.o runtime_setup.o \
+       main.o output_log.o restart.o ring_average.o runtime_setup.o \
        set_image.o show_config.o  \
        set_grid.o startup.o split_source.o \
        userdef_output.o write_data.o write_tab.o \

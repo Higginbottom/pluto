@@ -1,6 +1,6 @@
-                        PLUTO version 4.3
+                        PLUTO version 4.4-patch1
                      ------------------------
-                 Copyright (C) 2002-2018 Andrea Mignone 
+                 Copyright (C) 2002-2021 Andrea Mignone 
 
 PLUTO is Godunov-type code for astrophysical fluid dynamics supporting several
 modules and algorithms. This is the v 4.3 (June 2018) version of the code
@@ -19,9 +19,9 @@ GNU General Public License for more details.
 Main Developer
 ==============
      
-  Andrea Mignone (mignone@ph.unito.it), 
-   (Dipartimento di fisica generale, Turin University)
-   (INAF Osservatorio Astronomico di Torino)
+  Andrea Mignone (mignone@to.infn.it), 
+ (Dipartimento di Fisica, Turin University)
+ (INAF Osservatorio Astronomico di Torino)
 
 
 Contributors
@@ -85,8 +85,3 @@ There's no configure.sh; once you've unpacked the distribution,
 See the documentation in Doc/ for more information.
 Have fun!
   
-If you encounter problems during the previous steps, or have any other 
-question regarding the code, please send an e-mail to mignone@ph.unito.it
-
-
-

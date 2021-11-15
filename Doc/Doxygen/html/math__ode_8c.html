@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -81,7 +81,7 @@ Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'ph'+'.un'+'it'+'o.i'+'t'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@p<span style="display: none;">.nosp@m.</span>h.uni<span style="display: none;">.nosp@m.</span>to.i<span style="display: none;">.nosp@m.</span>t</a>) </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>June 20, 2014 </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>Sep 12, 2018 </dd></dl>
 </div><h2 class="groupheader">Function Documentation</h2>
 <a id="ab276a6726cf35d2427d6250886f3b116"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ab276a6726cf35d2427d6250886f3b116">&#9670;&nbsp;</a></span>ODE_Solve()</h2>
@@ -139,7 +139,7 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <p>Main driver for the numerical integration of a system of standard ordinary differential equations (ODEs) of the type </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ \frac{dy}{dx} = f(x,y) \]" src="form_119.png"/>
+<img class="formulaDsp" alt="\[ \frac{dy}{dx} = f(x,y) \]" src="form_107.png"/>
 </p>
 <p> where x is the independent variable and y[] is a vector of unknowns.</p>
 <dl class="params"><dt>Parameters</dt><dd>
@@ -149,8 +149,8 @@ Functions</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">xbeg</td><td>the initial integration point </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">xend</td><td>the final integration point </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">dx</td><td>the initial (suggested) step size </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">rhs</td><td>a pointer to a function of the form rhs(x,*y,*f) giving the right hand side <img class="formulaInl" alt="$f(x,y)$" src="form_120.png"/> of the ODE. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">method</td><td>an integer specifying the integration algorithm. Possible choices are ODE_RK4 (fixed step size, 4th order Runge-Kutta), ODE_CK45 (adaptive step size, 5th order Cash-Karp algorithm). </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">rhs</td><td>a pointer to a function of the form rhs(x,*y,*f) giving the right hand side <img class="formulaInl" alt="$f(x,y)$" src="form_108.png"/> of the ODE. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">method</td><td>an integer specifying the integration algorithm. Possible choices are ODE_RK2 (fixed step size, 2nd order Runge-Kutta), ODE_RK4 (fixed step size, 4th order Runge-Kutta), ODE_CK45 (adaptive step size, 5th order Cash-Karp algorithm). </td></tr>
   </table>
   </dd>
 </dl>
@@ -160,7 +160,7 @@ Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:50 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:57 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

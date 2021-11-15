@@ -1,5 +1,23 @@
+/* ///////////////////////////////////////////////////////////////////// */
+/*! 
+  \file  
+  \brief Right hand side for MINEq cooling.
+
+  \authors A. Mignone (mignone@ph.unito.it)\n
+           O. Tesileanu
+
+  \b References
+     - "Simulating radiative astrophysical flows with the PLUTO code:
+        a non-equilibrium, multi-species cooling function" \n
+       Tesileanu, Mignone and Massaglia, A&A (2008) 488, 429
+
+  \date   April 09, 2019
+*/
+/* ///////////////////////////////////////////////////////////////////// */
+
 #include "pluto.h"
 #include "cooling_defs.h"
+extern double gCooling_x1, gCooling_x2, gCooling_x3;
 
 /* ----------------------------------------------------------------------- 
     Global variables definition. They are declared inside cooling_defs.h
@@ -116,7 +134,7 @@ double prs;
   T  = prs/v[RHO]*KELVIN*mu;
 
   if (mu < 0.0){
-    print ("! Radiat: negative mu\n");
+    printLog ("! Radiat: negative mu\n");
     QUIT_PLUTO(1);
   }
 
@@ -181,14 +199,14 @@ double sum;
 
 sum=fabs(RS[1] + RS[2]);
 if (sum > 1.e-17){
-  print("> Sum(RHS) != 0 for He!!\n");
+  printLog("> Sum(RHS) != 0 for He!!\n");
   exit(1);
 }
 
 sum = 0.0;
 for (nv = 0; nv < C_IONS; nv++) sum += RS[CI-NFLX+nv];
 if (fabs(sum) > 1.e-10){
-  print("> Sum(RHS) != 0 for C !!  (%12.6e)\n", sum);
+  printLog("> Sum(RHS) != 0 for C !!  (%12.6e)\n", sum);
   exit(1);
 }
 }
@@ -196,25 +214,25 @@ if (fabs(sum) > 1.e-10){
 nv = 8;
 sum=fabs(RS[nv] + RS[nv+1] + RS[nv+2] + RS[nv+3] + RS[nv+4]);
 if ( sum > 1.e-10){
- print("> Sum(RHS) != 0 for N!!\n");
+ printLog("> Sum(RHS) != 0 for N!!\n");
   exit(1);
 }
 nv = 13;
 sum=fabs(RS[nv] + RS[nv+1] + RS[nv+2] + RS[nv+3] + RS[nv+4]);
 if ( sum > 1.e-10){
- print("> Sum(RHS) != 0 for O!!\n");
+ printLog("> Sum(RHS) != 0 for O!!\n");
   exit(1);
 }
 nv = 18;
 sum = fabs(RS[nv] + RS[nv+1] + RS[nv+2] + RS[nv+3] + RS[nv+4]);
 if ( sum > 1.e-10){
- print("> Sum(RHS) != 0 for Ne!!\n");
+ printLog("> Sum(RHS) != 0 for Ne!!\n");
   exit(1);
 }
 nv = 23;
 fabs(RS[nv] + RS[nv+1] + RS[nv+2] + RS[nv+3] + RS[nv+4]);
 if ( sum > 1.e-10){
- print("> Sum(RHS) != 0 for S!!\n");
+ printLog("> Sum(RHS) != 0 for S!!\n");
   exit(1);
 }
 }
@@ -305,7 +323,7 @@ exit(1);
     em += X[nv]*CoolCoeffs.de[nv]*elem_ab[elem_part[nv]];
   }
   
-  if  (em < 0.0) print("> 2 negative em => possitive losses???? em = %12.6e\n",em);
+  if  (em < 0.0) printLog("> 2 negative em => possitive losses???? em = %12.6e\n",em);
      
 /* -------------------------------------------------------------------
      Now finally add the ionization / recombination losses ...
@@ -320,12 +338,12 @@ exit(1);
 
  /*
   if ( (1.08e-8*sT*v[HI]*elem_ab[el_H]/13.6*exp(-157890.0/T) *CONST_eV) / (v[HI] *CoolCoeffs.Crate[0]*elem_ab[el_H]*coll_ion_dE[0]*Unit_Time*CONST_eV) > 2.0) {
-    print("too different em's: %12.6e  -   %12.6e\n",
+    printLog("too different em's: %12.6e  -   %12.6e\n",
               (1.08e-8*sT*v[HI]*elem_ab[el_H]/13.6*exp(-157890.0/T) *CONST_eV), (v[HI] *CoolCoeffs.Crate[0]*elem_ab[el_H]*coll_ion_dE[0]*Unit_Time*CONST_eV));
     
   }
   if ( (1.08e-8*sT*v[HI]*elem_ab[el_H]/13.6*exp(-157890.0/T) *CONST_eV) / (v[HI] *CoolCoeffs.Crate[0]*elem_ab[el_H]*coll_ion_dE[0]*Unit_Time*CONST_eV) < 0.5) {
-    print("too different em's: %12.6e  -   %12.6e\n",
+    printLog("too different em's: %12.6e  -   %12.6e\n",
               (1.08e-8*sT*v[HI]*elem_ab[el_H]/13.6*exp(-157890.0/T) *CONST_eV), (v[HI] *CoolCoeffs.Crate[0]*elem_ab[el_H]*coll_ion_dE[0]*Unit_Time*CONST_eV));
     
   }
@@ -346,7 +364,7 @@ exit(1);
   CoolCoeffs.dLIR_dX[0] -= scrh;
 
 /*
-  if (T>4000) print("ratesHI: old %12.6e    new %12.6e    at T = %12.6e\n",2.6e-11/sT*(1.0 - v[HI])*elem_ab[el_H]*T/11590.0*0.67*CONST_eV,
+  if (T>4000) printLog("ratesHI: old %12.6e    new %12.6e    at T = %12.6e\n",2.6e-11/sT*(1.0 - v[HI])*elem_ab[el_H]*T/11590.0*0.67*CONST_eV,
                           (1.0 - v[HI])*CoolCoeffs.Rrate[0]*elem_ab[el_H]*0.67*CONST_kB*T,T);
   */
 /*
@@ -395,16 +413,15 @@ exit(1);
   rlosst += em3 + em2;
 */
 
-/*
-  if (T > g_minCoolingTemp) rhs[PRS] = -E_cost*rlosst*(g_gamma - 1.0);
-  else                rhs[PRS] = 0.0;
-*/
 
   rhs[RHOE] = -E_cost*rlosst;
-  rhs[RHOE] *= 1.0/(1.0 + exp( -(T - g_minCoolingTemp)/100.)); /* -- cut cooling function --*/
+/*
+  rhs[RHOE] *= 1.0/(1.0 + exp( -(T - g_minCoolingTemp)/100.)); 
+*/
+  rhs[RHOE] *= 1.0 - 1.0/cosh( pow( T/g_minCoolingTemp, 12)); /* -- cut cooling function --*/
 
   if (rhs[RHOE] > 0.0) {
-     print ("! Error: positive radiative losses!  %12.6e  %12.6e  %12.6e \n", em, n_el, N);
+     printLog ("! Error: positive radiative losses!  %12.6e  %12.6e  %12.6e \n", em, n_el, N);
      QUIT_PLUTO(1);
   }  
 }

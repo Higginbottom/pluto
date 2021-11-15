@@ -96,7 +96,7 @@ void Init (double *us, double x1, double x2, double x3)
   #endif
 */
 
-  r = D_EXPAND( (x-0.8)*(x-0.8), + y*y, + z*z);
+  r = DIM_EXPAND( (x-0.8)*(x-0.8), + y*y, + z*z);
   r = sqrt(r);
   if (r < 0.15) us[RHO] = 10.0;
 
@@ -135,7 +135,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
  **************************************************************** */
 {
   int   i, j, k, nv;
-  real  x1, x2, x3;
+  double  x1, x2, x3;
 
   if (side == X2_BEG){  /* -- X2_BEG boundary -- */
     X2_BEG_LOOP(k,j,i){}

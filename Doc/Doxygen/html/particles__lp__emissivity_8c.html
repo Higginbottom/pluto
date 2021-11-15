@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -218,7 +218,8 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Estimates the power emitted by an ensemble of electron N(E) with Isotropic radiation field of CMB photons. This assumes that the flow is non-relativistic and can be typically used to estimate IC Power from Supernovae.</p>
+<p>Estimates the power per volume per energy emitted by an ensemble of electron N(E) with Isotropic radiation field of CMB photons. This assumes that the flow is non-relativistic and can be typically used to estimate IC Power from Supernovae.</p>
+<p>Multiplication with a factor of h/(4*pi) estimates emissivity JnuIC in units of ergs/s.Hz.cm^3.str for the MHD module.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">pl</td><td>Pointer to the Particle Structure. </td></tr>
@@ -310,7 +311,7 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Estimates the power emitted by an ensemble of electron N(E) with Isotropic radiation field of CMB photons. For non-relativistic flow approximations in the Thompson's limit are taken from Petruk et. al. 2009, typically used for Supernovae. For the relativistic flow approximations in the Thompson's limit used here are adopted from Dermer et. al. 1995. The relativistic implementation therefore account of beaming of incident CMB photon and also related relativistic effects.</p>
+<p>Estimates the power emitted by an ensemble of electron N(E) with Isotropic radiation field of CMB photons. For non-relativistic flow approximations in the Thompson's limit are taken from Petruk et. al. 2009, typically used for Supernovae. For the relativistic flow approximations in the Thompson's limit used here are adopted from Dermer et. al. 1995. The relativistic implementation therefore account of beaming of incident CMB photon and also related relativistic effects. The output &ndash;&gt; Total InverseCompton emissivity at the prescribed frequency is obtained in units of ergs/(s*cm^3*str)</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">pl</td><td>Pointer to the Particle Structure. </td></tr>
@@ -372,7 +373,7 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Routine that computes the total synchrotrn emissivity and polarised Stoke Parameters for a given observed frequency and line of sight angle.</p>
+<p>Routine that computes the total synchrotrn emissivity and polarised Stoke Parameters for a given observed frequency and line of sight angle. The output is obtained in cgs units : ergs/(s*cm^3*Hz*str)</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">pl</td><td>Pointer to the Particle Structure. </td></tr>
@@ -513,7 +514,7 @@ Functions</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">double *&#160;</td>
-          <td class="paramname"><em>snChi</em>&#160;</td>
+          <td class="paramname"><em>Bperp</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -541,7 +542,7 @@ Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:51 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:58 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

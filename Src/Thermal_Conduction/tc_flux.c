@@ -34,9 +34,9 @@
         - I. Numerical methods",
         Balsara, Tilley, Howk, MNRAS (2008) 386, 627 
        
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \authors A. Mignone (mignone@to.infn.it)\n
            T. Matsakos
-  \date    June 20, 2017
+  \date    June 27, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -108,7 +108,7 @@ void TC_Flux (double ***T, const Sweep *sweep,
   for (i = beg; i <= end+1; i++){
     dvp = vc[i+1][PRS] - vc[i][PRS];
     dvm = vc[i][PRS] - vc[i-1][PRS];
-    dvl = VAN_LEER(dvp, dvm);
+    dvl = VANLEER_LIMITER(dvp, dvm);
     pp[i] = vc[i][PRS] + 0.5*dvl;
     pm[i] = vc[i][PRS] - 0.5*dvl;
   }
@@ -132,13 +132,13 @@ void TC_Flux (double ***T, const Sweep *sweep,
 
 #if PHYSICS == MHD && BACKGROUND_FIELD == YES
     BackgroundField(x1,x2,x3, bck_fld);
-    EXPAND(vi[BX1] += bck_fld[0];  ,
-           vi[BX2] += bck_fld[1];  ,
-           vi[BX3] += bck_fld[2];)
+    vi[BX1] += bck_fld[0];
+    vi[BX2] += bck_fld[1];
+    vi[BX3] += bck_fld[2];
 #endif
 
     TC_kappa(vi, x1, x2, x3, &kpar, &knor, &phi);
-    dT_mag  = D_EXPAND(  gradT[i][0]*gradT[i][0], 
+    dT_mag  = DIM_EXPAND(  gradT[i][0]*gradT[i][0], 
                        + gradT[i][1]*gradT[i][1], 
                        + gradT[i][2]*gradT[i][2]);
     dT_mag = sqrt(dT_mag) + 1.e-12;
@@ -154,10 +154,10 @@ void TC_Flux (double ***T, const Sweep *sweep,
 
 #elif PHYSICS == MHD
 
-    Bmag = EXPAND(vi[BX1]*vi[BX1], + vi[BX2]*vi[BX2], + vi[BX3]*vi[BX3]);
+    Bmag = vi[BX1]*vi[BX1] + vi[BX2]*vi[BX2] + vi[BX3]*vi[BX3];
     Bmag = sqrt(Bmag) + 1.e-12;
 
-    bgradT = D_EXPAND(  vi[BX1]*gradT[i][IDIR], 
+    bgradT = DIM_EXPAND(  vi[BX1]*gradT[i][IDIR], 
                       + vi[BX2]*gradT[i][JDIR], 
                       + vi[BX3]*gradT[i][KDIR]);
     bgradT /= Bmag;

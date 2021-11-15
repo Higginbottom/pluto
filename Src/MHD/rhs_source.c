@@ -41,14 +41,44 @@
       The energy source term is included during the Fargo transport step,
       see FARGO_Source(). 
 
+  Care is taken to ensure that gravity components are included even
+  when a direction is not active.
+  The following table summarizes:
+  
+  1D (x):
+  Sweep| gx | gy | gz |
+  -----|----|----|----|
+   x   | o  | o  | o  |
+
+  2D (x,y):
+  Sweep| gx | gy | gz |
+  -----|----|----|----|
+   x   | o  |    |    |
+   y   |    | o  | o  |
+
+  2D (x,z):
+  Sweep| gx | gy | gz |
+  -----|----|----|----|
+   x   | o  |    |    |
+   z   |    | o  | o  |
+
+  3D (x,y,z):
+  Sweep| gx | gy | gz |
+  -----|----|----|----|
+   x   | o  |    |    |
+   y   |    | o  |    |
+   z   |    |    | o  |
+        
+  For consistency, the same approach must be used in PrimSource().
+  
   \b Reference
     - "A conservative orbital advection scheme for simulations 
        of magnetized shear flows with the PLUTO code"\n
        Mignone et al, A&A (2012) 545, A152 (--> Appendix A.1.1)
 
-  \author A. Mignone (mignone@ph.unito.it)\
+  \author A. Mignone (mignone@to.infn.it)\
           B. Vaidya 
-  \date   May 13, 2018
+  \date   Aug 27, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -115,7 +145,7 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
   double vc[NVAR], *vg;
 
 #ifdef FARGO
-  wA = FARGO_GetVelocity();
+  wA = FARGO_Velocity();
 #endif
 
 #if (PHYSICS == MHD) && (BACKGROUND_FIELD == YES)
@@ -145,31 +175,45 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
 #if GEOMETRY == CARTESIAN
 
       vg = stateC->v[i];
-      #ifdef SHEARINGBOX  /* Include Coriolis term for x-momentum */
-      rhs[i][MX1] += dt*2.0*vg[RHO]*vg[VX2]*SB_OMEGA;
+
+    /* --------------------------------------------
+       I1. Add Shearing-box source terms (Coriolis)          
+       -------------------------------------------- */
+    
+      #ifdef SHEARINGBOX  
+      rhs[i][MX1] += dt*vg[RHO]*2.0*SB_OMEGA*vg[VX2];
+
+    /* -- For dust, add global pressure gradient */
+
+      #if (PARTICLES == PARTICLES_DUST) || (DUST_FLUID == YES)
+      rhs[i][MX1] += dt*vg[RHO]*2.0*SB_OMEGA*PARTICLES_DUST_SB_ETA_VK; 
       #endif
+      #endif /* SHEARINGBOX */
 
       #if (defined FARGO && !defined SHEARINGBOX) 
       w = wA[k][i];
       #endif
   
+    /* --------------------------------------------
+       I2. Add geometrical source term
+       -------------------------------------------- */
+    
 #elif GEOMETRY == CYLINDRICAL
 
       r_1 = 1.0/x1[i];
       vg  = vc;
-      NFLX_LOOP(nv) vc[nv] = 0.5*(vp[i][nv] + vm[i][nv]);       
-      #if COMPONENTS == 3
+      NVAR_LOOP(nv) vc[nv] = 0.5*(vp[i][nv] + vm[i][nv]);       
       vphi = vc[iVPHI];
       IF_ROTATING_FRAME(w     = g_OmegaZ*x1[i];
                         vphi += w;)
       rhs[i][MX1]   += dt*(vc[RHO]*vphi*vphi - TotBB(vc, Bg0[i], iBPHI, iBPHI))*r_1;
-      #endif  /* COMPONENTS == 3 */
+      IF_DUST_FLUID(rhs[i][MX1_D] += dt*vc[RHO_D]*vc[VX3_D]*vc[VX3_D]*r_1;)
 
 #elif GEOMETRY == POLAR
 
       r_1 = 1.0/x1[i];
       vg  = vc;
-      NFLX_LOOP(nv) vc[nv] = 0.5*(vp[i][nv] + vm[i][nv]); 
+      NVAR_LOOP(nv) vc[nv] = 0.5*(vp[i][nv] + vm[i][nv]); 
       vphi = vc[iVPHI];
       #if (defined FARGO) || (ROTATING_FRAME == YES)
       w = 0.0;
@@ -179,65 +223,63 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
       #endif
       rhs[i][MX1] += dt*(  vc[RHO]*vphi*vphi 
                          - TotBB(vc, Bg0[i], iBPHI, iBPHI))*r_1;
-
+      IF_DUST_FLUID(rhs[i][MX1_D] += dt*vc[RHO_D]*vc[VX2_D]*vc[VX2_D]*r_1;)
 #elif GEOMETRY == SPHERICAL
 
       r_1 = 1.0/x1[i];
       vg  = vc;
-      NFLX_LOOP(nv) vc[nv] = 0.5*(vp[i][nv] + vm[i][nv]);
-      vphi = SELECT(0.0, 0.0, vc[iVPHI]);
+      NVAR_LOOP(nv) vc[nv] = 0.5*(vp[i][nv] + vm[i][nv]);
+      vphi = vc[iVPHI];
       #if (defined FARGO) || (ROTATING_FRAME == YES)
       w = 0.0;
       IF_FARGO         (w += wA[j][i];)
       IF_ROTATING_FRAME(w += g_OmegaZ*x1[i]*s[j];)
       vphi += w;
       #endif
-      Sm = vc[RHO]*(EXPAND(  0.0, + vc[VX2]*vc[VX2], + vphi*vphi));
-      Sm += EXPAND(  0.0, - TotBB(vc, Bg0[i], iBTH, iBTH), 
-                          - TotBB(vc, Bg0[i], iBPHI,iBPHI));
+      Sm  = vc[RHO]*(vc[VX2]*vc[VX2] + vphi*vphi);
+      Sm += - TotBB(vc, Bg0[i], iBTH, iBTH) - TotBB(vc, Bg0[i], iBPHI,iBPHI);
       rhs[i][MX1] += dt*Sm*r_1;
+      IF_DUST_FLUID(
+        rhs[i][MX1_D] += dt*vc[RHO_D]*(  vc[VX2_D]*vc[VX2_D] 
+                                       + vc[VX3_D]*vc[VX3_D] )*r_1;
+      )
 
-#endif
-
-    /* ----------------------------------------------------
-       I2. Modify rhs to enforce conservation
-       ---------------------------------------------------- */
-
-#if ((defined FARGO && !defined SHEARINGBOX) || (ROTATING_FRAME == YES)) 
-      rhs[i][iMPHI] -= w*rhs[i][RHO];
-      IF_ENERGY(rhs[i][ENG] -= w*(rhs[i][iMPHI] + 0.5*w*rhs[i][RHO]);)
 #endif
 
     /* ----------------------------------------------------
        I3. Include body forces
        ---------------------------------------------------- */
 
-#if (BODY_FORCE & VECTOR)
+      #if (BODY_FORCE & VECTOR)
       BodyForceVector(vg, g, x1[i], x2[j], x3[k]);
       rhs[i][MX1]   += dt*vg[RHO]*g[IDIR];
-      IF_ENERGY(rhs[i][ENG] += dt*0.5*(flux[i][RHO] + flux[i-1][RHO])*g[IDIR];)
+      IF_DUST_FLUID(rhs[i][MX1_D] += dt*vg[RHO_D]*g[IDIR];)
+      IF_ENERGY(    rhs[i][ENG]   += dt*0.5*(flux[i][RHO] + flux[i-1][RHO])*g[IDIR];)
       
-      /* -- Add tangential components in 1D -- */
-      
-      #if DIMENSIONS == 1   
-      EXPAND(                                    ,
-             rhs[i][MX2] += dt*vg[RHO]*g[JDIR];  ,
-             rhs[i][MX3] += dt*vg[RHO]*g[KDIR];)
-      #if HAVE_ENERGY
-      rhs[i][ENG] += dt*(EXPAND(0.0, + vg[RHO]*vg[VX2]*g[JDIR],
-                                     + vg[RHO]*vg[VX3]*g[KDIR] );
-      #endif                         
+      /* ----------------------------------------
+         Add non-active dimensions during
+         this sweep.
+         ---------------------------------------- */
+      #if !INCLUDE_JDIR && !INCLUDE_KDIR
+      rhs[i][MX2] += dt*vg[RHO]*g[JDIR];
+      IF_DUST_FLUID(rhs[i][MX2_D] += dt*vg[RHO_D]*g[JDIR];)
+      IF_ENERGY    (rhs[i][ENG]   += dt*vg[RHO]*vg[VX2]*g[JDIR];)
+
+      rhs[i][MX3] += dt*vg[RHO]*g[KDIR];
+      IF_DUST_FLUID(rhs[i][MX3_D] += dt*vg[RHO_D]*g[KDIR];)
+      IF_ENERGY    (rhs[i][ENG]   += dt*vg[RHO]*vg[VX3]*g[KDIR];)
       #endif
-#endif
+      #endif
       
-#if (BODY_FORCE & POTENTIAL)
-      rhs[i][MX1]   -= dtdx*vg[RHO]*(phi_p[i] - phi_p[i-1]);
+      #if (BODY_FORCE & POTENTIAL)
+      rhs[i][MX1] -= dtdx*vg[RHO]*(phi_p[i] - phi_p[i-1]);
+      IF_DUST_FLUID( rhs[i][MX1_D] -= dtdx*vg[RHO_D]*(phi_p[i] - phi_p[i-1]);)
       IF_ENERGY(phi_c       = BodyForcePotential(x1[i], x2[j], x3[k]); 
                 rhs[i][ENG] -= phi_c*rhs[i][RHO];)
-#endif
+      #endif
 
     }
-    
+
   } else if (g_dir == JDIR){
 
     scrh = dt;
@@ -251,48 +293,43 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
     for (j = beg; j <= end; j++) {
       dtdx = scrh/dx2[j];
 
-    /* --------------------------------------------
-       J1. Add geometrical source terms
-       -------------------------------------------- */
-
 #if GEOMETRY != SPHERICAL
 
       vg = stateC->v[j];
 
-#ifdef SHEARINGBOX /* Include Coriolis term for y-momentum */
-    #ifdef FARGO 
-      rhs[j][MX2] += dt*(SB_Q-2.0)*vg[RHO]*vg[VX1]*SB_OMEGA;
-    #else
-      rhs[j][MX2] -= dt*2.0*vg[RHO]*vg[VX1]*SB_OMEGA;
-    #endif
-#endif
+    /* --------------------------------------------
+       J1. Add Shearingbox source terms
+       -------------------------------------------- */
+    
+      #ifdef SHEARINGBOX  /* Include Coriolis term for y-momentum */
+      #ifdef FARGO 
+      rhs[j][MX2] += dt*vg[RHO]*(SB_Q-2.0)*SB_OMEGA*vg[VX1];
+      #else
+      rhs[j][MX2] -= dt*vg[RHO]*2.0*SB_OMEGA*vg[VX1];
+      #endif
+      #endif
 
 #elif GEOMETRY == SPHERICAL
 
+    /* --------------------------------------------
+       J2. Add geometrical source terms
+       -------------------------------------------- */
+
       ct = 1.0/tan(x2[j]); 
       vg = vc;
-      NFLX_LOOP(nv) vc[nv] = stateC->v[j][nv];
-      vphi = SELECT(0.0, 0.0, vc[iVPHI]);
+      NVAR_LOOP(nv) vc[nv] = stateC->v[j][nv];
+      vphi = vc[iVPHI];
       #if (defined FARGO) || (ROTATING_FRAME == YES)
       w = 0.0; 
       IF_FARGO         (w += wA[j][i];)
-//      IF_ROTATING_FRAME(w += g_OmegaZ*x1[i]*sin(x2[j]);)
       IF_ROTATING_FRAME(w += g_OmegaZ*x1[i]*s[j];)
       vphi += w;
       #endif
-      Sm = vc[RHO]*(EXPAND(  0.0, - vc[iVTH]*vc[iVR], + ct*vphi*vphi));
-      Sm += EXPAND(0.0, +    TotBB(vc, Bg0[j], iBTH, iBR), 
-                        - ct*TotBB(vc, Bg0[j], iBPHI, iBPHI));
+      Sm  = vc[RHO]*(- vc[iVTH]*vc[iVR] + ct*vphi*vphi);
+      Sm += TotBB(vc, Bg0[j], iBTH, iBR) - ct*TotBB(vc, Bg0[j], iBPHI, iBPHI);
       rhs[j][MX2] += dt*Sm*r_1;
-
-    /* ----------------------------------------------------
-       J2. Modify rhs to enforce conservation
-       ---------------------------------------------------- */
-
-  #if (defined FARGO) || (ROTATING_FRAME == YES)
-      rhs[j][MX3] -= w*rhs[j][RHO];
-      IF_ENERGY(rhs[j][ENG]  -= w*(rhs[j][MX3] + 0.5*w*rhs[j][RHO]);)
-  #endif
+      IF_DUST_FLUID(rhs[j][MX2_D] += dt*vc[RHO_D]*(- vc[VX2_D]*vc[VX1_D]
+                                                   + vc[VX3_D]*vc[VX3_D]*ct)*r_1);
 
 #endif  /* GEOMETRY == SPHERICAL */
 
@@ -300,87 +337,100 @@ void RightHandSideSource (const Sweep *sweep, timeStep *Dts,
        J3. Include Body force
        ---------------------------------------------------- */
 
-#if (BODY_FORCE & VECTOR)
+      #if (BODY_FORCE & VECTOR)
       BodyForceVector(vg, g, x1[i], x2[j], x3[k]);
-      rhs[j][MX2]   += dt*vg[RHO]*g[JDIR];
+      rhs[j][MX2] += dt*vg[RHO]*g[JDIR];
+      IF_DUST_FLUID(rhs[j][MX2_D]  += dt*vg[RHO_D]*g[JDIR]);
       IF_ENERGY(rhs[j][ENG] += dt*0.5*(flux[j][RHO] + flux[j-1][RHO])*g[JDIR];)
-
-      /* -- Add tangential components in 2D -- */
-      
-      #if DIMENSIONS == 2 && COMPONENTS == 3  
+      #if !INCLUDE_KDIR
       rhs[j][MX3] += dt*vg[RHO]*g[KDIR];
-      IF_ENERGY(rhs[j][ENG] += dt*vg[RHO]*vg[VX3]*g[KDIR];)
+      IF_DUST_FLUID(rhs[j][MX3_D] += dt*vg[RHO_D]*g[KDIR];)
+      IF_ENERGY    (rhs[j][ENG]   += dt*vg[RHO]*vg[VX3]*g[KDIR];)
       #endif
-#endif
+      #endif /* (BODY_FORCE & VECTOR) */
 
-#if (BODY_FORCE & POTENTIAL)
+      #if (BODY_FORCE & POTENTIAL)
       rhs[j][MX2]   -= dtdx*vg[RHO]*(phi_p[j] - phi_p[j-1]);
+      IF_DUST_FLUID(rhs[j][MX2_D] -= dtdx*vg[RHO_D]*(phi_p[j] - phi_p[j-1]);)
       IF_ENERGY(phi_c        = BodyForcePotential(x1[i], x2[j], x3[k]); 
                 rhs[j][ENG] -= phi_c*rhs[j][RHO];)
-#endif
+      #endif
     }
 
   }else if (g_dir == KDIR){
 
     scrh  = dt;
-#if GEOMETRY == SPHERICAL
+    #if GEOMETRY == SPHERICAL
     scrh *= dx2[j]/(rt[i]*dmu[j]);
-#endif
+    #endif
 
     for (k = beg; k <= end; k++) {
       dtdx = scrh/dx3[k];
       vg   = stateC->v[k];
 
-#if (GEOMETRY == CARTESIAN) || (GEOMETRY == POLAR)
-    /* ------------------------------------------------------
-       K2. modify rhs to enforce conservation (FARGO only)
-           (solid body rotations are not included the
-            velocity depends on the cylindrical radius only)
-       ------------------------------------------------------ */
-
-  #if (defined FARGO && !defined SHEARINGBOX) 
-       w = wA[k][i];
-       rhs[k][MX2] -= w*rhs[k][RHO];
-       IF_ENERGY(rhs[k][ENG] -= w*(rhs[k][MX2] + 0.5*w*rhs[k][RHO]);)
-  #endif
-#endif
+    /* --------------------------------------------
+       K1. Add Shearingbox source terms
+       -------------------------------------------- */
+      
+      #if (defined SHEARINGBOX) && !INCLUDE_JDIR  
+      #ifdef FARGO 
+      rhs[k][MX2] += dt*vg[RHO]*(SB_Q-2.0)*SB_OMEGA*vg[VX1];
+      #else
+      rhs[k][MX2] -= dt*vg[RHO]*2.0*SB_OMEGA*vg[VX1];
+      #endif
+      #endif
 
     /* ----------------------------------------------------
        K3. Include body forces
        ---------------------------------------------------- */
 
-#if (BODY_FORCE & VECTOR)
+      #if (BODY_FORCE & VECTOR)
       BodyForceVector(vg, g, x1[i], x2[j], x3[k]);
-      rhs[k][MX3]   += dt*vg[RHO]*g[KDIR];
+      rhs[k][MX3] += dt*vg[RHO]*g[KDIR];
+      IF_DUST_FLUID(rhs[k][MX3_D] += dt*vg[RHO_D]*g[KDIR];)
       IF_ENERGY(rhs[k][ENG] += dt*0.5*(flux[k][RHO] + flux[k-1][RHO])*g[KDIR];)
-#endif
-
-#if (BODY_FORCE & POTENTIAL)
+      #if !INCLUDE_JDIR
+      rhs[k][MX2] += dt*vg[RHO]*g[JDIR];
+      IF_DUST_FLUID(rhs[k][MX2_D] += dt*vg[RHO_D]*g[JDIR];)
+      IF_ENERGY    (rhs[k][ENG]   += dt*vg[RHO]*vg[VX2]*g[JDIR];)
+      #endif
+      #endif  /* (BODY_FORCE & VECTOR) */
+      
+      #if (BODY_FORCE & POTENTIAL)
       rhs[k][MX3]   -= dtdx*vg[RHO]*(phi_p[k] - phi_p[k-1]);
+      IF_DUST_FLUID(rhs[k][MX3_D] -= dtdx*vg[RHO_D]*(phi_p[k] - phi_p[k-1]);)
       IF_ENERGY(phi_c        = BodyForcePotential(x1[i], x2[j], x3[k]);
                 rhs[k][ENG] -= phi_c*rhs[k][RHO];)
-#endif
+      #endif
     }
   }
+
+/* --------------------------------------------------
+    Dust drag force term 
+   -------------------------------------------------- */
+  
+  #if DUST_FLUID == YES    
+  DustFluid_DragForce(sweep, beg, end, dt, grid);
+  #endif
 
 /* --------------------------------------------------
               Powell's source terms
    -------------------------------------------------- */
 
-#if (PHYSICS == MHD) && (DIVB_CONTROL == EIGHT_WAVES)
+  #if (PHYSICS == MHD) && (DIVB_CONTROL == EIGHT_WAVES)
   for (i = beg; i <= end; i++) {
-    EXPAND(rhs[i][MX1] += dt*sweep->src[i][MX1];  ,
-           rhs[i][MX2] += dt*sweep->src[i][MX2];  ,
-           rhs[i][MX3] += dt*sweep->src[i][MX3];)
+    rhs[i][MX1] += dt*sweep->src[i][MX1];
+    rhs[i][MX2] += dt*sweep->src[i][MX2];
+    rhs[i][MX3] += dt*sweep->src[i][MX3];
 
-    EXPAND(rhs[i][BX1] += dt*sweep->src[i][BX1];  ,
-           rhs[i][BX2] += dt*sweep->src[i][BX2];  ,
-           rhs[i][BX3] += dt*sweep->src[i][BX3];)
+    rhs[i][BX1] += dt*sweep->src[i][BX1];
+    rhs[i][BX2] += dt*sweep->src[i][BX2];
+    rhs[i][BX3] += dt*sweep->src[i][BX3];
   #if HAVE_ENERGY
     rhs[i][ENG] += dt*sweep->src[i][ENG];
   #endif
   }
-#endif
+  #endif
 
 /* -------------------------------------------------
             Extended GLM source terms

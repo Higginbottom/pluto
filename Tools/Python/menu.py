@@ -269,6 +269,9 @@ def Insert(entries, default):
       gb.scrn.addstr(gb.row,gb.cbeg+gb.csep,'                                 ')
       gb.scrn.addstr(gb.row,gb.cbeg+gb.csep,'NAME or VALUE > ',curses.A_UNDERLINE)
       new_name = gb.scrn.getstr()
+      if not isinstance(new_name, str):  # Modification done on 23 July 2018 by 
+        new_name = new_name.decode()     # S. Doetsch (Heidelberg)
+
       i = gb.row-gb.rbeg
       default.pop(i)
       default.insert(i,new_name)

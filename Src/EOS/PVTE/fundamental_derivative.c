@@ -42,7 +42,7 @@ double FundamentalDerivative(double *v, double T)
   double epp, emm, ep, em;
   double vm[NVAR], vp[NVAR], vpp[NVAR], vmm[NVAR];
  
-  VAR_LOOP(nv) vm[nv] = vp[nv] = vpp[nv] = vmm[nv] = v[nv];
+  NVAR_LOOP(nv) vm[nv] = vp[nv] = vpp[nv] = vmm[nv] = v[nv];
 
   rho  = v[RHO];
   rho2 = rho*rho; 

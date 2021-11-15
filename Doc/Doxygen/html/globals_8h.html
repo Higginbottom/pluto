@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -115,8 +115,6 @@ Variables</h2></td></tr>
 <tr class="separator:af7530fbb2dfab4416df2894f5ec4b200"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8785f6205414f260ae9da151a78c818a"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="globals_8h.html#a8785f6205414f260ae9da151a78c818a">g_dt</a></td></tr>
 <tr class="separator:a8785f6205414f260ae9da151a78c818a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a20623ee660eb5eaa5e0549685bb22141"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="globals_8h.html#a20623ee660eb5eaa5e0549685bb22141">g_hydroStep</a> = 0</td></tr>
-<tr class="separator:a20623ee660eb5eaa5e0549685bb22141"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a95afdc1c4f89c64bead4eb501be1eb7e"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="globals_8h.html#a95afdc1c4f89c64bead4eb501be1eb7e">g_intStage</a></td></tr>
 <tr class="separator:a95afdc1c4f89c64bead4eb501be1eb7e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2c0aa773cc6edda442f387911970f356"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="globals_8h.html#a2c0aa773cc6edda442f387911970f356">g_maxCoolingRate</a> = 0.1</td></tr>
@@ -154,7 +152,7 @@ Variables</h2></td></tr>
 <tr class="memitem:a4a46accffd678189a7fb7bf6b5097224"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="globals_8h.html#a4a46accffd678189a7fb7bf6b5097224">d_condition</a> =1</td></tr>
 <tr class="separator:a4a46accffd678189a7fb7bf6b5097224"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr><td colspan="2"><div class="groupHeader">Direction-dependent Vector Labels</div></td></tr>
-<tr><td colspan="2"><div class="groupText"><p>Vector indices permuted during sweeps are used to distinguish between normal ("n"), tangent ("t") and binormal ("b") directions. In vector notations, <img class="formulaInl" alt="$ \hvec{b} = \hvec{n} \times \hvec{t} $" src="form_57.png"/>, they form a right-handed triad. Values are set in the SetIndex() function before commencing integration. </p>
+<tr><td colspan="2"><div class="groupText"><p>Vector indices permuted during sweeps are used to distinguish between normal ("n"), tangent ("t") and binormal ("b") directions. In vector notations, <img class="formulaInl" alt="$ \hvec{b} = \hvec{n} \times \hvec{t} $" src="form_103.png"/>, they form a right-handed triad. Values are set in the SetIndex() function before commencing integration. </p>
 </div></td></tr>
 <tr class="memitem:a2192ad3b934509ee1262bfe401f27ce9"><td class="memItemLeft" align="right" valign="top"><a id="a2192ad3b934509ee1262bfe401f27ce9"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>VXn</b></td></tr>
@@ -215,8 +213,8 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>MXb_D</b></td></tr>
 <div class="textblock"><p>This file contains definitions for all global variables (visible anywhere in the code) used by PLUTO. Global variables names, by convention, are prefixed with a "g_" unless they're used as constants throughout the code in which case they keep the full-capitalized notation typical of macros.</p>
 <p>For modules, global variables are prefixed with the initial letters of the module name, e.g., <code>sb_vy</code> or <code>glm_ch</code>.</p>
 <p>In the following "local" means "for the local processor". "Interior" means inside the computational domain.</p>
-<dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'ph'+'.un'+'it'+'o.i'+'t'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@p<span style="display: none;">.nosp@m.</span>h.uni<span style="display: none;">.nosp@m.</span>to.i<span style="display: none;">.nosp@m.</span>t</a>) </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>Sep 16, 2012 </dd></dl>
+<dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'to'+'.in'+'fn'+'.it'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@t<span style="display: none;">.nosp@m.</span>o.inf<span style="display: none;">.nosp@m.</span>n.it</a>) </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>Dec 02, 2020 </dd></dl>
 </div><h2 class="groupheader">Variable Documentation</h2>
 <a id="a4a46accffd678189a7fb7bf6b5097224"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a4a46accffd678189a7fb7bf6b5097224">&#9670;&nbsp;</a></span>d_condition</h2>
@@ -229,7 +227,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>MXb_D</b></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Enable/disable printing when a certain cond. is verified </p>
+<p>Enable/disable printLoging when a certain cond. is verified </p>
 
 </div>
 </div>
@@ -244,7 +242,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>MXb_D</b></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Number of indentation space using during debug printing </p>
+<p>Number of indentation space using during debug printLoging </p>
 
 </div>
 </div>
@@ -309,21 +307,6 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>MXb_D</b></td></tr>
       </table>
 </div><div class="memdoc">
 <p>The current integration time step. </p>
-
-</div>
-</div>
-<a id="a20623ee660eb5eaa5e0549685bb22141"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a20623ee660eb5eaa5e0549685bb22141">&#9670;&nbsp;</a></span>g_hydroStep</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int g_hydroStep = 0</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Tells whether we're in a hydro step (=1) or SplitSource step (=0) </p>
 
 </div>
 </div>
@@ -795,7 +778,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>MXb_D</b></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:50 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:57 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

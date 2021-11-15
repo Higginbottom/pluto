@@ -1,4 +1,22 @@
+/* ///////////////////////////////////////////////////////////////////// */
+/*! 
+  \file  
+  \brief Right hand side for H2_COOL cooling.
+
+  \authors A. Mignone (mignone@to.infn.it)\n
+           B. Vaidya
+
+  \b References
+     - "Astrophysical fluid simulations of thermally ideal gases with
+        non-constant adiabatic index: numerical implementation" \n
+       Vaidya et al, A&A (2015) 580, A110
+
+  \date  Last modified: May 20, 2020
+*/
+/* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
+
+extern double gCooling_x1, gCooling_x2, gCooling_x3;
 
 #define POW10(x)  (pow(10.0, x))
 #define TABLE_NPT   2048
@@ -52,7 +70,8 @@ void H2RateTables(double T, double *krvals)
       tev   = T*CONST_kB/CONST_eV;
       
       Rate_arr1[i] = 3.e-18*st/(1.0 + 0.04*st + 2.e-3*T + 8.e-6*T*T); /* fa ~ 1 and Tg << T  */
-      Rate_arr2[i] = 1.067e-10*pow(tev,2.012)*exp(-(4.463/tev)*pow((1.0 + 0.2472),3.512));
+      Rate_arr2[i] = 1.067e-10*pow(tev,2.012)*exp(-(4.463/tev)
+                                             *pow((1.0 + 0.2472*tev),3.512));
       Rate_arr3[i] = 1.e-8*exp(-84100.0/T); 
       Rate_arr4[i] = 4.4e-10*pow(T,0.35)*exp(-102000.0/T);
       Rate_arr5[i] = 2.6e-11/st;
@@ -73,7 +92,7 @@ void H2RateTables(double T, double *krvals)
     dum_hi  = (lnT - lnTarr[indx_lo])/dlnT;
 
     if (indx_lo < 0){
-      print ("! Make_RateTable: Cannot Locate Index for T = %12.6e\n",T);
+      printLog ("! Make_RateTable: Cannot Locate Index for T = %12.6e\n",T);
       QUIT_PLUTO(1);
     }else{
       krvals[0] = Rate_arr1[indx_lo]*dum_lo + Rate_arr1[indx_hi]*dum_hi; /* kr1 */
@@ -110,16 +129,13 @@ void Radiat (double *v, double *rhs)
   double kr1, kr2, kr3, kr4, em[20], krvalues[9];
   
   static int first_call = 1;
-  static real E_cost, Unit_Time, N_H_rho, frac_He, frac_Z, N_tot;
+  static double E_cost, Unit_Time, N_H_rho;
 
   if (first_call) {
     E_cost    = UNIT_LENGTH/UNIT_DENSITY/pow(UNIT_VELOCITY, 3.0);
     Unit_Time = UNIT_LENGTH/UNIT_VELOCITY;
         
     N_H_rho  = (UNIT_DENSITY/CONST_amu)*(H_MASS_FRAC/CONST_AH);
-    frac_He  = (He_MASS_FRAC/CONST_AHe)*(CONST_AH/H_MASS_FRAC);
-    frac_Z   = ((1 - H_MASS_FRAC - He_MASS_FRAC)/CONST_AZ)*(CONST_AH/H_MASS_FRAC);
-    N_tot  =  N_H_rho*(1.0 + frac_He + frac_Z);
     H2RateTables(100.0, krvalues);
     first_call = 0;
   }
@@ -141,7 +157,7 @@ void Radiat (double *v, double *rhs)
   rho = v[RHO];
   mu  = MeanMolecularWeight(v); 
   if (mu < 0.0){
-    print ("! Radiat: mu = %f < 0 \n",mu);
+    printLog ("! Radiat: mu = %f < 0 \n",mu);
     QUIT_PLUTO(1);
   }
   #if EOS == IDEAL
@@ -164,10 +180,10 @@ void Radiat (double *v, double *rhs)
 
 /* Recombination and ionization coefficients */ 
 
-  n_el = N_H*(hn + 0.5*CONST_AZ*frac_Z);  /* -- electron number density, in cm^{-3} -- */
+  n_el = N_H*(hn + 0.5*CONST_AZ*FRAC_Z);  /* -- electron number density, in cm^{-3} -- */
   
   if (n_el < 0){
-    print ("! Radiat: negative electron density\n");
+    printLog ("! Radiat: negative electron density\n");
     QUIT_PLUTO(1);
   }
 
@@ -210,7 +226,7 @@ void Radiat (double *v, double *rhs)
   sum = 0.0;
   sum=fabs(rhs[X_HI] + 2.0*rhs[X_H2] + rhs[X_HII]);
   if (sum > 1.e-9){
-    print("%le > Sum(RHS) != 0 for H!!\n",sum);
+    printLog("%le > Sum(RHS) != 0 for H!!\n",sum);
     QUIT_PLUTO(1);
   }
 */
@@ -276,7 +292,10 @@ void Radiat (double *v, double *rhs)
 
   rlosst  =  em[13];
   rhs[RHOE] = -E_cost*rlosst;
-  rhs[RHOE] *= 1.0/(1.0 + exp(-(T - g_minCoolingTemp)/100.0)); /* -- lower cutoff -- */
+
+/* -- Cut-off -- */
+
+  rhs[RHOE] *= 1.0 - 1.0/cosh( pow( T/g_minCoolingTemp, 12));
 }
 
 

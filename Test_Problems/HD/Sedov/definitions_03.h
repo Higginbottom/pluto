@@ -1,18 +1,17 @@
 #define  PHYSICS                        HD
 #define  DIMENSIONS                     1
-#define  COMPONENTS                     1
 #define  GEOMETRY                       SPHERICAL
 #define  BODY_FORCE                     NO
-#define  FORCED_TURB                    NO
 #define  COOLING                        NO
 #define  RECONSTRUCTION                 WENO3
 #define  TIME_STEPPING                  RK3
-#define  DIMENSIONAL_SPLITTING          YES
 #define  NTRACER                        0
+#define  PARTICLES                      NO
 #define  USER_DEF_PARAMETERS            3
 
 /* -- physics dependent declarations -- */
 
+#define  DUST_FLUID                     NO
 #define  EOS                            IDEAL
 #define  ENTROPY_SWITCH                 NO
 #define  THERMAL_CONDUCTION             NO

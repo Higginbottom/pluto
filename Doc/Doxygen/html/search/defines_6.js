@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['glm_5falpha',['GLM_ALPHA',['../glm_8h.html#aa17a379ad5696bad2b2b7147a38f2be7',1,'glm.h']]],
-  ['glm_5fextended',['GLM_EXTENDED',['../glm_8h.html#a4a0b29ec4a2a3a27454614ba72080bd7',1,'glm.h']]]
+  ['id_5fnz_5fmax',['ID_NZ_MAX',['../input__data_8c.html#a72edefcb22c423d02aeb0b19a50e85de',1,'input_data.c']]],
+  ['initial_5fsmoothing',['INITIAL_SMOOTHING',['../pluto_8h.html#a56cc57bcaddf1d01afcf487be8510292',1,'pluto.h']]],
+  ['int_5ffloor',['INT_FLOOR',['../macros_8h.html#a35c5e85e49d3d3b583eb214dee4cad49',1,'macros.h']]]
 ];

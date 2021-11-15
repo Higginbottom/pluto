@@ -164,12 +164,22 @@ void Init (double *v, double x1, double x2, double x3)
 #endif
 
 #if PHYSICS == MHD
-  EXPAND(v[BX1] = 0.0;                                ,   
-         v[BX2] = sqrt(2.0*g_inputParam[SIGMA_Z]*pa); ,
-         v[BX3] = 0.0;)
+  #if GEOMETRY == CYLINDRICAL
+  v[BX1] = 0.0;
+  v[BX2] = sqrt(2.0*g_inputParam[SIGMA_Z]*pa);
+  v[BX3] = 0.0;
 
   v[AX1] = v[AX2] = 0.0;
   v[AX3] = 0.5*x1*v[BX2];
+  #elif GEOMETRY == POLAR
+  v[BX1] = 0.0;
+  v[BX2] = 0.0;
+  v[BX3] = sqrt(2.0*g_inputParam[SIGMA_Z]*pa); 
+
+  v[AX1] = 0.0;
+  v[AX2] = 0.5*x1*v[BX3];
+  v[AX3] = 0.0;
+  #endif
 #endif
 
   v[TRC] = 0.0;
@@ -235,6 +245,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
     DOM_LOOP(k,j,i){}
   }
 
+#if GEOMETRY == CYLINDRICAL  
   if (side == X2_BEG){  /* -- X2_BEG boundary -- */
     if (box->vpos == CENTER){    /* -- cell-centered boundary conditions -- */
       BOX_LOOP(box,k,j,i){
@@ -250,21 +261,22 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
 
       /* -- copy and reflect ambient medium values -- */
 
-        VAR_LOOP(nv) vout[nv] = d->Vc[nv][k][2*JBEG - j - 1][i];
+        NVAR_LOOP(nv) vout[nv] = d->Vc[nv][k][2*JBEG - j - 1][i];
         vout[VX2] *= -1.0;
         #if PHYSICS == MHD
-        EXPAND(vout[BX1] *= -1.0; ,  
-                                ; , 
-               vout[BX3] *= -1.0;)
+        vout[BX1] *= -1.0;
+        vout[BX3] *= -1.0;
         #endif
-        VAR_LOOP(nv){
+        NVAR_LOOP(nv){
           d->Vc[nv][k][j][i] = vout[nv]-(vout[nv]-vjet[nv])*Profile(x1[i], nv);
         }
+
       }
 
     }else if (box->vpos == X1FACE){  /* -- staggered fields -- */
       #ifdef STAGGERED_MHD
        x1 = grid->xr[IDIR];
+       vjet[BX1] = 0.0;
        BOX_LOOP(box,k,j,i){
          vout[BX1] = -d->Vs[BX1s][k][2*JBEG - j - 1][i];
          d->Vs[BX1s][k][j][i] =    vout[BX1] 
@@ -275,6 +287,51 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
 
     }
   }
+#endif
+
+#if GEOMETRY == POLAR
+  if (side == X3_BEG){  /* -- X2_BEG boundary -- */
+    if (box->vpos == CENTER){    /* -- cell-centered boundary conditions -- */
+      BOX_LOOP(box,k,j,i){
+        GetJetValues (x1[i], vjet);
+
+      /* -- add pulsed perturbation -- */
+
+        #if COOLING != NO
+        t = g_time*UNIT_LENGTH/UNIT_VELOCITY;  /* time in seconds */
+        omega = 2.0*CONST_PI/(86400.*365.*g_inputParam[PERT_PERIOD]);
+        vjet[VX3] *= 1.0 + g_inputParam[PERT_AMPLITUDE]*sin(omega*t);
+        #endif
+
+      /* -- copy and reflect ambient medium values -- */
+
+        NVAR_LOOP(nv) vout[nv] = d->Vc[nv][2*KBEG - k - 1][j][i];
+        vout[VX3] *= -1.0;
+        #if PHYSICS == MHD
+        vout[BX1] *= -1.0;
+        vout[BX2] *= -1.0;
+        #endif
+        NVAR_LOOP(nv){
+          d->Vc[nv][k][j][i] = vout[nv]-(vout[nv]-vjet[nv])*Profile(x1[i], nv);
+        }
+
+      }
+
+    }else if (box->vpos == X1FACE){  /* -- staggered fields -- */
+      #ifdef STAGGERED_MHD
+      x1 = grid->xr[IDIR];
+      vjet[BX1] = 0.0;
+      BOX_LOOP(box,k,j,i){
+        vout[BX1] = -d->Vs[BX1s][2*KBEG - k - 1][j][i];
+        d->Vs[BX1s][k][j][i] =    vout[BX1] 
+                               - (vout[BX1] - vjet[BX1])*Profile(fabs(x1[i]), BX1);
+      }
+      #endif
+    }else if (box->vpos == X2FACE){
+
+    }
+  }
+#endif  
 }
 
 /* ********************************************************************* */
@@ -293,44 +350,48 @@ void GetJetValues (double R, double *vj)
   static double veq[NVAR];
   double  Bz, Bm = 0.0, x;
 
-  if (fabs(R) < 1.e-9) R = 1.e-9;
   x  = R/a;
 
   vj[RHO] = 1.0 + (g_inputParam[ETA] - 1.0);
   Bz = sqrt(2.0*g_inputParam[SIGMA_Z]*pa);
   Bm = sqrt(2.0*g_inputParam[SIGMA_PHI]*pa/(a*a*(0.5 - 2.0*log(a))));
-
+  
 #if PHYSICS == MHD
-  EXPAND( vj[BX1] =  0.0;                      ,
-          vj[BX2] =  Bz;                       ,
-          vj[BX3] = -Bm*(x < 1.0 ? x:1.0/x);)
+  vj[iBR]   =  0.0;
+  vj[iBZ]   =  Bz;
+  vj[iBPHI] = -Bm*(fabs(x) < 1.0 ? x:1.0/x);
+  #if GEOMETRY == CYLINDRICAL
   vj[AX1] = vj[AX2] = 0.0;
   vj[AX3] = 0.5*R*Bz;
+  #elif GEOMETRY == POLAR
+  vj[AX1] = 0.0;
+  vj[AX2] = 0.5*R*Bz;
+  vj[AX3] = 0.0;
+  #endif  
 #endif
 
-  EXPAND( vj[VX1] = 0.0;                     ,
-          vj[VX2] = g_inputParam[JET_VEL];   ,
-          vj[VX3] = 0.0; )
+  vj[iVR]    = 0.0;
+  vj[iVZ]   = g_inputParam[JET_VEL];
+  vj[iVPHI] = 0.0;
   
   vj[PRS] = pa + Bm*Bm*(1.0 - MIN(x*x,1.0));
   vj[TRC] = 1.0;
 
   #if COOLING != NO
-   static double Tj,muj;
-   #if COOLING == H2_COOL
-    Tj = Ta*(1.0 + Bm*Bm/pa)/g_inputParam[ETA]; /* Guess Tj assuming muj = mua */
-    if (first_call){
-      CompEquil(200.0*g_inputParam[ETA], Tj, veq);
-      muj = MeanMolecularWeight(veq);
-      Tj *= muj/mua;   /* Improve guess */
-    }
-   #else
-    if (first_call) CompEquil(200.0*g_inputParam[ETA], Ta, veq);
-   #endif
-    for (nv = NFLX; nv < NFLX+NIONS; nv++) vj[nv] = veq[nv];
+  static double Tj,muj;
+  #if COOLING == H2_COOL
+  Tj = Ta*(1.0 + Bm*Bm/pa)/g_inputParam[ETA]; /* Guess Tj assuming muj = mua */
+  if (first_call){
+    CompEquil(200.0*g_inputParam[ETA], Tj, veq);
+    muj = MeanMolecularWeight(veq);
+    Tj *= muj/mua;   /* Improve guess */
+  }
+  #else
+  if (first_call) CompEquil(200.0*g_inputParam[ETA], Ta, veq);
   #endif
+  for (nv = NFLX; nv < NFLX+NIONS; nv++) vj[nv] = veq[nv];
+  #endif  /* COOLING != NO */
   first_call = 0;
-
 }
 
 /* ********************************************************************* */
@@ -342,8 +403,9 @@ double Profile (double R, double nv)
 {
   double R4 = R*R*R*R, R8 = R4*R4;
 
-#if PHYSICS == MHD && COMPONENTS == 3    /* Start with a smoother profile */
-  if (g_time < 0.1)  return 1.0/cosh(R4); /* with toroidal magnetic fields */
-#endif
+  if (g_inputParam[SIGMA_PHI] > 1.e-9) {    /* Start with a smoother profile */
+    if (g_time < 0.1)  return 1.0/cosh(R4); /* with toroidal magnetic fields */
+  }
+
   return 1.0/cosh(R8);
 }

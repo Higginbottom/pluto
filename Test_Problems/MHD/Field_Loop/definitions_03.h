@@ -1,14 +1,12 @@
 #define  PHYSICS                        MHD
 #define  DIMENSIONS                     2
-#define  COMPONENTS                     2
 #define  GEOMETRY                       CARTESIAN
 #define  BODY_FORCE                     NO
-#define  FORCED_TURB                    NO
 #define  COOLING                        NO
 #define  RECONSTRUCTION                 MP5_FD
 #define  TIME_STEPPING                  RK3
-#define  DIMENSIONAL_SPLITTING          NO
 #define  NTRACER                        0
+#define  PARTICLES                      NO
 #define  USER_DEF_PARAMETERS            0
 
 /* -- physics dependent declarations -- */
@@ -30,7 +28,8 @@
 /* [Beg] user-defined constants (do not change this line) */
 
 #define  ASSIGN_VECTOR_POTENTIAL        YES
-#define  UPDATE_VECTOR_POTENTIAL        YES
+#define  CHECK_EIGENVECTORS             YES
 #define  GLM_ALPHA                      0.4
+#define  UPDATE_VECTOR_POTENTIAL        YES
 
 /* [End] user-defined constants (do not change this line) */

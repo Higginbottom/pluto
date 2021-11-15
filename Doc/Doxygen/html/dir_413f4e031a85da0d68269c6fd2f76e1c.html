@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -70,8 +70,6 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="subdirs"></a>
 Directories</h2></td></tr>
-<tr class="memitem:dir_11a6c0405144706b182e7f2165ec6850"><td class="memItemLeft" align="right" valign="top">directory &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="dir_11a6c0405144706b182e7f2165ec6850.html">Cooling</a></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:dir_6b4b48a9bd7a9e5cc38283a5d69de743"><td class="memItemLeft" align="right" valign="top">directory &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="dir_6b4b48a9bd7a9e5cc38283a5d69de743.html">EOS</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -79,6 +77,9 @@ Directories</h2></td></tr>
 Files</h2></td></tr>
 <tr class="memitem:adv__flux_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="adv__flux_8c.html">adv_flux.c</a></td></tr>
 <tr class="memdesc:adv__flux_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute flux for passive scalars. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:array__reconstruct_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="array__reconstruct_8c.html">array_reconstruct.c</a></td></tr>
+<tr class="memdesc:array__reconstruct_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reconstruct an array along a given direction. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:arrays_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="arrays_8c.html">arrays.c</a></td></tr>
 <tr class="memdesc:arrays_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Memory allocation functions. <br /></td></tr>
@@ -95,8 +96,8 @@ Files</h2></td></tr>
 <tr class="memitem:cmd__line__opt_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cmd__line__opt_8c.html">cmd_line_opt.c</a></td></tr>
 <tr class="memdesc:cmd__line__opt_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parse command line options. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:cooling__source_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cooling__source_8c.html">cooling_source.c</a></td></tr>
-<tr class="memdesc:cooling__source_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Integrate cooling and reaction source terms. <br /></td></tr>
+<tr class="memitem:debug__tools_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="debug__tools_8c.html">debug_tools.c</a></td></tr>
+<tr class="memdesc:debug__tools_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Collection of functions for debugging purposes. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:doxy-comment_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="doxy-comment_8c.html">doxy-comment.c</a></td></tr>
 <tr class="memdesc:doxy-comment_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Documentation template for C source files. <br /></td></tr>
@@ -117,10 +118,7 @@ Files</h2></td></tr>
 <tr class="memdesc:globals_8h"><td class="mdescLeft">&#160;</td><td class="mdescRight">Collects global variables definitions. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:hdf5__io_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="hdf5__io_8c.html">hdf5_io.c</a></td></tr>
-<tr class="memdesc:hdf5__io_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">HDF5 I/O main driver. <br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:hdf5__io_8v_chombo3_81_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="hdf5__io_8v_chombo3_81_8c.html">hdf5_io.vChombo3.1.c</a></td></tr>
-<tr class="memdesc:hdf5__io_8v_chombo3_81_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">HDF5 I/O main driver. <br /></td></tr>
+<tr class="memdesc:hdf5__io_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">HDF5 I/O main driver for static grid implementation. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:initialize_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="initialize_8c.html">initialize.c</a></td></tr>
 <tr class="memdesc:initialize_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize PLUTO. <br /></td></tr>
@@ -146,8 +144,11 @@ Files</h2></td></tr>
 <tr class="memitem:mean__mol__weight_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="mean__mol__weight_8c.html">mean_mol_weight.c</a></td></tr>
 <tr class="memdesc:mean__mol__weight_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the mean molecular weight. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:output__log_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="output__log_8c.html">output_log.c</a></td></tr>
+<tr class="memdesc:output__log_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="struct_output.html">Output</a> log file driver. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:parabolic__update_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="parabolic__update_8c.html">parabolic_update.c</a></td></tr>
-<tr class="memdesc:parabolic__update_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update solution array with parabolic (diffusion) terms. <br /></td></tr>
+<tr class="memdesc:parabolic__update_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute right hand side from parabolic (diffusion) terms. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:parse__file_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="parse__file_8c.html">parse_file.c</a></td></tr>
 <tr class="memdesc:parse__file_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">File parser utilities. <br /></td></tr>
@@ -158,14 +159,23 @@ Files</h2></td></tr>
 <tr class="memitem:rbox_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="rbox_8c.html">rbox.c</a></td></tr>
 <tr class="memdesc:rbox_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Collects various functions to operate on the <a class="el" href="struct_r_box.html">RBox</a> structure. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:reconstruct_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="reconstruct_8c.html">reconstruct.c</a></td></tr>
+<tr class="memdesc:reconstruct_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">General-purpose reconstruction algorithms. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:restart_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="restart_8c.html">restart.c</a></td></tr>
 <tr class="memdesc:restart_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="struct_restart.html">Restart</a> PLUTO from binary or HDF5 double precision data files. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ring__average_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ring__average_8c.html">ring_average.c</a></td></tr>
+<tr class="memdesc:ring__average_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ring-average method to treat singularity at a polar axis. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:rkc_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="rkc_8c.html">rkc.c</a></td></tr>
 <tr class="memdesc:rkc_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Runge-Kutta-Chebyshev driver for integration of diffusion terms. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:rkl_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="rkl_8c.html">rkl.c</a></td></tr>
 <tr class="memdesc:rkl_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Runge-Kutta-Legendre driver for integration of diffusion terms. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:rotate_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="rotate_8c.html">rotate.c</a></td></tr>
+<tr class="memdesc:rotate_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Rotate a 1D problem. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:runtime__setup_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="runtime__setup_8c.html">runtime_setup.c</a></td></tr>
 <tr class="memdesc:runtime__setup_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read runtime information from pluto.ini. <br /></td></tr>
@@ -174,7 +184,7 @@ Files</h2></td></tr>
 <tr class="memdesc:set__geometry_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize geometry-dependent grid quantities. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:set__grid_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="set__grid_8c.html">set_grid.c</a></td></tr>
-<tr class="memdesc:set__grid_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set up the global and local grids in the three coordinate directions. <br /></td></tr>
+<tr class="memdesc:set__grid_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create global and local grid. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:set__indexes_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="set__indexes_8c.html">set_indexes.c</a></td></tr>
 <tr class="memdesc:set__indexes_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Perform index permutation and set domain integration indexes. <br /></td></tr>
@@ -191,9 +201,6 @@ Files</h2></td></tr>
 <tr class="memitem:startup_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="startup_8c.html">startup.c</a></td></tr>
 <tr class="memdesc:startup_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Loop on the computational cells to assign initial conditions. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:startup__old_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="startup__old_8c.html">startup_old.c</a></td></tr>
-<tr class="memdesc:startup__old_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Loop on the computational cells to assign initial conditions. <br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:structs_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structs_8h.html">structs.h</a> <a href="structs_8h_source.html">[code]</a></td></tr>
 <tr class="memdesc:structs_8h"><td class="mdescLeft">&#160;</td><td class="mdescRight">PLUTO header file for structure declarations. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -208,9 +215,6 @@ Files</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:vec__pot__diff_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="vec__pot__diff_8c.html">vec_pot_diff.c</a></td></tr>
 <tr class="memdesc:vec__pot__diff_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute magnetic field from vector potential. <br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:vec__pot__diff__old_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="vec__pot__diff__old_8c.html">vec_pot_diff_old.c</a></td></tr>
-<tr class="memdesc:vec__pot__diff__old_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute magnetic field from vector potential. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:vec__pot__update_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="vec__pot__update_8c.html">vec_pot_update.c</a></td></tr>
 <tr class="memdesc:vec__pot__update_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function to handle vector potential. <br /></td></tr>
@@ -231,7 +235,7 @@ Files</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:51 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:58 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

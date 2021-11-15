@@ -115,13 +115,17 @@ void Init (double *v, double x1, double x2, double x3)
   
   gmmr = g_gamma/(g_gamma - 1.0);
   #if GEOMETRY == CYLINDRICAL
-   r  = x1;   /* cylindrical radius */
-   z  = x2;   
-   R  = sqrt(x1*x1 + x2*x2);           /* spherical radius */
+  r  = x1;   /* cylindrical radius */
+  z  = x2;   
+  R  = sqrt(x1*x1 + x2*x2);           /* spherical radius */
+  #elif GEOMETRY == POLAR
+  r  = x1;   /* cylindrical radius */
+  z  = x3;   
+  R  = sqrt(x1*x1 + x3*x3);           /* spherical radius */
   #elif GEOMETRY == SPHERICAL
-   r  = x1*sin(x2);   /* cylindrical radius */
-   z  = x1*cos(x2);   
-   R  = x1;           /* spherical radius */
+  r  = x1*sin(x2);   /* cylindrical radius */
+  z  = x1*cos(x2);   
+  R  = x1;           /* spherical radius */
   #endif
 
   phi  = 0.0; 
@@ -163,38 +167,47 @@ void Init (double *v, double x1, double x2, double x3)
   Bo = sqrt(2.0*kappa/beta);
 
   if (prt > pra && r > 2.0) {    /* Torus */
-    v[RHO] = rhot;
-    v[PRS] = prt;
-    v[VX1] = 0.0;
-    v[VX2] = 0.0;
-    v[VX3] = Vo/r;
-    v[TRC] = 1.0;
-  }else{                          /* Atmosphere */
-    v[RHO] = rhoa;
-    v[PRS] = pra;
-    v[VX1] = 0.0;
-    v[VX2] = 0.0;
-    v[VX3] = 0.0;
-    v[TRC] = 0.0;
+    v[RHO]   = rhot;
+    v[PRS]   = prt;
+    v[VX1]   = v[VX2] = v[VX3]= 0.0;
+    v[iVPHI] = Vo/r;
+    v[TRC]   = 1.0;
+  }else{                         /* Atmosphere */
+    v[RHO]   = rhoa;
+    v[PRS]   = pra;
+    v[VX1]   = v[VX2] = v[VX3]= 0.0;
+    v[iVPHI] = 0.0;
+    v[TRC]   = 0.0;
   }
   
-  #if PHYSICS == MHD || PHYSICS == RMHD
-   v[BX1] = 0.0;
-   v[BX2] = 0.0;
-   v[BX3] = 0.0;
+  #if PHYSICS == MHD
+  v[BX1] = 0.0;
+  v[BX2] = 0.0;
+  v[BX3] = 0.0;
 
-   A_phi  = 0.0;
-   #if USE_DIPOLE == NO
-    if (rhot > rhocut && r > 2.0) A_phi = Bo*(rhot - rhocut);
-   #endif
-   
-   v[AX1] = 0.0;
-   v[AX2] = 0.0;
-   v[AX3] = A_phi;
+  A_phi  = 0.0;
+  #if USE_DIPOLE == NO
+  if (rhot > rhocut && r > 2.0) A_phi = Bo*(rhot - rhocut);
+  #endif
+  
+  #if (GEOMETRY == CYLINDRICAL) || (GEOMETRY == SPHERICAL) 
+  v[AX1] = 0.0;
+  v[AX2] = 0.0;
+  v[AX3] = A_phi;
+  #elif GEOMETRY == POLAR
+  v[AX1] = 0.0;
+  v[AX2] = A_phi;
+  v[AX3] = 0.0;
+  #endif
+
   #endif
 
   #if (USE_DIPOLE == YES) && (BACKGROUND_FIELD == NO)
-   DipoleField (x1,x2,x3,v+BX1, v+BX2, v+AX3);
+  #if GEOMETRY == CYLINDRICAL || GEOMETRY == SPHERICAL
+  DipoleField (x1,x2,x3,v+BX1, v+BX2, v+AX3);
+  #elif GEOMETRY == POLAR
+  DipoleField (x1,x2,x3,v+BX1, v+BX3, v+AX2);
+  #endif
   #endif
 
   g_smallPressure = 1.e-8;
@@ -230,14 +243,14 @@ void BackgroundField (double x1, double x2, double x3, double *B0)
  *
  *********************************************************************** */
 {
-   double A;
+  double A;
 
-   B0[0] = 0.0;
-   B0[1] = 0.0;
-   B0[2] = 0.0;
-   #if USE_DIPOLE == YES
-    DipoleField (x1,x2,x3,B0, B0+1, &A);
-   #endif
+  B0[0] = 0.0;
+  B0[1] = 0.0;
+  B0[2] = 0.0;
+  #if USE_DIPOLE == YES
+  DipoleField (x1,x2,x3,B0, B0+1, &A);
+  #endif
 }
 #endif
 /* ********************************************************************* */
@@ -285,15 +298,20 @@ void BodyForceVector(double *v, double *g, double x1, double x2, double x3)
   double  R;
 
   #if GEOMETRY == CYLINDRICAL
-   R = sqrt(x1*x1 + x2*x2);
-   g[IDIR] = -1.0/(R*R*R)*x1;
-   g[JDIR] = -1.0/(R*R*R)*x2;
-   g[KDIR] =  0.0; 
+  R = sqrt(x1*x1 + x2*x2);
+  g[IDIR] = -1.0/(R*R*R)*x1;
+  g[JDIR] = -1.0/(R*R*R)*x2;
+  g[KDIR] =  0.0; 
+  #elif GEOMETRY == POLAR
+  R = sqrt(x1*x1 + x3*x3);
+  g[IDIR] = -1.0/(R*R*R)*x1;
+  g[JDIR] =  0.0; 
+  g[KDIR] = -1.0/(R*R*R)*x3;
   #elif GEOMETRY == SPHERICAL
-   R = x1;
-   g[IDIR] = -1.0/(R*R);
-   g[JDIR] =  0.0;
-   g[KDIR] =  0.0; 
+  R = x1;
+  g[IDIR] = -1.0/(R*R);
+  g[JDIR] =  0.0;
+  g[KDIR] =  0.0; 
   #endif
 }
 #endif

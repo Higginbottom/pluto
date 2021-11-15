@@ -5,8 +5,8 @@
 
   Contains variable names and prototypes for the HD module
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   Oct 11, 2016
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Dec 2, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 
@@ -18,10 +18,10 @@
 
 #define  RHO 0
 #define  MX1 1
-#define  MX2 (COMPONENTS >= 2 ? 2: 255)
-#define  MX3 (COMPONENTS == 3 ? 3: 255)
+#define  MX2 2
+#define  MX3 3
 #if HAVE_ENERGY
-  #define ENG  (COMPONENTS + 1)
+  #define ENG  4
   #define PRS  ENG
 #endif
 
@@ -29,7 +29,7 @@
 #define VX2   MX2
 #define VX3   MX3
 
-#define NFLX (1 + COMPONENTS + HAVE_ENERGY)
+#define NFLX (4 + HAVE_ENERGY)
 
 /* *************************************************
      Now define more convenient and user-friendly 
@@ -37,54 +37,36 @@
    ************************************************* */
 
 #if GEOMETRY == CYLINDRICAL 
-  #if COMPONENTS >= 1
-    #define iVR    VX1
-    #define iMR    MX1
-  #endif
+  #define iVR    VX1
+  #define iMR    MX1
 
-  #if COMPONENTS >= 2
-    #define iVZ    VX2
-    #define iMZ    MX2
-  #endif
+  #define iVZ    VX2
+  #define iMZ    MX2
 
-  #if COMPONENTS == 3
-    #define iVPHI  VX3
-    #define iMPHI  MX3
-  #endif
+  #define iVPHI  VX3
+  #define iMPHI  MX3
 #endif
 
 #if GEOMETRY == POLAR 
-  #if COMPONENTS >= 1
-    #define iVR    VX1
-    #define iMR    MX1
-  #endif
+  #define iVR    VX1
+  #define iMR    MX1
 
-  #if COMPONENTS >= 2
-    #define iVPHI  VX2
-    #define iMPHI  MX2
-  #endif
+  #define iVPHI  VX2
+  #define iMPHI  MX2
 
-  #if COMPONENTS == 3
-    #define iVZ    VX3
-    #define iMZ    MX3
-  #endif
+  #define iVZ    VX3
+  #define iMZ    MX3
 #endif
 
 #if GEOMETRY == SPHERICAL 
-  #if COMPONENTS >= 1
-    #define iVR    VX1
-    #define iMR    MX1
-  #endif
+  #define iVR    VX1
+  #define iMR    MX1
 
-  #if COMPONENTS >= 2
-    #define iVTH   VX2
-    #define iMTH   MX2
-  #endif
+  #define iVTH   VX2
+  #define iMTH   MX2
 
-  #if COMPONENTS == 3
-    #define iVPHI  VX3
-    #define iMPHI  MX3
-  #endif
+  #define iVPHI  VX3
+  #define iMPHI  MX3
 #endif
 
 /* *************************************************
@@ -103,7 +85,7 @@ enum KWAVES {
                    Prototyping goes here          
    *********************************************************** */
 
-int  ConsToPrim   (double **, double **, int, int, unsigned char *);
+int  ConsToPrim   (double **, double **, int, int, uint16_t *);
 void Eigenvalues (double **, double *, double **, int, int);
 void PrimEigenvectors (const State *, int, int);
 void ConsEigenvectors (double *, double *, double, 

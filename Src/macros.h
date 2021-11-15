@@ -3,11 +3,10 @@
   \file  
   \brief PLUTO header file for function-like macros.
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   June 15, 2017
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Sep 17, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
-
 #ifndef DEBUG
   #define DEBUG FALSE
 #endif
@@ -17,12 +16,12 @@
     char d_funcName[64];                             \
     sprintf (d_funcName,"%s",a);                     \
     d_indent += 2;                                   \
-    if (d_condition) { print("%*c", d_indent, ' ');  \
-                       print (">>[%s]\n",a );  }
+    if (d_condition) { printLog("%*c", d_indent, ' ');  \
+                       printLog (">>[%s]\n",a );  }
 
   #define DEBUG_FUNC_END(a)  \
     if (d_condition) {print("%*c", d_indent, ' ');  \
-                     print("<<[%s]\n",a ); }        \
+                     printLog("<<[%s]\n",a ); }        \
      d_indent -= 2;                           
   
   #define DEBUG_FUNC_NAME  d_funcName
@@ -32,8 +31,11 @@
   #define DEBUG_FUNC_END(a)
   #define DEBUG_FUNC_NAME "Not Set"
 #endif
-  
-  
+
+#define POW2(x)   ((x)*(x))
+#define POW3(x)   ((x)*(x)*(x))
+#define POW4(x)   ((x)*(x)*(x)*(x))
+#define SECH(x) ((x) > 30.0 ? 0.0:1.0/cosh(x))
 
 /* #####################################################################
     1. Macros that can be placed at any point in the code
@@ -103,7 +105,6 @@
 #define KBOX_LOOP(B,k) \
  for ((B)->dk = ((k=(B)->kbeg) <= (B)->kend ? 1:-1); k != (B)->kend+(B)->dk; k += (B)->dk)
 
-
 #define BOX_TRANSVERSE_LOOP(box,k,j,i)                                     \
   if      (g_dir == IDIR) {(box)->n = &i; (box)->t = &j; (box)->b = &k;}   \
   else if (g_dir == JDIR) {(box)->n = &j; (box)->t = &i; (box)->b = &k;}   \
@@ -147,26 +148,38 @@
                          
 /*! Return the sign of x. */
 #define DSIGN(x)      ( (x) >= 0.0 ? (1.0) : (-1.0))
+#define DSIGN2(x)      ( (x == 0) ? 0.5:((x) > 0.0 ? (1.0) : (-1.0)))
 
-#define MINMOD(a,b)  ((a)*(b) > 0.0 ? (fabs(a) < fabs(b) ? (a):(b)):0.0)
-#define VAN_LEER(a,b) ((a)*(b) > 0.0 ? 2.0*(a)*(b)/((a)+(b)):0.0)
-#define MC(a,b) (MINMOD(0.5*((a)+(b)), 2.0*MINMOD((a),(b))))
+/*! Quick limiting macros (more general ones are found in States/plm_coeffs.h) */
+#define MINMOD_LIMITER(a,b)  ((a)*(b) > 0.0 ? (fabs(a) < fabs(b) ? (a):(b)):0.0)
+#define VANLEER_LIMITER(a,b) ((a)*(b) > 0.0 ? 2.0*(a)*(b)/((a)+(b)):0.0)
+#define MC_LIMITER(a,b)      (MINMOD_LIMITER(0.5*((a)+(b)), 2.0*MINMOD_LIMITER((a),(b))))
 #define SWAP_VAR(x) SwapEndian(&x, sizeof(x));
 
 /*! Exit macro. For Chombo it is defined elsewhere. */
 /* See
 http://stackoverflow.com/questions/11303135/broadcast-message-for-all-processes-to-exitmpi
 */
-
-#ifdef PARALLEL
- #define QUIT_PLUTO(e_code)   \
-        {print ("! abort\n"); MPI_Abort(MPI_COMM_WORLD, e_code); \
-         MPI_Finalize(); exit(e_code);}
-#elif (defined CH_MPI)
- #define QUIT_PLUTO(e_code)   \
-        {MPI_Abort(MPI_COMM_WORLD, e_code); exit(e_code);}
+#ifdef CHOMBO
+ #ifdef PARALLEL
+   #define QUIT_PLUTO(e_code)   \
+          {error("Abort"); MPI_Abort(MPI_COMM_WORLD, e_code); exit(e_code);}
+ #else
+   #define QUIT_PLUTO(e_code)   \
+          {error("Abort"); exit(e_code);}
+ #endif 
 #else
- #define QUIT_PLUTO(e_code)   exit(e_code);
+
+  #ifdef PARALLEL
+   #define QUIT_PLUTO(e_code)                 \
+          {printLog ("! Abort\n");            \
+           LogFileFlush();                    \
+           MPI_Abort(MPI_COMM_WORLD, e_code); \
+           MPI_Finalize();                    \
+           exit(e_code);}
+  #else
+   #define QUIT_PLUTO(e_code)   exit(e_code);
+  #endif
 #endif
 
 /* #####################################################################
@@ -178,97 +191,112 @@ http://stackoverflow.com/questions/11303135/broadcast-message-for-all-processes-
     Expand dimension- or component-dependent expressions
    *******************************************************  */
 
-/*! \def EXPAND(a,b,c)
-    Allows to write component-independent expressions involving vectors 
-    by evaluating as many arguments as the value of COMPONENTS. 
+/*! \def DIM_EXPAND(a,b,c)
+    Allows to write dimension-ndependent expressions involving vectors 
+    by evaluating as many arguments as the number of DIMENSIONS. 
     The result is that only the first argument will be compiled in 1D, 
     the first two arguments in 2D and all of them in 3D. 
     As an example: 
     \code
-    EXPAND( v[VX1] =  1.0;  ,
-            v[VX2] =  5.0;  , 
-            v[VX3] = -4.0; )
+    DIM_EXPAND(v[VX1] =  1.0;  ,
+               v[VX2] =  5.0;  , 
+               v[VX3] = -4.0; )
     \endcode
     becomes
     \code
      v[VX1] = 1.0;   
     \endcode
-    when \c COMPONENTS is equal to 1 or
+    when \c DIMENSIONS is equal to 1 or
     \code
      v[VX1] = 1.0;  
      v[VX2] = 5.0;
     \endcode
-    when \c COMPONENTS is equal to 2 or
+    when \c DIMENSIONS is equal to 2 or
     \code
      v[VX1] =  1.0;  
      v[VX2] =  5.0;
      v[VX3] = -4.0;
     \endcode
-    when \c COMPONENTS is equal to 3.
-*/    
-    
-/*! \def D_EXPAND(a,b,c)
-    Similar to the EXPAND() macro but the expansion depends on DIMENSIONS.  */
+    when \c DIMENSIONS is equal to 3.
+*/
 
-/*! \def SELECT(a,b,c)
-    Expand only the 1st, 2nd or 3rd argument based on the value of
-    COMPONENTS.                                                       */
-
-/*! \def D_SELECT(a,b,c)
+/*! \def DIM_SELECT(a,b,c)
     Expand only the 1st, 2nd or 3rd argument based on the value of
     DIMENSIONS.                                                       */
 
-#if COMPONENTS == 1
- #define EXPAND(a,b,c) a
- #define SELECT(a,b,c) a
-#endif
-
-#if COMPONENTS == 2
- #define EXPAND(a,b,c) a b
- #define SELECT(a,b,c) b
-#endif
-
-#if COMPONENTS == 3
- #define EXPAND(a,b,c) a b c
- #define SELECT(a,b,c) c
-#endif
-
 #if DIMENSIONS == 1
- #define D_EXPAND(a,b,c)  a
- #define D_SELECT(a,b,c)  a
- #define IOFFSET 1   /* ** so we know when to loop in boundary zones ** */
- #define JOFFSET 0
- #define KOFFSET 0
+ #define INCLUDE_IDIR   TRUE
+ #define INCLUDE_JDIR   FALSE
+ #define INCLUDE_KDIR   FALSE
+
+ #define DIM_EXPAND(a,b,c)  a
+ #define DIM_SELECT(a,b,c)  a
 #endif
 
 #if DIMENSIONS == 2
- #define D_EXPAND(a,b,c) a b
- #define D_SELECT(a,b,c) b
- #define IOFFSET 1   /* ** so we know when to loop in boundary zones ** */
- #define JOFFSET 1
- #define KOFFSET 0
+  #define INCLUDE_IDIR   TRUE
+  #ifndef INCLUDE_JDIR
+    #define INCLUDE_JDIR   TRUE
+  #endif
+  #ifndef INCLUDE_KDIR
+    #define INCLUDE_KDIR   FALSE
+  #endif
+
+  #if INCLUDE_JDIR
+    #define DIM_EXPAND(a,b,c) a b
+    #define DIM_SELECT(a,b,c) b
+  #endif
+
+  #if !INCLUDE_JDIR && INCLUDE_KDIR
+    #define DIM_EXPAND(a,b,c) a c
+    #define DIM_SELECT(a,b,c) c
+  #endif
+
 #endif
 
 #if DIMENSIONS == 3
- #define D_EXPAND(a,b,c) a b c
- #define D_SELECT(a,b,c) c
- #define IOFFSET 1   /* ** so we know when to loop in boundary zones ** */
- #define JOFFSET 1
- #define KOFFSET 1
+  #define INCLUDE_IDIR   TRUE
+  #ifndef INCLUDE_JDIR
+    #define INCLUDE_JDIR   TRUE
+  #endif
+  #ifndef INCLUDE_KDIR
+    #define INCLUDE_KDIR   TRUE
+  #endif
+
+  #if INCLUDE_JDIR == TRUE
+    #define DIM_EXPAND(a,b,c) a b c
+    #define DIM_SELECT(a,b,c) c
+  #else
+    #define DIM_EXPAND(a,b,c) a c
+    #define DIM_SELECT(a,b,c) c
+  #endif
+
 #endif
+
+/*
+       last  inc
+1 1 1    3    1
+1 1 0    2    1
+1 0 1    3    2
+1 0 0    1    1
+*/
+#if DIMENSIONS == 3 || DIMENSIONS == 1
+#define DIM_LOOP(d)   for ((d) = 0; (d) < DIMENSIONS; \
+                           (d) += 2*INCLUDE_IDIR - INCLUDE_JDIR)
+#else
+#define DIM_LOOP(d)   for ((d) = 0; \
+                           (d) < MAX(3*INCLUDE_KDIR, MAX(INCLUDE_IDIR,2*INCLUDE_JDIR)); \
+                           (d) += 2*INCLUDE_IDIR - INCLUDE_JDIR)
+#endif
+
+
+#define DOT_PRODUCT(a,b)  ((a)[0]*(b)[0] + (a)[1]*(b)[1] + (a)[2]*(b)[2])
 
 #if WARNING_MESSAGES == YES
  #define WARNING(a)  a
 #else
  #define WARNING(a)
 #endif
-
-#define DOT_PRODUCT(a,b)  (EXPAND((a)[0]*(b)[0], + (a)[1]*(b)[1], + (a)[2]*(b)[2]))
-
-
-
-#define VAR_LOOP(n)   for ((n) = NVAR; (n)--;    )
-#define DIM_LOOP(d)   for ((d) = 0; (d) < DIMENSIONS; (d)++)
 
 /*! \name Forward and central finite differences macros.
     The following set of macros provide a compact way to perform 
@@ -281,34 +309,31 @@ http://stackoverflow.com/questions/11303135/broadcast-message-for-all-processes-
     of \c Q in the \c z direction: \c (Q[k+1] - Q[k-1])/2.
 */
 /**@{ */
-#define FDIFF_X1(Q,k,j,i)     (Q[k][j][i+1] - Q[k][j][i])
-#define CDIFF_X1(Q,k,j,i) (0.5*(Q[k][j][i+1] - Q[k][j][i-1]))
 
-#if DIMENSIONS == 1
-
- #define FDIFF_X2(Q,k,j,i)  (0.0)
- #define CDIFF_X2(Q,k,j,i)  (0.0)
-
- #define FDIFF_X3(Q,i,j,k)  (0.0)
- #define CDIFF_X3(Q,i,j,k)  (0.0)
-
-#elif DIMENSIONS == 2
-
- #define FDIFF_X2(Q,k,j,i)      (Q[k][j+1][i] - Q[k][j][i])
- #define CDIFF_X2(Q,k,j,i) (0.5*(Q[k][j+1][i] - Q[k][j-1][i]))
-
- #define CDIFF_X3(Q,i,j,k)  0.0
- #define FDIFF_X3(Q,i,j,k)  0.0
-
-#elif DIMENSIONS == 3
-
- #define FDIFF_X2(Q,k,j,i)      (Q[k][j+1][i] - Q[k][j][i])
- #define CDIFF_X2(Q,k,j,i) (0.5*(Q[k][j+1][i] - Q[k][j-1][i]))
-
- #define FDIFF_X3(Q,k,j,i)      (Q[k+1][j][i] - Q[k][j][i])
- #define CDIFF_X3(Q,k,j,i) (0.5*(Q[k+1][j][i] - Q[k-1][j][i]))
-
+#if INCLUDE_IDIR
+  #define FDIFF_X1(Q,k,j,i)      (Q[k][j][i+1] - Q[k][j][i])
+  #define CDIFF_X1(Q,k,j,i)  (0.5*(Q[k][j][i+1] - Q[k][j][i-1]))
+#else
+  #define FDIFF_X1(Q,k,j,i)  (0.0)
+  #define CDIFF_X1(Q,k,j,i)  (0.0)
 #endif
+
+#if INCLUDE_JDIR
+  #define FDIFF_X2(Q,k,j,i)       (Q[k][j+1][i] - Q[k][j][i])
+  #define CDIFF_X2(Q,k,j,i)  (0.5*(Q[k][j+1][i] - Q[k][j-1][i]))
+#else
+  #define FDIFF_X2(Q,k,j,i)  (0.0)
+  #define CDIFF_X2(Q,k,j,i)  (0.0)
+#endif
+
+#if INCLUDE_KDIR
+  #define FDIFF_X3(Q,k,j,i)       (Q[k+1][j][i] - Q[k][j][i])
+  #define CDIFF_X3(Q,k,j,i)  (0.5*(Q[k+1][j][i] - Q[k-1][j][i]))
+#else
+  #define FDIFF_X3(Q,k,j,i)  (0.0)
+  #define CDIFF_X3(Q,k,j,i)  (0.0)
+#endif
+
 /**@} */
 
 /*! \name Spatial averages macros.
@@ -320,48 +345,29 @@ http://stackoverflow.com/questions/11303135/broadcast-message-for-all-processes-
     j+1/2 and k+1/2 edge.
 */
 /**@{ */
-#define AVERAGE_X(q,k,j,i)   (0.5*(q[k][j][i] + q[k][j][i+1]))
 
-#if DIMENSIONS == 1
-
-  #define AVERAGE_Y(q,k,j,i)    (q[0][0][i])
-  #define AVERAGE_Z(q,k,j,i)    (q[0][0][i])
-
-  #define AVERAGE_XY(q,k,j,i)   AVERAGE_X(q,0,0,i)
-  #define AVERAGE_XZ(q,k,j,i)   AVERAGE_X(q,0,0,i)
-  #define AVERAGE_YZ(q,k,j,i)   (q[0][0][i])
- 
-  #define AVERAGE_XYZ(q,k,j,i)  0.5*(q[0][0][i] + q[0][0][i+1])
-
-#elif DIMENSIONS == 2
-
-
-  #define AVERAGE_Y(q,k,j,i)   (0.5*(q[k][j][i] + q[k][j+1][i]))
-  #define AVERAGE_Z(q,k,j,i)    (q[0][j][i])
-
-  #define AVERAGE_XY(q,k,j,i)   ( 0.25*(  q[k][j][i]   + q[k][j][i+1] \
-                                        + q[k][j+1][i] + q[k][j+1][i+1]) )
-  #define AVERAGE_XZ(q,k,j,i)   (0.5*(q[0][j][i] + q[0][j][i+1]))
-  #define AVERAGE_YZ(q,k,j,i)   (0.5*(q[0][j][i] + q[0][j+1][i]))
-
-  #define AVERAGE_XYZ(q,k,j,i)  (0.25*(  q[0][j][i]   + q[0][j][i+1]        \
-                                       + q[0][j+1][i] + q[0][j+1][i+1]))
-
-#elif DIMENSIONS == 3
-
-  #define AVERAGE_Y(q,k,j,i)   (0.5*(q[k][j][i] + q[k][j+1][i]))
-  #define AVERAGE_Z(q,k,j,i)   (0.5*(q[k][j][i] + q[k+1][j][i]))
-
-  #define AVERAGE_XY(q,k,j,i)  (0.25*(  q[k][j][i]   + q[k][j][i+1] \
-                                       + q[k][j+1][i] + q[k][j+1][i+1]) )
-  #define AVERAGE_XZ(q,k,j,i)  (0.25*(  q[k][j][i]   + q[k][j][i+1] \
-                                       + q[k+1][j][i] + q[k+1][j][i+1]) )
-  #define AVERAGE_YZ(q,k,j,i)  (0.25*(  q[k][j][i]   + q[k][j+1][i] \
-                                       + q[k+1][j][i] + q[k+1][j+1][i]) )
-  #define AVERAGE_XYZ(q,k,j,i) (0.125*(  q[k][j][i]   + q[k][j][i+1]        \
-                                       + q[k][j+1][i] + q[k][j+1][i+1]      \
-                                       + q[k+1][j][i]   + q[k+1][j][i+1]    \
-                                       + q[k+1][j+1][i] + q[k+1][j+1][i+1]))
+#if INCLUDE_IDIR
+  #define AVERAGE_X(q,k,j,i)   (0.5*(q[k][j][i] + q[k][j][i+1]))
+#else
+  #define AVERAGE_X(q,k,j,i)   (q[k][j][i])
 #endif
-/**@} */
 
+#if INCLUDE_JDIR
+  #define AVERAGE_Y(q,k,j,i)   (0.5*(q[k][j][i] + q[k][j+1][i]))
+  #define AVERAGE_XY(q,k,j,i)  (0.5*(AVERAGE_X(q,k,j,i) + AVERAGE_X(q,k,j+1,i)));
+#else
+  #define AVERAGE_Y(q,k,j,i)    (q[k][0][i])
+  #define AVERAGE_XY(q,k,j,i)   AVERAGE_X(q,k,0,i)
+#endif
+
+#if INCLUDE_KDIR
+  #define AVERAGE_Z(q,k,j,i)    (0.5*(q[k][j][i] + q[k+1][j][i]))
+  #define AVERAGE_XZ(q,k,j,i)   (0.5*(AVERAGE_X(q,k,j,i) + AVERAGE_X(q,k+1,j,i)))
+  #define AVERAGE_YZ(q,k,j,i)   (0.5*(AVERAGE_Y(q,k,j,i) + AVERAGE_Y(q,k+1,j,i)))
+  #define AVERAGE_XYZ(q,k,j,i)  (0.5*(AVERAGE_XY(q,k,j,i) + AVERAGE_XY(q,k+1,j,i)))
+#else
+  #define AVERAGE_Z(q,k,j,i)    (q[0][j][i])
+  #define AVERAGE_XZ(q,k,j,i)   AVERAGE_X(q,0,j,i)
+  #define AVERAGE_YZ(q,k,j,i)   AVERAGE_Y(q,0,j,i)
+  #define AVERAGE_XYZ(q,k,j,i)  AVERAGE_XY(q,0,j,i)
+#endif

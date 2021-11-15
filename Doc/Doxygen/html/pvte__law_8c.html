@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -118,11 +118,11 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <p>Calculate the value of the first adiabatic index: </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ \Gamma_1 = \frac{1}{c_V}\frac{p}{\rho T} \chi_T^2 + \chi_\rho^2 \qquad{\rm where}\quad \chi_T = \left(\pd{\log p}{\log T}\right)_{\rho} = 1 - \pd{\log{\mu}}{\log T} \,;\quad \chi_\rho = \left(\pd{\log p}{\log\rho}\right)_{T} = 1 - \pd{\log{\mu}}{\log\rho} \,;\quad \]" src="form_84.png"/>
+<img class="formulaDsp" alt="\[ \Gamma_1 = \frac{1}{c_V}\frac{p}{\rho T} \chi_T^2 + \chi_\rho^2 \qquad{\rm where}\quad \chi_T = \left(\pd{\log p}{\log T}\right)_{\rho} = 1 - \pd{\log{\mu}}{\log T} \,;\quad \chi_\rho = \left(\pd{\log p}{\log\rho}\right)_{T} = 1 - \pd{\log{\mu}}{\log\rho} \,;\quad \]" src="form_75.png"/>
 </p>
 <p> where <code>p</code> and <code>rho</code> are in c.g.s units. Note that if species are evolved explicitly (non-equilibrium chemistry), we set <code>chi=1</code>.</p>
 <p>The heat capacity at constant volume, <code>cV</code>, is defined as the derivative of specific internal energy with respect to temperature: </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ c_V = \left.\pd{e}{T}\right|_V \]" src="form_85.png"/>
+<img class="formulaDsp" alt="\[ c_V = \left.\pd{e}{T}\right|_V \]" src="form_76.png"/>
 </p>
 <p> and it is computed numerically using a centered derivative.</p>
 <p>This function is needed (at present) only when computing the sound speed in the Riemann solver. Since this is only needed for an approximated value, 5/3 (upper bound) should be ok.</p>
@@ -321,7 +321,7 @@ Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:50 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:57 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

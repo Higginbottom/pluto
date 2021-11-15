@@ -243,7 +243,7 @@ void VectorRotate(double *v, int s)
 
 /* -- Compute tangent, sin() and cos() of alpha and beta -- */
 
-  D_EXPAND(           ,
+  DIM_EXPAND(           ,
            ta = Lx/Ly;,
            tb = Lx/Lz;)
 

@@ -5,7 +5,8 @@
 
   Compute the resistive fluxes for the induction and energy equations
   to update cell-centered fields.
-  Cell-centered fields are updated also in the CT formalism.
+  Fluxes at zone faces by averaging the current available at cell edges.
+  Cell-centered fields are updated also when the CT formalism is employed.
 
   In the induction equation, fluxes are computed by explicitly writing
   the curl operator in components. In Cartesian components, for instance,
@@ -50,9 +51,9 @@
         Fluid Dynamics" \n
        Mignone et al, ApJS (2012) 198, 7M
        
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \authors A. Mignone (mignone@to.infn.it)\n
            T. Matsakos
-  \date    Sept 7, 2017
+  \date    July 10, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -110,31 +111,26 @@ void ResistiveFlux (Data_Arr V, Data_Arr curlB, double **res_flux,
         arithmetic averages of the staggered arrays.
        ---------------------------------------------------- */
 
-      EXPAND(                                 ;   ,
-             Jp[KDIR] = AVERAGE_Y(Jx3,k,j-1,i);   ,
-             Jp[JDIR] = AVERAGE_Z(Jx2,k-1,j,i);)
+      Jp[KDIR] = AVERAGE_Y(Jx3,k,j-1,i);
+      Jp[JDIR] = AVERAGE_Z(Jx2,k-1,j,i);
 
-      EXPAND(                                     ;   ,
-             eta[KDIR] = AVERAGE_Y(eta_x3,k,j-1,i);   ,
-             eta[JDIR] = AVERAGE_Z(eta_x2,k-1,j,i);)
+      eta[KDIR] = AVERAGE_Y(eta_x3,k,j-1,i);
+      eta[JDIR] = AVERAGE_Z(eta_x2,k-1,j,i);
 
-      EXPAND(res_flux[i][BX1] =   0.0;                  ,
-             res_flux[i][BX2] =   eta[KDIR]*Jp[KDIR];   ,
-             res_flux[i][BX3] = - eta[JDIR]*Jp[JDIR];)
+      res_flux[i][BX1] =   0.0;
+      res_flux[i][BX2] =   eta[KDIR]*Jp[KDIR];
+      res_flux[i][BX3] = - eta[JDIR]*Jp[JDIR];
+
       #if HAVE_ENERGY
-      res_flux[i][ENG] = EXPAND(0.0, + vp[BX2]*res_flux[i][BX2], 
-                                     + vp[BX3]*res_flux[i][BX3]);
+      res_flux[i][ENG] = vp[BX2]*res_flux[i][BX2] + vp[BX3]*res_flux[i][BX3];
       #endif
 
     /* -- store diffusion coefficient -- */
 
-      EXPAND(dcoeff[0][i] = 0.0;        ,
-             dcoeff[1][i] = eta[KDIR];  ,
-             dcoeff[2][i] = eta[JDIR];)
-//print ("J = %12.6e  %12.6e  %12.6e\n",Jx1[k][j][i], Jx2[k][j][i], Jx3[k][j][i]);
-//ShowVector(Jp,3);
-//ShowVector(eta,3);
-//ShowVector(res_flux[i]+BX1,3);
+      dcoeff[0][i] = 0.0;   
+      dcoeff[1][i] = eta[KDIR];
+      dcoeff[2][i] = eta[JDIR];
+
     }
 
   }else if (g_dir == JDIR){
@@ -154,29 +150,25 @@ void ResistiveFlux (Data_Arr V, Data_Arr curlB, double **res_flux,
         arithmetic averages of the staggered arrays.
        ---------------------------------------------------- */
 
-      EXPAND(Jp[KDIR] = AVERAGE_X(Jx3,k,j,i-1);   ,
-                                              ;   ,
-             Jp[IDIR] = AVERAGE_Z(Jx1,k-1,j,i);)
+      Jp[KDIR] = AVERAGE_X(Jx3,k,j,i-1);
+      Jp[IDIR] = AVERAGE_Z(Jx1,k-1,j,i);
 
-      EXPAND(eta[KDIR] = AVERAGE_X(eta_x3,k,j,i-1);   ,
-                                                  ;   ,
-             eta[IDIR] = AVERAGE_Z(eta_x1,k-1,j,i);)
+      eta[KDIR] = AVERAGE_X(eta_x3,k,j,i-1);
+      eta[IDIR] = AVERAGE_Z(eta_x1,k-1,j,i);
 
-      EXPAND(res_flux[j][BX1] = - eta[KDIR]*Jp[KDIR];    ,
-             res_flux[j][BX2] =   0.0;                   ,
-             res_flux[j][BX3] =   eta[IDIR]*Jp[IDIR];)
+      res_flux[j][BX1] = - eta[KDIR]*Jp[KDIR];
+      res_flux[j][BX2] =   0.0;
+      res_flux[j][BX3] =   eta[IDIR]*Jp[IDIR];
 
       #if HAVE_ENERGY
-      res_flux[j][ENG] = EXPAND(  vp[BX1]*res_flux[j][BX1],
-                                + 0.0, 
-                                + vp[BX3]*res_flux[j][BX3]);
+      res_flux[j][ENG] = vp[BX1]*res_flux[j][BX1] + vp[BX3]*res_flux[j][BX3];
       #endif
 
      /* -- store diffusion coefficient -- */
 
-      EXPAND(dcoeff[0][j] = eta[KDIR];   ,
-             dcoeff[1][j] = 0.0;         ,
-             dcoeff[2][j] = eta[IDIR];)
+      dcoeff[0][j] = eta[KDIR];
+      dcoeff[1][j] = 0.0;   
+      dcoeff[2][j] = eta[IDIR];
     }
 
   }else if (g_dir == KDIR){
@@ -212,9 +204,9 @@ void ResistiveFlux (Data_Arr V, Data_Arr curlB, double **res_flux,
 
     /* -- store diffusion coefficient -- */
 
-      EXPAND(dcoeff[0][k] = eta[JDIR];  ,
-             dcoeff[1][k] = eta[IDIR];  ,
-             dcoeff[2][k] = 0.0;)
+      dcoeff[0][k] = eta[JDIR];
+      dcoeff[1][k] = eta[IDIR];
+      dcoeff[2][k] = 0.0;
     }
   }
 }

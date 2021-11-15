@@ -117,11 +117,11 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   if (side == 0){  
     #if GEOMETRY == CARTESIAN
     TOT_LOOP(k,j,i){
-      EXPAND(d->Vc[VX1][k][j][i] = 0.0;  ,
-             d->Vc[VX2][k][j][i] = 0.0;  ,
-             d->Vc[VX3][k][j][i] = 0.0;)
+      d->Vc[VX1][k][j][i] = 0.0; 
+      d->Vc[VX2][k][j][i] = 0.0;  
+      d->Vc[VX3][k][j][i] = 0.0;
       #if ENTROPY_SWITCH == YES
-       d->flag[k][j][i] |= FLAG_ENTROPY;
+      d->flag[k][j][i] |= FLAG_ENTROPY;
       #endif
     }
     #endif
@@ -159,7 +159,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
 
     }else if (box->vpos == X3FACE){
       if (side == X3_BEG || side == X3_END) return;
-      #ifdef STAGGERED_MHD
+      #if (DIMENSIONS == 3) && (defined STAGGERED_MHD)
        BOX_LOOP(box,k,j,i) {
          BoundValues (vb, x[i], y[j], zp[k], t);
          d->Vs[BX3s][k][j][i] = vb[BX3];

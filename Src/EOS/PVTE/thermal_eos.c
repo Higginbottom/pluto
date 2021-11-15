@@ -84,7 +84,7 @@ void MakePV_TemperatureTable()
   double mu_lo, mu_hi;
   struct func_param par;
 
-  print ("> MakePV_TemperatureTable: Generating table...\n");
+  printLog ("> MakePV_TemperatureTable: Generating table...\n");
 
 /* --------------------------------------------------------------
     Initialize table. The two table axis are given by 
@@ -121,8 +121,8 @@ void MakePV_TemperatureTable()
 /*    status = Ridder(TFunc, &par, Tlo, Thi, -1, 1.0e-12, &T); */
     status = Brent(TFunc, &par, Tlo, Thi, -1, 1.0e-12, &T);    
     if (status != 0) {
-      print ("! MakePV_TemperatureTable: ");
-      print ("root could not be found [%d]\n",status);
+      printLog ("! MakePV_TemperatureTable: ");
+      printLog ("root could not be found [%d]\n",status);
       QUIT_PLUTO(1);
     }
     Ttab.f[j][i] = T;
@@ -197,7 +197,7 @@ double Pressure(double *v, double T)
   rho = v[RHO];
   status = InverseLookupTable2D(&Ttab, rho, T, &T1);
   if (status != 0){
-    print ("! Pressure: table interpolation failure [rho = %12.6e]\n", rho);
+    printLog ("! Pressure: table interpolation failure [rho = %12.6e]\n", rho);
     QUIT_PLUTO(1);
   }
   
@@ -254,8 +254,8 @@ int GetPV_Temperature (double *v, double *T)
   status = Table2DInterpolate(&Ttab, T1, rho, T);
 
   if (status != 0){
-    print ("! GetPV_Temperature: table interpolation failure ");
-    print ("[T1 = %8.3e, rho = %8.3e]\n",T1,rho);
+    printLog ("! GetPV_Temperature: table interpolation failure ");
+    printLog ("[T1 = %8.3e, rho = %8.3e]\n",T1,rho);
     
     if (status == -1) return 1;      /* hit lower x range (easy fix) */
     else              QUIT_PLUTO(1); /* not so easy to fix */
@@ -296,8 +296,8 @@ int GetPV_Temperature (double *v, double *T)
 /*  status = Ridder(TFunc, &p, Tmin, Tmax, -1, 1.0e-7, &T);  */
   status = Brent(TFunc, &par, Tmin, Tmax, -1, 1.0e-7, T);
   if (status != 0){ 
-    print ("! PrimitiveTemperature: could not find root, ");
-    print ("! [Tmin, Tmax] = [%12.6e, %12.6e]\n",Tmin, Tmax);
+    printLog ("! PrimitiveTemperature: could not find root, ");
+    printLog ("! [Tmin, Tmax] = [%12.6e, %12.6e]\n",Tmin, Tmax);
     QUIT_PLUTO(1);
   }
 

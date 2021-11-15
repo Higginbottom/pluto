@@ -22,8 +22,8 @@
         fields (VTK VECTOR attribute), set VTK_VECTOR_DUMP to YES
         in your definitions.h.        
   
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    March 29, 2018
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    June 24, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -54,25 +54,23 @@ void SetOutput (Data *d, Runtime *runtime)
 
   all_outputs = runtime->output;
 
-/* ---------------------------------------------
-          Loop on output types 
-   --------------------------------------------- */
+/* ----------------------------------------------
+   1. Loop on output types 
+   ---------------------------------------------- */
 
   for (k = 0; k < MAX_OUTPUT_TYPES; k++){
     
     output = runtime->output + k;
-    output->var_name = ARRAY_2D(MAX_OUTPUT_VARS, 128,char);
-//    output->stag_var = ARRAY_1D(64, int);
-//    output->dump_var = ARRAY_1D(64, int);
+    output->var_name = ARRAY_2D(128, 32,char);
     strcpy(output->dir, runtime->output_dir); /* output directory is the same     */
                                               /* for all outputs (easy to change) */
     output->nfile    = -1;  
 
-  /* -- Set particles filename extensions -- */
+  /* --------------------------------------------
+     1a. Exclude particle outputs
+     -------------------------------------------- */
 
-/* -- Exclude particle outputs -- */
-
-    #ifdef PARTICLES
+    #if PARTICLES
     if (output->type == PARTICLES_DBL_OUTPUT ||
         output->type == PARTICLES_FLT_OUTPUT ||
         output->type == PARTICLES_VTK_OUTPUT ||
@@ -80,63 +78,94 @@ void SetOutput (Data *d, Runtime *runtime)
         output->type == PARTICLES_HDF5_OUTPUT) continue;
     #endif
 
-  /* -- set variables names -- */
+  /* --------------------------------------------
+     1b. Set default output variable names for
+         cell-centered variables.
+     -------------------------------------------- */
 
     SetDefaultVarNames(output);
 
-  /* -- Set array pointers -- */
+  /* --------------------------------------------
+     1c. Set output array pointers (cell-centered)
+     -------------------------------------------- */
 
-    for (nv = 0; nv < NVAR; nv++){
+    NVAR_LOOP(nv){
       output->V[nv]        = d->Vc[nv];
       output->stag_var[nv] = -1; /* -- means cell centered -- */ 
     }
+    
+  /* --------------------------------------------
+     1d. Add staggered fields, vector potential
+     -------------------------------------------- */
+    
     nv = NVAR;
     #ifdef STAGGERED_MHD
-     D_EXPAND(
-       output->var_name[nv]   = "Bx1s"; 
-       output->V[nv]          = d->Vs[BX1s]; 
-       output->stag_var[nv++] = 0;           ,
+    DIM_EXPAND(
+      strcpy(output->var_name[nv], "Bx1s"); 
+      output->V[nv]          = d->Vs[BX1s]; 
+      output->stag_var[nv++] = 0;           ,
 
-       output->var_name[nv]   = "Bx2s"; 
-       output->V[nv]          = d->Vs[BX2s]; 
-       output->stag_var[nv++] = 1;           ,
+      strcpy(output->var_name[nv], "Bx2s"); 
+      output->V[nv]          = d->Vs[BX2s]; 
+      output->stag_var[nv++] = 1;           ,
 
-       output->var_name[nv]   = "Bx3s"; 
-       output->V[nv]          = d->Vs[BX3s]; 
-       output->stag_var[nv++] = 2; 
-     )
+      strcpy(output->var_name[nv], "Bx3s"); 
+      output->V[nv]          = d->Vs[BX3s]; 
+      output->stag_var[nv++] = 2; 
+    )
+
+    #if (PHYSICS == ResRMHD) && (DIVE_CONTROL == CONSTRAINED_TRANSPORT)
+    DIM_EXPAND(
+      strcpy(output->var_name[nv], "Ex1s"); 
+      output->V[nv]          = d->Vs[EX1s]; 
+      output->stag_var[nv++] = 0;           ,
+
+      strcpy(output->var_name[nv], "Ex2s"); 
+      output->V[nv]          = d->Vs[EX2s]; 
+      output->stag_var[nv++] = 1;           ,
+
+      strcpy(output->var_name[nv], "Ex3s"); 
+      output->V[nv]          = d->Vs[EX3s]; 
+      output->stag_var[nv++] = 2; 
+    )
+    #endif
     #endif
 
     #if UPDATE_VECTOR_POTENTIAL == YES
      #if DIMENSIONS == 3   
-      output->var_name[nv]   = "Ax1";
+      strcpy(output->var_name[nv], "Ax1");
       output->V[nv]          = d->Ax1;
       output->stag_var[nv++] = -1;  /* -- vector potential is 
                                           computed at cell center -- */
 
-      output->var_name[nv]   = "Ax2";
+      strcpy(output->var_name[nv], "Ax2");
       output->V[nv]          = d->Ax2;
       output->stag_var[nv++] = -1;  
      #endif
-     output->var_name[nv]   = "Ax3";
+     strcpy(output->var_name[nv], "Ax3");
      output->V[nv]          = d->Ax3;
      output->stag_var[nv++] = -1;  
     #endif
     output->nvar = nv;
 
-  /* -- repeat for user defined vars -- */
+  /* --------------------------------------------
+     1e. Add user-defined variables
+     -------------------------------------------- */
 
     for (i = 0; i < runtime->user_var; i++){
-      sprintf (output->var_name[i + nv], "%s", runtime->user_var_name[i]);
+      strcpy (output->var_name[i + nv], runtime->user_var_name[i]);
       output->V[i + nv] = d->Vuser[i];
       output->stag_var[i + nv] = -1; /* -- assume cell-centered -- */
     }
 
-  /* -- add user vars to total number of variables -- */
+  /* -- Update total number of variables -- */
 
     output->nvar += runtime->user_var;
  
-  /* -- select which variables are going to be dumped to disk  -- */
+  /* --------------------------------------------
+     1f. select which variables are going to be
+         dumped to disk
+     -------------------------------------------- */
 
     for (nv = output->nvar; nv--; ) output->dump_var[nv] = YES;
     #if ENTROPY_SWITCH
@@ -145,39 +174,39 @@ void SetOutput (Data *d, Runtime *runtime)
 
     switch (output->type){
       case DBL_OUTPUT:   /* -- dump ALL variables -- */
-        sprintf (output->ext,"dbl");
+        strcpy (output->ext,"dbl");
         break;
       case FLT_OUTPUT:   /* -- do not dump staggered fields (below)-- */
-        sprintf (output->ext,"flt");
+        strcpy (output->ext,"flt");
         break;
       case DBL_H5_OUTPUT:   /* -- dump ALL variables -- */
-        sprintf (output->ext,"dbl.h5");
+        strcpy (output->ext,"dbl.h5");
         break;
       case FLT_H5_OUTPUT:   /* -- do not dump staggered fields (below)-- */
-        sprintf (output->ext,"flt.h5");
+        strcpy (output->ext,"flt.h5");
         break;
       case VTK_OUTPUT:   /* -- do not dump staggered fields (below) -- */
-        sprintf (output->ext,"vtk");
+        strcpy (output->ext,"vtk");
         #if VTK_VECTOR_DUMP == YES
-         D_EXPAND(output->dump_var[VX1] = VTK_VECTOR;  ,
+         DIM_EXPAND(output->dump_var[VX1] = VTK_VECTOR;  ,
                   output->dump_var[VX2] = NO;          ,
                   output->dump_var[VX3] = NO;)
-         #if PHYSICS == MHD || PHYSICS == RMHD
-          D_EXPAND(output->dump_var[BX1] = VTK_VECTOR;  ,
+         #if (PHYSICS == MHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
+          DIM_EXPAND(output->dump_var[BX1] = VTK_VECTOR;  ,
                    output->dump_var[BX2] = NO;          ,
                    output->dump_var[BX3] = NO;)
          #endif
         #endif
         break;
       case TAB_OUTPUT:   /* -- do not dump staggered fields -- */
-        sprintf (output->ext,"tab");
+        strcpy (output->ext,"tab");
         break;
       case PPM_OUTPUT:   /* -- dump density only  -- */
-        sprintf (output->ext,"ppm");
+        strcpy (output->ext,"ppm");
         for (nv = output->nvar; nv--; ) output->dump_var[nv] = NO;
         break;
       case PNG_OUTPUT:   /* -- dump density only  -- */
-        sprintf (output->ext,"png");
+        strcpy (output->ext,"png");
         for (nv = output->nvar; nv--; ) output->dump_var[nv] = NO;
         break;
     }
@@ -205,18 +234,33 @@ void SetOutput (Data *d, Runtime *runtime)
 /* -- Exclude staggered components from all output except .dbl and .h5.dbl -- */
 
   #ifdef STAGGERED_MHD
-  D_EXPAND( SetOutputVar ("Bx1s", VTK_OUTPUT, NO);  ,
-            SetOutputVar ("Bx2s", VTK_OUTPUT, NO);  ,
-            SetOutputVar ("Bx3s", VTK_OUTPUT, NO);)
-  D_EXPAND( SetOutputVar ("Bx1s", FLT_OUTPUT, NO);  ,
-            SetOutputVar ("Bx2s", FLT_OUTPUT, NO);  ,
-            SetOutputVar ("Bx3s", FLT_OUTPUT, NO);)
-  D_EXPAND( SetOutputVar ("Bx1s", FLT_H5_OUTPUT, NO);  ,
-            SetOutputVar ("Bx2s", FLT_H5_OUTPUT, NO);  ,
-            SetOutputVar ("Bx3s", FLT_H5_OUTPUT, NO);)
-  D_EXPAND( SetOutputVar ("Bx1s", TAB_OUTPUT, NO);  ,
-            SetOutputVar ("Bx2s", TAB_OUTPUT, NO);  ,
-            SetOutputVar ("Bx3s", TAB_OUTPUT, NO);)
+  DIM_EXPAND(SetOutputVar ("Bx1s", VTK_OUTPUT, NO);  ,
+             SetOutputVar ("Bx2s", VTK_OUTPUT, NO);  ,
+             SetOutputVar ("Bx3s", VTK_OUTPUT, NO);)
+  DIM_EXPAND(SetOutputVar ("Bx1s", FLT_OUTPUT, NO);  ,
+             SetOutputVar ("Bx2s", FLT_OUTPUT, NO);  ,
+             SetOutputVar ("Bx3s", FLT_OUTPUT, NO);)
+  DIM_EXPAND(SetOutputVar ("Bx1s", FLT_H5_OUTPUT, NO);  ,
+             SetOutputVar ("Bx2s", FLT_H5_OUTPUT, NO);  ,
+             SetOutputVar ("Bx3s", FLT_H5_OUTPUT, NO);)
+  DIM_EXPAND(SetOutputVar ("Bx1s", TAB_OUTPUT, NO);  ,
+             SetOutputVar ("Bx2s", TAB_OUTPUT, NO);  ,
+             SetOutputVar ("Bx3s", TAB_OUTPUT, NO);)
+  #if (PHYSICS == ResRMHD) && (DIVE_CONTROL == CONSTRAINED_TRANSPORT)
+  DIM_EXPAND(SetOutputVar ("Ex1s", VTK_OUTPUT, NO);  ,
+             SetOutputVar ("Ex2s", VTK_OUTPUT, NO);  ,
+             SetOutputVar ("Ex3s", VTK_OUTPUT, NO);)
+  DIM_EXPAND(SetOutputVar ("Ex1s", FLT_OUTPUT, NO);  ,
+             SetOutputVar ("Ex2s", FLT_OUTPUT, NO);  ,
+             SetOutputVar ("Ex3s", FLT_OUTPUT, NO);)
+  DIM_EXPAND(SetOutputVar ("Ex1s", FLT_H5_OUTPUT, NO);  ,
+             SetOutputVar ("Ex2s", FLT_H5_OUTPUT, NO);  ,
+             SetOutputVar ("Ex3s", FLT_H5_OUTPUT, NO);)
+  DIM_EXPAND(SetOutputVar ("Ex1s", TAB_OUTPUT, NO);  ,
+             SetOutputVar ("Ex2s", TAB_OUTPUT, NO);  ,
+             SetOutputVar ("Ex3s", TAB_OUTPUT, NO);)
+  #endif
+  
   #endif
 
 /* -- defaults: dump density only in ppm and png formats -- */
@@ -260,7 +304,8 @@ int SetOutputVar (char *var_name, int output_type, int flag)
     }
   }
 
-  print ("! var_name '%s' cannot be set/unset for writing\n",var_name);
+  print ("! SetOutputVar(): var_name '%s' cannot be set/unset for writing\n",
+             var_name);
   return(1);
 }
 
@@ -287,7 +332,7 @@ int GetOutputVarNames(int output_type, char *var_name[NVAR])
   }
 
   for (nv = 0; nv < output->nvar; nv++) {
-    if (output->dump_var[nv]) sprintf (var_name[count++], "%s", output->var_name[nv]);
+    if (output->dump_var[nv]) strcpy (var_name[count++], output->var_name[nv]);
   }
   return count;
 }
@@ -305,7 +350,7 @@ double ***GetUserVar (char *var_name)
   
   while (strcmp(all_outputs->var_name[++indx], var_name)){
     if (all_outputs->V[indx] == NULL){
-      print ("! Error: uservar '%s' is not allocated\n"); 
+      printLog ("! GetUserVar(): uservar '%s' is not allocated\n"); 
       QUIT_PLUTO(1);
     }
   }

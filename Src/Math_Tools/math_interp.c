@@ -68,9 +68,9 @@ void MonotoneSplineCoeffs (double *x, double *y, double *dydx, int n,
       c[k] = dx*dydx[k];
       d[k] = y[k];
     }else{
-      print ("! MonotoneSplineCoeffs(): monotonicity condition not ");
-      print ("satisifed in SPLINE1 \n");
-      print ("cm = %d, c1 = %d, c2 = %d, c2a = %d\n",cm,c1,c2,c2a);
+      printLog ("! MonotoneSplineCoeffs(): monotonicity condition not ");
+      printLog ("satisifed in SPLINE1 \n");
+      printLog ("cm = %d, c1 = %d, c2 = %d, c2a = %d\n",cm,c1,c2,c2a);
       QUIT_PLUTO(1);
     }
 
@@ -123,10 +123,8 @@ void SplineCoeffs (double *x, double *f, double dfL, double dfR, int n,
   double *u, *d2f;
   double xm, xp, det, aa,bb,cc; /* coefficients of the derivative (parabola) */
   
-  if (u == NULL) {
-    u   = ARRAY_1D(n, double);
-    d2f = ARRAY_1D(n, double);
-  }
+  u   = ARRAY_1D(n, double);
+  d2f = ARRAY_1D(n, double);
 
   d2f[0] = -0.5;
   u[0]   = (3.0/(x[1] - x[0])*(f[1] - f[0])/(x[1]-x[0]) - dfL);
@@ -172,9 +170,9 @@ void SplineCoeffs (double *x, double *f, double dfL, double dfR, int n,
       xp = (-bb - sqrt(det))/(2.0*aa);
 
       if ((xm > 0.0 && xm < 1.0) || (xp > 0.0 && xp < 1.0)){
-        printf ("! SplineCoeffs(): cubic is not monotonic, in [%8.3e, %8.3e]\n",
+        printLog ("! SplineCoeffs(): cubic is not monotonic, in [%8.3e, %8.3e]\n",
                  x[i], x[i+1]);
-        printf ("! xm = %8.3e, xp = %8.3e\n",xm,xp);
+        printLog ("                  xm = %8.3e, xp = %8.3e\n",xm,xp);
         QUIT_PLUTO(1);
       }   
     }
@@ -194,5 +192,9 @@ void SplineCoeffs (double *x, double *f, double dfL, double dfR, int n,
       a[i] = b[i] = 0.0;
     }
   }
+
+  FreeArray1D(u);
+  FreeArray1D(d2f);
+
 }
 

@@ -73,7 +73,7 @@ void MakeInternalEnergyTable()
   double x, y, q;
   double T, rho, v[NVAR];
 
-  print ("> MakeInternalEnergyTable(): Generating table (%d x %d points)\n",
+  printLog ("> MakeInternalEnergyTable(): Generating table (%d x %d points)\n",
            TV_ENERGY_TABLE_NX, TV_ENERGY_TABLE_NY);
 
   InitializeTable2D(&rhoe_tab, 1.0, 1.e8, TV_ENERGY_TABLE_NX, 
@@ -201,7 +201,7 @@ void MakeEV_TemperatureTable()
   double rhoe, rho, Tlo, Thi, T;
   struct func_param par;
 
-  print ("> MakeEV_TemperatureTable(): Generating table...\n");
+  printLog ("> MakeEV_TemperatureTable(): Generating table...\n");
 
   InitializeTable2D(&Trhoe_tab, 1.e-9, 1.e9, 1200, 1.e-12, 1.e12, 1200);
   Tlo = 1.0;
@@ -274,7 +274,7 @@ double InternalEnergy(double *v, double T)
   rho    = v[RHO];
   status = Table2DInterpolate(&rhoe_tab, T, rho, &rhoe);
   if (status != 0){
-    print ("! InternalEnergy(): table interpolation failure (bound exceeded)\n");
+    printLog ("! InternalEnergy(): table interpolation failure (bound exceeded)\n");
     QUIT_PLUTO(1);
   }
   return rhoe;
@@ -320,8 +320,8 @@ int GetEV_Temperature(double rhoe, double *v, double *T)
   status = InverseLookupTable2D(&rhoe_tab, rho, rhoe, T);
   if (status != 0){
     WARNING(
-      print ("! GetEV_Temperature(): table interpolation failure");
-      print ("  [rho = %12.6e, rhoe = %12.6e]\n",rho,rhoe);
+      printLog ("! GetEV_Temperature(): table interpolation failure");
+      printLog ("  [rho = %12.6e, rhoe = %12.6e]\n",rho,rhoe);
     )
     return 1;
   }  

@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -90,9 +90,9 @@ Functions</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>The shearing-box tool file contains various functions for the implementation of the shearingbox boundary conditions in serial or parallel mode. The <a class="el" href="sb__tools_8c.html#a74ea7eae2795f2b15cb355ebe92fe631">SB_SetBoundaryVar()</a> function applies shearing-box boundary conditions to a 3D array U[k][j][i] at an X1_BEG or X1_END boundary. The array U[k][j][i] is defined on the <a class="el" href="struct_r_box.html">RBox</a> *box with grid indices <code> (box-&gt;ibeg) &lt;= i &lt;= (box-&gt;iend), (box-&gt;jbeg) &lt;= j &lt;= (box-&gt;jend) (box-&gt;kbeg) &lt;= k &lt;= (box-&gt;kend), </code> and assumes that periodic boundary conditions have already been set. Indices in the y-directions are not necessary, since the entire y-range is assumed.</p>
 <p>In parallel mode, we use the <a class="el" href="sb__tools_8c.html#a464a8a3136184a3f1218cd604f2ba2f9">SB_ShiftBoundaryVar()</a> function to perform the integer shift of cells across the processors, while interpolation function <a class="el" href="sb__tools_8c.html#accd11f2de7f452a796ffb1e77483e980">SB_ShearingInterp()</a> handles the fractional part only. In serial or when there's only 1 processor along y, the interpolation function does all the job (integer+fractional).</p>
-<dl class="section author"><dt>Authors</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'ph'+'.un'+'it'+'o.i'+'t'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@p<span style="display: none;">.nosp@m.</span>h.uni<span style="display: none;">.nosp@m.</span>to.i<span style="display: none;">.nosp@m.</span>t</a>)<br />
+<dl class="section author"><dt>Authors</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'to'+'.in'+'fn'+'.it'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@t<span style="display: none;">.nosp@m.</span>o.inf<span style="display: none;">.nosp@m.</span>n.it</a>)<br />
  G. Muscianisi (<a href="#" onclick="location.href='mai'+'lto:'+'g.m'+'us'+'ica'+'ni'+'si@'+'ci'+'nec'+'a.'+'it'; return false;">g.mus<span style="display: none;">.nosp@m.</span>ican<span style="display: none;">.nosp@m.</span>isi@c<span style="display: none;">.nosp@m.</span>inec<span style="display: none;">.nosp@m.</span>a.it</a>) </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>Nov 13, 2015 </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>July 08, 2019 </dd></dl>
 </div><h2 class="groupheader">Function Documentation</h2>
 <a id="af6042560671c1369a2ec868b367a68f2"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#af6042560671c1369a2ec868b367a68f2">&#9670;&nbsp;</a></span>SB_FillBoundaryGhost()</h2>
@@ -144,11 +144,11 @@ Functions</h2></td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">box</td><td>the <a class="el" href="struct_r_box.html">RBox</a> structure containing the grid indices in the x and z directions. Indices in the y-directions are reset here for convenience. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">nghL</td><td>number of ghost zones on the left </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">nghR</td><td>number of ghost zones on the right </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">grid</td><td>pointer to an </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">grid</td><td>pointer to a <a class="el" href="struct_grid.html">Grid</a> structure</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section note"><dt>Note</dt><dd>nghL and nghR can be different for staggered fields like BY.</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>nghL and nghR can be different for staggered fields like BX2.</dd></dl>
 <dl class="section return"><dt>Returns</dt><dd>This function has no return value. </dd></dl>
 
 </div>
@@ -273,7 +273,7 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Shift the 1D arrays qL or qR by an amount <img class="formulaInl" alt="$ wt = \Delta y\Delta J + \epsilon $" src="form_216.png"/> (if there's only one processor in y) or just by <img class="formulaInl" alt="$ \epsilon $" src="form_217.png"/> (otherwise) by advecting the initial profile of qR (when side == X1_BEG) or qL (when side == X1_END).</p>
+<p>Shift the 1D arrays qL or qR by an amount <img class="formulaInl" alt="$ wt = \Delta y\Delta J + \epsilon $" src="form_211.png"/> (if there's only one processor in y) or just by <img class="formulaInl" alt="$ \epsilon $" src="form_212.png"/> (otherwise) by advecting the initial profile of qR (when side == X1_BEG) or qL (when side == X1_END).</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in,out]</td><td class="paramname">qL</td><td>1D array containing the un-shifted values on the left boundary </td></tr>
@@ -355,7 +355,7 @@ Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:50 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:58 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

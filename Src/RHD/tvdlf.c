@@ -3,8 +3,8 @@
   \file
   \brief Lax-Friedrechs (Rusanov) Riemann solver for RHD.
 
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    Feb 13, 2018
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    Dec 03, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 
@@ -12,7 +12,7 @@
 
 /* ********************************************************************* */
 void LF_Solver (const Sweep *sweep, int beg, int end, 
-                real *cmax, Grid *grid)
+                double *cmax, Grid *grid)
 /*!
  * Solve Riemann problem for the relativistic Hydro (RHD) equations
  * using the Lax-Friedrichs (Rusanov) Riemann solver.
@@ -23,18 +23,15 @@ void LF_Solver (const Sweep *sweep, int beg, int end,
  * \param[out]    cmax    1D array of maximum characteristic speeds
  * \param[in]     grid    pointer to array of Grid structures.
  *
- **************************************************************************** */
+ *********************************************************************** */
 
 {
   int    nv, i;
-
   const State   *stateL = &(sweep->stateL);
   const State   *stateR = &(sweep->stateR);
-
   double *uL, *uR, cL, cR;
   double **fL = stateL->flux, **fR = stateR->flux;
   double  *pL = stateL->prs,   *pR = stateR->prs;
-
   static double *cminL, *cmaxL;
   static double *cminR, *cmaxR;
 
@@ -45,6 +42,17 @@ void LF_Solver (const Sweep *sweep, int beg, int end,
     cmaxR = ARRAY_1D(NMAX_POINT, double);
   }
 
+#if TIME_STEPPING == CHARACTERISTIC_TRACING
+{
+  static int first_call = 1;
+  if (first_call){
+    print ("! LF_Solver(): employment of this solver with ");
+    print ("CHARACTERISTIC_TRACING may degrade order of accuracy to 1.\n");
+    first_call = 0;
+  }
+}
+#endif
+  
 /* ----------------------------------------------------
      compute sound speed & fluxes at zone interfaces
    ---------------------------------------------------- */
@@ -65,7 +73,7 @@ void LF_Solver (const Sweep *sweep, int beg, int end,
 
     uL = stateL->u[i];
     uR = stateR->u[i];
-    for (nv = NFLX; nv--;   ) {
+    NFLX_LOOP(nv) {
       sweep->flux[i][nv] = 0.5*(fL[i][nv] + fR[i][nv] - cmax[i]*(uR[nv] - uL[nv]));
     }
     sweep->press[i] = 0.5*(pL[i] + pR[i]);

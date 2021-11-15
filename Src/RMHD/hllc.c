@@ -18,8 +18,8 @@
     - "An HLLC Riemann solver for relativistic flows - II. 
        Magnetohydrodynamics", Mignone and Bodo, MNRAS (2006) 368, 1040.
 
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    June 10, 2015
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    Dec 03, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
@@ -66,9 +66,10 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
   GLM_Solve (sweep, beg, end, grid);
 #endif
 
-/* ----------------------------------------------------
-     compute sound speed & fluxes at zone interfaces
-   ---------------------------------------------------- */
+/* ----------------------------------------------
+   0. Compute sound speed & fluxes
+      at zone interfaces
+   ---------------------------------------------- */
    
   SoundSpeed2 (stateL, beg, end, FACE_CENTER, grid);
   SoundSpeed2 (stateR, beg, end, FACE_CENTER, grid);
@@ -76,15 +77,15 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
   Flux (stateL, beg, end);
   Flux (stateR, beg, end);
 
-/* ----------------------------------------
-     get max and min signal velocities
-   ---------------------------------------- */
+/* ----------------------------------------------
+   1. Get max and min signal velocities
+   ---------------------------------------------- */
 
   SL = sweep->SL; SR = sweep->SR;
   HLL_Speed (stateL, stateR, SL, SR, beg, end);
 
 /* ----------------------------------------------
-           compute HLL sweep and flux
+   2. Compute HLL state and flux
    ---------------------------------------------- */
    
   for (i = beg; i <= end; i++) {
@@ -95,7 +96,7 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
     uL = stateL->u[i];
     uR = stateR->u[i];
     scrh = 1.0/(SR[i] - SL[i]);
-    for (nv = NFLX; nv--;  ){  
+    NFLX_LOOP(nv){  
       Uhll[i][nv] =   SR[i]*uR[nv] - SL[i]*uL[nv] 
                     + fL[i][nv] - fR[i][nv];
       Uhll[i][nv] *= scrh;
@@ -109,18 +110,18 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
   }
 
 /* ----------------------------------------------
-           Solve Riemann problem
+   3. Solve Riemann problem
    ---------------------------------------------- */
   
   for (i = beg; i <= end; i++) {
 
     if (SL[i] >= 0.0){
-      for (nv = NFLX; nv--; ){
+      NFLX_LOOP(nv){
         sweep->flux[i][nv] = fL[i][nv];
       }
       sweep->press[i] = pL[i];
     }else if (SR[i] <= 0.0){
-      for (nv = NFLX; nv--; ){
+      NFLX_LOOP(nv){
         sweep->flux[i][nv] = fR[i][nv];
       }
       sweep->press[i] = pR[i];
@@ -128,10 +129,10 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
 
       uL = stateL->u[i];
       uR = stateR->u[i];
-#if SHOCK_FLATTENING == MULTID
+      #if SHOCK_FLATTENING == MULTID
       if ((sweep->flag[i] & FLAG_HLL) || (sweep->flag[i+1] & FLAG_HLL)){
         scrh = 1.0/(SR[i] - SL[i]);
-        for (nv = NFLX; nv--; ){
+        NFLX_LOOP(nv){
           sweep->flux[i][nv]  = SL[i]*SR[i]*(uR[nv] - uL[nv])
                              +  SR[i]*fL[i][nv] - SL[i]*fR[i][nv];
           sweep->flux[i][nv] *= scrh;
@@ -139,18 +140,18 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
         sweep->press[i] = (SR[i]*pL[i] - SL[i]*pR[i])*scrh;
         continue;
       }
-#endif
+      #endif
 
       vxl = stateL->v[i][VXn];
       vxr = stateR->v[i][VXn];
       
-      EXPAND(Bx  = Uhll[i][BXn];  , 
-             Bys = Uhll[i][BXt];  ,
-             Bzs = Uhll[i][BXb];)
+      Bx  = Uhll[i][BXn];
+      Bys = Uhll[i][BXt];
+      Bzs = Uhll[i][BXb];
 
       #if RMHD_REDUCED_ENERGY == YES
-       Uhll[i][ENG] += Uhll[i][RHO];
-       Fhll[i][ENG] += Fhll[i][RHO];
+      Uhll[i][ENG] += Uhll[i][RHO];
+      Fhll[i][ENG] += Fhll[i][RHO];
       #endif    
 
       if (fabs(Bx) < BX_MIN) {
@@ -162,14 +163,11 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
 
       }else{
 
-        BtFBt = EXPAND(0.0, + Uhll[i][BXt]*Fhll[i][BXt], 
-                            + Uhll[i][BXb]*Fhll[i][BXb]);
+        BtFBt = Uhll[i][BXt]*Fhll[i][BXt] + Uhll[i][BXb]*Fhll[i][BXb];
                  
-        Bt2 = EXPAND(0.0, + Uhll[i][BXt]*Uhll[i][BXt],  
-                          + Uhll[i][BXb]*Uhll[i][BXb]);
+        Bt2   = Uhll[i][BXt]*Uhll[i][BXt] + Uhll[i][BXb]*Uhll[i][BXb];
                 
-        FBt2 = EXPAND(0.0, + Fhll[i][BXt]*Fhll[i][BXt],
-                           + Fhll[i][BXb]*Fhll[i][BXb]);                
+        FBt2  = Fhll[i][BXt]*Fhll[i][BXt] + Fhll[i][BXb]*Fhll[i][BXb];
                   
         a  = Fhll[i][ENG] - BtFBt;
         b  = Bt2 + FBt2 - (Fhll[i][MXn] + Uhll[i][ENG]);
@@ -186,7 +184,6 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
         vxs = -c/b;
       }
 */
-
 /*
       scrh = -0.5*(b + DSIGN(b)*sqrt(b*b - 4.0*a*c));
       vxs  = c/scrh;
@@ -213,37 +210,36 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
         usL[ENG] = (SL[i]*uL[ENG] - fL[i][ENG] + ps*vxs)/(SL[i] - vxs);
         usR[ENG] = (SR[i]*uR[ENG] - fR[i][ENG] + ps*vxs)/(SR[i] - vxs);
 
-        EXPAND( usL[MXn] = (usL[ENG] + ps)*vxs; 
-                usR[MXn] = (usR[ENG] + ps)*vxs;  ,
-                usL[MXt] = uL[MXt]*alpha_l; 
-                usR[MXt] = uR[MXt]*alpha_r;      ,  
-                usL[MXb] = uL[MXb]*alpha_l; 
-                usR[MXb] = uR[MXb]*alpha_r; )
+        usL[MXn] = (usL[ENG] + ps)*vxs; 
+        usR[MXn] = (usR[ENG] + ps)*vxs;
+        usL[MXt] = uL[MXt]*alpha_l; 
+        usR[MXt] = uR[MXt]*alpha_r;
+        usL[MXb] = uL[MXb]*alpha_l; 
+        usR[MXb] = uR[MXb]*alpha_r;
 
         #if RMHD_REDUCED_ENERGY == YES
-         usL[MXn] += usL[RHO]*vxs;
-         usR[MXn] += usR[RHO]*vxs;
+        usL[MXn] += usL[RHO]*vxs;
+        usR[MXn] += usR[RHO]*vxs;
         #endif
 
-        EXPAND( usL[BXn] = Bx;
-                usR[BXn] = Bx;                   ,
-                usL[BXt] = uL[BXt]*alpha_l;
-                usR[BXt] = uR[BXt]*alpha_r;   ,  
-                usL[BXb] = uL[BXb]*alpha_l;
-                usR[BXb] = uR[BXb]*alpha_r; )
+        usL[BXn] = Bx;
+        usR[BXn] = Bx;
+        usL[BXt] = uL[BXt]*alpha_l;
+        usR[BXt] = uR[BXt]*alpha_r;
+        usL[BXb] = uL[BXb]*alpha_l;
+        usR[BXb] = uR[BXb]*alpha_r;
 
       }else{
 
-        EXPAND(                                     ,       
-                vys = (Bys*vxs - Fhll[i][BXt])/Bx;   ,
-                vzs = (Bzs*vxs - Fhll[i][BXb])/Bx; )
+        vys = (Bys*vxs - Fhll[i][BXt])/Bx;
+        vzs = (Bzs*vxs - Fhll[i][BXb])/Bx;
 
         ps = (BtFBt - Fhll[i][ENG])*vxs 
             + Bx*Bx + Fhll[i][MXn] - FBt2;
 
-        gammas_2 = EXPAND(vxs*vxs, + vys*vys, + vzs*vzs);
+        gammas_2 = vxs*vxs + vys*vys + vzs*vzs;
         gammas_2 = 1.0 - gammas_2;
-        vBs = EXPAND(vxs*Bx, + vys*Bys, + vzs*Bzs);
+        vBs = vxs*Bx + vys*Bys + vzs*Bzs;
 
         alpha_l = (SL[i] - vxl)/(SL[i] - vxs);
         alpha_r = (SR[i] - vxr)/(SR[i] - vxs);
@@ -254,32 +250,32 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
         usL[ENG] = (SL[i]*uL[ENG] - fL[i][ENG] + ps*vxs - vBs*Bx)/(SL[i] - vxs);
         usR[ENG] = (SR[i]*uR[ENG] - fR[i][ENG] + ps*vxs - vBs*Bx)/(SR[i] - vxs);
 
-        EXPAND( usL[MXn] = (usL[ENG] + ps)*vxs - vBs*Bx; 
-                usR[MXn] = (usR[ENG] + ps)*vxs - vBs*Bx;                                                     ,
-                usL[MXt] = (SL[i]*uL[MXt] - fL[i][MXt] - Bx*(Bys*gammas_2 + vBs*vys))/(SL[i] - vxs); 
-                usR[MXt] = (SR[i]*uR[MXt] - fR[i][MXt] - Bx*(Bys*gammas_2 + vBs*vys))/(SR[i] - vxs);   ,  
-                usL[MXb] = (SL[i]*uL[MXb] - fL[i][MXb] - Bx*(Bzs*gammas_2 + vBs*vzs))/(SL[i] - vxs); 
-                usR[MXb] = (SR[i]*uR[MXb] - fR[i][MXb] - Bx*(Bzs*gammas_2 + vBs*vzs))/(SR[i] - vxs); )
+        usL[MXn] = (usL[ENG] + ps)*vxs - vBs*Bx; 
+        usR[MXn] = (usR[ENG] + ps)*vxs - vBs*Bx;
+        usL[MXt] = (SL[i]*uL[MXt] - fL[i][MXt] - Bx*(Bys*gammas_2 + vBs*vys))/(SL[i] - vxs); 
+        usR[MXt] = (SR[i]*uR[MXt] - fR[i][MXt] - Bx*(Bys*gammas_2 + vBs*vys))/(SR[i] - vxs);
+        usL[MXb] = (SL[i]*uL[MXb] - fL[i][MXb] - Bx*(Bzs*gammas_2 + vBs*vzs))/(SL[i] - vxs); 
+        usR[MXb] = (SR[i]*uR[MXb] - fR[i][MXb] - Bx*(Bzs*gammas_2 + vBs*vzs))/(SR[i] - vxs);
 
         #if RMHD_REDUCED_ENERGY == YES
-         usL[MXn] += usL[RHO]*vxs;
-         usR[MXn] += usR[RHO]*vxs;
+        usL[MXn] += usL[RHO]*vxs;
+        usR[MXn] += usR[RHO]*vxs;
         #endif
 
-        EXPAND( usL[BXn] = usR[BXn] = Bx;    ,  
-                usL[BXt] = usR[BXt] = Bys;   ,
-                usL[BXb] = usR[BXb] = Bzs; )
+        usL[BXn] = usR[BXn] = Bx; 
+        usL[BXt] = usR[BXt] = Bys;
+        usL[BXb] = usR[BXb] = Bzs;
       }                
       
       #ifdef GLM_MHD
-       usL[PSI_GLM] = usR[PSI_GLM] = uL[PSI_GLM];
+      usL[PSI_GLM] = usR[PSI_GLM] = uL[PSI_GLM];
       #endif
 
 /* -------------------------------------------
        Check consistency condition 
    ------------------------------------------- */
 /*
-      for (nv = 0; nv < NVAR; nv++) {
+      NFLX_LOOP(nv) {
         scrh  = (vxs - SL[i])*usL[nv] + (SR[i] - vxs)*usR[nv];
         scrh -= SR[i]*uR[i][nv] - SL[i]*uL[i][nv] +
                 fL[i][nv] - fR[i][nv];
@@ -292,43 +288,33 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
 /*  ----  Compute HLLC flux  ----  */
 
       if (vxs > 0.0) {
-        for (nv = NFLX; nv--;   ) {
+        NFLX_LOOP(nv) {
           sweep->flux[i][nv] = fL[i][nv] + SL[i]*(usL[nv] - uL[nv]);
         }
         sweep->press[i] = pL[i];
       }else {
-        for (nv = NFLX; nv--; ) {
+        NFLX_LOOP(nv) {
           sweep->flux[i][nv] = fR[i][nv] + SR[i]*(usR[nv] - uR[nv]);
         }
         sweep->press[i] = pR[i];
       }
     }
-
   }   /* -- end loop on points -- */
 
 /* --------------------------------------------------------
-              initialize souRce term
+   5. Define point and diffusive fluxes for CT
+   -------------------------------------------------------- */
+  
+#if DIVB_CONTROL == CONSTRAINED_TRANSPORT 
+  CT_Flux (sweep, beg, end, grid);
+#endif
+
+/* --------------------------------------------------------
+              initialize source term
    -------------------------------------------------------- */
  
   #if DIVB_CONTROL == EIGHT_WAVES
-/*
-   POWELL_DIVB_SOURCE (sweep, beg, end, grid);
-*/
-  /* ----------------------------------------------------
-       to avoid conversion problems in HLL_DIVB_SOURCE, 
-       we use the HLL average provided by SR = -SL = 1 
-     ---------------------------------------------------- */
-/*            
-   for (i = beg; i <= end; i++) {
-     uL = sweep->uL[i]; uR = sweep->uR[i];
-     for (nv = 0; nv < NFLX; nv++) {
-       Uhll[i][nv] = 0.5*(uR[nv] + uL[nv] + fL[i][nv] - fR[i][nv]);
-     }
-     Uhll[i][MXn] += (pL[i] - pR[i])*0.5;
-     for (nv = NFLX; nv < NVAR; nv++) Uhll[i][nv] = 0.0;
-   }
-*/
-   HLL_DIVB_SOURCE (sweep, Uhll, beg+1, end, grid);
+  HLL_DIVB_SOURCE (sweep, Uhll, beg+1, end, grid);
   #endif
 
 }

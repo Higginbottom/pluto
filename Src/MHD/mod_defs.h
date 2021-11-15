@@ -6,8 +6,8 @@
   Contains basic macro definitions, structure definitions and global
   variable declarations used by the MHD module.
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   June 19, 2017
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Dec 02, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 
@@ -20,25 +20,25 @@
 #define  RHO 0
 
 #define  MX1 1
-#define  MX2 (COMPONENTS >= 2 ? 2: 255)
-#define  MX3 (COMPONENTS == 3 ? 3: 255) 
-#define  BX1 (COMPONENTS + 1)
-#define  BX2 (COMPONENTS >= 2 ? (BX1+1): 255)
-#define  BX3 (COMPONENTS == 3 ? (BX1+2): 255)
+#define  MX2 2
+#define  MX3 3
+#define  BX1 4
+#define  BX2 5
+#define  BX3 6
 
 #if HAVE_ENERGY
-  #define ENG  (2*COMPONENTS + 1)
+  #define ENG  7
   #define PRS  ENG
 #endif
 #if DIVB_CONTROL == DIV_CLEANING
-  #define PSI_GLM  (2*COMPONENTS + 1 + HAVE_ENERGY)
+  #define PSI_GLM  (7 + HAVE_ENERGY)
 #endif
 
 #define VX1   MX1
 #define VX2   MX2
 #define VX3   MX3
 
-#define NFLX (1 + 2*COMPONENTS + HAVE_ENERGY + (DIVB_CONTROL == DIV_CLEANING))
+#define NFLX (7 + HAVE_ENERGY + (DIVB_CONTROL == DIV_CLEANING))
 
 /* ********************************************************************* */
 /*! Label the different waves in increasing order 
@@ -61,12 +61,7 @@ enum KWAVES {
   , KDIVB
  #endif
 
- #if COMPONENTS >= 2
-  , KSLOWM, KSLOWP
-  #if COMPONENTS == 3
-   , KALFVM, KALFVP
-  #endif
- #endif
+ , KSLOWM, KSLOWP, KALFVM, KALFVP
 
  #if DIVB_CONTROL == DIV_CLEANING  
   , KPSI_GLMM, KPSI_GLMP 
@@ -108,63 +103,46 @@ enum KWAVES {
 #endif
 
 #if GEOMETRY == CYLINDRICAL
-  #if COMPONENTS >= 1
-    #define iVR    VX1
-    #define iMR    MX1
-    #define iBR    BX1
-  #endif
 
-  #if COMPONENTS >= 2
-    #define iVZ    VX2
-    #define iMZ    MX2
-    #define iBZ    BX2
-  #endif
+  #define iVR    VX1
+  #define iMR    MX1
+  #define iBR    BX1
 
-  #if COMPONENTS >= 3 
-    #define iVPHI  VX3
-    #define iMPHI  MX3
-    #define iBPHI  BX3
-  #endif  
+  #define iVZ    VX2
+  #define iMZ    MX2
+  #define iBZ    BX2
+
+  #define iVPHI  VX3
+  #define iMPHI  MX3
+  #define iBPHI  BX3
 #endif
 
 #if GEOMETRY == POLAR
-  #if COMPONENTS >= 1
-    #define iVR    VX1
-    #define iMR    MX1
-    #define iBR    BX1
-  #endif
+  #define iVR    VX1
+  #define iMR    MX1
+  #define iBR    BX1
 
-  #if COMPONENTS >= 2 
-    #define iVPHI  VX2
-    #define iMPHI  MX2
-    #define iBPHI  BX2
-  #endif  
+  #define iVPHI  VX2
+  #define iMPHI  MX2
+  #define iBPHI  BX2
 
-  #if COMPONENTS == 3
-    #define iVZ    VX3
-    #define iMZ    MX3
-    #define iBZ    BX3
-  #endif
+  #define iVZ    VX3
+  #define iMZ    MX3
+  #define iBZ    BX3
 #endif
 
 #if GEOMETRY == SPHERICAL
-  #if COMPONENTS >= 1
-    #define iVR    VX1
-    #define iMR    MX1
-    #define iBR    BX1
-  #endif
+  #define iVR    VX1
+  #define iMR    MX1
+  #define iBR    BX1
   
-  #if COMPONENTS >= 2
-    #define iVTH   VX2
-    #define iMTH   MX2
-    #define iBTH   BX2
-  #endif
+  #define iVTH   VX2
+  #define iMTH   MX2
+  #define iBTH   BX2
  
-  #if COMPONENTS == 3    
-    #define iVPHI  VX3
-    #define iMPHI  MX3
-    #define iBPHI  BX3
-  #endif
+  #define iVPHI  VX3
+  #define iMPHI  MX3
+  #define iBPHI  BX3
 #endif
 
 /* ***********************************************************
@@ -176,7 +154,7 @@ void BackgroundField (double x1, double x2, double x3, double *B0);
 
 void ConsEigenvectors (double *, double *, double,
                        double **, double **, double *);
-int  ConsToPrim   (double **, double **, int , int, unsigned char *);
+int  ConsToPrim   (double **, double **, int , int, uint16_t *);
 void Eigenvalues (double **, double *, double **, int, int);
 
 void Flux (const State *, int, int);
@@ -206,9 +184,9 @@ void PrimToCons  (double **, double **, int, int);
 
 #endif
 
-Riemann_Solver HLL_Solver, HLLC_Solver, HLLD_Solver;
-Riemann_Solver LF_Solver, Roe_Solver;
+Riemann_Solver HLL_Solver, HLLC_Solver, HLLD_Solver, HLLEM_Solver;
 Riemann_Solver HLL_Linde_Solver;
+Riemann_Solver LF_Solver, Roe_Solver, GFORCE_Solver, GMUSTA1_Solver;
 
 #if AMBIPOLAR_DIFFUSION != NO
  #include "Ambipolar_Diffusion/ad.h"

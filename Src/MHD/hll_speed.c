@@ -8,8 +8,8 @@
   ::stateL->v, ::stateR->v.
   Depending on the estimate, several variants are possible.
  
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    Feb 13, 2018
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    July 1, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
@@ -98,7 +98,7 @@ void HLL_Speed (const State *stateL, const State *stateR,
      c     = BAROTROPIC_PR(s);
      scrh /= sqrt(g_gamma*c/s); 
     #else
-     print ("! HLL_SPEED: not defined for this EoS\n");
+     printLog ("! HLL_SPEED: not defined for this EoS\n");
      QUIT_PLUTO(1);
     #endif
 */
@@ -130,8 +130,8 @@ void HLL_Speed (const State *stateL, const State *stateR,
        speed.
       ----------------------------------  */
 
-  #if EOS == IDEAL
-  vm[i][PRS] = s*gpl + c*gpr;  
+    #if EOS == IDEAL
+    vm[i][PRS] = s*gpl + c*gpr;  
     #endif
  
   /* ---------------------------------------
@@ -140,9 +140,9 @@ void HLL_Speed (const State *stateL, const State *stateR,
       Solver
      --------------------------------------- */
 
-    EXPAND(vm[i][BXn] = c*vL[i][BXn] + s*vR[i][BXn];   ,
-           vm[i][BXt] = c*vL[i][BXt] + s*vR[i][BXt];   ,
-           vm[i][BXb] = c*vL[i][BXb] + s*vR[i][BXb];)
+    vm[i][BXn] = c*vL[i][BXn] + s*vR[i][BXn];
+    vm[i][BXt] = c*vL[i][BXt] + s*vR[i][BXt];
+    vm[i][BXb] = c*vL[i][BXb] + s*vR[i][BXb];
 
   }
 
@@ -154,14 +154,11 @@ void HLL_Speed (const State *stateL, const State *stateR,
 
   /* -- define g_maxMach -- */
 
-  #if EOS == IDEAL
+    #if EOS == IDEAL
     scrh  = fabs(vm[i][VXn])/sqrt(vm[i][PRS]/vm[i][RHO]);
-  #elif EOS == ISOTHERMAL
+    #elif EOS == ISOTHERMAL
     scrh  = fabs(vm[i][VXn])/g_isoSoundSpeed;
-  #elif EOS == BAROTROPIC
-    print ("! HLL_SPEED: stop\n");
-    QUIT_PLUTO(1);
-  #endif   
+    #endif   
     g_maxMach = MAX(scrh, g_maxMach); 
   }
 #endif /* ROE_ESTIMATE == YES */

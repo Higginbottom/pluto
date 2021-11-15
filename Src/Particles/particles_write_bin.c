@@ -4,14 +4,16 @@
  \brief Writer for particles binary data in .dbl, .flt and 
         ASCII in .tab (only for serial version) format .
  
- \authors A. Mignone (mignone@ph.unito.it)\n
+ \authors A. Mignone (mignone@to.infn.it)\n
           B. Vaidya (bvaidya@unito.it)\n
- 
- \date    April 08, 2018
+          D. Mukherjee
+
+ \date    Oct 31, 2020
  */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
+#if PARTICLES != PARTICLES_LP
 /* ********************************************************************* */
 void Particles_WriteBinary(particleNode *PHeadRef, double dt_particles,
                            Output *output, char *filename)
@@ -48,13 +50,14 @@ void Particles_WriteBinary(particleNode *PHeadRef, double dt_particles,
 {
   char     fheader[1024];
   size_t   size;
-  int      dir, nv, k, nfields, nelem;
+  int      dir, nv, k, nfields;
   int     *dump_var = output->dump_var;
-  int      nvar      = output->nvar;
+  int      nvar     = output->nvar;
+  long int nelem;
   long int i, offset, nparticles_glob, proc_npart[g_nprocs+1];
   void    *arr;
   float   *farr;
-  double  *darr, u[3], gamma;
+  double  *darr, gamma;
   particleNode * CurNode;
   
 /* --------------------------------------------------------
@@ -79,20 +82,7 @@ void Particles_WriteBinary(particleNode *PHeadRef, double dt_particles,
     
   i  = 0;  /* Array index */
 
-//print ("\n\n   >> nfields = %d, nelem = %d\n",nfields, nelem);
-//print ("    >> PARTICLES_LP_NEBINS, NFLX = %d, %d\n",PARTICLES_LP_NEBINS,NFLX);
   PARTICLES_LOOP(CurNode, PHeadRef){
-
-  /* -- 1a. Compute three- or four-velocity -- */
-
-    for (dir = 0; dir < 3; dir++) u[dir] = CurNode->p.speed[dir];
-    #if PARTICLES_TYPE == COSMIC_RAYS && PARTICLES_CR_WRITE_4VEL == YES
-    gamma =   CurNode->p.speed[IDIR]*CurNode->p.speed[IDIR]
-            + CurNode->p.speed[JDIR]*CurNode->p.speed[JDIR]
-            + CurNode->p.speed[KDIR]*CurNode->p.speed[KDIR];
-    gamma = 1.0/sqrt(1.0 - gamma/(PARTICLES_CR_C*PARTICLES_CR_C));
-    for (dir = 0; dir < 3; dir++) u[dir] *= gamma;  /* 4-vel */
-    #endif
 
   /* ------------------------------------------------------
      1b. Map structure members to array.
@@ -102,62 +92,34 @@ void Particles_WriteBinary(particleNode *PHeadRef, double dt_particles,
      ------------------------------------------------------ */
 
     nv = 0;
-    #if PARTICLES_TYPE == COSMIC_RAYS
+    #if PARTICLES == PARTICLES_CR
     if (dump_var[nv++]) darr[i++] = CurNode->p.id;
     if (dump_var[nv++]) darr[i++] = CurNode->p.coord[IDIR];
     if (dump_var[nv++]) darr[i++] = CurNode->p.coord[JDIR];
     if (dump_var[nv++]) darr[i++] = CurNode->p.coord[KDIR];
-    if (dump_var[nv++]) darr[i++] = u[IDIR];
-    if (dump_var[nv++]) darr[i++] = u[JDIR];
-    if (dump_var[nv++]) darr[i++] = u[KDIR];
-    if (dump_var[nv++]) darr[i++] = CurNode->p.rho;
+    if (dump_var[nv++]) darr[i++] = CurNode->p.speed[IDIR];
+    if (dump_var[nv++]) darr[i++] = CurNode->p.speed[JDIR];
+    if (dump_var[nv++]) darr[i++] = CurNode->p.speed[KDIR];
+    if (dump_var[nv++]) darr[i++] = CurNode->p.mass;
     if (dump_var[nv++]) darr[i++] = CurNode->p.tinj;
     if (dump_var[nv++]) darr[i++] = CurNode->p.color;
     #endif
 
-    #if PARTICLES_TYPE == LAGRANGIAN
+    #if PARTICLES == PARTICLES_DUST
     if (dump_var[nv++]) darr[i++] = CurNode->p.id;
     if (dump_var[nv++]) darr[i++] = CurNode->p.coord[IDIR];
     if (dump_var[nv++]) darr[i++] = CurNode->p.coord[JDIR];
     if (dump_var[nv++]) darr[i++] = CurNode->p.coord[KDIR];
-    if (dump_var[nv++]) darr[i++] = u[IDIR];
-    if (dump_var[nv++]) darr[i++] = u[JDIR];
-    if (dump_var[nv++]) darr[i++] = u[KDIR];
+    if (dump_var[nv++]) darr[i++] = CurNode->p.speed[IDIR];
+    if (dump_var[nv++]) darr[i++] = CurNode->p.speed[JDIR];
+    if (dump_var[nv++]) darr[i++] = CurNode->p.speed[KDIR];
+    if (dump_var[nv++]) darr[i++] = CurNode->p.mass;
+    if (dump_var[nv++]) darr[i++] = CurNode->p.tau_s;
     if (dump_var[nv++]) darr[i++] = CurNode->p.tinj;
     if (dump_var[nv++]) darr[i++] = CurNode->p.color;
-    #if PARTICLES_LP_SPECTRA == YES
-    if (dump_var[nv++]) darr[i++] = CurNode->p.density; 
-    if (dump_var[nv++]) darr[i++] = CurNode->p.nmicro;
-    if (dump_var[nv++]) darr[i++] = CurNode->p.cmp_ratio;
-    if (dump_var[nv++]) darr[i++] = CurNode->p.shkflag;
-    if (dump_var[nv++]) darr[i++] = CurNode->p.shk_gradp;
-    if (dump_var[nv++]) darr[i++] = CurNode->p.ca;
-    if (dump_var[nv++]) darr[i++] = CurNode->p.cr;
-
-    if (dump_var[nv++]) {
-      for (k = 0; k < NFLX; k++) darr[i++] = CurNode->p.shk_vL[k];
-    }
-
-    if (dump_var[nv++]) {
-      for (k = 0; k < NFLX; k++) darr[i++] = CurNode->p.shk_vR[k];
-    }
-
-    if (dump_var[nv++]){
-      for(k = 0; k < PARTICLES_LP_NEBINS; k++) {
-        darr[i++] = CurNode->p.eng[k];
-      }
-    }
-    
-    if (dump_var[nv++]){
-      for(k = 0; k < PARTICLES_LP_NEBINS; k++){
-        darr[i++] = CurNode->p.chi[k];
-      }
-    }
-
     #endif
-    #endif
-    
-  }
+
+  } /* End PARTICLES_LOOP() */
   
 /* --------------------------------------------------------
    2. Compute the total number of particles and gather
@@ -165,7 +127,7 @@ void Particles_WriteBinary(particleNode *PHeadRef, double dt_particles,
       array. This serves to compute the file offset. 
    -------------------------------------------------------- */
     
-  offset = 0;
+  offset = 0L;
 #ifdef PARALLEL
   MPI_Allreduce(&p_nparticles, &nparticles_glob, 1,
                 MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
@@ -190,16 +152,15 @@ void Particles_WriteBinary(particleNode *PHeadRef, double dt_particles,
   
   sprintf(fheader,"# PLUTO %s binary particle data file\n", PLUTO_VERSION);
   sprintf(fheader+strlen(fheader),"# dimensions     %d\n",DIMENSIONS);
-  sprintf(fheader+strlen(fheader),"# nflux          %d\n",NFLX);
   sprintf(fheader+strlen(fheader),"# dt_particles   %12.6e\n",dt_particles);  
   if (IsLittleEndian())
       sprintf(fheader+strlen(fheader),"# endianity      little\n");
   else
       sprintf(fheader+strlen(fheader),"# endianity      big\n");
 
-  sprintf(fheader+strlen(fheader),"# nparticles     %d\n",nparticles_glob);  
-  sprintf(fheader+strlen(fheader),"# idCounter      %d\n",p_idCounter);
-  sprintf(fheader+strlen(fheader),"# particletype   %d\n",PARTICLES_TYPE);
+  sprintf(fheader+strlen(fheader),"# nparticles     %ld\n",nparticles_glob);  
+  sprintf(fheader+strlen(fheader),"# idCounter      %ld\n",p_idCounter);
+  sprintf(fheader+strlen(fheader),"# particletype   %d\n",PARTICLES);
   if (output->type == PARTICLES_FLT_OUTPUT){  
     sprintf(fheader+strlen(fheader),"# precision      float\n");    
   }else if (output->type == PARTICLES_DBL_OUTPUT){  
@@ -212,7 +173,7 @@ void Particles_WriteBinary(particleNode *PHeadRef, double dt_particles,
   sprintf(fheader+strlen(fheader),"# field_names    ");
   for (i = 0; i < nvar; i++){
     if (dump_var[i]) {
-      sprintf(fheader+strlen(fheader),output->var_name[i]);
+      sprintf(fheader+strlen(fheader),"%s", output->var_name[i]);
       sprintf(fheader+strlen(fheader),"  ");
     }  
   }
@@ -249,10 +210,10 @@ if (output->type == PARTICLES_DBL_OUTPUT){
   for (k = 0; k < p_nparticles; k++){
     for (nv = 0; nv < nfields; nv++){
       if (darr[i] != darr[i]){
-        print ("nan found\n");
+        printLog ("nan found\n");
         QUIT_PLUTO(1);
       }
-      print ("np = %d, darr = %f\n",k,darr[i]);
+      printLog ("np = %d, darr = %f\n",k,darr[i]);
       i++;
     }   
   }
@@ -267,6 +228,7 @@ if (output->type == PARTICLES_DBL_OUTPUT){
   FreeArray1D(darr);   
   FreeArray1D(farr);   
 }
+#endif /* PARTICLES != PARTICLES_LP */
 
 /* ********************************************************************* */
 void Particles_WriteTab(particleNode* PHeadRef, char filename[128])
@@ -292,9 +254,7 @@ void Particles_WriteTab(particleNode* PHeadRef, char filename[128])
   fprintf(stream, "# Step:       %ld\n", g_stepNumber);
   fprintf(stream, "# Time:       %f\n",  g_time);
   
-  
   CurNode = PHeadRef;
-
   while(CurNode != NULL) {
     fprintf(stream, "%d", CurNode->p.id);
     
@@ -311,4 +271,3 @@ void Particles_WriteTab(particleNode* PHeadRef, char filename[128])
   fclose(stream);
 #endif
 }
-

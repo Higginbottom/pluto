@@ -21,8 +21,8 @@
   \b Reference:
     - "An HLLC RIemann Solver for MHD", S. Li, JCP (2000) 203, 344
        
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    May 9, 2017
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    Sep 11, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
@@ -49,42 +49,42 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
   const State   *stateR = &(sweep->stateR);
 
   double  scrh;
-  double  pl, pr;
-  double  vBl, usl[NFLX];
-  double  vBr, usr[NFLX];
+  double  ptL, ptR;
+  double  vBL, usL[NFLX];
+  double  vBR, usR[NFLX];
 
   double  Bxs, Bys, Bzs, ps, vBs;
-  double  vxl, vxr, vxs, vys, vzs;
+  double  vxL, vxR, vxs, vys, vzs;
   double  Fhll[NFLX], alpha_l, alpha_r;
   double  *vL, *vR, *uL, *uR, *SL, *SR;
   double **fL = stateL->flux, **fR = stateR->flux;
   double  *pL = stateL->prs,   *pR = stateR->prs;
   static double **Uhll;
 
-/* ------------------------------------------------
+/* --------------------------------------------------------
    0. Allocate memory / initialize arrays
-   ------------------------------------------------ */
+   -------------------------------------------------------- */
 
   if (Uhll == NULL){
     Uhll = ARRAY_2D(NMAX_POINT, NFLX, double);
   }
   
 #if BACKGROUND_FIELD == YES
-  print ("! Background field splitting not allowed with HLLC solver\n");
+  print ("! HLLC_Solver(): background field splitting not allowed\n");
   QUIT_PLUTO(1);
 #endif
   
-/* ------------------------------------------------
+/* --------------------------------------------------------
    1. Solve 2x2 Riemann problem with GLM cleaning
-   ------------------------------------------------ */
+   -------------------------------------------------------- */
 
 #ifdef GLM_MHD
   GLM_Solve (sweep, beg, end, grid);
 #endif
 
-/* ----------------------------------------------------
+/* --------------------------------------------------------
    2. Compute sound speed & fluxes at zone interfaces
-   ---------------------------------------------------- */
+   -------------------------------------------------------- */
 
   SoundSpeed2 (stateL, beg, end, FACE_CENTER, grid);
   SoundSpeed2 (stateR, beg, end, FACE_CENTER, grid);
@@ -92,9 +92,9 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
   Flux (stateL, beg, end);
   Flux (stateR, beg, end);
 
-/* ----------------------------------------
+/* --------------------------------------------------------
    3. Get max and min signal velocities
-   ---------------------------------------- */
+   -------------------------------------------------------- */
              
   SL = sweep->SL; SR = sweep->SR;
   HLL_Speed (stateL, stateR, SL, SR, beg, end);
@@ -104,9 +104,9 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
     scrh  = MAX(fabs(SL[i]), fabs(SR[i]));
     cmax[i] = scrh;
 
-/* ----------------------------------------
+/* --------------------------------------------------------
    4. Compute HLLC flux
-   ---------------------------------------- */	     
+   -------------------------------------------------------- */
 
     if (SL[i] >= 0.0){
     
@@ -156,23 +156,21 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
 
    /* ---- define total pressure, vB in left and right states ---- */
 
-      pl = EXPAND(vL[BX1]*vL[BX1], + vL[BX2]*vL[BX2], + vL[BX3]*vL[BX3]);
-      pr = EXPAND(vR[BX1]*vR[BX1], + vR[BX2]*vR[BX2], + vR[BX3]*vR[BX3]);
+      ptL = vL[BX1]*vL[BX1] + vL[BX2]*vL[BX2] + vL[BX3]*vL[BX3];
+      ptR = vR[BX1]*vR[BX1] + vR[BX2]*vR[BX2] + vR[BX3]*vR[BX3];
 
-      pl = vL[PRS] + 0.5*pl;  
-      pr = vR[PRS] + 0.5*pr;
+      Bxs = Uhll[i][BXn];
+      Bys = Uhll[i][BXt];
+      Bzs = Uhll[i][BXb];
 
-      vBl = EXPAND(vL[VX1]*vL[BX1], + vL[VX2]*vL[BX2], + vL[VX3]*vL[BX3]);
-      vBr = EXPAND(vR[VX1]*vR[BX1], + vR[VX2]*vR[BX2], + vR[VX3]*vR[BX3]);
+      ptL = vL[PRS] + 0.5*ptL;  
+      ptR = vR[PRS] + 0.5*ptR;
 
-      vxl = vL[VXn]; 
-      vxr = vR[VXn];
+      vBL = vL[VX1]*vL[BX1] + vL[VX2]*vL[BX2] + vL[VX3]*vL[BX3];
+      vBR = vR[VX1]*vR[BX1] + vR[VX2]*vR[BX2] + vR[VX3]*vR[BX3];
 
-   /* ----  magnetic field ---- */
-
-      EXPAND(Bxs = Uhll[i][BXn];  ,
-             Bys = Uhll[i][BXt];  ,
-             Bzs = Uhll[i][BXb];)
+      vxL = vL[VXn]; 
+      vxR = vR[VXn];
 
    /* ---- normal velocity vx  ----  */
 
@@ -181,58 +179,88 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
 /*
       ps = vL[RHO]*(SL[i] - vxl)*(vxs - vxl) + pl - vL[BXn]*vL[BXn] + Bxs*Bxs; 
 */
-      vBs = EXPAND(Uhll[i][BX1]*Uhll[i][MX1], + 
-                   Uhll[i][BX2]*Uhll[i][MX2], + 
-                   Uhll[i][BX3]*Uhll[i][MX3]);
+      vBs =   Uhll[i][BX1]*Uhll[i][MX1]
+            + Uhll[i][BX2]*Uhll[i][MX2]
+            + Uhll[i][BX3]*Uhll[i][MX3]; 
 
       vBs /= Uhll[i][RHO];
 
-      usl[RHO] = uL[RHO]*(SL[i] - vxl)/(SL[i] - vxs);
-      usr[RHO] = uR[RHO]*(SR[i] - vxr)/(SR[i] - vxs);
+      usL[RHO] = uL[RHO]*(SL[i] - vxL)/(SL[i] - vxs);
+      usR[RHO] = uR[RHO]*(SR[i] - vxR)/(SR[i] - vxs);
 
-      usl[ENG] = (uL[ENG]*(SL[i] - vxl) + 
-                 ps*vxs - pl*vxl - Bxs*vBs + vL[BXn]*vBl)/(SL[i] - vxs);
-      usr[ENG] = (uR[ENG]*(SR[i] - vxr) + 
-                 ps*vxs - pr*vxr - Bxs*vBs + vR[BXn]*vBr)/(SR[i] - vxs);
+      usL[ENG] = (uL[ENG]*(SL[i] - vxL) + 
+                 ps*vxs - ptL*vxL - Bxs*vBs + vL[BXn]*vBL)/(SL[i] - vxs);
+      usR[ENG] = (uR[ENG]*(SR[i] - vxR) + 
+                 ps*vxs - ptR*vxR - Bxs*vBs + vR[BXn]*vBR)/(SR[i] - vxs);
 
-      EXPAND(usl[MXn] = usl[RHO]*vxs;
-             usr[MXn] = usr[RHO]*vxs;        ,
+      usL[MXn] = usL[RHO]*vxs;
+      usR[MXn] = usR[RHO]*vxs;
 
-             usl[MXt] =   (uL[MXt]*(SL[i] - vxl) 
-                        - (Bxs*Bys - vL[BXn]*vL[BXt]))/(SL[i] - vxs);
-             usr[MXt] = (uR[MXt]*(SR[i] - vxr) 
-                        - (Bxs*Bys - vR[BXn]*vR[BXt]))/(SR[i] - vxs); ,
+      usL[MXt] =   (uL[MXt]*(SL[i] - vxL) 
+                 - (Bxs*Bys - vL[BXn]*vL[BXt]))/(SL[i] - vxs);
+      usR[MXt] =   (uR[MXt]*(SR[i] - vxR) 
+                 - (Bxs*Bys - vR[BXn]*vR[BXt]))/(SR[i] - vxs);
 
-             usl[MXb] =   (uL[MXb]*(SL[i] - vxl) 
-                        - (Bxs*Bzs - vL[BXn]*vL[BXb]))/(SL[i] - vxs);
-             usr[MXb] =   (uR[MXb]*(SR[i] - vxr) 
-                        - (Bxs*Bzs - vR[BXn]*vR[BXb]))/(SR[i] - vxs);)
+      usL[MXb] =   (uL[MXb]*(SL[i] - vxL) 
+                 - (Bxs*Bzs - vL[BXn]*vL[BXb]))/(SL[i] - vxs);
+      usR[MXb] =   (uR[MXb]*(SR[i] - vxR) 
+                 - (Bxs*Bzs - vR[BXn]*vR[BXb]))/(SR[i] - vxs);
 
-      EXPAND(usl[BXn] = usr[BXn] = Bxs;   ,
-             usl[BXt] = usr[BXt] = Bys;   ,
-             usl[BXb] = usr[BXb] = Bzs;)
+      usL[BXn] = usR[BXn] = Bxs;
+      usL[BXt] = usR[BXt] = Bys;
+      usL[BXb] = usR[BXb] = Bzs;
 
       #ifdef GLM_MHD
-      usl[PSI_GLM] = usr[PSI_GLM] = vL[PSI_GLM];
+      usL[PSI_GLM] = usR[PSI_GLM] = vL[PSI_GLM];
       #endif
 
       if (vxs >= 0.0){
         for (nv = 0; nv < NFLX; nv++) {
-          sweep->flux[i][nv] = fL[i][nv] + SL[i]*(usl[nv] - uL[nv]);
+          sweep->flux[i][nv] = fL[i][nv] + SL[i]*(usL[nv] - uL[nv]);
         }
         sweep->press[i] = pL[i];
       } else {
         for (nv = 0; nv < NFLX; nv++) {
-          sweep->flux[i][nv] = fR[i][nv] + SR[i]*(usr[nv] - uR[nv]);
+          sweep->flux[i][nv] = fR[i][nv] + SR[i]*(usR[nv] - uR[nv]);
         }
         sweep->press[i] = pR[i];
       }
     }
   }
 
-/* -----------------------------------------------
-   5. Compute source terms (if any)
-   ----------------------------------------------- */
+/* --------------------------------------------------------
+   5. Define point and diffusive fluxes for CT
+   -------------------------------------------------------- */
+  
+#if DIVB_CONTROL == CONSTRAINED_TRANSPORT 
+  CT_Flux (sweep, beg, end, grid);
+#endif
+
+/* --------------------------------------------------------
+   6. Add CR flux contribution using simplified
+      upwinding.
+   -------------------------------------------------------- */
+
+  #if (PARTICLES == PARTICLES_CR) && (PARTICLES_CR_FEEDBACK == YES) 
+  Particles_CR_Flux (stateL, beg, end);
+  Particles_CR_Flux (stateR, beg, end);
+
+  for (i = beg; i <= end; i++){
+    if (sweep->flux[i][RHO] > 0.0) {
+      for (nv = NFLX; nv--; ) sweep->flux[i][nv] += stateL->fluxCR[i][nv];
+    }else if (sweep->flux[i][RHO] < 0.0){
+      for (nv = NFLX; nv--; ) sweep->flux[i][nv] += stateR->fluxCR[i][nv];
+    }else{
+      for (nv = NFLX; nv--; ) {
+        sweep->flux[i][nv] += 0.5*(stateL->fluxCR[i][nv] + stateR->fluxCR[i][nv]);
+      }
+    }
+  }  
+  #endif
+
+/* --------------------------------------------------------
+   7. Compute source terms (if any)
+   ---------------------------------------------- */
 
   #if DIVB_CONTROL == EIGHT_WAVES
    HLL_DivBSource (sweep, Uhll, beg + 1, end, grid);

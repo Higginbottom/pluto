@@ -31,13 +31,13 @@
 
   \b References: 
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   Fen 28, 2017
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Jul 26, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
-static real acf, bcf, ccf; /*  polynomial coefficient for g when r < 1 */
+static double acf, bcf, ccf; /*  polynomial coefficient for g when r < 1 */
 
 /* ********************************************************************* */
 void Init (double *us, double x1, double x2, double x3)
@@ -68,11 +68,13 @@ void Init (double *us, double x1, double x2, double x3)
   ccf = 0.0;
 
   #if GEOMETRY == CARTESIAN
-   rs = sqrt(x1*x1 + x2*x2 + x3*x3);
+  rs = sqrt(x1*x1 + x2*x2 + x3*x3);
   #elif GEOMETRY == CYLINDRICAL 
-   rs = sqrt(x1*x1 + x2*x2);
+  rs = sqrt(x1*x1 + x2*x2);
+  #elif GEOMETRY == POLAR 
+  rs = sqrt(x1*x1 + x3*x3);
   #elif GEOMETRY == SPHERICAL
-   rs = sqrt(x1*x1);
+  rs = sqrt(x1*x1);
   #endif
 
   if (rs > 1.0){
@@ -130,16 +132,18 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
 
     X1_END_LOOP(k,j,i){
       #if GEOMETRY == CARTESIAN
-       rs = sqrt(x1[i]*x1[i] + x2[j]*x2[j] + x3[k]*x3[k]);
+      rs = sqrt(x1[i]*x1[i] + x2[j]*x2[j] + x3[k]*x3[k]);
       #elif GEOMETRY == CYLINDRICAL
-       rs = sqrt(x1[i]*x1[i] + x2[j]*x2[j]);
+      rs = sqrt(x1[i]*x1[i] + x2[j]*x2[j]);
+      #elif GEOMETRY == POLAR
+      rs = sqrt(x1[i]*x1[i] + x3[k]*x3[k]);
       #elif GEOMETRY == SPHERICAL
-       rs = sqrt(x1[i]*x1[i]);
+      rs = sqrt(x1[i]*x1[i]);
       #endif
       d->Vc[RHO][k][j][i] = exp(g_inputParam[ALPHA]*(1.0/rs - 1.0));
-      EXPAND(d->Vc[VX1][k][j][i] = 0.0;   ,
-             d->Vc[VX2][k][j][i] = 0.0;   ,
-             d->Vc[VX3][k][j][i] = 0.0;)
+      d->Vc[VX1][k][j][i] = 0.0; 
+      d->Vc[VX2][k][j][i] = 0.0;  
+      d->Vc[VX3][k][j][i] = 0.0;
       d->Vc[PRS][k][j][i] = exp(g_inputParam[ALPHA]*(1.0/rs - 1.0))/g_inputParam[ALPHA];
     }
 
@@ -147,27 +151,38 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
 
     X2_END_LOOP(k,j,i){
       #if GEOMETRY == CARTESIAN
-       rs = sqrt(x1[i]*x1[i] + x2[j]*x2[j] + x3[k]*x3[k]);
+      rs = sqrt(x1[i]*x1[i] + x2[j]*x2[j] + x3[k]*x3[k]);
       #elif GEOMETRY == CYLINDRICAL
-       rs = sqrt(x1[i]*x1[i] + x2[j]*x2[j]);
+      rs = sqrt(x1[i]*x1[i] + x2[j]*x2[j]);
+      #elif GEOMETRY == POLAR
+      rs = sqrt(x1[i]*x1[i] + x3[k]*x3[k]);
       #elif GEOMETRY == SPHERICAL
-       rs = sqrt(x1[i]*x1[i]);
+      rs = sqrt(x1[i]*x1[i]);
       #endif
       d->Vc[RHO][k][j][i] = exp(g_inputParam[ALPHA]*(1.0/rs - 1.0));
-      EXPAND(d->Vc[VX1][k][j][i] = 0.0;   ,
-             d->Vc[VX2][k][j][i] = 0.0;   ,
-             d->Vc[VX3][k][j][i] = 0.0;)
+      d->Vc[VX1][k][j][i] = 0.0; 
+      d->Vc[VX2][k][j][i] = 0.0;  
+      d->Vc[VX3][k][j][i] = 0.0;
       d->Vc[PRS][k][j][i] = exp(g_inputParam[ALPHA]*(1.0/rs - 1.0))/g_inputParam[ALPHA];
     }
 
-  } else if (side == X3_END) {   /* Only Cartesian */
+  } else if (side == X3_END) {  
 
     X3_END_LOOP(k,j,i){  
+      #if GEOMETRY == CARTESIAN
       rs = sqrt(x1[i]*x1[i] + x2[j]*x2[j] + x3[k]*x3[k]);
+      #elif GEOMETRY == CYLINDRICAL
+      rs = sqrt(x1[i]*x1[i] + x2[j]*x2[j]);
+      #elif GEOMETRY == POLAR 
+      rs = sqrt(x1[i]*x1[i] + x3[k]*x3[k]);
+      #elif GEOMETRY == SPHERICAL
+      rs = sqrt(x1[i]*x1[i]);
+      #endif
+
       d->Vc[RHO][k][j][i] = exp(g_inputParam[ALPHA]*(1.0/rs - 1.0));
-      EXPAND(d->Vc[VX1][k][j][i] = 0.0;   ,
-             d->Vc[VX2][k][j][i] = 0.0;   ,
-             d->Vc[VX3][k][j][i] = 0.0;)
+      d->Vc[VX1][k][j][i] = 0.0; 
+      d->Vc[VX2][k][j][i] = 0.0; 
+      d->Vc[VX3][k][j][i] = 0.0;
       d->Vc[PRS][k][j][i] = exp(g_inputParam[ALPHA]*(1.0/rs - 1.0))/g_inputParam[ALPHA];
     }
   }
@@ -189,22 +204,28 @@ void BodyForceVector(double *v, double *g, double x1, double x2, double x3)
   bcf =  2.0;
   ccf =  0.0;
   #if GEOMETRY == CARTESIAN
-   rs = sqrt(x1*x1 + x2*x2 + x3*x3);
+  rs = sqrt(x1*x1 + x2*x2 + x3*x3);
   #elif GEOMETRY == CYLINDRICAL
-   rs = sqrt(x1*x1 + x2*x2);
+  rs = sqrt(x1*x1 + x2*x2);
+  #elif GEOMETRY == POLAR
+  rs = sqrt(x1*x1 + x3*x3);
   #endif
 
   if (rs > 1.0) gs = -1.0/rs/rs;
   else          gs = rs*(acf + rs*(bcf + rs*ccf));
 
   #if GEOMETRY == CARTESIAN
-   g[IDIR] = gs*x1/rs;
-   g[JDIR] = gs*x2/rs;
-   g[KDIR] = gs*x3/rs;
+  g[IDIR] = gs*x1/rs;
+  g[JDIR] = gs*x2/rs;
+  g[KDIR] = gs*x3/rs;
   #elif GEOMETRY == CYLINDRICAL
-   g[IDIR] = gs*x1/rs;
-   g[JDIR] = gs*x2/rs;
-   g[KDIR] = 0.0;
+  g[IDIR] = gs*x1/rs;
+  g[JDIR] = gs*x2/rs;
+  g[KDIR] = 0.0;
+  #elif GEOMETRY == POLAR
+  g[IDIR] = gs*x1/rs;
+  g[JDIR] = 0.0;
+  g[KDIR] = gs*x3/rs;
   #endif
 
 }
@@ -227,9 +248,11 @@ double BodyForcePotential(double x1, double x2, double x3)
   ccf =  0.0;
 
   #if GEOMETRY == CARTESIAN
-   rs = sqrt(x1*x1 + x2*x2 + x3*x3);
+  rs = sqrt(x1*x1 + x2*x2 + x3*x3);
   #elif GEOMETRY == CYLINDRICAL
-   rs = sqrt(x1*x1 + x2*x2);
+  rs = sqrt(x1*x1 + x2*x2);
+  #elif GEOMETRY == POLAR
+  rs = sqrt(x1*x1 + x3*x3);
   #endif
 
   C = (0.5*acf + bcf/3.0 + ccf*0.25);  /* integration constant to make phi continuous */
@@ -239,3 +262,4 @@ double BodyForcePotential(double x1, double x2, double x3)
   return phi;
 }
 #endif
+

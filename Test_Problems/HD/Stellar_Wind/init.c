@@ -4,7 +4,7 @@
   \brief Stellar wind test problem.
 
   Sets initial condition for a spherically symmetric radial wind blowing 
-  from the origin of coordinates, see [Mig14]
+  from the origin of coordinates, see [Mig14].
   The initial condition consists of a constant-density ambient medium with 
   \f[
      \rho = \rho_a \,,\qquad  p = p_a\,,\qquad \vec{v} = v_{csm}\hvec{j} 
@@ -37,11 +37,12 @@
 
   \image html hd_stellar_wind.08.jpg "Density map at the end of computation for configuration #8"
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   Sept 25, 2012
+  \author A. Mignone (mignone@to.infn.it)
+  \date   July 12, 2019
 
   \b References
-     - [Mig14]: "High-order conservative reconstruction schemes for finite volume methods in cylindrical and spherical coordinates",
+     - [Mig14]: "High-order conservative reconstruction schemes for finite
+       volume methods in cylindrical and spherical coordinates",
        Mignone, JCP (2014) 270, 784 
 */
 /* ///////////////////////////////////////////////////////////////////// */
@@ -61,15 +62,21 @@ void Init (double *us, double x1, double x2, double x3)
   us[PRS] = cs*cs*rho/g_gamma;
 
   #if GEOMETRY == CARTESIAN
-   us[VX1] = 0.0;         
-   us[VX2] = 0.0;         
-   us[VX3] = -g_inputParam[V_CSM];       
+  us[VX1] = 0.0;         
+  us[VX2] = 0.0;         
+  us[VX3] = -g_inputParam[V_CSM];       
   #elif GEOMETRY == CYLINDRICAL
-   us[VX1] = 0.0;         
-   us[VX2] = -g_inputParam[V_CSM];          
+  us[VX1] = 0.0;         
+  us[VX2] = -g_inputParam[V_CSM];          
+  us[VX3] = 0.0;         
+  #elif GEOMETRY == POLAR
+  us[VX1] = 0.0;
+  us[VX2] = 0.0;
+  us[VX3] = -g_inputParam[V_CSM];
   #elif GEOMETRY == SPHERICAL
-   us[VX1] =  g_inputParam[V_CSM]*cos(x2);
-   us[VX2] = -g_inputParam[V_CSM]*sin(x2);
+  us[VX1] =  g_inputParam[V_CSM]*cos(x2);
+  us[VX2] = -g_inputParam[V_CSM]*sin(x2);
+  us[VX3] = 0.0;         
   #endif
 
   R = sqrt(x1*x1 + x2*x2);
@@ -122,52 +129,55 @@ void UserDefBoundary (const Data *d, RBox * box, int side, Grid *grid)
     cs = g_inputParam[CS_WIND];
     TOT_LOOP(k,j,i){ 
       #if GEOMETRY == CARTESIAN
-       r  = sqrt(x1[i]*x1[i] + x2[j]*x2[j] + x3[k]*x3[k]);
-       if (r <= r0){  
-         vr    = tanh(r/r0/0.1)*Vwind;
-         rho   = Vwind*r0*r0/(vr*r*r);
-         d->Vc[RHO][k][j][i] = rho;
-         d->Vc[VX1][k][j][i] = Vwind*x1[i]/r;
-         d->Vc[VX2][k][j][i] = Vwind*x2[j]/r;
-         d->Vc[VX3][k][j][i] = Vwind*x3[k]/r;
-         d->Vc[PRS][k][j][i] = cs*cs/g_gamma*pow(rho,g_gamma);
-         d->flag[k][j][i]   |= FLAG_INTERNAL_BOUNDARY;
-       }    
+      r  = sqrt(x1[i]*x1[i] + x2[j]*x2[j] + x3[k]*x3[k]);
+      if (r <= r0){  
+        vr    = tanh(r/r0/0.1)*Vwind;
+        rho   = Vwind*r0*r0/(vr*r*r);
+        d->Vc[RHO][k][j][i] = rho;
+        d->Vc[VX1][k][j][i] = Vwind*x1[i]/r;
+        d->Vc[VX2][k][j][i] = Vwind*x2[j]/r;
+        d->Vc[VX3][k][j][i] = Vwind*x3[k]/r;
+        d->Vc[PRS][k][j][i] = cs*cs/g_gamma*pow(rho,g_gamma);
+        d->flag[k][j][i]   |= FLAG_INTERNAL_BOUNDARY;
+      }    
       #elif GEOMETRY == CYLINDRICAL
-       r  = sqrt(x1[i]*x1[i] + x2[j]*x2[j]);
-       if (r <= r0){  
-         vr    = tanh(r/r0/0.1)*Vwind;
-         rho   = Vwind*r0*r0/(vr*r*r);
-         d->Vc[RHO][k][j][i] = rho;
-         d->Vc[VX1][k][j][i] = Vwind*x1[i]/r;
-         d->Vc[VX2][k][j][i] = Vwind*x2[j]/r;
-         d->Vc[PRS][k][j][i] = cs*cs/g_gamma*pow(rho,g_gamma);
-         d->flag[k][j][i]   |= FLAG_INTERNAL_BOUNDARY;
-       }    
+      r  = sqrt(x1[i]*x1[i] + x2[j]*x2[j]);
+      if (r <= r0){  
+        vr    = tanh(r/r0/0.1)*Vwind;
+        rho   = Vwind*r0*r0/(vr*r*r);
+        d->Vc[RHO][k][j][i] = rho;
+        d->Vc[VX1][k][j][i] = Vwind*x1[i]/r;
+        d->Vc[VX2][k][j][i] = Vwind*x2[j]/r;
+        d->Vc[VX3][k][j][i] = 0.0;
+        d->Vc[PRS][k][j][i] = cs*cs/g_gamma*pow(rho,g_gamma);
+        d->flag[k][j][i]   |= FLAG_INTERNAL_BOUNDARY;
+      }    
+      #elif GEOMETRY == POLAR
+      r  = sqrt(x1[i]*x1[i] + x3[k]*x3[k]);
+      if (r <= r0){  
+        vr    = tanh(r/r0/0.1)*Vwind;
+        rho   = Vwind*r0*r0/(vr*r*r);
+        d->Vc[RHO][k][j][i] = rho;
+        d->Vc[VX1][k][j][i] = Vwind*x1[i]/r;
+        d->Vc[VX2][k][j][i] = 0.0;
+        d->Vc[VX3][k][j][i] = Vwind*x3[k]/r;
+        d->Vc[PRS][k][j][i] = cs*cs/g_gamma*pow(rho,g_gamma);
+        d->flag[k][j][i]   |= FLAG_INTERNAL_BOUNDARY;
+      }    
       #endif
     }
   }
 
-  if (side == X1_BEG){  /* -- X1_BEG boundary -- */
-  }
-
-  if (side == X1_END){  /* -- X1_END boundary -- */
-  }
-
-  if (side == X2_BEG){  /* -- X2_BEG boundary -- */
-   X2_BEG_LOOP(k,j,i){ }
-  }
-
   if (side == X2_END){  /* -- X2_END boundary -- */
-    
     cs  = g_inputParam[CS_AMB];
     rho = g_inputParam[RHO_AMB];
     X2_END_LOOP(k,j,i){
       #if GEOMETRY == CYLINDRICAL
-       d->Vc[VX1][k][j][i] = 0.0;
-       d->Vc[VX2][k][j][i] = -g_inputParam[V_CSM];  
-       d->Vc[RHO][k][j][i] =  rho;       
-       d->Vc[PRS][k][j][i] =  cs*cs*rho/g_gamma; 
+      d->Vc[VX1][k][j][i] = 0.0;
+      d->Vc[VX2][k][j][i] = -g_inputParam[V_CSM];  
+      d->Vc[VX3][k][j][i] = 0.0;  
+      d->Vc[RHO][k][j][i] =  rho;       
+      d->Vc[PRS][k][j][i] =  cs*cs*rho/g_gamma; 
       #endif
     }
   }
@@ -177,16 +187,21 @@ void UserDefBoundary (const Data *d, RBox * box, int side, Grid *grid)
   }
  
   if (side == X3_END){  /* -- X3_END boundary -- */
-    
     cs  = g_inputParam[CS_AMB];
     rho = g_inputParam[RHO_AMB];
     X3_END_LOOP(k,j,i){
       #if GEOMETRY == CARTESIAN
-       d->Vc[VX1][k][j][i] = 0.0;
-       d->Vc[VX2][k][j][i] = 0.0;
-       d->Vc[VX3][k][j][i] = -g_inputParam[V_CSM];  
-       d->Vc[RHO][k][j][i] =  rho;       
-       d->Vc[PRS][k][j][i] =  cs*cs*rho/g_gamma; 
+      d->Vc[VX1][k][j][i] = 0.0;
+      d->Vc[VX2][k][j][i] = 0.0;
+      d->Vc[VX3][k][j][i] = -g_inputParam[V_CSM];  
+      d->Vc[RHO][k][j][i] =  rho;       
+      d->Vc[PRS][k][j][i] =  cs*cs*rho/g_gamma; 
+      #elif GEOMETRY == POLAR
+      d->Vc[VX1][k][j][i] = 0.0;
+      d->Vc[VX2][k][j][i] = 0.0;  
+      d->Vc[VX3][k][j][i] = -g_inputParam[V_CSM];  
+      d->Vc[RHO][k][j][i] =  rho;       
+      d->Vc[PRS][k][j][i] =  cs*cs*rho/g_gamma; 
       #endif
     }
   }

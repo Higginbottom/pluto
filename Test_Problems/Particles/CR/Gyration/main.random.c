@@ -94,7 +94,7 @@ int main (int argc, char *argv[])
   Dts.cfl_par   = ini.cfl_par;
   Dts.rmax_par  = ini.rmax_par;
   Dts.Nsts      = Dts.Nrkc = Dts.Nrkl = 0;
-#if (defined PARTICLES) && (PARTICLES_TYPE == COSMIC_RAYS)
+#if (PARTICLES == PARTICLES_CR)
   Dts.Nsub_particles  = MAX(1, -PARTICLES_CR_NSUB);
 #else
   Dts.Nsub_particles = 1;
@@ -299,7 +299,7 @@ int Integrate (Data *d, Riemann_Solver *Solver, timeStep *Dts, Grid *grid)
   g_maxRootIter    = 0;
 	
 #ifdef PARTICLES 
-  #if (PARTICLES_TEST == YES)
+  #if (PARTICLES_ONLY == YES)
   Particles_CR_Update (d, Dts, g_dt, grid);
   return 0;
   #endif
@@ -521,8 +521,8 @@ if (fabs(scrh-glm_ch) > 1.e-12){
   dtnext = (RuntimeGet())->first_dt*(1.0 + 0.2*cos(alpha));
 }
 /////////////////////////////////////////////////////////////////////
-#if    (defined PARTICLES) && (PARTICLES_TYPE == COSMIC_RAYS) \
-                           && (PARTICLES_CR_NSUB > 0)
+#if    (PARTICLES == PARTICLES_CR) \
+    && (PARTICLES_CR_NSUB > 0)
   dt_particles = PARTICLES_CR_NSUB/Dts->invDt_particles;
   dtnext       = MIN(dtnext, dt_particles);
 #endif
@@ -555,7 +555,7 @@ if (fabs(scrh-glm_ch) > 1.e-12){
    9. Reset time step coefficients
    -------------------------------------------------------- */
 
-#if (defined PARTICLES) && (PARTICLES_TYPE == COSMIC_RAYS)
+#if (PARTICLES == PARTICLES_CR)
   #if PARTICLES_CR_NSUB > 0
   Dts->Nsub_particles = MIN(ceil(dtnext*Dts->invDt_particles), PARTICLES_CR_NSUB);
   #if PARTICLES_CR_PREDICTOR == 2

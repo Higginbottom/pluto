@@ -33,8 +33,8 @@
 
   \image html rhd_jet.03.jpg "Density (log) for configuration #03 at t=200"
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   Sept 18, 2014
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Feb 25, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -58,6 +58,7 @@ void Init (double *v, double x1, double x2, double x3)
   v[RHO] = g_inputParam[RHO_OUT];
   v[VX1] = 0.0;
   v[VX2] = 0.0;
+  v[VX3] = 0.0;
   v[PRS] = g_inputParam[PRESS_IN];
 
   g_smallPressure = v[PRS]/500.0;
@@ -99,11 +100,12 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   if (side == X1_BEG){
     GetJetValues(vjet);
     X1_BEG_LOOP(k,j,i){
-      VAR_LOOP(nv) vout[nv] = d->Vc[nv][k][j][2*IBEG-i-1];
+      NVAR_LOOP(nv) vout[nv] = d->Vc[nv][k][j][2*IBEG-i-1];
       vout[VX2] *= -1.0;
+//      vout[VX3] *= -1.0;
 
       r = grid->x[JDIR][j];
-      VAR_LOOP(nv)
+      NVAR_LOOP(nv)
         d->Vc[nv][k][j][i] = vout[nv] + (vjet[nv] - vout[nv])*Profile(r,nv);
     }
   }
@@ -113,7 +115,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   if (side == X2_BEG){
     GetJetValues(vjet);
     X2_BEG_LOOP(k,j,i){
-      VAR_LOOP(nv) vout[nv] = d->Vc[nv][k][2*JBEG-j-1][i];
+      NVAR_LOOP(nv) vout[nv] = d->Vc[nv][k][2*JBEG-j-1][i];
       vout[VX2] *= -1.0;
 
       r = grid->x[IDIR][i];
@@ -139,6 +141,7 @@ void GetJetValues (double *vjet)
    vjet[VX1] = g_inputParam[BETA];
    vjet[VX2] = 0.0;
   #endif
+  vjet[VX3]= 0.0;
   vjet[PRS] = g_inputParam[PRESS_IN];
 }
  

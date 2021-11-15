@@ -17,7 +17,7 @@ void ComputeUserVar (const Data *d, Grid *grid)
 
   tmp = GetUserVar("tmp");
   DOM_LOOP(k,j,i){
-    VAR_LOOP(nv) v[nv] = d->Vc[nv][k][j][i];
+    NVAR_LOOP(nv) v[nv] = d->Vc[nv][k][j][i];
 #if EOS == IDEAL
     T = v[PRS]/v[RHO]*KELVIN*mu;
 #elif EOS == PVTE_LAW

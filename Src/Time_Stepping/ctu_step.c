@@ -102,6 +102,24 @@
   This integrator performs an integration in the ghost boundary zones, 
   in order to recover appropriate information to build the transverse 
   predictors.
+  If constrained transport is enabled then, in summary,
+  normal and transverse indices are handled as follows
+  
+  \verbatim
+                        RK        CTU
+                   +-------------------------------------------
+    Transverse++   |    YES       YES
+                   |
+    Normal++       |    NO        YES, at predictor step
+  \endverbatim
+  
+  Predictor step (g_intStage = 1) in CTU requires extra transverse loop
+  to obtain transverse predictor in any case.
+  Also, with CTU+CT, one needs to expand the grid of one zone in the
+  \e normal direction as well.
+  This allows to computed fully corner coupled sweeps in the boundary to
+  get electric field components during the constrained transport algorithm. 
+
    
   \b References
      - "The PLUTO Code for Adaptive Mesh Computations in Astrophysical Fluid
@@ -113,9 +131,8 @@
      - "An unsplit Godunov method for ideal MHD via constrained transport" \n
         Gardiner & Stone, JCP (2005), 205, 509
   
-  \authors A. Mignone (mignone@ph.unito.it)\n
-           P. Tzeferacos (petros.tzeferacos@ph.unito.it)
-  \date    Sep 09, 2017
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    Sep 14, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
@@ -139,14 +156,12 @@
 static void StatesFlat (const Sweep *sweep, int beg, int end);
 
 /* ********************************************************************* */
-int AdvanceStep (Data *data, Riemann_Solver *Riemann, 
-                 timeStep *Dts, Grid *grid)
+int AdvanceStep (Data *data, timeStep *Dts, Grid *grid)
 /*!
  * Advance equations using the corner transport upwind method
  * (CTU)
  *
  * \param [in,out]      d  pointer to Data structure
- * \param [in]    Riemann  pointer to a Riemann solver function
  * \param [in,out]    Dts  pointer to time step structure
  * \param [in]       grid  pointer to Grid structur
  *         
@@ -158,7 +173,7 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
   int    nbeg, nend, ntot;
 
   static Sweep sweep;
-  static unsigned char *flagm, *flagp;
+  static uint16_t *flagm, *flagp;
 
   State *stateC = &(sweep.stateC);
   State *stateL = &(sweep.stateL);
@@ -171,6 +186,11 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
   static Data_Arr rhs[DIMENSIONS], Up[DIMENSIONS], Um[DIMENSIONS];
   static Data_Arr  Uh, Bs0;
   RBox   sweepBox;
+#if PARTICLES
+  Data_Arr Vc_pnt;
+  double ***Bs_pnt[3];
+  static Data_Arr Vc_half, Bs_half;
+#endif
 
   DEBUG_FUNC_BEG ("AdvanceStep");
 
@@ -183,11 +203,13 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
    0. Check algorithm compatibilities
    -------------------------------------------------------- */
 
-#if !(GEOMETRY == CARTESIAN || GEOMETRY == CYLINDRICAL)
-  print ("! AdvanceStep(): ");
-  print ("CTU only works in Cartesian or cylindrical coordinates\n");
+#if GEOMETRY == SPHERICAL
+  print ("! AdvanceStep():  CTU does not work in SPHERICAL coordinates\n");
   QUIT_PLUTO(1);
 #endif
+#if DUST_FLUID == YES
+  #error CTU Time-Stepping needs some revision for DUST
+#endif  
 #if HALL_MHD
   print ("! AdvanceStep(): ");
   print ("  CTU not compatible with Hall MHD\n");
@@ -201,25 +223,28 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
   if (Uh == NULL){
     MakeState (&sweep);
 
-    flagp = ARRAY_1D(NMAX_POINT, unsigned char);
-    flagm = ARRAY_1D(NMAX_POINT, unsigned char);
-
+    flagp  = ARRAY_1D(NMAX_POINT, uint16_t);
+    flagm  = ARRAY_1D(NMAX_POINT, uint16_t);
     dt2_dx = ARRAY_1D(NMAX_POINT, double);
 
-    Uh   = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);
-#ifdef STAGGERED_MHD
+    Uh  = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);
+    #ifdef STAGGERED_MHD
     Bs0 = ARRAY_4D(DIMENSIONS, NX3_TOT, NX2_TOT, NX1_TOT, double);
-#endif
+    #endif
+    #if PARTICLES
+    Vc_half = ARRAY_4D(NVAR, NX3_TOT, NX2_TOT, NX1_TOT, double);
+    Bs_half = ARRAY_4D(   3, NX3_TOT, NX2_TOT, NX1_TOT, double);
+    #endif
         
-    D_EXPAND(Up[IDIR] = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double); ,
+    DIM_EXPAND(Up[IDIR] = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double); ,
              Up[JDIR] = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double); ,
              Up[KDIR] = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);)
 
-    D_EXPAND(Um[IDIR] = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double); ,
+    DIM_EXPAND(Um[IDIR] = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double); ,
              Um[JDIR] = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double); ,
              Um[KDIR] = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);)
 
-    D_EXPAND(rhs[IDIR] = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double); ,
+    DIM_EXPAND(rhs[IDIR] = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double); ,
              rhs[JDIR] = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double); ,
              rhs[KDIR] = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);)
   }
@@ -251,7 +276,7 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
   KTOT_LOOP(k) {
   JTOT_LOOP(j) {
     nv = NX1_TOT*sizeof(double);
-    D_EXPAND(memcpy(Bs0[BX1s][k][j], data->Vs[BX1s][k][j], nv);  ,
+    DIM_EXPAND(memcpy(Bs0[BX1s][k][j], data->Vs[BX1s][k][j], nv);  ,
              memcpy(Bs0[BX2s][k][j], data->Vs[BX2s][k][j], nv);  ,
              memcpy(Bs0[BX3s][k][j], data->Vs[BX3s][k][j], nv);)
   }}
@@ -262,13 +287,13 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
 
 /* -- Compute Particle force -- */
 
-#ifdef PARTICLES
-  #if PARTICLES_TYPE == COSMIC_RAYS
+#if PARTICLES
+  #if PARTICLES == PARTICLES_CR
   Particles_CR_ComputeForce (data->Vc, data, grid);
-  #elif PARTICLES_TYPE == DUST
+  #elif PARTICLES == PARTICLES_DUST
   Particles_Dust_ComputeForce (data->Vc, data, grid);
-  #elif PARTICLES_TYPE == LAGRANGIAN
-  Particles_LP_Predictor(data, Dts, 0.5*g_dt, grid);
+  #elif PARTICLES  == PARTICLES_LP
+  Particles_LP_Update(data, Dts, 0.5*g_dt, grid);
   #endif
 #endif
 
@@ -280,7 +305,7 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
    -------------------------------------------------------- */
  
   dt2 = 0.5*g_dt;
-  for (g_dir = 0; g_dir < DIMENSIONS; g_dir++){
+  DIM_LOOP(g_dir){
 
   /* -- 4a. Set integration box for predictor step -- */
 
@@ -288,18 +313,16 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
     RBoxSetDirections (&sweepBox, g_dir);
     SetVectorIndices (g_dir);
 
-    D_EXPAND(                                      ;  ,
-             (*sweepBox.tbeg)--; (*sweepBox.tend)++;  ,
-             (*sweepBox.bbeg)--; (*sweepBox.bend)++;)
+    RBoxEnlarge (&sweepBox, g_dir != IDIR, g_dir != JDIR, g_dir != KDIR);
+
     #if (defined STAGGERED_MHD)
-    D_EXPAND((*sweepBox.nbeg)--; (*sweepBox.nend)++;  ,
-             (*sweepBox.tbeg)--; (*sweepBox.tend)++;  ,
-             (*sweepBox.bbeg)--; (*sweepBox.bend)++;)
+    RBoxEnlarge (&sweepBox, 1, 1, 1);
     #else
     #if (PARABOLIC_FLUX & EXPLICIT)
     (*sweepBox.nbeg)--; (*sweepBox.nend)++;
     #endif
     #endif
+
     ResetState(data, &sweep, grid);
 
     nbeg = *sweepBox.nbeg;
@@ -319,7 +342,7 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
       for (*in = 0; (*in) < ntot; (*in)++) {
         NVAR_LOOP(nv) {
           stateC->v[*in][nv] = data->Vc[nv][k][j][i];
-          #if (defined GLM_MHD) || (CTU_MHD_SOURCE == YES) || (defined PARTICLES)
+          #if (defined GLM_MHD) || (CTU_MHD_SOURCE == YES) || (PARTICLES != NO)
           sweep.vn[*in][nv] = stateC->v[*in][nv];
           #endif
         }
@@ -331,12 +354,12 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
       #if PHYSICS == MHD || PHYSICS == RMHD
         #ifdef STAGGERED_MHD
         for (*in = 0; (*in) < ntot; (*in)++) {
-          sweep.bn[*in] = data->Vs[g_dir][k][j][i];
+          sweep.Bn[*in] = data->Vs[g_dir][k][j][i];
         }
         #endif
       #endif
 
-      #if (defined PARTICLES) && (PARTICLES_TYPE == COSMIC_RAYS)
+      #if PARTICLES == PARTICLES_CR
       Particles_CR_States1DCopy(data, &sweep, nbeg-1, nend+1);
       #endif
 
@@ -348,12 +371,10 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
 
       States (&sweep, nbeg - 1, nend + 1, grid);
 
-      #ifdef PARTICLES
-      #if (PARTICLES_TYPE == COSMIC_RAYS) && (PARTICLES_CR_FEEDBACK == YES)
-//      Particles_CR_StatesSource(&sweep, dt2, nbeg-1, nend+1, grid);
-      #elif PARTICLES_TYPE == DUST
-      Particles_Dust_StatesSource(&sweep, data->Vdust, data->Fdust, dt2, nbeg-1, nend+1, grid);
-      #endif
+      #if (PARTICLES == PARTICLES_CR) && (PARTICLES_CR_FEEDBACK == YES)
+//      Particles_CR_StatesSource(&sweep, dt2, nbeg-1, nend+1, grid);  // Done in States already
+      #elif (PARTICLES == PARTICLES_DUST) && (PARTICLES_DUST_FEEDBACK == YES)
+      Particles_Dust_StatesSource(&sweep, data->Fdust, dt2, nbeg-1, nend+1, grid);
       #endif
 
     /* -- 4e. Copy states before Riemann solver changes them (for GLM) -- */
@@ -369,7 +390,11 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
 
     /* -- 4f. Solve Riemann problems, store fluxes, compute rhs -- */
 
-      Riemann (&sweep, nbeg - 1, nend, Dts->cmax, grid);
+      data->fluidRiemannSolver (&sweep, nbeg-1, nend, Dts->cmax, grid);
+      #if NSCL > 0
+      AdvectFlux (&sweep, nbeg-1, nend, grid);
+      #endif
+
       #ifdef STAGGERED_MHD
       CT_StoreUpwindEMF (&sweep, data->emf, nbeg-1, nend, grid);
       #endif
@@ -384,8 +409,9 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
           Up[g_dir][k][j][i][nv] = up[*in][nv];
           Um[g_dir][k][j][i][nv] = um[*in][nv];
         }
+          
       }
-     #endif
+      #endif
 
     /* -- 4g. Store rhs into 3D array -- */
 
@@ -396,7 +422,10 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
 #else  /* Include explicit parabolic terms */
 
       StatesFlat (&sweep, 0, ntot-1);
-      Riemann (&sweep, nbeg-1, nend, Dts->cmax, grid);
+      data->fluidRiemannSolver (&sweep, nbeg-1, nend, Dts->cmax, grid);
+      #if NSCL > 0
+      AdvectFlux (&sweep, nbeg-1, nend, grid);
+      #endif
       #ifdef STAGGERED_MHD
       CT_StoreUpwindEMF (&sweep, data->emf, nbeg-1, nend, grid);
       #endif
@@ -432,18 +461,16 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
        Uh = U^n + dt*rhs^n
    -------------------------------------------------------- */
 
-  RBoxDefine (IBEG, IEND,JBEG, JEND,KBEG, KEND, CENTER, &sweepBox);  
-#if (PARABOLIC_FLUX & EXPLICIT) || (defined STAGGERED_MHD)
-  D_EXPAND(sweepBox.ibeg--; sweepBox.iend++;  ,
-           sweepBox.jbeg--; sweepBox.jend++;  ,
-           sweepBox.kbeg--; sweepBox.kend++;);
-#endif
+  RBoxDefine (IBEG, IEND, JBEG, JEND, KBEG, KEND, CENTER, &sweepBox);  
+  #if (PARABOLIC_FLUX & EXPLICIT) || (defined STAGGERED_MHD)
+  RBoxEnlarge (&sweepBox, 1, 1, 1);
+  #endif
 
   BOX_LOOP(&sweepBox,k,j,i){
     NVAR_LOOP(nv){
-      dU = D_EXPAND(  rhs[IDIR][k][j][i][nv],
-                    + rhs[JDIR][k][j][i][nv],
-                    + rhs[KDIR][k][j][i][nv]);
+      dU = DIM_EXPAND(  rhs[IDIR][k][j][i][nv],
+                      + rhs[JDIR][k][j][i][nv],
+                      + rhs[KDIR][k][j][i][nv]);
       Uh[k][j][i][nv] = data->Uc[k][j][i][nv] + dU;
     }
   }
@@ -462,7 +489,7 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
 
 #if (PARABOLIC_FLUX & EXPLICIT)
   ParabolicUpdate (data, Uh, &sweepBox, NULL, dt2, Dts, grid);
-  D_EXPAND(ParabolicUpdate (NULL, Up[IDIR], &sweepBox, NULL, dt2, Dts, grid);
+  DIM_EXPAND(ParabolicUpdate (NULL, Up[IDIR], &sweepBox, NULL, dt2, Dts, grid);
            ParabolicUpdate (NULL, Um[IDIR], &sweepBox, NULL, dt2, Dts, grid);  ,
            
            ParabolicUpdate (NULL, Up[JDIR], &sweepBox, NULL, dt2, Dts, grid);
@@ -477,25 +504,24 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
 #endif
 
 /* --------------------------------------------------------
-   5d. Update staggered magnetic field
+   5d. Update staggered magnetic field by dt/2
    -------------------------------------------------------- */
 
 #ifdef STAGGERED_MHD 
   CT_Update (data, data->Vs, 0.5*g_dt, grid);
-  CT_AverageMagneticField (data->Vs, Uh, grid);
+  RBoxDefine (IBEG-1, IEND+1, JBEG-1, JEND+1, KBEG-1, KEND+1, CENTER, &sweepBox);  
+  CT_AverageStaggeredFields (data->Vs, Uh, &sweepBox, grid);
 #endif
 
 /* --------------------------------------------------------
    5e. Add particle feedback for dt/2
    -------------------------------------------------------- */
 
-#ifdef PARTICLES
-  #if (PARTICLES_TYPE == COSMIC_RAYS) && (PARTICLES_CR_FEEDBACK == YES)
+  #if (PARTICLES == PARTICLES_CR) && (PARTICLES_CR_FEEDBACK == YES)
   Particles_CR_ConservativeFeedback (Uh, data->Fcr, 0.5*g_dt, &sweepBox);
-  #elif PARTICLES_TYPE == DUST
-  Particles_Dust_ConservativeFeedback(Uh, data->Vdust, data->Fdust, 0.5*g_dt, &sweepBox);
+  #elif (PARTICLES == PARTICLES_DUST) && (PARTICLES_DUST_FEEDBACK == YES)
+  Particles_Dust_ConservativeFeedback(Uh, data->Fdust, 0.5*g_dt, &sweepBox);
   #endif 
-#endif  
 
 /* --------------------------------------------------------
    5f. Convert time-centered conserved array to primitive
@@ -515,15 +541,36 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
 
 /* --------------------------------------------------------
    5g. Update particles
+       Note: to avoid altering the half-level primitive
+       variables during the Boundary call in the
+       Particles_XX_Update() we make a temporary copy.
    -------------------------------------------------------- */
 
-#ifdef PARTICLES
-  #if PARTICLES_TYPE == COSMIC_RAYS
+#if PARTICLES
+
+  #if (PARTICLES == PARTICLES_CR) || (PARTICLES == PARTICLES_DUST)
+  NVAR_LOOP(nv) TOT_LOOP(k,j,i) Vc_half[nv][k][j][i] = data->Vc[nv][k][j][i];
+  #ifdef STAGGERED_MHD
+  DIM_LOOP(nv)  TOT_LOOP(k,j,i) Bs_half[nv][k][j][i] = data->Vs[nv][k][j][i];
+  #endif
+
+  Vc_pnt = data->Vc;  /* Save pointer */
+  data->Vc  = Vc_half;
+
+  #if PARTICLES == PARTICLES_CR
   Particles_CR_Update(data, Dts, g_dt, grid);
-  #elif PARTICLES_TYPE == DUST
+  #elif PARTICLES == PARTICLES_DUST
   Particles_Dust_Update(data, Dts, g_dt, grid);
-  #elif PARTICLES_TYPE == LAGRANGIAN
-  Particles_LP_Corrector(data, Dts, g_dt, grid);
+  #endif
+
+  data->Vc = Vc_pnt;   /* Restore Pointer */
+  #ifdef STAGGERED_MHD
+  DIM_LOOP(nv)  TOT_LOOP(k,j,i) data->Vs[nv][k][j][i] = Bs_half[nv][k][j][i];
+  #endif
+
+  #elif PARTICLES == PARTICLES_LP
+  g_intStage = 2;
+  Particles_LP_Update(data, Dts, g_dt, grid);
   #endif
 #endif
 
@@ -532,8 +579,8 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
    -------------------------------------------------------- */
 
   g_intStage = 2;
-
-  for (g_dir = 0; g_dir < DIMENSIONS; g_dir++){
+  
+  DIM_LOOP(g_dir){
 
   /* -- Set integration box for corrector step -- */
 
@@ -542,15 +589,13 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
     SetVectorIndices (g_dir);
 
     #if (defined STAGGERED_MHD)
-    D_EXPAND(                                      ;  ,
-             (*sweepBox.tbeg)--; (*sweepBox.tend)++;  ,
-             (*sweepBox.bbeg)--; (*sweepBox.bend)++;)
+    RBoxEnlarge (&sweepBox, g_dir != IDIR, g_dir != JDIR, g_dir != KDIR);
     #endif
     ResetState(data, &sweep, grid);
 
     nbeg = *sweepBox.nbeg;
     nend = *sweepBox.nend;
-
+    
     BOX_TRANSVERSE_LOOP(&sweepBox,k,j,i){  
       in  = sweepBox.n;
       g_i = i;  g_j = j;  g_k = k;
@@ -560,7 +605,7 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
       if (g_dir == IDIR){ 
         for ((*in) = nbeg-1; (*in) <= nend+1; (*in)++){
           NVAR_LOOP(nv){
-            dU = D_EXPAND(0.0, + rhs[JDIR][k][j][i][nv], + rhs[KDIR][k][j][i][nv]);
+            dU = DIM_EXPAND(0.0, + rhs[JDIR][k][j][i][nv], + rhs[KDIR][k][j][i][nv]);
             up[*in][nv] = Up[g_dir][k][j][i][nv] + dU;
             um[*in][nv] = Um[g_dir][k][j][i][nv] + dU;
             stateC->v[*in][nv] = data->Vc[nv][k][j][i];
@@ -571,7 +616,7 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
       } else if (g_dir == JDIR){ 
         for ((*in) = nbeg-1; (*in) <= nend+1; (*in)++){
           NVAR_LOOP(nv){
-            dU = D_EXPAND(rhs[IDIR][k][j][i][nv], + 0.0,  + rhs[KDIR][k][j][i][nv]);
+            dU = DIM_EXPAND(rhs[IDIR][k][j][i][nv], + 0.0,  + rhs[KDIR][k][j][i][nv]);
             up[*in][nv] = Up[g_dir][k][j][i][nv] + dU;
             um[*in][nv] = Um[g_dir][k][j][i][nv] + dU;
             stateC->v[*in][nv] = data->Vc[nv][k][j][i];
@@ -582,7 +627,7 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
       } else if (g_dir == KDIR){ 
         for ((*in) = nbeg-1; (*in) <= nend+1; (*in)++){
           NVAR_LOOP(nv){
-            dU = rhs[IDIR][k][j][i][nv] + rhs[JDIR][k][j][i][nv];
+            dU = DIM_EXPAND(rhs[IDIR][k][j][i][nv], + rhs[JDIR][k][j][i][nv], + 0.0);
             up[*in][nv] = Up[g_dir][k][j][i][nv] + dU;
             um[*in][nv] = Um[g_dir][k][j][i][nv] + dU;
             stateC->v[*in][nv] = data->Vc[nv][k][j][i];
@@ -595,10 +640,10 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
     /* -- Define normal component of magnetic field -- */
 
       #if PHYSICS == MHD || PHYSICS == RMHD
-      double bn;
+      double Bn;
       #ifdef STAGGERED_MHD
       for ((*in) = nbeg - 2; (*in) <= nend + 1; (*in)++){
-        uL[*in][BXn] = uR[*in][BXn] = sweep.bn[*in] = data->Vs[BXs+g_dir][k][j][i];
+        uL[*in][BXn] = uR[*in][BXn] = sweep.Bn[*in] = data->Vs[BXs+g_dir][k][j][i];
       }
       #endif
       #endif
@@ -608,13 +653,14 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
 
     /* -- Compute flux & right-hand-side -- */
 
-      #ifdef PARTICLES
-      #if (PARTICLES_TYPE == COSMIC_RAYS) && (PARTICLES_CR_FEEDBACK == YES)
+      #if (PARTICLES == PARTICLES_CR) && (PARTICLES_CR_FEEDBACK == YES)
       Particles_CR_States1DCopy(data, &sweep, nbeg-1, nend+1);
       #endif
-      #endif
 
-      Riemann (&sweep, nbeg-1, nend, Dts->cmax, grid);
+      data->fluidRiemannSolver (&sweep, nbeg-1, nend, Dts->cmax, grid);
+      #if NSCL > 0
+      AdvectFlux (&sweep, nbeg-1, nend, grid);
+      #endif
       #ifdef STAGGERED_MHD
       CT_StoreUpwindEMF (&sweep, data->emf, nbeg-1, nend, grid);
       #endif
@@ -679,20 +725,34 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
 
 #ifdef STAGGERED_MHD
   CT_Update (data, Bs0, g_dt, grid);
-  CT_AverageMagneticField (data->Vs, data->Uc, grid);
+
+  KTOT_LOOP(k) {
+  JTOT_LOOP(j) {
+    nv = NX1_TOT*sizeof(double);
+    DIM_EXPAND(memcpy(data->Vs[BX1s][k][j], Bs0[BX1s][k][j], nv);  ,
+             memcpy(data->Vs[BX2s][k][j], Bs0[BX2s][k][j], nv);  ,
+             memcpy(data->Vs[BX3s][k][j], Bs0[BX3s][k][j], nv);)
+  }}
+
+  RBoxDefine (IBEG, IEND,JBEG, JEND,KBEG, KEND, CENTER, &sweepBox);  
+  CT_AverageStaggeredFields (data->Vs, data->Uc, &sweepBox, grid);
 #endif
 
 /* --------------------------------------------------------
    12. Compute conservative feedback from particles
    -------------------------------------------------------- */
 
-#ifdef PARTICLES
-  #if PARTICLES_TYPE == COSMIC_RAYS
+#if PARTICLES
+  #if PARTICLES == PARTICLES_CR
   Particles_CR_ConservativeFeedback (data->Uc, data->Fcr, g_dt, &sweepBox);
-  Particles_Inject(data, grid);
-#elif PARTICLES_TYPE == DUST
-  Particles_Dust_ConservativeFeedback (data->Uc, data->Vdust, data->Fdust, g_dt, &sweepBox);
+  #elif PARTICLES == PARTICLES_DUST
+  Particles_Dust_ConservativeFeedback (data->Uc, data->Fdust, g_dt, &sweepBox);
+  #elif (PARTICLES == PARTICLES_LP) && (PARTICLES_LP_SPECTRA == YES)
+  Boundary (data, ALL_DIR, grid); /* Spectra update requires interpolating
+                                * fluid quantities at particle position. */
+  Particles_LP_UpdateSpectra (data, g_dt, grid);
   #endif
+  Particles_Inject(data, grid);
 #endif
 
 /* --------------------------------------------------------
@@ -701,7 +761,7 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
 
 #ifdef FARGO
   FARGO_ShiftSolution (data->Uc, data->Vs, grid);
-  #ifdef PARTICLES
+  #if PARTICLES
   FARGO_ShiftParticles (data, grid, g_dt);
   #endif
 #endif 
@@ -711,10 +771,6 @@ int AdvanceStep (Data *data, Riemann_Solver *Riemann,
    -------------------------------------------------------- */
 
   ConsToPrim3D(data->Uc, data->Vc, data->flag, &sweepBox);
-
-#ifdef FARGO
-  FARGO_AddVelocity (data,grid); 
-#endif
 
 #if SHOW_TIMING
   clock_end = clock();
@@ -780,9 +836,20 @@ void CTU_CT_Source (const Sweep *sweep, int beg, int end,
       db[i] = dtdx[i]*(up[i][BXn] - um[i][BXn]); 
     }
   }
-#else
-  print (" ! CTU-MHD does not work in this geometry\n");
-  QUIT_PLUTO(1);
+#elif GEOMETRY == POLAR
+  if (g_dir == IDIR){
+    for (i = beg; i <= end; i++){
+      db[i] = dtdx[i]/fabs(r[i])*(up[i][BXn]*fabs(rp[i]) - um[i][BXn]*fabs(rm[i]));
+    }
+  }else if (g_dir == JDIR){
+    for (i = beg; i <= end; i++){
+      db[i] = dtdx[i]/fabs(r[i])*(up[i][BXn] - um[i][BXn]);
+    }
+  }else if (g_dir == KDIR){
+    for (i = beg; i <= end; i++){
+      db[i] = dtdx[i]*(up[i][BXn] - um[i][BXn]); 
+    }
+  }
 #endif
 
 /* --------------------------------------------
@@ -791,25 +858,22 @@ void CTU_CT_Source (const Sweep *sweep, int beg, int end,
 
   for (i = beg; i <= end; i++){
     
-    EXPAND( up[i][MX1] += v[i][BX1]*db[i];
-            um[i][MX1] += v[i][BX1]*db[i];   ,
-            up[i][MX2] += v[i][BX2]*db[i];
-            um[i][MX2] += v[i][BX2]*db[i];   ,
-            up[i][MX3] += v[i][BX3]*db[i];
-            um[i][MX3] += v[i][BX3]*db[i]; ) 
+    up[i][MX1] += v[i][BX1]*db[i];
+    um[i][MX1] += v[i][BX1]*db[i];
+    up[i][MX2] += v[i][BX2]*db[i];
+    um[i][MX2] += v[i][BX2]*db[i];
+    up[i][MX3] += v[i][BX3]*db[i];
+    um[i][MX3] += v[i][BX3]*db[i];
 
-    EXPAND(                            ;   ,
-            up[i][BXt] += v[i][VXt]*db[i]; 
-            um[i][BXt] += v[i][VXt]*db[i];   ,
-            up[i][BXb] += v[i][VXb]*db[i]; 
-            um[i][BXb] += v[i][VXb]*db[i];)
+    up[i][BXt] += v[i][VXt]*db[i]; 
+    um[i][BXt] += v[i][VXt]*db[i];
+    up[i][BXb] += v[i][VXb]*db[i]; 
+    um[i][BXb] += v[i][VXb]*db[i];
 
     #if HAVE_ENERGY 
-     scrh = EXPAND(   v[i][VX1]*v[i][BX1]  , 
-                    + v[i][VX2]*v[i][BX2]  , 
-                    + v[i][VX3]*v[i][BX3]);
-     up[i][ENG] += scrh*db[i];
-     um[i][ENG] += scrh*db[i];
+    scrh = v[i][VX1]*v[i][BX1] + v[i][VX2]*v[i][BX2] + v[i][VX3]*v[i][BX3];
+    up[i][ENG] += scrh*db[i];
+    um[i][ENG] += scrh*db[i];
     #endif
 
   }
@@ -829,7 +893,7 @@ void StatesFlat (const Sweep *sweep, int beg, int end)
   }}
 #ifdef STAGGERED_MHD
   for (i = beg; i <= end-1; i++) {
-    stateL->v[i][BXn] = stateR->v[i][BXn] = sweep->bn[i];
+    stateL->v[i][BXn] = stateR->v[i][BXn] = sweep->Bn[i];
   }
 #endif
    PrimToCons(stateL->v, stateL->u, beg, end);

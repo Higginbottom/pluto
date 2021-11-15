@@ -1,14 +1,12 @@
 #define  PHYSICS                        MHD
-#define  DIMENSIONS                     3
-#define  COMPONENTS                     3
+#define  DIMENSIONS                     2
 #define  GEOMETRY                       CARTESIAN
 #define  BODY_FORCE                     NO
-#define  FORCED_TURB                    NO
 #define  COOLING                        NO
 #define  RECONSTRUCTION                 LINEAR
 #define  TIME_STEPPING                  CHARACTERISTIC_TRACING
-#define  DIMENSIONAL_SPLITTING          NO
 #define  NTRACER                        0
+#define  PARTICLES                      NO
 #define  USER_DEF_PARAMETERS            7
 
 /* -- physics dependent declarations -- */
@@ -38,6 +36,7 @@
 
 #define  SHOCK_FLATTENING               MULTID
 #define  CHAR_LIMITING                  YES
+#define  LIMITER                        MC_LIM
 #define  ASSIGN_VECTOR_POTENTIAL        YES
 
 /* [End] user-defined constants (do not change this line) */

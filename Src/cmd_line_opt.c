@@ -6,8 +6,8 @@
   Parse command line options at runtime and set values in
   the Cmd_Line structure.
 
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    March 16, 2018
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    March 20, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -15,8 +15,7 @@
 static void PrintUsage();
 
 /* ********************************************************************* */
-void ParseCmdLineArgs (int argc, char *argv[], char *ini_file, 
-                       Cmd_Line *cmd)
+void ParseCmdLineArgs (int argc, char *argv[], char *ini_file, cmdLine *cmd)
 /*!
  *
  * Parse command line options. Error messages will be output to
@@ -32,35 +31,43 @@ void ParseCmdLineArgs (int argc, char *argv[], char *ini_file,
 {
   int i,j;
 
-/* -----------------------------------------------
-           Set default values first
-   ----------------------------------------------- */
+/* ----------------------------------------------
+   1. Set default values first
+   ---------------------------------------------- */
 
   cmd->restart   = NO;
   cmd->h5restart = NO;
+  cmd->prestart  = NO; /* If restart is enabled, restart also particles */
   cmd->maxsteps  = -1;
   cmd->write     = YES;
   cmd->makegrid  = NO; 
-  cmd->jet       = -1; /* -- means no direction -- */
-  cmd->xres      = -1; /* -- means no grid resizing -- */
+  cmd->jet       = -1; /* -- means option is not used -- */
+  cmd->xres      = -1; /* -- means no grid resizing   -- */
 
   cmd->nproc[IDIR] = -1; /* means autodecomp will be used */
   cmd->nproc[JDIR] = -1;
   cmd->nproc[KDIR] = -1;
 
-  #ifdef PARALLEL
-   cmd->parallel_dim[IDIR] = YES;  /* by default, we parallelize */
-   cmd->parallel_dim[JDIR] = YES;  /* all directions             */
-   cmd->parallel_dim[KDIR] = YES;
+/* ----------------------------------------------
+   1a. Parallelize all (active) directions
+   ---------------------------------------------- */
+
+  #ifdef PARALLEL  
+  cmd->parallel_dim[IDIR] = (INCLUDE_IDIR ? YES:NO); 
+  cmd->parallel_dim[JDIR] = (INCLUDE_JDIR ? YES:NO); 
+  cmd->parallel_dim[KDIR] = (INCLUDE_KDIR ? YES:NO); 
   #endif
 
-/* --------------------------------------------------------------------
-             Parse Command Line Options.
+  sprintf (ini_file,"pluto.ini");
 
-    Note: Since at this time the output directory is now known and
-          "pluto.log" has not been opened yet, we use printf to issue
-          error messages.
-   -------------------------------------------------------------------- */
+/* ----------------------------------------------
+   Parse Command Line Options.
+
+   Note: Since at this time the output directory
+         is not known and "pluto.log" has not
+         been opened yet, we use printf to issue
+         error messages.
+   ---------------------------------------------- */
 
   for (i = 1; i < argc ; i++){
 
@@ -72,9 +79,9 @@ void ParseCmdLineArgs (int argc, char *argv[], char *ini_file,
 
         if ((++i) >= argc){
           if (prank == 0){
-            D_SELECT(printf ("! You must specify -dec n1\n");  ,
-                     printf ("! You must specify -dec n1  n2\n");  ,
-                     printf ("! You must specify -dec n1  n2  n3\n");)
+            DIM_SELECT(printf ("! You must specify -dec n1\n");  ,
+                       printf ("! You must specify -dec n1  n2\n");  ,
+                       printf ("! You must specify -dec n1  n2  n3\n");)
           }
           QUIT_PLUTO(1);
         }
@@ -91,7 +98,7 @@ void ParseCmdLineArgs (int argc, char *argv[], char *ini_file,
 
       sprintf (ini_file,"%s",argv[++i]);
     
-    } else if (!strcmp(argv[i],"-makegrid")) {
+    }else if (!strcmp(argv[i],"-makegrid")) {
 
       cmd->makegrid = YES;
 
@@ -125,6 +132,40 @@ void ParseCmdLineArgs (int argc, char *argv[], char *ini_file,
 
       cmd->parallel_dim[KDIR] = NO;
 
+    }else  if (   !strcmp(argv[i],"-restart")
+               || !strcmp(argv[i],"-frestart")
+               || !strcmp(argv[i],"-h5restart")) {
+
+     /* --------------------------------------------- 
+          default restart is last written file (-1)
+        --------------------------------------------- */
+
+      if (!strcmp(argv[i], "-restart")) {
+        cmd->restart  = YES;  /* can only take YES/NO values */
+        cmd->prestart = YES;  /* Restart particles as well   */ 
+      }else if (!strcmp(argv[i], "-frestart")) {
+        cmd->restart  = YES;  /* can only take YES/NO values */
+        cmd->prestart = NO;   /* Do not restart particles   */ 
+      }else{
+        cmd->h5restart = YES;
+      }
+      cmd->nrestart = -1;   /* the file number to restart from */
+
+      if ((++i) < argc){
+        char *endptr;
+        cmd->nrestart = (int)strtol(argv[i], &endptr, 10);
+
+      /* ----------------------------------------------
+          if a non-numerical character is encountered, 
+          cmd->nrestart should reset to -1
+         ---------------------------------------------- */
+
+        if (endptr == argv[i]){
+          i--;
+          cmd->nrestart = -1;
+        }
+      }
+
     } else if (!strcmp(argv[i],"-x1jet")) {
 
       cmd->jet = IDIR;
@@ -147,32 +188,6 @@ void ParseCmdLineArgs (int argc, char *argv[], char *ini_file,
         if (cmd->xres <= 1) {
           if (prank == 0) printf ("! You must specify -xres nn, with nn > 1 \n");
           QUIT_PLUTO(0)
-        }
-      }
-
-    }else  if (!strcmp(argv[i],"-restart") || !strcmp(argv[i],"-h5restart")) {
-
-     /* --------------------------------------------- 
-          default restart is last written file (-1)
-        --------------------------------------------- */
-
-      if (!strcmp(argv[i], "-restart")) cmd->restart   = YES;  /* can only take YES/NO values */
-      else                              cmd->h5restart = YES;
-      cmd->nrestart = -1;   /* the file number to restart from */
-
-      if ((++i) < argc){
-        char *endptr;
-/*         cmd->restart = atoi(argv[i]); */
-        cmd->nrestart = (int)strtol(argv[i], &endptr, 10);
-
-      /* ----------------------------------------------
-          if a non-numerical character is encountered, 
-          cmd->nrestart should reset to -1
-         ---------------------------------------------- */
-
-        if (endptr == argv[i]){
-          i--;
-          cmd->nrestart = -1;
         }
       }
 
@@ -215,6 +230,10 @@ void PrintUsage()
   printf ("    x2, and x3 directions. There must be as many integers as the\n");
   printf ("    number of dimensions and their product must equal the total\n");
   printf ("    number of processors used by mpirun or an error will occurr.\n\n"); 
+
+  printf (" -frestart n\n");
+  printf ("    Restart computations for the fluid (no particles) from the\n");
+  printf ("    n-th output file in double in precision format (.dbl).\n\n");
 
   printf (" -i <name>\n");
   printf ("    Use <name> as initialization file instead of pluto.ini.\n\n");

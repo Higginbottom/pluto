@@ -58,7 +58,7 @@ void Init (double *us, double x1, double x2, double x3)
              Use c.g.s units 
    ---------------------------------------------- */
 
-  r    = sqrt(EXPAND(x1*x1, + x2*x2, + x3*x3));
+  r    = sqrt(DIM_EXPAND(x1*x1, + x2*x2, + x3*x3));
   r0   = 1.0;   /* -- cloud radius -- */
   prof = 1.0/cosh(10.0*pow(r/r0,10));
 

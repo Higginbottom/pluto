@@ -20,7 +20,7 @@ void ComputeUserVar (const Data *d, Grid *grid)
   Particles_Deposit(d->PHead, MyDeposit, &Ep, 1, grid);
 }
 
-#ifdef PARTICLES
+#if PARTICLES
 /* ************************************************************* */
 void MyDeposit (Particle *p, double *qd)
 /*

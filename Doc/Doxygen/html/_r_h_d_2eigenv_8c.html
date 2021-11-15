@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -88,9 +88,9 @@ Functions</h2></td></tr>
 <p>The function <a class="el" href="_h_d_2eigenv_8c.html#ace5c2c470755bc9e2a68a233131d0128">MaxSignalSpeed()</a> computes the maximum and minimum characteristic signal velocity for the RHD equations.</p>
 <p>The function <a class="el" href="_h_d_2eigenv_8c.html#a56a8ffdb66383ff43224b379e7d33610">PrimEigenvectors()</a> calculates left and right eigenvectors and the corresponding eigenvalues for the <em>primitive</em> form the the RHD equations with an adiabatic EoS.</p>
 <p>The function <a class="el" href="_h_d_2eigenv_8c.html#a3a2b96e94ad27183d9a7b787c9dd1b96">PrimToChar()</a> compute the matrix-vector multiplcation between the L matrix (containing primitive left eigenvectors) and the vector v. The result containing the characteristic variables is stored in the vector w = L.v</p>
-<dl class="section author"><dt>Authors</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'ph'+'.un'+'it'+'o.i'+'t'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@p<span style="display: none;">.nosp@m.</span>h.uni<span style="display: none;">.nosp@m.</span>to.i<span style="display: none;">.nosp@m.</span>t</a>)<br />
+<dl class="section author"><dt>Authors</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'to'+'.in'+'fn'+'.it'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@t<span style="display: none;">.nosp@m.</span>o.inf<span style="display: none;">.nosp@m.</span>n.it</a>)<br />
 </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>Feb 13, 2018 </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>June 25, 2019 </dd></dl>
 </div><h2 class="groupheader">Function Documentation</h2>
 <a id="ace5c2c470755bc9e2a68a233131d0128"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ace5c2c470755bc9e2a68a233131d0128">&#9670;&nbsp;</a></span>MaxSignalSpeed()</h2>
@@ -224,33 +224,14 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Compute the matrix-vector multiplcation between the the L matrix (containing primitive left eigenvectors) and the vector v. The result containing the characteristic variables is stored in the vector w = L.v</p>
-<p>For efficiency purpose, multiplication is done explicitly, so that only nonzero entries of the left primitive eigenvectors are considered.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">L</td><td>Left eigenvectors </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">v</td><td>(difference of) primitive variables </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">w</td><td>(difference of) characteristic variables</td></tr>
-  </table>
-  </dd>
-</dl>
-<p>Compute the matrix-vector multiplcation between the the L matrix (containing primitive left eigenvectors) and the vector v. The result containing the characteristic variables is stored in the vector w = L.v</p>
-<p>For efficiency purpose, multiplication is done explicitly, so that only nonzero entries of the left primitive eigenvectors are considered.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">Lp</td><td>Left eigenvectors </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">v</td><td>(difference of) primitive variables </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">w</td><td>(difference of) characteristic variables </td></tr>
-  </table>
-  </dd>
-</dl>
+<p>Compute the matrix-vector product between the L matrix (containing primitive left eigenvectors) and the vector v. For efficiency purpose, multiplication is done explicitly, so that only nonzero entries of the left primitive eigenvectors are considered. </p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:50 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:57 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

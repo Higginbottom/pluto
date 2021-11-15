@@ -10,10 +10,10 @@
   physical boundaries only. The function Particles_BoundaryExchange()
   exchanges particles between adjacent processors.
  
-  \authors   A. Mignone (mignone@ph.unito.it)\n
+  \authors   A. Mignone (mignone@to.infn.it)\n
              B. Vaidya (bvaidya@unito.it)\n
   
-  \date      June 26, 2017
+  \date      Mar 13, 2021
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -40,7 +40,7 @@ void Particles_Boundary(Data *d, Grid *grid)
 
 #ifdef SHEARINGBOX
   if (grid->nproc[JDIR] != 1) {
-    print ("! Particles_Boundary(): ShearingBox+Particles requires -no-x2par\n");
+    printLog ("! Particles_Boundary(): ShearingBox+Particles requires -no-x2par\n");
     QUIT_PLUTO(1);
   }
 #endif
@@ -52,7 +52,7 @@ void Particles_Boundary(Data *d, Grid *grid)
    1. Loop over physical boudnaries
    -------------------------------------------------------- */
 
-  for (dir = 0; dir < DIMENSIONS; dir++){
+  DIM_LOOP(dir){
     curr   = d->PHead;
     ncopyL = ncopyR = 0;
     xbeg   = grid->xbeg_glob[dir];
@@ -70,7 +70,11 @@ void Particles_Boundary(Data *d, Grid *grid)
         p    = &(curr->p);        
         if (p->coord[dir] < xbeg) {
           p->coord[dir]   = 2.0*xbeg - p->coord[dir];
-          p->speed[dir] *= -1.0;          
+          #if (PARTICLES == PARTICLES_CR) && (PARTICLES_CR_GC == YES)
+          /* Do nothing in this case */
+          #else
+          p->speed[dir] *= -1.0;
+          #endif
         }
       }
       break;
@@ -92,8 +96,8 @@ void Particles_Boundary(Data *d, Grid *grid)
           p->coord[IDIR]  += L[IDIR];   /* Shift to right side */
           #endif
           #ifndef FARGO  
-          p->coord[JDIR]  -= delta_Ly;
-          p->speed[JDIR] -= sb_vy;
+          p->coord[JDIR] -= delta_Ly;   /* Shift in the y-direction  */
+          p->speed[JDIR] -= sb_vy;      /* Apply velocity change  */
           #endif   
         }
       }
@@ -128,7 +132,11 @@ void Particles_Boundary(Data *d, Grid *grid)
 
         if (p->coord[dir] >= xend) {
           p->coord[dir]   = 2.0*xend - p->coord[dir];
-          p->speed[dir] *= -1.0;          
+          #if (PARTICLES == PARTICLES_CR) && (PARTICLES_CR_GC == YES)
+          /* Do nothing in this case */
+          #else
+          p->speed[dir] *= -1.0;
+          #endif
         }
       }
       break;
@@ -151,8 +159,8 @@ void Particles_Boundary(Data *d, Grid *grid)
           p->coord[IDIR]  -= L[IDIR];    /* Shift to left side of domain */
           #endif
           #ifndef FARGO   
-          p->coord[JDIR]  += delta_Ly;
-          p->speed[JDIR] += sb_vy;
+          p->coord[JDIR] += delta_Ly;    /* Shift in the y-direction  */
+          p->speed[JDIR] += sb_vy;       /* Apply velocity change  */
           #endif  
         }
       }
@@ -177,7 +185,7 @@ void Particles_Boundary(Data *d, Grid *grid)
 
   
 #if DEBUG      
-if (d_condition)print("Particles_Check = %d, %d, %d; p_nparticles = %d\n",
+if (d_condition) print("Particles_Check = %d, %d, %d; p_nparticles = %d\n",
         Particles_CheckAll(d->PHead, 0, grid),
         Particles_CheckAll(d->PHead, 1, grid),
         Particles_CheckAll(d->PHead, 2, grid), p_nparticles);
@@ -237,7 +245,6 @@ void Particles_BoundaryExchange(Data *d, Grid *grid)
       direction-wise.      
    ------------------------------------------------------------- */
         
-// long int nsend_tot=0, nrecv_tot=0; 
   DIM_LOOP(dir){
 
   /* ------------------------------------------
@@ -305,7 +312,7 @@ void Particles_BoundaryExchange(Data *d, Grid *grid)
     nrecvR = 0;
     if (procR < 0) {
       if (nsendR != 0){
-        print ("! Particles_BoundaryExchange(): nsendR != 0\n");
+        printLog ("! Particles_BoundaryExchange(): nsendR != 0\n");
         QUIT_PLUTO(1);
       }
       nsendR = 0;
@@ -313,7 +320,7 @@ void Particles_BoundaryExchange(Data *d, Grid *grid)
     }
     if (procL < 0) {
       if (nsendL != 0){
-        print ("! Particles_BoundaryExchange(): nsendL != 0\n");
+        printLog ("! Particles_BoundaryExchange(): nsendL != 0\n");
         QUIT_PLUTO(1);
       }
       nsendL = 0;
@@ -398,9 +405,9 @@ if (d_condition)print("Particles_Check = %d, %d, %d; p_nparticles = %d\n",
 /*
   int long count = Particles_CheckAll(d->PHead, 1, grid);
   if (count != p_nparticles){
-    print ("! Particles_BoundaryExchange(): %d particles out of %d are\n",
+    printLog ("! Particles_BoundaryExchange(): %d particles out of %d are\n",
            count,p_nparticles);
-    print ("! inside the active domain. \n");
+    printLog ("! inside the active domain. \n");
     QUIT_PLUTO(1);
   }
 */
@@ -440,7 +447,7 @@ void Particles_ListToArray (Data *d)
   d->pstr[count] = NULL; /* -- Set last element to NULL -- */
 
   if (count != p_nparticles){
-    print ("! Particles_ListToArray(): number of particles does not match\n");
+    printLog ("! Particles_ListToArray(): number of particles does not match\n");
     QUIT_PLUTO(1);
   }
 
@@ -475,7 +482,7 @@ void Particles_ListToArray (Data *d)
 
 
 
-  print ("Done in Particles_ListToArray\n");
+  printLog ("Done in Particles_ListToArray\n");
   exit(1);
 }
 

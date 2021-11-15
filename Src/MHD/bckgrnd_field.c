@@ -42,9 +42,8 @@ void GetBackgroundField (const State *state, int beg, int end, int where, Grid *
   print ("! Background field splitting works with CT or GLM ONLY \n");
   QUIT_PLUTO(1);
 #elif DIVB_CONTROL == CONSTRAINED_TRANSPORT
-  #if (CT_EMF_AVERAGE != ARITHMETIC) && (CT_EMF_AVERAGE != UCT_HLL)
-  print ("! Background field splitting works with ARITHMETIC or");
-  print (" UCT_HLL averages only\n");
+  #if    (CT_EMF_AVERAGE == UCT0) || (CT_EMF_AVERAGE == CT_CONTACT)
+  print ("! Background field splitting not compatible with UCT0 or CT_CONTACT\n");
   QUIT_PLUTO(1);
   #endif
 #endif

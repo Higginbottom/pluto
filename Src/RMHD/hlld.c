@@ -28,11 +28,14 @@
     - "A five wave Harte-Lax-van Leer Riemann solver for relativistic
        magnetohydrodynamics" Mignone et al, MNRAS (2009) 393,1141.
 
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    Dec 10, 2013
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    Dec 03, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
+
+#define HLLD_ITERATIONS   -1
+
 #define MAX_ITER  20
 #define COUNT_FAILURES  NO /**< When set to YES, count number of failures and 
         write the count to "hlld_fails.dat" (works in parallel as well).
@@ -142,7 +145,7 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
   }
 /*
   #if DIVB_CONTROL == EIGHT_WAVES
-   print ("! hlld Riemann solver does not work with Powell's 8-wave\n");
+   printLog ("! hlld Riemann solver does not work with Powell's 8-wave\n");
    QUIT_PLUTO(1);
   #endif
 */
@@ -151,9 +154,9 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
   GLM_Solve (sweep, beg, end, grid);
 #endif
 
-/* ----------------------------------------------------
-     compute sound speed & fluxes at zone interfaces
-   ---------------------------------------------------- */
+/* --------------------------------------------------------
+   2. Compute sound speed & fluxes at zone interfaces
+   -------------------------------------------------------- */
 
   SoundSpeed2 (stateL, beg, end, FACE_CENTER, grid);
   SoundSpeed2 (stateR, beg, end, FACE_CENTER, grid);
@@ -166,9 +169,9 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
   SL = sweep->SL; SR = sweep->SR;
   HLL_Speed (stateL, stateR, SL, SR, beg, end);
 
-/* -------------------------------------------------------
-               Begin main loop 
-   ------------------------------------------------------- */
+/* --------------------------------------------------------
+   3. Compute HLLD flux - Begin main loop 
+   -------------------------------------------------------- */
 
   for (i = beg; i <= end; i++) {
 
@@ -188,12 +191,12 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
 
     if (SL[i] >= 0.0){
 
-      for (nv = NFLX; nv--; ) sweep->flux[i][nv] = fL[nv];
+      NFLX_LOOP(nv) sweep->flux[i][nv] = fL[nv];
       sweep->press[i] = pL[i];
 
     }else if (SR[i] <= 0.0){
 
-      for (nv = NFLX; nv--; ) sweep->flux[i][nv] = fR[nv];
+      NFLX_LOOP(nv) sweep->flux[i][nv] = fR[nv];
       sweep->press[i] = pR[i];
 
     }else{
@@ -201,8 +204,7 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
   /* ---- build the HLL average sweep ---- */
 
       dS_1 = 1.0/(SR[i] - SL[i]);
-      for (nv = NFLX; nv--;  ){  /* -- we use NVAR and not NFLX  since 
-                                       ConsToPrim may need entropy  -- */
+      NFLX_LOOP(nv){ 
         Uhll[i][nv]  = SR[i]*uR[nv] - SL[i]*uL[nv]  + fL[nv] - fR[nv];
         Uhll[i][nv] *= dS_1;
 
@@ -227,7 +229,7 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
 
 #if SHOCK_FLATTENING == MULTID
       if ((sweep->flag[i] & FLAG_HLL) || (sweep->flag[i+1] & FLAG_HLL)){        
-        for (nv = NFLX; nv--; ) sweep->flux[i][nv] = Fhll[i][nv];
+        NFLX_LOOP(nv) sweep->flux[i][nv] = Fhll[i][nv];
         sweep->press[i] = (SR[i]*pL[i] - SL[i]*pR[i])*dS_1;
         continue;
       }
@@ -238,7 +240,7 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
       PaL.S = SL[i];
       PaR.S = SR[i];
       Bx    = Uhll[i][BXn];
-      for (nv = 0; nv < NFLX; nv++){
+      NFLX_LOOP(nv){
         PaL.R[nv] = SL[i]*uL[nv] - fL[nv];
         PaR.R[nv] = SR[i]*uR[nv] - fR[nv];
       }
@@ -314,7 +316,7 @@ HLLD_PrintWhatsWrong(&PaL, &PaR, phll, phll, p0Bx, p, vL, vR);
          totfail += 1.0;
         #endif
 
-        for (nv = NFLX; nv--; ) sweep->flux[i][nv] = Fhll[i][nv];
+        NFLX_LOOP(nv) sweep->flux[i][nv] = Fhll[i][nv];
         sweep->press[i]  = (SR[i]*pL[i] - SL[i]*pR[i])*dS_1;
         continue;
       }
@@ -333,7 +335,7 @@ HLLD_PrintWhatsWrong(&PaL, &PaR, phll, phll, p0Bx, p, vL, vR);
         #if RMHD_REDUCED_ENERGY == YES
          PaL.u[ENG] -= PaL.u[RHO];
         #endif
-        for (nv = NFLX; nv--;   ) {
+        NFLX_LOOP(nv) {
           sweep->flux[i][nv] = fL[nv] + SL[i]*(PaL.u[nv] - uL[nv]);
         }
         sweep->press[i] = pL[i];
@@ -344,7 +346,7 @@ HLLD_PrintWhatsWrong(&PaL, &PaR, phll, phll, p0Bx, p, vL, vR);
         #if RMHD_REDUCED_ENERGY == YES
          PaR.u[ENG] -= PaR.u[RHO];
         #endif
-        for (nv = NFLX; nv--;   ) {
+        NFLX_LOOP(nv) {
           sweep->flux[i][nv] = fR[nv] + SR[i]*(PaR.u[nv] - uR[nv]);
         }
         sweep->press[i] = pR[i];
@@ -357,7 +359,7 @@ HLLD_PrintWhatsWrong(&PaL, &PaR, phll, phll, p0Bx, p, vL, vR);
            PaL.u[ENG] -= PaL.u[RHO];
            Uc[ENG]    -= Uc[RHO];
           #endif
-          for (nv = NFLX; nv--;   ) {
+          NFLX_LOOP(nv) {
             sweep->flux[i][nv] = fL[nv] + SL[i]*(PaL.u[nv] - uL[nv]) 
                                         + PaL.Sa*(Uc[nv] - PaL.u[nv]);
           }
@@ -368,7 +370,7 @@ HLLD_PrintWhatsWrong(&PaL, &PaR, phll, phll, p0Bx, p, vL, vR);
            PaR.u[ENG] -= PaR.u[RHO];
            Uc[ENG]    -= Uc[RHO];
           #endif
-          for (nv = NFLX; nv--;   ) {
+          NFLX_LOOP(nv) {
             sweep->flux[i][nv] = fR[nv] + SR[i]*(PaR.u[nv] - uR[nv]) 
                                         + PaR.Sa*(Uc[nv] - PaR.u[nv]);
           }
@@ -377,6 +379,14 @@ HLLD_PrintWhatsWrong(&PaL, &PaR, phll, phll, p0Bx, p, vL, vR);
       }
     } /* --- end if on SL, SR -- */
   } /* --- end loop on points -- */
+
+/* --------------------------------------------------------
+   4. Define point and diffusive fluxes for CT
+   -------------------------------------------------------- */
+
+#if DIVB_CONTROL == CONSTRAINED_TRANSPORT 
+  CT_Flux (sweep, beg, end, grid);
+#endif
 
 /* --------------------------------------------------------
               initialize source term
@@ -413,18 +423,18 @@ double HLLD_Fstar (Riemann_State *PaL, Riemann_State *PaR, double p)
 
   dK  = PaR->Kx - PaL->Kx + 1.e-12;
 
-  EXPAND(Bxc = Bx*dK;                            ,
+  Bxc = Bx*dK;
 
-         Byc =   PaR->By*(PaR->Kx - PaR->vx) 
-               - PaL->By*(PaL->Kx - PaL->vx)
-               + Bx*(PaR->vy - PaL->vy);         ,
+  Byc =   PaR->By*(PaR->Kx - PaR->vx) 
+        - PaL->By*(PaL->Kx - PaL->vx)
+        + Bx*(PaR->vy - PaL->vy);
 
-         Bzc =   PaR->Bz*(PaR->Kx - PaR->vx) 
-               - PaL->Bz*(PaL->Kx - PaL->vx)
-               + Bx*(PaR->vz - PaL->vz);)
+  Bzc =   PaR->Bz*(PaR->Kx - PaR->vx) 
+        - PaL->Bz*(PaL->Kx - PaL->vx)
+        + Bx*(PaR->vz - PaL->vz);
   
-  KLBc = EXPAND(PaL->Kx*Bxc, + PaL->Ky*Byc, + PaL->Kz*Bzc);
-  KRBc = EXPAND(PaR->Kx*Bxc, + PaR->Ky*Byc, + PaR->Kz*Bzc);
+  KLBc = PaL->Kx*Bxc + PaL->Ky*Byc + PaL->Kz*Bzc;
+  KRBc = PaR->Kx*Bxc + PaR->Ky*Byc + PaR->Kz*Bzc;
 
   vxcL = PaL->Kx - dK*Bx*(1.0 - PaL->K2)/(PaL->sw*dK - KLBc);
   vxcR = PaR->Kx - dK*Bx*(1.0 - PaR->K2)/(PaR->sw*dK - KRBc);
@@ -484,36 +494,36 @@ int HLLD_GetRiemannState (Riemann_State *Pv, double p, int side)
   S = Pv->S;
   R = Pv->R;
 
-  A = R[MXn] + p*(1.0 - S*S) - S*R[ENG];             /* Eq. [26] */      
-  G = EXPAND(0.0, + R[BXt]*R[BXt], + R[BXb]*R[BXb]); /* Eq. [27] */
-  C = EXPAND(0.0, + R[BXt]*R[MXt], + R[BXb]*R[MXb]); /* Eq. [28] */
+  A = R[MXn] + p*(1.0 - S*S) - S*R[ENG];   /* Eq. [26] */      
+  G = R[BXt]*R[BXt] + R[BXb]*R[BXb];       /* Eq. [27] */
+  C = R[BXt]*R[MXt] + R[BXb]*R[MXb];       /* Eq. [28] */
   X = Bx*(A*S*Bx + C) - (A + G)*(S*p + R[ENG]);      /* Eq. [30] */
 
 /* -- compute the numerators of Eqs. [23,23,45] -- */
 
-  EXPAND(vx = ( Bx*(A*Bx + C*S) - (R[MXn] + p)*(G + A) );   , 
+  vx = ( Bx*(A*Bx + C*S) - (R[MXn] + p)*(G + A) );
 
-         vy = ( - (A + G - Bx*Bx*(1.0 - S*S))*R[MXt]     
-                  + R[BXt]*(C + Bx*(S*R[MXn] - R[ENG])) );  , 
+  vy = ( - (A + G - Bx*Bx*(1.0 - S*S))*R[MXt]     
+         + R[BXt]*(C + Bx*(S*R[MXn] - R[ENG])) ); 
  
-         vz = ( - (A + G - Bx*Bx*(1.0 - S*S))*R[MXb]          
-                 + R[BXb]*(C + Bx*(S*R[MXn] - R[ENG])) );)
+  vz = ( - (A + G - Bx*Bx*(1.0 - S*S))*R[MXb]          
+         + R[BXb]*(C + Bx*(S*R[MXn] - R[ENG])) );
 
-  scrh = EXPAND(vx*R[MXn], + vy*R[MXt], + vz*R[MXb]);
+  scrh = vx*R[MXn] + vy*R[MXt] + vz*R[MXb];
   scrh = X*R[ENG] - scrh;
   Pv->w = p + scrh/(X*S - vx);  /* Eq [31] */
 
   if (Pv->w < 0.0) return(0);  /* -- failure -- */
 
-  EXPAND(Pv->vx = vx/X;  , 
-         Pv->vy = vy/X;  ,
-         Pv->vz = vz/X;)
+  Pv->vx = vx/X;
+  Pv->vy = vy/X;
+  Pv->vz = vz/X;
          
 /*  -- original Eq. [21] -- */
 /*
-  EXPAND(Pv->Bx = Bx;                            , 
-         Pv->By = (R[BXt]*X - Bx*vy)/(X*S - vx);  ,
-         Pv->Bz = (R[BXb]*X - Bx*vz)/(X*S - vx);)
+  Pv->Bx = Bx; 
+  Pv->By = (R[BXt]*X - Bx*vy)/(X*S - vx); 
+  Pv->Bz = (R[BXb]*X - Bx*vz)/(X*S - vx);
 */
 /* --------------------------------------------------------------------- */
 /*! When computing Bx, By and Bz, we use Eq. [21] with 
@@ -535,9 +545,9 @@ int HLLD_GetRiemannState (Riemann_State *Pv, double p, int side)
 */
 /* --------------------------------------------------------------------- */
 
-  EXPAND(Pv->Bx = Bx;                                      , 
-         Pv->By = -(R[BXt]*(S*p + R[ENG]) - Bx*R[MXt])/A;  ,
-         Pv->Bz = -(R[BXb]*(S*p + R[ENG]) - Bx*R[MXb])/A;)
+  Pv->Bx = Bx;
+  Pv->By = -(R[BXt]*(S*p + R[ENG]) - Bx*R[MXt])/A;
+  Pv->Bz = -(R[BXb]*(S*p + R[ENG]) - Bx*R[MXb])/A;
   
   s  = Bx > 0.0 ? 1.0:-1.0;
   if (side < 0) s *= -1.0;
@@ -545,17 +555,17 @@ int HLLD_GetRiemannState (Riemann_State *Pv, double p, int side)
   Pv->sw = s*sqrt(Pv->w);
 
   scrh = 1.0/(S*p +  R[ENG] + Bx*Pv->sw);
-  EXPAND(Pv->Kx = scrh*(R[MXn] + p + R[BXn]*Pv->sw);  ,
-         Pv->Ky = scrh*(R[MXt]     + R[BXt]*Pv->sw);  ,
-         Pv->Kz = scrh*(R[MXb]     + R[BXb]*Pv->sw);)
+  Pv->Kx = scrh*(R[MXn] + p + R[BXn]*Pv->sw);
+  Pv->Ky = scrh*(R[MXt]     + R[BXt]*Pv->sw);
+  Pv->Kz = scrh*(R[MXb]     + R[BXb]*Pv->sw);
 
-  Pv->K2 = EXPAND(Pv->Kx*Pv->Kx, + Pv->Ky*Pv->Ky, + Pv->Kz*Pv->Kz);
+  Pv->K2 = Pv->Kx*Pv->Kx + Pv->Ky*Pv->Ky + Pv->Kz*Pv->Kz;
   return(1); /* -- success -- */
 }
 /* ********************************************************************* */
 void HLLD_GetAState (Riemann_State *Pa,  double p)
 /*!
- *  Compute sweeps aL and aR behind fast waves.
+ *  Compute states aL and aR behind fast waves.
  *
  *********************************************************************** */
 {
@@ -569,23 +579,23 @@ void HLLD_GetAState (Riemann_State *Pa,  double p)
   scrh = 1.0/(S - Pa->vx);
 
   ua[RHO] =  R[RHO]*scrh;
-  EXPAND(ua[BXn] =  Bx;                       ,
-         ua[BXt] = (R[BXt] - Bx*Pa->vy)*scrh;  ,
-         ua[BXb] = (R[BXb] - Bx*Pa->vz)*scrh;)
+  ua[BXn] =  Bx;
+  ua[BXt] = (R[BXt] - Bx*Pa->vy)*scrh;
+  ua[BXb] = (R[BXb] - Bx*Pa->vz)*scrh;
 
-  vB     = EXPAND(Pa->vx*ua[BXn], + Pa->vy*ua[BXt], + Pa->vz*ua[BXb]);
+  vB     = Pa->vx*ua[BXn] + Pa->vy*ua[BXt] + Pa->vz*ua[BXb];
   ua[ENG] = (R[ENG] + p*Pa->vx - vB*Bx)*scrh;
 
-  EXPAND(ua[MXn] = (ua[ENG] + p)*Pa->vx - vB*ua[BXn];  ,
-         ua[MXt] = (ua[ENG] + p)*Pa->vy - vB*ua[BXt];  ,
-         ua[MXb] = (ua[ENG] + p)*Pa->vz - vB*ua[BXb];)
+  ua[MXn] = (ua[ENG] + p)*Pa->vx - vB*ua[BXn];
+  ua[MXt] = (ua[ENG] + p)*Pa->vy - vB*ua[BXt];
+  ua[MXb] = (ua[ENG] + p)*Pa->vz - vB*ua[BXb];
 }
 
 /* ********************************************************************* */
 void HLLD_GetCState (Riemann_State *PaL, Riemann_State *PaR, double p,
                      double *Uc)
 /*!
- *  Compute sweeps cL and cR across contact mode.
+ *  Compute states cL and cR across contact mode.
  *
  *************************************************************** */
 {
@@ -600,42 +610,42 @@ void HLLD_GetCState (Riemann_State *PaL, Riemann_State *PaR, double p,
   HLLD_GetAState (PaR, p);
   dK = (PaR->Kx - PaL->Kx) + 1.e-12;
 
-  EXPAND(Bxc = Bx*dK;                          ,
+  Bxc = Bx*dK;
 
-         Byc =   PaR->By*(PaR->Kx - PaR->vx)    /* Eq. [45] */
-               - PaL->By*(PaL->Kx - PaL->vx)
-                    + Bx*(PaR->vy - PaL->vy);  ,
+  Byc =   PaR->By*(PaR->Kx - PaR->vx)    /* Eq. [45] */
+        - PaL->By*(PaL->Kx - PaL->vx)
+        + Bx*(PaR->vy - PaL->vy);
 
-         Bzc =   PaR->Bz*(PaR->Kx - PaR->vx)   /* Eq.[45] */
-               - PaL->Bz*(PaL->Kx - PaL->vx)
-                    + Bx*(PaR->vz - PaL->vz);)
+  Bzc =   PaR->Bz*(PaR->Kx - PaR->vx)   /* Eq.[45] */
+        - PaL->Bz*(PaL->Kx - PaL->vx)
+        + Bx*(PaR->vz - PaL->vz);
    
-  EXPAND(Bxc  = Bx;  ,
-         Byc /= dK;  ,
-         Bzc /= dK;)
+  Bxc  = Bx;
+  Byc /= dK;
+  Bzc /= dK;
 
-  EXPAND(Uc[BXn] = Bxc;  ,
-         Uc[BXt] = Byc;  ,
-         Uc[BXb] = Bzc;)
+  Uc[BXn] = Bxc;
+  Uc[BXt] = Byc;
+  Uc[BXb] = Bzc;
 
-  KLBc = EXPAND(PaL->Kx*Bxc, + PaL->Ky*Byc, + PaL->Kz*Bzc);
-  KRBc = EXPAND(PaR->Kx*Bxc, + PaR->Ky*Byc, + PaR->Kz*Bzc);
+  KLBc = PaL->Kx*Bxc + PaL->Ky*Byc + PaL->Kz*Bzc;
+  KRBc = PaR->Kx*Bxc + PaR->Ky*Byc + PaR->Kz*Bzc;
 
   scrhL = (1.0 - PaL->K2)/(PaL->sw - KLBc);
   scrhR = (1.0 - PaR->K2)/(PaR->sw - KRBc);
 
-  EXPAND(vxcL = PaL->Kx - Uc[BXn]*scrhL;     /* Eq [47] */
-         vxcR = PaR->Kx - Uc[BXn]*scrhR;  ,
+  vxcL = PaL->Kx - Uc[BXn]*scrhL;     /* Eq [47] */
+  vxcR = PaR->Kx - Uc[BXn]*scrhR;
 
-         vycL = PaL->Ky - Uc[BXt]*scrhL;  
-         vycR = PaR->Ky - Uc[BXt]*scrhR;  ,
+  vycL = PaL->Ky - Uc[BXt]*scrhL;  
+  vycR = PaR->Ky - Uc[BXt]*scrhR;
 
-         vzcL = PaL->Kz - Uc[BXb]*scrhL;
-         vzcR = PaR->Kz - Uc[BXb]*scrhR;)
+  vzcL = PaL->Kz - Uc[BXb]*scrhL;
+  vzcR = PaR->Kz - Uc[BXb]*scrhR;
 
-  EXPAND(vxc = 0.5*(vxcL + vxcR);  ,  
-         vyc = 0.5*(vycL + vycR);  ,
-         vzc = 0.5*(vzcL + vzcR);)
+  vxc = 0.5*(vxcL + vxcR);
+  vyc = 0.5*(vycL + vycR);
+  vzc = 0.5*(vzcL + vzcR);
 
   if (vxc > 0.0) {
     HLLD_GetAState (PaL, p);
@@ -649,14 +659,14 @@ void HLLD_GetCState (Riemann_State *PaL, Riemann_State *PaR, double p,
     vxa = PaR->vx;
   }
   
-  vBc = EXPAND(vxc*Uc[BXn], + vyc*Uc[BXt], + vzc*Uc[BXb]);
+  vBc = vxc*Uc[BXn] + vyc*Uc[BXt] + vzc*Uc[BXb];
 
   Uc[RHO] = ua[RHO]*(Sa - vxa)/(Sa - vxc);                      /* Eq [32] */
   Uc[ENG] = (Sa*ua[ENG] - ua[MXn] + p*vxc - vBc*Bx)/(Sa - vxc); /* Eq [33] */
 
-  EXPAND(Uc[MXn] = (Uc[ENG] + p)*vxc - vBc*Bx;       ,          /* Eq [34] */
-         Uc[MXt] = (Uc[ENG] + p)*vyc - vBc*Uc[BXt];  ,
-         Uc[MXb] = (Uc[ENG] + p)*vzc - vBc*Uc[BXb];)
+  Uc[MXn] = (Uc[ENG] + p)*vxc - vBc*Bx;               /* Eq [34] */
+  Uc[MXt] = (Uc[ENG] + p)*vyc - vBc*Uc[BXt];  
+  Uc[MXb] = (Uc[ENG] + p)*vzc - vBc*Uc[BXb];
 }
 
 /* ********************************************************************* */
@@ -669,13 +679,12 @@ double HLLD_TotalPressure (double *v)
   double vel2, Bmag2, vB, lor2;
   double pt;
 
-  Bmag2 = EXPAND(v[BX1]*v[BX1], + v[BX2]*v[BX2], + v[BX3]*v[BX3]);
-  vel2  = EXPAND(v[VX1]*v[VX1], + v[VX2]*v[VX2], + v[VX3]*v[VX3]);
-  vB    = EXPAND(v[VX1]*v[BX1], + v[VX2]*v[BX2], + v[VX3]*v[BX3]);
-  pt   = v[PRS] + 0.5*(Bmag2*(1.0 - vel2) + vB*vB);
+  Bmag2 = v[BX1]*v[BX1] + v[BX2]*v[BX2] + v[BX3]*v[BX3];
+  vel2  = v[VX1]*v[VX1] + v[VX2]*v[VX2] + v[VX3]*v[VX3];
+  vB    = v[VX1]*v[BX1] + v[VX2]*v[BX2] + v[VX3]*v[BX3];
+  pt    = v[PRS] + 0.5*(Bmag2*(1.0 - vel2) + vB*vB);
   return(pt);  
 }
-
 
 
 void HLLD_PrintStates(double *vL, double *vR)
@@ -683,35 +692,19 @@ void HLLD_PrintStates(double *vL, double *vR)
   printf ("RHO_LEFT  %18.9e\n",vL[RHO]);
   printf ("VX_LEFT   %18.9e\n",vL[VXn]);
   printf ("VY_LEFT   %18.9e\n",vL[VXt]);
-  #if COMPONENTS == 3
-   printf ("VZ_LEFT   %18.9e \n" ,vL[VXb]);
-  #else
-   printf ("VZ_LEFT   %18.9e \n" ,0.0);
-  #endif
+  printf ("VZ_LEFT   %18.9e\n",vL[VXb]);
   printf ("BY_LEFT   %18.9e\n",vL[BXt]);
-  #if COMPONENTS == 3
-   printf ("BZ_LEFT   %18.9e \n" ,vL[BXb]);
-  #else
-   printf ("BZ_LEFT   %18.9e \n" ,0.0);
-  #endif
-  printf ("PR_LEFT   %18.9e \n" ,vL[PRS]);
+  printf ("BZ_LEFT   %18.9e\n",vL[BXb]);
+  printf ("PR_LEFT   %18.9e\n",vL[PRS]);
 
   printf ("RHO_RIGHT  %18.9e\n",vR[RHO]);
   printf ("VX_RIGHT   %18.9e\n",vR[VXn]);
   printf ("VY_RIGHT   %18.9e\n",vR[VXt]);
-  #if COMPONENTS == 3
-   printf ("VZ_RIGHT   %18.9e \n", vR[VXb]);
-  #else
-   printf ("VZ_RIGHT   %18.9e \n", 0.0);
-  #endif
-  printf ("BY_RIGHT   %18.9e\n", vR[BXt]);
-  #if COMPONENTS == 3
-   printf ("BZ_RIGHT   %18.9e\n", vR[BXb]);
-  #else
-   printf ("BZ_RIGHT   %18.9e\n",0.0);
-  #endif
-  printf ("PR_RIGHT   %18.9e \n",vR[PRS]);
-  printf ("BX_CONST   %18.9e \n",vR[BXn]);
+  printf ("VZ_RIGHT   %18.9e\n",vR[VXb]);
+  printf ("BY_RIGHT   %18.9e\n",vR[BXt]);
+  printf ("BZ_RIGHT   %18.9e\n",vR[BXb]);
+  printf ("PR_RIGHT   %18.9e\n",vR[PRS]);
+  printf ("BX_CONST   %18.9e\n",vR[BXn]);
 }
 
 

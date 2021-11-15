@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -80,12 +80,14 @@ Functions</h2></td></tr>
 <tr class="separator:a5ab2b65a1d97d02f7f0f2c432df8b5c1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9f2d337d27ebfd255eae384f3be3d4a2"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ct__emf__average_8c.html#a9f2d337d27ebfd255eae384f3be3d4a2">CT_EMF_IntegrateToCorner</a> (const <a class="el" href="struct_data.html">Data</a> *d, const <a class="el" href="struct_e_m_f.html">EMF</a> *emf, <a class="el" href="struct_grid.html">Grid</a> *grid)</td></tr>
 <tr class="separator:a9f2d337d27ebfd255eae384f3be3d4a2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3ed74a46fcae7f79dc749c46cd705ea8"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ct__emf__average_8c.html#a3ed74a46fcae7f79dc749c46cd705ea8">CT_EMF_HLL_Solver</a> (const <a class="el" href="struct_data.html">Data</a> *d, const <a class="el" href="struct_e_m_f.html">EMF</a> *emf, <a class="el" href="struct_grid.html">Grid</a> *grid)</td></tr>
-<tr class="separator:a3ed74a46fcae7f79dc749c46cd705ea8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab797a047d2018a5af084359ae3abecd8"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ct__emf__average_8c.html#ab797a047d2018a5af084359ae3abecd8">CT_EMF_Riemann2D</a> (const <a class="el" href="struct_data.html">Data</a> *d, const <a class="el" href="struct_e_m_f.html">EMF</a> *emf, <a class="el" href="struct_grid.html">Grid</a> *grid)</td></tr>
+<tr class="separator:ab797a047d2018a5af084359ae3abecd8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a51f34accc90bd4bde729e39c56c8cddb"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ct__emf__average_8c.html#a51f34accc90bd4bde729e39c56c8cddb">CT_EMF_Flux</a> (const <a class="el" href="struct_data.html">Data</a> *d, const <a class="el" href="struct_e_m_f.html">EMF</a> *emf, <a class="el" href="struct_grid.html">Grid</a> *grid)</td></tr>
+<tr class="separator:a51f34accc90bd4bde729e39c56c8cddb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><dl class="section author"><dt>Author</dt><dd>A. Mignone </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>March 1, 2017 </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>Dec 09, 2020 </dd></dl>
 </div><h2 class="groupheader">Function Documentation</h2>
 <a id="a5ab2b65a1d97d02f7f0f2c432df8b5c1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a5ab2b65a1d97d02f7f0f2c432df8b5c1">&#9670;&nbsp;</a></span>CT_EMF_ArithmeticAverage()</h2>
@@ -130,14 +132,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a3ed74a46fcae7f79dc749c46cd705ea8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3ed74a46fcae7f79dc749c46cd705ea8">&#9670;&nbsp;</a></span>CT_EMF_HLL_Solver()</h2>
+<a id="a51f34accc90bd4bde729e39c56c8cddb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a51f34accc90bd4bde729e39c56c8cddb">&#9670;&nbsp;</a></span>CT_EMF_Flux()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void CT_EMF_HLL_Solver </td>
+          <td class="memname">void CT_EMF_Flux </td>
           <td>(</td>
           <td class="paramtype">const <a class="el" href="struct_data.html">Data</a> *&#160;</td>
           <td class="paramname"><em>d</em>, </td>
@@ -161,22 +163,7 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Solve 2-D Riemann problem using the 2D HLL Riemann flux formula of Londrillo &amp; Del Zanna (2004), JCP, eq. 56. Here N, W, E, S refer to the following configuration: </p><pre class="fragment">*                    |
-*                    N
-*                 NW | NE
-*                    | 
-*               --W--+--E--
-*                    | 
-*                 SW | SE
-*                    S
-*                    |
-* </pre><dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">d</td><td>pointer to PLUTO <a class="el" href="struct_data.html">Data</a> structure </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">grid</td><td>pointer to <a class="el" href="struct_grid.html">Grid</a> structure; </td></tr>
-  </table>
-  </dd>
-</dl>
+<p>Reconstruct electric field at faces to the edges. The electric field interpolated from the 1D Riemann solver and defined as E = E(pnt) + 2*E(diff), that is, the sum of the smooth flux term plust <em>twice</em> the diffusive part. </p>
 
 </div>
 </div>
@@ -228,10 +215,47 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="ab797a047d2018a5af084359ae3abecd8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab797a047d2018a5af084359ae3abecd8">&#9670;&nbsp;</a></span>CT_EMF_Riemann2D()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void CT_EMF_Riemann2D </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="struct_data.html">Data</a> *&#160;</td>
+          <td class="paramname"><em>d</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="struct_e_m_f.html">EMF</a> *&#160;</td>
+          <td class="paramname"><em>emf</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="struct_grid.html">Grid</a> *&#160;</td>
+          <td class="paramname"><em>grid</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Reconstruct the electric field to zone edge using the general UCT formalism,</p>
+<p>E = (aL*vL[i]*bL[i] + aR*vR[i]*bR[i]) +- (dR*bR - dL*bL)</p>
+<p>where the a and d coefficients are retrieved from the 1D Riemann solver at zone edges. This function is used by UCT_HLL, UCT_HLLD and UCT_GFORCE </p>
+
+</div>
+</div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:50 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:57 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

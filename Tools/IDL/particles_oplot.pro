@@ -9,8 +9,9 @@
 ;
 ; SYNTAX:
 ;
-;   PARTICLES_OPLOT[, cvalue_max = cvalue_max][, cvalue_min = cvalue_min]
-;                  [, field=field][, symsize=symsize]
+;   PARTICLES_OPLOT, particles,
+;                   [, cvalue_max = cvalue_max][, cvalue_min = cvalue_min]
+;                   [, field=field][, symsize=symsize]
 ;
 ;
 ; ARGUMENTS:
@@ -47,7 +48,7 @@
 ;                  to be plotted. 
 ;		   For 2D plots, default is x1=x1,x2=x2. Need not be specified.
 ;		   For 3D runs, x1,x2 should be specified if x3 coordinate
-;		   need to be plotted.
+;		   needs to be plotted.
 ;		   
 ;
 ; EXAMPLES:

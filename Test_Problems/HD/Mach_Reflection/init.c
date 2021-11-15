@@ -37,8 +37,8 @@
   \image html dmr_rho.gif "Density contours for the double Mach reflection test" 
   \image html dmr_prs.gif "Pressure contours for the double Mach reflection test" 
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   May 23, 2014
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Feb 25, 2019
 
   \b References
     - "The Numerical Simulation of Two-Dimensional Fluid Flow with Strong Shocks"\n
@@ -124,9 +124,10 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   if (side == X1_BEG){
 
     X1_BEG_LOOP(k,j,i) {  
-      d->Vc[RHO][k][j][i] = 8.0;
+      d->Vc[RHO][k][j][i] =   8.0;
       d->Vc[VX1][k][j][i] =   8.25*sin(alpha);
       d->Vc[VX2][k][j][i] = - 8.25*cos(alpha);
+      d->Vc[VX3][k][j][i] =   0.0;
       d->Vc[PRS][k][j][i] = 116.5;
     }
 
@@ -138,11 +139,13 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
         d->Vc[RHO][k][j][i] = 8.0;
         d->Vc[VX1][k][j][i] =   8.25*sin(alpha);
         d->Vc[VX2][k][j][i] = - 8.25*cos(alpha);
+        d->Vc[VX3][k][j][i] =   0.0;
         d->Vc[PRS][k][j][i] = 116.5;
       }else{                                   /* reflective boundary */
         d->Vc[RHO][k][j][i] =   d->Vc[RHO][k][2*JBEG - j - 1][i];
         d->Vc[VX1][k][j][i] =   d->Vc[VX1][k][2*JBEG - j - 1][i];
         d->Vc[VX2][k][j][i] = - d->Vc[VX2][k][2*JBEG - j - 1][i];
+        d->Vc[VX3][k][j][i] =   0.0;
         d->Vc[PRS][k][j][i] =   d->Vc[PRS][k][2*JBEG - j - 1][i];
       }                    
     }
@@ -154,14 +157,16 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
       x1 = grid->x[IDIR][i];
       xs = 10.0*g_time/sin(alpha) + 1.0/6.0 + 1.0/tan(alpha);
       if (x1 < xs){
-        d->Vc[RHO][k][j][i] = 8.0;
+        d->Vc[RHO][k][j][i] =   8.0;
         d->Vc[VX1][k][j][i] =   8.25*sin(alpha);
         d->Vc[VX2][k][j][i] = - 8.25*cos(alpha);
+        d->Vc[VX3][k][j][i] =   0.0;
         d->Vc[PRS][k][j][i] = 116.5;
       }else{                                   /* reflective boundary */
         d->Vc[RHO][k][j][i] = 1.4;
-        d->Vc[VX1][k][j][i] = 0.;
-        d->Vc[VX2][k][j][i] = 0.;
+        d->Vc[VX1][k][j][i] = 0.0;
+        d->Vc[VX2][k][j][i] = 0.0;
+        d->Vc[VX3][k][j][i] = 0.0;
         d->Vc[PRS][k][j][i] = 1.;
       }                    
     }

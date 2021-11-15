@@ -117,7 +117,7 @@ int AL_Decompose(int sz_ptr, int *procs, int mode)
   }
 
 #ifdef DEBUG
-  if(sz_ptr==4){  /* -- print SZ_stagx -- */
+  if(sz_ptr==4){  /* -- printLog SZ_stagx -- */
      if(myrank==0) printf("MPI_Cart_create: %d x %d x %d, ndim %d, nproc %d\n",ldims[0],ldims[1],ldims[2],ndim,nproc);
   }
 #endif
@@ -149,11 +149,11 @@ int AL_Decompose(int sz_ptr, int *procs, int mode)
 
     for(nd=0;nd<ndim;nd++){
       for(i=0;i<ndim;i++){ 
-	if( i==nd ) { 
-	  rem_dims[i] = AL_TRUE;
-	} else {
-	  rem_dims[i] = AL_FALSE;
-	}
+        if( i==nd ) { 
+          rem_dims[i] = AL_TRUE;
+        } else {
+          rem_dims[i] = AL_FALSE;
+        }
       }
       MPI_Cart_sub(cart_comm, rem_dims, &(s->oned_comm[nd]));
     }
@@ -335,13 +335,15 @@ int AL_Decompose(int sz_ptr, int *procs, int mode)
       starts[nd] = s->beg[nd] - s->bg[nd];
     }
 #ifdef DEBUG
-  if(sz_ptr==4){  /* print SZ_stagx */
+  if(sz_ptr==4){  /* printLog SZ_stagx */
 printf("%d, gsubarr: gdims[0:2] %d,%d,%d, ldims[0:2] %d,%d,%d, starts[0:2] %d,%d,%d\n", s->rank, gdims[0], gdims[1], gdims[2], ldims[0], ldims[1], ldims[2], starts[0], starts[1], starts[2]);
 }
 #endif
 
-    AL_Type_create_subarray(ndim, gdims, ldims, starts,
-                            AL_ORDER_FORTRAN, s->type, &igsubarr); 
+//    AL_Type_create_subarray(ndim, gdims, ldims, starts,
+//                            AL_ORDER_FORTRAN, s->type, &igsubarr); 
+MPI_Type_create_subarray(ndim, gdims, ldims, starts,
+                         MPI_ORDER_FORTRAN, s->type, &igsubarr); 
     MPI_Type_commit(&igsubarr);
     s->gsubarr = igsubarr;
 
@@ -402,13 +404,15 @@ printf("%d, gsubarr: gdims[0:2] %d,%d,%d, ldims[0:2] %d,%d,%d, starts[0:2] %d,%d
       }
 
 #ifdef DEBUG
-  if(sz_ptr==4){  /* print SZ_stagx */
+  if(sz_ptr==4){  /* printLog SZ_stagx */
     printf("%d, gsubarr_stag[%d]: gdims[0:2] %d,%d,%d, ldims[0:2] %d,%d,%d, starts[0:2] %d,%d,%d \n", s->rank, istag, gdims[0], gdims[1], gdims[2], ldims[0], ldims[1], ldims[2], starts[0], starts[1], starts[2]);
 }
 #endif
 
-      AL_Type_create_subarray(ndim, gdims, ldims, starts,
-                              AL_ORDER_FORTRAN, s->type, igsubarr_stag + istag); 
+//      AL_Type_create_subarray(ndim, gdims, ldims, starts,
+//                              AL_ORDER_FORTRAN, s->type, igsubarr_stag + istag); 
+MPI_Type_create_subarray(ndim, gdims, ldims, starts,
+                         MPI_ORDER_FORTRAN, s->type, igsubarr_stag + istag); 
       MPI_Type_commit(igsubarr_stag + istag);
       s->gsubarr_stag[istag] = igsubarr_stag[istag];
     }
@@ -423,15 +427,16 @@ printf("%d, gsubarr: gdims[0:2] %d,%d,%d, ldims[0:2] %d,%d,%d, starts[0:2] %d,%d
       starts[nd] = s->lbeg[nd];
     }
 #ifdef DEBUG
-  if(sz_ptr==4){  /* print SZ_stagx */
+  if(sz_ptr==4){  /* printLog SZ_stagx */
 printf("%d, lsubarr: gdims[0:2] %d,%d,%d, ldims[0:2] %d,%d,%d, starts[0:2] %d,%d,%d \n", s->rank, gdims[0], gdims[1], gdims[2], ldims[0], ldims[1], ldims[2], starts[0], starts[1], starts[2]);
 }
 #endif
-    AL_Type_create_subarray(ndim, gdims, ldims, starts,
-			     AL_ORDER_FORTRAN, s->type, &ilsubarr);
+//    AL_Type_create_subarray(ndim, gdims, ldims, starts,
+//                             AL_ORDER_FORTRAN, s->type, &ilsubarr);
+MPI_Type_create_subarray(ndim, gdims, ldims, starts,
+                         MPI_ORDER_FORTRAN, s->type, &ilsubarr);
     MPI_Type_commit(&ilsubarr);
     s->lsubarr = ilsubarr;
-
 
     /* -----------------------------------------------------
         Create the local staggered subarrays
@@ -444,6 +449,7 @@ printf("%d, lsubarr: gdims[0:2] %d,%d,%d, ldims[0:2] %d,%d,%d, starts[0:2] %d,%d
         ldims[nd]  = s->larrdim[nd];
         starts[nd] = s->lbeg[nd];
       }
+
       /* --------------------------------------------------------------- */
       /*! <b> Bugs fixed on Aug 26, 2012: </b>
           The following if has been modified: 
@@ -483,12 +489,14 @@ printf("%d, lsubarr: gdims[0:2] %d,%d,%d, ldims[0:2] %d,%d,%d, starts[0:2] %d,%d
 
 
 #ifdef DEBUG
-  if(sz_ptr==4){  /* print SZ_stagx */
+  if(sz_ptr==4){  /* printLog SZ_stagx */
 printf("%d, lsubarr_stag[%d]: gdims[0:2] %d,%d,%d, ldims[0:2] %d,%d,%d, starts[0:2] %d,%d,%d \n", s->rank, istag, gdims[0], gdims[1], gdims[2], ldims[0], ldims[1], ldims[2], starts[0], starts[1], starts[2]);
 }
 #endif
-      AL_Type_create_subarray(ndim, gdims, ldims, starts,
-                              AL_ORDER_FORTRAN, s->type, ilsubarr_stag + istag); 
+//      AL_Type_create_subarray(ndim, gdims, ldims, starts,
+//                              AL_ORDER_FORTRAN, s->type, ilsubarr_stag + istag); 
+MPI_Type_create_subarray(ndim, gdims, ldims, starts,
+                         MPI_ORDER_FORTRAN, s->type, ilsubarr_stag + istag); 
       MPI_Type_commit(ilsubarr_stag + istag);
       s->lsubarr_stag[istag] = ilsubarr_stag[istag];
     }
@@ -502,7 +510,7 @@ printf("%d, lsubarr_stag[%d]: gdims[0:2] %d,%d,%d, ldims[0:2] %d,%d,%d, starts[0
 
   /* DIAGNOSTICS */
 #ifdef DEBUG
-  if(sz_ptr==4){  /* print SZ_stagx */
+  if(sz_ptr==4){  /* printLog SZ_stagx */
   printf("AL_Decompose: Decomposition successful\n");
   for(nd=0;nd<ndim;nd++){
     printf("AL_Decompose: %d %d\n", s->beg[nd], s->end[nd]);
@@ -543,7 +551,7 @@ int AL_Find_decomp_(int sz_ptr, int mode, int *procs)
   ntdim = s->ndim;
 
 #ifdef DEBUG
-  if(sz_ptr==4){  /* print SZ_stagx */
+  if(sz_ptr==4){  /* printLog SZ_stagx */
     if(myid==0) printf("AL_Find_decomp_: Using Mode - %d\n",mode);
 }
 #endif
@@ -554,16 +562,16 @@ int AL_Find_decomp_(int sz_ptr, int mode, int *procs)
   */
   if( mode == AL_USER_DECOMP ){
 #ifdef DEBUG
-  if(sz_ptr==4){  /* print SZ_stagx */
+  if(sz_ptr==4){  /* printLog SZ_stagx */
     if(myid==0) printf("AL_Find_decomp_: Using User Decomp Mode - %d\n",ntdim);
 }
 #endif
     for(nd=0;nd<ntdim;nd++){
       if( ldims[nd] != 0 ){
-	s->lsize[nd] = ldims[nd];
+        s->lsize[nd] = ldims[nd];
       } else {
-	s->lsize[nd] = 1; /* This is a safety patch, a more
-                             sophisticated tratement will be needed */
+        s->lsize[nd] = 1; /* This is a safety patch, a more
+                            sophisticated tratement will be needed */
       }
     }
     return 0;
@@ -580,9 +588,9 @@ int AL_Find_decomp_(int sz_ptr, int mode, int *procs)
       ipdims[npdim] = nd;
       /* Correct for the overlapping points in a staggered mesh */
       if( s->isstaggered[nd] == AL_TRUE ) {
-	gdims[npdim] = s->arrdim[nd]-AL_STAGGERED_OVERLAP;
+         gdims[npdim] = s->arrdim[nd]-AL_STAGGERED_OVERLAP;
       } else {
-	gdims[npdim] = s->arrdim[nd];
+         gdims[npdim] = s->arrdim[nd];
       }
       npdim = npdim+1;
     } else {
@@ -604,12 +612,12 @@ int AL_Find_decomp_(int sz_ptr, int mode, int *procs)
     isp = 0;
     if(s->ndim <4){
       if( AL_POWEROF2(s->size) ){
-	for(nd=0;nd<s->ndim;nd++){
-	  if(AL_POWEROF2(s->arrdim[nd])) isp++;
-	}
+        for(nd=0;nd<s->ndim;nd++){
+          if(AL_POWEROF2(s->arrdim[nd])) isp++;
+        }
       }
       if(isp==s->ndim) {
-	mode = AL_AUTO_DECOMP;
+        mode = AL_AUTO_DECOMP;
 #ifdef DEBUG
       if(myid==0) printf("Using mode AL_AUTO_DECOMP\n");
 #endif
@@ -677,7 +685,6 @@ int AL_Find_decomp_(int sz_ptr, int mode, int *procs)
   return 0;
 }
 
-
 /* ********************************************************************* */
 int AL_Global_to_local_(int sz_ptr)
 /*!
@@ -732,13 +739,13 @@ int AL_Global_to_local_(int sz_ptr)
     s->larrdim_gp[i] = (end-start+s->bg[i]+s->eg[i]+1);
     if( s->isstaggered[i] == AL_TRUE ){ s->larrdim_gp[i] = (end-start+1+s->bg[i]+s->eg[i]+1);}
 #ifdef DEBUG
-  if(sz_ptr==4){  /* print SZ_stagx */
-    printf("%d AL_Global_to_local, dim %d : s->beg %d, s->end %d, lbeg %d, lend %d, bg %d, larrdim_gp %d\n",s->rank,i, s->beg[i],s->end[i], s->lbeg[i], s->lend[i], s->bg[i], s->larrdim_gp[i]);
+if(sz_ptr==4){  /* printLog SZ_stagx */
+  printf("%d AL_Global_to_local, dim %d : s->beg %d, s->end %d, lbeg %d, lend %d, bg %d, larrdim_gp %d\n",s->rank,i, s->beg[i],s->end[i], s->lbeg[i], s->lend[i], s->bg[i], s->larrdim_gp[i]);
 }
 #endif
     s->larrdim[i] = end-start+1;
     if( s->isstaggered[i] == AL_TRUE ){ s->larrdim[i] = (end-start+1+1);}
-	      
+              
   }
   
   /* 
@@ -756,7 +763,7 @@ int AL_Global_to_local_(int sz_ptr)
       s->stride[i] *= s->larrdim_gp[j];  
     }
 #ifdef DEBUG
-  if(sz_ptr==4){  /* print solo SZ_stagx */
+  if(sz_ptr==4){  /* printLog solo SZ_stagx */
     printf("%d Strides: %d %d\n",s->rank,i,s->stride[i]);
 }
 #endif

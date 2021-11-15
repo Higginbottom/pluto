@@ -1,7 +1,7 @@
 /* ///////////////////////////////////////////////////////////////////// */
 /*! 
   \file  
-  \brief Update CR particles.
+  \brief Update CR particles (with feedback) using Boris scheme.
  
   Boris pusher for updating Cosmic ray particles.
   \code
@@ -20,7 +20,7 @@
   \endcode
  
   Time step restriction is computed by requiring that no particle
-  travels more than \c Nmax = \c CR_NCELLS_EPS zones and that
+  travels more than \c Nmax = \c PARTICLES_CR_NCELL_MAX zones and that
   the Larmor scale is resolved with more than 1 cycle:
   \f[
    \left\{
@@ -41,21 +41,21 @@
                                       {\vec{v}\cdot\vec{v}}                                
   \f]
   
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \authors A. Mignone (mignone@to.infn.it)\n
 
   \b References
     - "MAGNETOHYDRODYNAMIC-PARTICLE-IN-CELL METHOD FOR COUPLING COSMIC RAYS 
        WITH A THERMAL PLASMA: APPLICATION TO NON-RELATIVISTIC SHOCKS"\n
        Bai et al., ApJ (2015) 809, 55
 
-  \date   April 10, 2018
+  \date   May 09, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
-static void Particles_CR_Predictor(Data *, timeStep *, double, Grid *);
+static void Particles_CR_GetElectricField(Data *, Data_Arr, Data_Arr, Grid *);
 
-#if (PARTICLES_TYPE == COSMIC_RAYS) && (PARTICLES_TEST == NO)
+#if PARTICLES_CR_GC == NO
 /* ********************************************************************* */
 void Particles_CR_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 /*!
@@ -70,30 +70,49 @@ void Particles_CR_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
   int    i,j,k, dir;
   int    kcycle;
   long int dsize = NX1_TOT*NX2_TOT*NX3_TOT;
-  double C = 1.e8;  /* Used only when PARTICLES_DEPOSIT == INTEGER */
   
   double pcoord_old[3], pspeed_old[3];
-  double vg[3], B[3], E[3];
+  double vg[3], B[3], E[3], vfluid[256];
   
   double um[3], up[3], u1[3], u[3], b[3], u_old[3];
   double gamma, gamma_old, Bperp;
   double b2, Bmag2, u2, u2_old, v2; /* Squares of vector */
   double qd[4], scrh, omL;
-  double dt0, dt_half, h_half, inv_dt, qg;
+  double dt0, dt_half, h_half, inv_dt, omegaL, qg;
   double inv_dtL=0.0, inv_dts=0.0;
   double wF, wM;
   const double c2 = PARTICLES_CR_C*PARTICLES_CR_C;
-  static double ***w, ****dM, ****dM_tot, ****Fcr0;
-  static double ****emf0, ****emf_res;
+  static double ****dM_tot;  /* Cumulative momentum-energy deposition */
+  static double ****dM;      /* Single sub-cycle mom-en varation      */
+  static double ****Fcr0;    /* CR Force at t^n (used for extrapol. with RK2) */
+  static double ****emf0;    /* Convective electric field (-v X B) */
+  static double ****emf_res; /* Resistive electric field */
+  static double ***w;
+  #if PARTICLES_DEPOSIT == INTEGER
+  double Cnorm[4];  /* Used only when PARTICLES_DEPOSIT == INTEGER */
+  double Fcr_max[4] = {0.0};
+  #endif
 
   particleNode *CurNode;
   Particle *p;
 
   DEBUG_FUNC_BEG ("CR_Update");
 
+  if (g_time < Dts->particles_tstart) return;
+
 #if SHOW_TIMING
   clock_t clock_beg = clock(), clock0;
 #endif
+
+  #if PARTICLES_CR_PREDICTOR > 2
+    #error Predictor not allowed
+  #endif
+  #if BODY_FORCE != NO
+    #error BODY_FORCE not permitted in Paticles_CR_Update()
+  #endif
+  #if GEOMETRY != CARTESIAN
+    #error CR Particles work in CARTESIAN geometry only
+  #endif
 
   Boundary (data, ALL_DIR, grid);
 
@@ -102,137 +121,95 @@ void Particles_CR_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
    -------------------------------------------------------- */
   
   if (w == NULL){
-    w      = ArrayBox (-1, 1, -1, 1, -1, 1);
+    w      = ARRAY_BOX (-1, 1, -1, 1, -1, 1, double);
     emf0   = ARRAY_4D(3, NX3_TOT, NX2_TOT, NX1_TOT, double);
-    #if RESISTIVITY != NO
+
+    #if   ((PHYSICS == MHD) && (RESISTIVITY != NO)) \
+       ||  (PHYSICS == ResRMHD)
     emf_res = ARRAY_4D(3, NX3_TOT, NX2_TOT, NX1_TOT, double);
     #endif
+  }
+
+#if PARTICLES_CR_FEEDBACK == YES
+  if (dM_tot == NULL){
     dM_tot = ARRAY_4D(4, NX3_TOT, NX2_TOT, NX1_TOT, double);
     dM     = ARRAY_4D(4, NX3_TOT, NX2_TOT, NX1_TOT, double);
     Fcr0   = ARRAY_4D(4, NX3_TOT, NX2_TOT, NX1_TOT, double);
   }
 
-#if PARTICLES_CR_FEEDBACK == YES
   for (dir = 0; dir < 4; dir++) {
     TOT_LOOP(k,j,i) {
       dM_tot[dir][k][j][i] = 0.0;
-      #if TIME_STEPPING == RK2                   /* Save Fcr at t^n */
+      #if TIME_STEPPING == RK2                      /* Save Fcr at t^n */
       Fcr0[dir][k][j][i] = data->Fcr[dir][k][j][i]; /* for time-interpolation */
-      #endif                                     
+      #endif
+
+    /* -- Take the maximum in absolute value of Fcr -- */ 
+      #if PARTICLES_DEPOSIT == INTEGER
+      Fcr_max[dir] = MAX(Fcr_max[dir], fabs(data->Fcr[dir][k][j][i]));
+      #endif
     }
   }
+  #if PARTICLES_DEPOSIT == INTEGER
+  #ifdef PARALLEL
+  double Fcr_max_glob[4];
+  MPI_Allreduce (Fcr_max, Fcr_max_glob, 4, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+  for (dir = 0; dir < 4; dir++) Fcr_max[dir] = Fcr_max_glob[dir];
+  #endif
+  for (dir = 0; dir < 4; dir++) Cnorm[dir] = 1.e12/(Fcr_max[dir]+1.0);
+  #endif
 #endif
 
 /* --------------------------------------------------------
-   1. Initialize sub-cycling
+   1. Compute convective electric field, emf0 = -v x B 
    -------------------------------------------------------- */
 
-  inv_dt  = 1.e-18;
+  Particles_CR_GetElectricField(data, emf0, emf_res, grid);
+
+/* --------------------------------------------------------
+   2. Initialize sub-cycling
+   -------------------------------------------------------- */
+
+  #if PARTICLES_CR_NSUB > 0
+  Dts->Nsub_particles = MIN(ceil(dt*Dts->invDt_particles), PARTICLES_CR_NSUB);
+  #if PARTICLES_CR_PREDICTOR == 2
+  if (Dts->Nsub_particles > 2){
+    Dts->Nsub_particles += (Dts->Nsub_particles%2 == 1);
+  }
+  #endif
+  #elif PARTICLES_CR_NSUB < 0                  
+  Dts->Nsub_particles = abs(PARTICLES_CR_NSUB);  /* Fix Nsub no matter what */
+  #else
+  #error ! NextTimeStep(): PARTICLES_CR_NSUB cannot be = 0
+  #endif
+
+  inv_dt  = 1.e-18;  /* Used to compute inverse time step due to */
+                     /* gyration + zone crossing                 */
+  omegaL  = 1.e-18;  /* Used to compute inverse time step due to */
+                     /* gyration only                            */
   dt0     = dt;  /* Save initial dt */
   dt      = dt/(double)Dts->Nsub_particles;
   dt_half = 0.5*dt;
   h_half  = 0.5*dt*PARTICLES_CR_E_MC; 
 
 /* --------------------------------------------------------
-   2a. Compute convective electric field, cE0 = -v x B 
-   -------------------------------------------------------- */
-
-  TOT_LOOP(k,j,i){
-    vg[IDIR] = data->Vc[VX1][k][j][i]; B[IDIR] = data->Vc[BX1][k][j][i];
-    vg[JDIR] = data->Vc[VX2][k][j][i]; B[JDIR] = data->Vc[BX2][k][j][i];
-    vg[KDIR] = data->Vc[VX3][k][j][i]; B[KDIR] = data->Vc[BX3][k][j][i];
-  
-    emf0[IDIR][k][j][i] = -(vg[JDIR]*B[KDIR] - vg[KDIR]*B[JDIR]);
-    emf0[JDIR][k][j][i] = -(vg[KDIR]*B[IDIR] - vg[IDIR]*B[KDIR]);
-    emf0[KDIR][k][j][i] = -(vg[IDIR]*B[JDIR] - vg[JDIR]*B[IDIR]);
-  }
-
-#if PARTICLES_CR_FEEDBACK == NO
-  for (dir = 0; dir < 3; dir++) TOT_LOOP(k,j,i){       
-     data->Ecr[dir][k][j][i] = emf0[dir][k][j][i];
-  }
-  
-  /* -----------------------------------------------------
-      Compute resistive electric field at cell centers
-     ----------------------------------------------------- */
-  
-  #if RESISTIVITY != NO
-  for (k = KOFFSET; k < NX3_TOT-KOFFSET; k++){
-  for (j = JOFFSET; j < NX2_TOT-JOFFSET; j++){
-  for (i = IOFFSET; i < NX1_TOT-IOFFSET; i++){
-    int nv;
-    double Vfluid[NVAR], J[3], eta[3];
-    double *x1 = grid->x[IDIR], *dx1 = grid->dx[IDIR];
-    double *x2 = grid->x[JDIR], *dx2 = grid->dx[JDIR];
-    double *x3 = grid->x[KDIR], *dx3 = grid->dx[KDIR];
-    
-    #if PHYSICS == MHD
-    J[IDIR] =  0.5*(data->Vc[BX3][k][j+1][i] - data->Vc[BX3][k][j-1][i])/dx2[j];
-    J[JDIR] = -0.5*(data->Vc[BX3][k][j][i+1] - data->Vc[BX3][k][j][i-1])/dx1[i];
-    J[KDIR] =  0.5*(data->Vc[BX2][k][j][i+1] - data->Vc[BX2][k][j][i-1])/dx1[i]
-              -0.5*(data->Vc[BX1][k][j+1][i] - data->Vc[BX1][k][j-1][i])/dx2[j];
-    
-    NVAR_LOOP(nv) Vfluid[nv] = data->Vc[nv][k][j][i];
-    
-    /* -- Compute current and resistivity at cell center -- */
-  
-    Resistive_eta (Vfluid, x1[i], x2[j], x3[k], J, eta);
-    emf_res[IDIR][k][j][i] = eta[IDIR]*J[IDIR];
-    emf_res[JDIR][k][j][i] = eta[JDIR]*J[JDIR];
-    emf_res[KDIR][k][j][i] = eta[KDIR]*J[KDIR];
-    #elif PHYSICS == RMHD
-    emf_res[IDIR][k][j][i] = data->Vc[EX1][k][j][i] - emf0[IDIR][k][j][i];
-    emf_res[JDIR][k][j][i] = data->Vc[EX2][k][j][i] - emf0[JDIR][k][j][i];
-    emf_res[KDIR][k][j][i] = data->Vc[EX3][k][j][i] - emf0[KDIR][k][j][i];
-    #endif
-    
-  }}}
-  
-  /* ------------------------------------------------------
-      In parallel, we need to fill ghost zone values for
-      the resistive electric field since it is computed
-      using central differences
-     ------------------------------------------------------ */
-  
-  #ifdef PARALLEL
-  MPI_Barrier (MPI_COMM_WORLD);
-  AL_Exchange ((char *)emf_res[IDIR][0][0], SZ);
-  AL_Exchange ((char *)emf_res[JDIR][0][0], SZ);
-  AL_Exchange ((char *)emf_res[KDIR][0][0], SZ);
-  #endif
-  #endif /* RESISTIVITY != NO */
-  
-#else
-
-  #if PARTICLES_CR_PREDICTOR == NO
-
-  /* -- Recompute Ecr since vXB has been evolved to t^{n+1/2} -- */
-
-  TOT_LOOP(k,j,i){       
-    qg = PARTICLES_CR_E_MC_GAS*data->Vc[RHO][k][j][i];
-    for (dir = 0; dir < 3; dir++){
-      data->Ecr[dir][k][j][i] = emf0[dir][k][j][i] - data->Fcr[dir][k][j][i]/qg;
-    }
-  }
-  #endif
-#endif
-
-/* --------------------------------------------------------
    3. Start sub-cycling
    -------------------------------------------------------- */
 
-  for (kcycle = 0; kcycle < Dts->Nsub_particles; kcycle++){
+  Dts->invDt_particles = 1.e-38;
+  Dts->omega_particles = 1.e-38;
 
-    int correct_emf = 0;
+  for (kcycle = 0; kcycle < Dts->Nsub_particles; kcycle++){
 
   /* --------------------------------------------
      3a. Predictor step 
      -------------------------------------------- */
-
+  
     #if PARTICLES_CR_FEEDBACK == YES
+    int correct_emf = 0;
     #if PARTICLES_CR_PREDICTOR == 1
     if (kcycle == 0){
-      Particles_CR_Predictor (data, Dts, 0.5*dt, grid);
+      Particles_CR_Predictor (data, 0.5*dt, grid);
     }else{
     
     /* -- Compute Fcr(x^{n+1/2}, v^n), extrapolate in time -- */
@@ -244,12 +221,19 @@ void Particles_CR_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     } /* end if (ncycle != 0) */
     correct_emf = 1;
     #elif PARTICLES_CR_PREDICTOR == 2
+    if (PARTICLES_CR_NSUB%2 != 0){
+      printLog ("! Particles_CR_Update(): PARTICLES_CR_PREDICTOR requires");
+      printLog ("  an even number of sub-steps (PARTICLES_CR_NSUB = %d)\n",
+                 PARTICLES_CR_NSUB);
+      QUIT_PLUTO(1);
+    }
+
     if (Dts->Nsub_particles == 1){
-      Particles_CR_Predictor (data, Dts, 0.5*dt, grid);
+      Particles_CR_Predictor (data, 0.5*dt, grid);
       correct_emf = 1;
     }else {
       if (kcycle == 0)  {          /* Pre-push particles */
-        Particles_CR_Predictor (data, Dts, dt, grid);
+        Particles_CR_Predictor (data, dt, grid);
         correct_emf = 1;
       }else  if (kcycle%2 == 0){   /* Extrapolate */
         Particles_CR_ComputeForce(data->Vc, data, grid); 
@@ -257,7 +241,7 @@ void Particles_CR_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
         wM = 2.0/kcycle;
         for (dir = 0; dir < 3; dir++) TOT_LOOP(k,j,i){
           data->Fcr[dir][k][j][i] =   wF*data->Fcr[dir][k][j][i] 
-                                 - wM*dM_tot[dir][k][j][i]/(kcycle*dt);
+                                    - wM*dM_tot[dir][k][j][i]/(kcycle*dt);
         }
         correct_emf = 1;
       }
@@ -272,18 +256,18 @@ void Particles_CR_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     if (correct_emf){
       TOT_LOOP(k,j,i){
         qg = PARTICLES_CR_E_MC_GAS*data->Vc[RHO][k][j][i];
-        for (dir = 0; dir < 3; dir++){
-          data->Ecr[dir][k][j][i] = emf0[dir][k][j][i] - data->Fcr[dir][k][j][i]/qg;
-        }
+        data->Ex1[k][j][i] = emf0[IDIR][k][j][i] - data->Fcr[IDIR][k][j][i]/qg;
+        data->Ex2[k][j][i] = emf0[JDIR][k][j][i] - data->Fcr[JDIR][k][j][i]/qg;
+        data->Ex3[k][j][i] = emf0[KDIR][k][j][i] - data->Fcr[KDIR][k][j][i]/qg;
       }
     }
 
     for (dir = 0; dir < 4; dir++){
       memset ((void *)dM[dir][0][0], '\0', dsize*sizeof(double));
     }
-    #endif  /* PARTICLES_CR_FEEDBACK == YES */
+    #endif /* PARTICLES_CR_FEEDBACK == YES */
 
-  /* ---------------------------------------------
+  /* --------------------------------------------
      3c. Boris pusher:
          - Drift by dt/2
          - Kick, rotate by dt
@@ -293,26 +277,29 @@ void Particles_CR_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
         and velocity must be set as follows:
 
         p->coord = x^n
-        p->speed = v^n
+        p->speed = u^n
      -------------------------------------------- */
 
     PARTICLES_LOOP(CurNode, data->PHead){
+
+double v_old[3], v[3];
+
       p = &(CurNode->p);
 
     /* -- A. Get particle 4-velocity and compute \gamma^n -- */
 
-      v2    = DOT_PRODUCT(p->speed,p->speed);
-      gamma = 1.0/sqrt(1.0 - v2/c2);
+      u2    = DOT_PRODUCT(p->speed,p->speed);
+      gamma = sqrt(1.0 + u2/c2);
+      scrh  = 1.0/gamma;
 
       for (dir = 0; dir < 3; dir++) {
-        pcoord_old[dir] = p->coord[dir];        /* Save x^n      */
-        pspeed_old[dir] = p->speed[dir];       /* Save v^n      */
-
-        p->coord[dir]       += 0.5*dt*p->speed[dir];  /* Drift by dt/2  */
-        u[dir] = u_old[dir] = p->speed[dir]*gamma; /* Compute 4-vel  */
+        pcoord_old[dir] = p->coord[dir];
+        u_old[dir]      = p->speed[dir]; /* Compute 4-vel  */
+        v_old[dir]      = u_old[dir]*scrh;
+        p->coord[dir]  += dt_half*v_old[dir];       /* Drift by dt/2  */
       }
       gamma_old = gamma;
-      u2_old    = v2*gamma*gamma;
+      u2_old    = u2;
 
     /* -- B. Compute weights and indices at x^{n+1/2} for later deposition -- */
 
@@ -321,38 +308,76 @@ void Particles_CR_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
       j = p->cell[JDIR];
       k = p->cell[KDIR];
 
-    /* -- C. Interpolate electromagnetic fields at x^{n+1/2} -- */
-  
+    /* ----------------------------------------------------
+       C1. Interpolate electromagnetic fields at x^{n+1/2}.
+           Magnetic field is interpolated regularly while
+           depending on the configuration, the electric 
+           field is obtained as: 
+
+                 With Feedbck   |  No Feedback
+               -----------------+----------------------
+          Ep  =  I(E) + Clean   | -I(vg) X B + I(Eres)
+
+
+          For test particles, we interpolate the fluid
+          velocity so that E and B remain orthogonal
+         (no need for cleaning).
+       ---------------------------------------------------- */
+
+      #if PARTICLES_SHAPE >= 0
+
       B[IDIR] = Particles_Interpolate(data->Vc[BX1], w, p->cell); 
       B[JDIR] = Particles_Interpolate(data->Vc[BX2], w, p->cell); 
       B[KDIR] = Particles_Interpolate(data->Vc[BX3], w, p->cell);
-
-      E[IDIR] = Particles_Interpolate(data->Ecr[IDIR], w, p->cell); 
-      E[JDIR] = Particles_Interpolate(data->Ecr[JDIR], w, p->cell); 
-      E[KDIR] = Particles_Interpolate(data->Ecr[KDIR], w, p->cell);
-
-    /* -- D1. Clean parallel component of E(perp), so that E.B = 0 -- */
-
       Bmag2 = DOT_PRODUCT(B,B);
-      scrh  = DOT_PRODUCT(E,B)/(Bmag2 + 1.e-18);
 
+      #if PARTICLES_CR_FEEDBACK == YES
+      E[IDIR] = Particles_Interpolate(data->Ex1, w, p->cell); 
+      E[JDIR] = Particles_Interpolate(data->Ex2, w, p->cell); 
+      E[KDIR] = Particles_Interpolate(data->Ex3, w, p->cell);
+
+    /* -- C2. Clean parallel component of E(perp), so that E.B = 0 -- */
+     
+      scrh     = DOT_PRODUCT(E,B)/(Bmag2 + 1.e-18);
       E[IDIR] -= scrh*B[IDIR];
       E[JDIR] -= scrh*B[JDIR];
       E[KDIR] -= scrh*B[KDIR];
+      #endif
 
-    /* -- D2. Add resistive field after cleaning step -- */
+      #if PARTICLES_CR_FEEDBACK == NO
+
+      vg[IDIR] = Particles_Interpolate(data->Vc[VX1], w, p->cell); 
+      vg[JDIR] = Particles_Interpolate(data->Vc[VX2], w, p->cell); 
+      vg[KDIR] = Particles_Interpolate(data->Vc[VX3], w, p->cell);
+
+      E[IDIR] = -(vg[JDIR]*B[KDIR] - vg[KDIR]*B[JDIR]);
+      E[JDIR] = -(vg[KDIR]*B[IDIR] - vg[IDIR]*B[KDIR]);
+      E[KDIR] = -(vg[IDIR]*B[JDIR] - vg[JDIR]*B[IDIR]);
+      
+    /* -- C3. Add resistive field after cleaning step -- */
     
-      #if RESISTIVITY != NO
+      #if    (PHYSICS == MHD) && (RESISTIVITY != NO) \
+          || (PHYSICS == ResRMHD)
       E[IDIR] += Particles_Interpolate(emf_res[IDIR], w, p->cell); 
       E[JDIR] += Particles_Interpolate(emf_res[JDIR], w, p->cell); 
       E[KDIR] += Particles_Interpolate(emf_res[KDIR], w, p->cell);
       #endif
-      
-    /* -- E. Boris pusher (kick + rotate + kick) -- */
+
+      #endif /* PARTICLES_CR_FEEDBACK == NO */
+
+      #elif PARTICLES_SHAPE == -1
+
+      Init (vfluid, p->coord[IDIR], p->coord[JDIR], p->coord[KDIR]);
+      B[IDIR] = vfluid[BX1]; B[JDIR] = vfluid[BX2]; B[KDIR] = vfluid[BX3];
+      E[IDIR] = vfluid[EX1]; E[JDIR] = vfluid[EX2]; E[KDIR] = vfluid[EX3];      
+
+      #endif 
+    
+    /* -- C4. Boris pusher (kick + rotate + kick) -- */
      
-      um[IDIR] = u[IDIR] + h_half*E[IDIR];
-      um[JDIR] = u[JDIR] + h_half*E[JDIR];
-      um[KDIR] = u[KDIR] + h_half*E[KDIR];
+      um[IDIR] = u_old[IDIR] + h_half*E[IDIR];
+      um[JDIR] = u_old[JDIR] + h_half*E[JDIR];
+      um[KDIR] = u_old[KDIR] + h_half*E[KDIR];
 
       scrh  = DOT_PRODUCT(um,um);
       gamma = sqrt(1.0 + scrh/c2);  /* Compute time-centered \gamma */
@@ -362,19 +387,18 @@ void Particles_CR_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
       b[JDIR] = scrh*B[JDIR];
       b[KDIR] = scrh*B[KDIR];
     
-      b2      = DOT_PRODUCT(b,b);    
+      b2   = DOT_PRODUCT(b,b);    
+      scrh = 2.0/(1.0 + b2);
 
       u1[IDIR] = um[IDIR] + (um[JDIR]*b[KDIR] - um[KDIR]*b[JDIR]);
       u1[JDIR] = um[JDIR] + (um[KDIR]*b[IDIR] - um[IDIR]*b[KDIR]);
       u1[KDIR] = um[KDIR] + (um[IDIR]*b[JDIR] - um[JDIR]*b[IDIR]);
 
-      scrh = 2.0/(1.0 + b2);
-
       up[IDIR] = um[IDIR] + scrh*(u1[JDIR]*b[KDIR] - u1[KDIR]*b[JDIR]);
       up[JDIR] = um[JDIR] + scrh*(u1[KDIR]*b[IDIR] - u1[IDIR]*b[KDIR]);
       up[KDIR] = um[KDIR] + scrh*(u1[IDIR]*b[JDIR] - u1[JDIR]*b[IDIR]);
     
-    /* -- F. Update velocity by another half step -- */
+    /* -- C5. Update velocity by another half step -- */
 
       u[IDIR] = up[IDIR] + h_half*E[IDIR];
       u[JDIR] = up[JDIR] + h_half*E[JDIR];
@@ -382,32 +406,30 @@ void Particles_CR_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     
       u2    = DOT_PRODUCT(u,u);
       gamma = sqrt(1.0 + u2/c2);
-      scrh  = 1.0/gamma;
 
-      p->speed[IDIR] = u[IDIR]*scrh;
-      p->speed[JDIR] = u[JDIR]*scrh;
-      p->speed[KDIR] = u[KDIR]*scrh;
-
+      p->speed[IDIR] = u[IDIR];
+      p->speed[JDIR] = u[JDIR];
+      p->speed[KDIR] = u[KDIR];
+      
     /* -- G. Deposit momentum and energy variations at x^{n+1/2} -- */
 
       #if PARTICLES_CR_FEEDBACK == YES
       int i1,j1,k1,n,nelem=4;
 
-      qd[IDIR] = p->rho*(u[IDIR] - u_old[IDIR]);
-      qd[JDIR] = p->rho*(u[JDIR] - u_old[JDIR]);
-      qd[KDIR] = p->rho*(u[KDIR] - u_old[KDIR]);
-      qd[3]    = p->rho*(u2  /(gamma + 1.0) - u2_old/(gamma_old + 1.0));
+      qd[IDIR] = p->mass*(u[IDIR] - u_old[IDIR]);
+      qd[JDIR] = p->mass*(u[JDIR] - u_old[JDIR]);
+      qd[KDIR] = p->mass*(u[KDIR] - u_old[KDIR]);
+      qd[3]    = p->mass*(u2/(gamma + 1.0) - u2_old/(gamma_old + 1.0));
 
       for (n = 0; n < nelem; n++){
-        for (k1 = -KOFFSET; k1 <= KOFFSET; k1++){
-        for (j1 = -JOFFSET; j1 <= JOFFSET; j1++){
-        for (i1 = -IOFFSET; i1 <= IOFFSET; i1++){
+        for (k1 = -INCLUDE_KDIR; k1 <= INCLUDE_KDIR; k1++){
+        for (j1 = -INCLUDE_JDIR; j1 <= INCLUDE_JDIR; j1++){
+        for (i1 = -INCLUDE_IDIR; i1 <= INCLUDE_IDIR; i1++){
           #if PARTICLES_DEPOSIT == INTEGER
           long a;
-          scrh = qd[n]*w[k1][j1][i1]*C;
+          scrh = qd[n]*w[k1][j1][i1]*Cnorm[n];
           a    = (long)(scrh);
-          scrh = (double)(a);
-          dM[n][k+k1][j+j1][i+i1] += scrh;
+          dM[n][k+k1][j+j1][i+i1] += (double)(a);
           #else
           dM[n][k+k1][j+j1][i+i1] += qd[n]*w[k1][j1][i1];
           #endif
@@ -417,9 +439,15 @@ void Particles_CR_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
     /* -- H. Update spatial coordinate to obtain x^{n+1} -- */
 
-      p->coord[IDIR] += dt_half*p->speed[IDIR];
-      p->coord[JDIR] += dt_half*p->speed[JDIR];
-      p->coord[KDIR] += dt_half*p->speed[KDIR];
+      scrh  = 1.0/gamma;
+
+      v[IDIR] = u[IDIR]*scrh;
+      v[JDIR] = u[JDIR]*scrh;
+      v[KDIR] = u[KDIR]*scrh;
+
+      p->coord[IDIR] += dt_half*v[IDIR];
+      p->coord[JDIR] += dt_half*v[JDIR];
+      p->coord[KDIR] += dt_half*v[KDIR];
 
     /* ---------------------------------------------------------
         I1. Compute time step restriction based on the maximum
@@ -428,13 +456,33 @@ void Particles_CR_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
             1/dt_1 = v^{n+1/2}/(eps * dx)
 
-            where eps = CR_NCELL_EPS.
+            where eps = PARTICLES_CR_NCELL_EPS.
        --------------------------------------------------------- */
   
       for (dir = 0; dir < DIMENSIONS; dir++) {
-        scrh   = 0.5*(fabs(p->speed[dir]) + fabs(p->speed_old[dir]));
-        scrh  /= PARTICLES_CR_NCELLS_EPS*grid->dx[dir][p->cell[dir]];
-        inv_dt = MAX(inv_dt,scrh); 
+/*
+        scrh   = 0.5*( fabs(v[dir] + v_old[dir]) );
+        scrh  /= PARTICLES_CR_NCELL_MAX*grid->dx[dir][p->cell[dir]];
+        inv_dt = MAX(inv_dt,scrh);
+*/
+
+        double a = (v[dir] - v_old[dir])/dt;
+        double dxmax = PARTICLES_CR_NCELL_MAX*grid->dx[dir][p->cell[dir]];
+        double inv_dtnew;
+        double delta;
+        if (a*v[dir] >= 0.0){
+          delta     = v[dir]*v[dir] + 2.0*fabs(a)*dxmax;
+          inv_dtnew = (fabs(v[dir]) + sqrt(delta))/(2.0*dxmax);
+        }else{
+          delta = v[dir]*v[dir] - 2.0*fabs(a)*dxmax;
+          if (delta >= 0.0) {
+            inv_dtnew = (fabs(v[dir]) + sqrt(delta))/(2.0*dxmax);
+          }else{
+            delta     = v[dir]*v[dir] + 2.0*fabs(a)*dxmax;
+            inv_dtnew = (-fabs(v[dir]) + sqrt(delta))/(2.0*dxmax);
+          }
+        }
+        inv_dt = MAX(inv_dt, inv_dtnew);
       }
 
     /* ---------------------------------------------------------
@@ -444,33 +492,64 @@ void Particles_CR_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
       scrh  = DOT_PRODUCT(p->speed,B);
       scrh *= scrh; 
-      scrh /= u2/(gamma*gamma) + 1.e-12;
+      scrh /= u2 + 1.e-12*gamma*gamma;
       scrh  = Bmag2 - scrh;
       Bperp = sqrt(MAX(scrh,0.0));
       omL   = Bperp*PARTICLES_CR_E_MC/(PARTICLES_CR_LARMOR_EPS*gamma);
 
       inv_dt = MAX(inv_dt, omL);  /* Larmor  */
+      omegaL = MAX(omegaL, omL);
 
     /* -- J. Check that particle has not travelled more than one cell -- */
+
+      int checkp = Particles_CheckSingle(p, grid->nghost[IDIR], grid);
+      if (checkp == 0){
+        printLog ("! Particles_CR_Update(): particle id %d outside domain\n",
+                   p->id);
+        printLog ("Active Domain: [%12.6e, %12.6e] [%12.6e, %12.6e]\n",
+                   grid->xl[IDIR][IBEG], grid->xr[IDIR][IEND],
+                   grid->xl[JDIR][JBEG], grid->xr[JDIR][JEND]);
+        printLog ("Total  Domain: [%12.6e, %12.6e] [%12.6e, %12.6e]\n",
+                   grid->xl[IDIR][0], grid->xr[IDIR][NX1_TOT-1],
+                   grid->xl[JDIR][0], grid->xr[JDIR][NX2_TOT-1]);
+
+        printLog ("Old coord: \n");
+        ShowVector (pcoord_old, 3);
+        printLog ("New coord: \n");
+        ShowVector (p->coord, 3);
+        double dxp[3];
+        dxp[IDIR] = fabs(pcoord_old[IDIR] - p->coord[IDIR])/grid->dx[IDIR][IBEG];
+        dxp[JDIR] = fabs(pcoord_old[IDIR] - p->coord[IDIR])/grid->dx[JDIR][JBEG];
+        dxp[KDIR] = fabs(pcoord_old[IDIR] - p->coord[IDIR])/grid->dx[KDIR][KBEG];
+        printLog ("|x(new) - x(old)|/dx: \n");
+        ShowVector (dxp, 3);
+
+        QUIT_PLUTO(1);
+      }
+
 /*
-      int indx_old[3], dindx, dindx_max;
+      int cell_old[3], dindx, dindx_max;
 
-      for (dir = 0; dir < DIMENSIONS; dir++) indx_old[dir] = p->cell[dir]; 
-
-      Particles_LocateCell (p->coord_old, indx_old, grid);
+      Particles_LocateCell (pcoord_old, cell_old, grid);
       Particles_LocateCell (p->coord, p->cell, grid);
 
       dindx_max = 0;
       for (dir = 0; dir < DIMENSIONS; dir++) {
-        dindx = fabs(p->cell[dir] - indx_old[dir]);
+        dindx = fabs(p->cell[dir] - cell_old[dir]);
         dindx_max = MAX(dindx,dindx_max);    
       }
-      if (dindx_max > Nmax){//(int)max_zones){
-        print ("! Particles_Update(): particle has travelled %d zones\n",
+      if (dindx_max > 2){
+        printLog ("! Particles_Update(): particle has travelled %d zones\n",
                 dindx_max);
-        print ("! nparticles = %d\n",p_nparticles);
-        print ("  indx_old = %d %d %d\n",indx_old[IDIR], indx_old[JDIR], indx_old[KDIR]);
-        print ("  indx_new = %d %d %d\n",p->cell[IDIR], p->cell[JDIR], p->cell[KDIR]);
+        printLog ("! nparticles = %d\n",p_nparticles);
+        printLog ("  indx_old = %d %d %d\n",cell_old[IDIR],
+                     cell_old[JDIR], cell_old[KDIR]);
+        printLog ("  indx_new = %d %d %d\n",p->cell[IDIR], p->cell[JDIR], p->cell[KDIR]);
+        printLog ("  dn = %f, Nsub = %d\n", PARTICLES_CR_NCELL_MAX,
+                  Dts->Nsub_particles);
+        printLog ("dtp = %f; dx = %f, vp*dt = %f\n",1.0/inv_dt, grid->dx[IDIR][i],
+                                               p->speed[0]*dt);
+        Particles_Display(p);
         QUIT_PLUTO(1);
       }
 */    
@@ -484,14 +563,14 @@ void Particles_CR_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     #if PARTICLES_CR_FEEDBACK == YES
     Particles_DepositBoundaryExchange (dM, 4, grid);
     for (dir = 0; dir < 4; dir++) {
-      #if PARTICLES_DEPOSIT == INTEGER
       TOT_LOOP(k,j,i) {
-        dM[dir][k][j][i]     /= C;
+        double dV = grid->dV[k][j][i];
+        dM[dir][k][j][i] /= dV;
+        #if PARTICLES_DEPOSIT == INTEGER
+        dM[dir][k][j][i]     /= Cnorm[dir];
+        #endif
         dM_tot[dir][k][j][i] += dM[dir][k][j][i];
       }
-      #else
-      TOT_LOOP(k,j,i) dM_tot[dir][k][j][i] += dM[dir][k][j][i];
-      #endif
     }
     #endif
 
@@ -509,6 +588,7 @@ void Particles_CR_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
   }  /* End loop on sub-cycles */
 
   Dts->invDt_particles = inv_dt;
+  Dts->omega_particles = omegaL;
 
 /* ----------------------------------------------------------
    4. Compute feedback array Fcr at t(n+1/2) needed in the
@@ -517,14 +597,11 @@ void Particles_CR_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
 #if PARTICLES_CR_FEEDBACK == YES
   scrh = 1.0/dt0;
+
   for (dir = 0; dir < 4; dir++) {
     TOT_LOOP(k,j,i) {
       #ifdef CTU
       data->Fcr[dir][k][j][i] = dM_tot[dir][k][j][i]*scrh;
-//if (isnan(data->Fcr[dir][k][j][i])){
-//  print ("! Particles_CR_Update(): Fcr at end is nan\n");
-//  QUIT_PLUTO(1);
-//}
       #else  /* Use this for RK2 time stepping */
       data->Fcr[dir][k][j][i] = 2.0*dM_tot[dir][k][j][i]/dt0 - Fcr0[dir][k][j][i];
       #endif
@@ -540,177 +617,113 @@ void Particles_CR_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
   Dts->clock_particles = (double)(clock() - clock_beg)/CLOCKS_PER_SEC;
   dclock_tot = (double)(clock() - clock_beg)/CLOCKS_PER_SEC;
   
-  print ("  Total: %f, [%8.3e per particle]\n",dclock_tot,
+  printLog ("  Total: %f, [%8.3e per particle]\n",dclock_tot,
                                                dclock_tot/p_nparticles);
-  
 }
 #endif
   DEBUG_FUNC_END ("CR_Update");
 }
 
+
 /* ********************************************************************* */
-void Particles_CR_Predictor(Data *data, timeStep *Dts, double dt, Grid *grid)
-/*!
- * Advance particle velocity and speed by dt using an
- * implicit-explicit 1st order scheme.
- * Compute Fcr at F(t+dt), then restore particles into their original
- * position.
+void Particles_CR_GetElectricField(Data *data, Data_Arr emfc, Data_Arr emfr,
+                                   Grid *grid)
+/*
+ *
+ * \param [in]   d       pointer to PLUTO data structure
+ * \param [out]  emfc    convective electric field [only with feedback]
+ * \param [out]  emfr    resistive electric field
+ * \param [in]   grid    pointer to Grid structure
  *
  *********************************************************************** */
 {
-  static int nparticles = -1;
-  int    i, j, k, dir;
-  double a[3], Fcr[3], vg[3], vp[3], B[3], E[3];
-  double v2, gamma, u2, um[3], up[3];
-  double h, qg, den;
-  const double c2 = PARTICLES_CR_C*PARTICLES_CR_C;
-  static double ***w, **Ainv, **pcoord_old, **pspeed_old;
-  particleNode *curNode;
-  Particle *p;
+  int i,j,k;
+  double qg, E[3], vg[3], B[3];
 
-/* --------------------------------------------------------
-   0. Allocate memory.
-      This includes also the two arrays pcoord_old[][]
-      and pspeed_old[][] used to store position and
-      velocity at the current time level.
-      The two arrays are re-allocated when the current
-      number of particles (p_nparticles) exceeds the
-      previous one (nparticles).
-   -------------------------------------------------------- */
-
-  if (w == NULL){
-    w    = ArrayBox (-1, 1, -1, 1, -1, 1);
-    Ainv = ARRAY_2D(3,3,double);
-  }
-/*
-  if (nparticles < p_nparticles){
-print ("Reallocating.....old = %d, new = %d\n",nparticles, p_nparticles);
-    if (pcoord_old != NULL){
-      FreeArray2D((void **) pcoord_old);
-      FreeArray2D((void **) pspeed_old);
-    }
-    nparticles = p_nparticles;
-    pcoord_old = ARRAY_2D(nparticles,3, double);
-    pspeed_old = ARRAY_2D(nparticles,3, double);
-  }
-*/
-
-/* --------------------------------------------------------
-   1. Advance particles with 1st order method
-   -------------------------------------------------------- */
-
-  h = dt*PARTICLES_CR_E_MC; 
-  PARTICLES_LOOP(curNode, data->PHead){
-
-    p = &(curNode->p);
-
-  /* --------------------------------------------
-     1a. Get weights and electric field at x^n.
-         Here data->Ex1, data->Ex2, data->Ex3 are
-         cell-centered electric fields computed
-         at t^n.
-         For CT, this is done in
-         CT_ComputeCenterEMF())
-     -------------------------------------------- */
-
-    Particles_GetWeights(p, p->cell, w, grid);
-
-    E[IDIR] = Particles_Interpolate(data->Ecr[IDIR], w, p->cell); 
-    E[JDIR] = Particles_Interpolate(data->Ecr[JDIR], w, p->cell); 
-    E[KDIR] = Particles_Interpolate(data->Ecr[KDIR], w, p->cell);
-/*
-//    E[IDIR] = Particles_Interpolate(data->Ex1, w, p->cell); 
-//    E[JDIR] = Particles_Interpolate(data->Ex2, w, p->cell); 
-//    E[KDIR] = Particles_Interpolate(data->Ex3, w, p->cell);
-*/
-  /* --------------------------------------------
-     1b. Kick step: evolve four-velocity using
-         electric field only:
-
-         um^* = u^n + h/2*(cE)^n
-     -------------------------------------------- */
-   
-    v2    = DOT_PRODUCT(p->speed, p->speed);
-    gamma = 1.0/sqrt(1.0 - v2/c2);
-    for (dir = 0; dir < 3; dir++) {
-      um[dir] = gamma*p->speed[dir] + h*E[dir];
-    }
-    u2    = DOT_PRODUCT(um, um);
-    gamma = sqrt(1.0 + u2/c2);
-
-  /* -- 1c. Save initial coordinate and position
-
-            p->coord_old = x^n
-            p->speed_old = v^n
-
-            and update spatial position: x^* = x^n + dt*vm^ -- */
+  #if PARTICLES_CR_FEEDBACK == YES
+  TOT_LOOP(k,j,i){
+    vg[IDIR] = data->Vc[VX1][k][j][i]; B[IDIR] = data->Vc[BX1][k][j][i];
+    vg[JDIR] = data->Vc[VX2][k][j][i]; B[JDIR] = data->Vc[BX2][k][j][i];
+    vg[KDIR] = data->Vc[VX3][k][j][i]; B[KDIR] = data->Vc[BX3][k][j][i];
   
-    for (dir = 0; dir < 3; dir++){
-      p->coord_old[dir] = p->coord[dir];
-      p->speed_old[dir] = p->speed[dir];
-      p->coord[dir]     += dt*um[dir]/gamma;
-    }
+    emfc[IDIR][k][j][i] = -(vg[JDIR]*B[KDIR] - vg[KDIR]*B[JDIR]);
+    emfc[JDIR][k][j][i] = -(vg[KDIR]*B[IDIR] - vg[IDIR]*B[KDIR]);
+    emfc[KDIR][k][j][i] = -(vg[IDIR]*B[JDIR] - vg[JDIR]*B[IDIR]);
 
-  /* -- 1d. Get weights and magnetic field at x^* -- */
-
-    Particles_GetWeights(p, p->cell, w, grid);  
-
-    B[IDIR] = Particles_Interpolate(data->Vc[BX1], w, p->cell); 
-    B[JDIR] = Particles_Interpolate(data->Vc[BX2], w, p->cell); 
-    B[KDIR] = Particles_Interpolate(data->Vc[BX3], w, p->cell);
-
-  /* -- 1e. Rotate: add magnetic field contribution -- */
-
-    B[IDIR] *= h/gamma;
-    B[JDIR] *= h/gamma;
-    B[KDIR] *= h/gamma;
-
-    den = 1.0 + B[IDIR]*B[IDIR] + B[JDIR]*B[JDIR] + B[KDIR]*B[KDIR];
-
-    Ainv[IDIR][IDIR] =      1.0 + B[IDIR]*B[IDIR];
-    Ainv[IDIR][JDIR] =  B[KDIR] + B[IDIR]*B[JDIR];
-    Ainv[IDIR][KDIR] = -B[JDIR] + B[IDIR]*B[KDIR];
-
-    Ainv[JDIR][IDIR] = -B[KDIR] + B[JDIR]*B[IDIR];
-    Ainv[JDIR][JDIR] =      1.0 + B[JDIR]*B[JDIR];
-    Ainv[JDIR][KDIR] =  B[IDIR] + B[JDIR]*B[KDIR];
-
-    Ainv[KDIR][IDIR] =  B[JDIR] + B[KDIR]*B[IDIR];
-    Ainv[KDIR][JDIR] = -B[IDIR] + B[KDIR]*B[JDIR];
-    Ainv[KDIR][KDIR] =      1.0 + B[KDIR]*B[KDIR];
-
-  /* -- 1f. Advance coordinate and velocity by dt: -- */
-
-    for (dir = 0; dir < 3; dir++){
-      up[dir]  = DOT_PRODUCT(Ainv[dir],um);
-      up[dir] /= den;
-    }
-    u2    = DOT_PRODUCT(up,up);
-    gamma = sqrt(1.0 + u2/c2);
-
-    for (dir = 0; dir < 3; dir++){
-      p->speed[dir] = up[dir]/gamma;
-      p->coord[dir]  = p->coord_old[dir] + dt*p->speed_old[dir];
-    }
+    qg = PARTICLES_CR_E_MC_GAS*data->Vc[RHO][k][j][i];
+    data->Ex1[k][j][i] = emfc[IDIR][k][j][i] - data->Fcr[IDIR][k][j][i]/qg;
+    data->Ex2[k][j][i] = emfc[JDIR][k][j][i] - data->Fcr[JDIR][k][j][i]/qg;
+    data->Ex3[k][j][i] = emfc[KDIR][k][j][i] - data->Fcr[KDIR][k][j][i]/qg;
   }
-  
-/* --------------------------------------------------------
-   2. Compute Fcr(x^{n+1/2}, v^{n+1/2})
-   -------------------------------------------------------- */
-  
-  Particles_CR_ComputeForce(data->Vc, data, grid);
+  #endif
 
-/* --------------------------------------------------------
-   3. Restore coordinates and velocities
-   -------------------------------------------------------- */
 
-  PARTICLES_LOOP(curNode, data->PHead){
-    p = &(curNode->p);
-    for(dir = 0; dir < 3; dir++) {
-      p->speed[dir] = p->speed_old[dir];
-      p->coord[dir] = p->coord_old[dir];
-    }
+  #if PARTICLES_CR_FEEDBACK == NO
+
+  #if (PHYSICS == MHD) && (RESISTIVITY != NO)
+  double ***Bx1 = data->Vc[BX1];
+  double ***Bx2 = data->Vc[BX2];
+  double ***Bx3 = data->Vc[BX3];
+  double vgas[NVAR];
+
+  for (k = INCLUDE_KDIR; k < NX3_TOT-INCLUDE_KDIR; k++){
+  for (j = INCLUDE_JDIR; j < NX2_TOT-INCLUDE_JDIR; j++){
+  for (i = INCLUDE_IDIR; i < NX1_TOT-INCLUDE_IDIR; i++){
+    
+    int nv;
+    double J[3], eta[3];
+    double *x1 = grid->x[IDIR], *dx1 = grid->dx[IDIR];
+    double *x2 = grid->x[JDIR], *dx2 = grid->dx[JDIR];
+    double *x3 = grid->x[KDIR], *dx3 = grid->dx[KDIR];
+
+    J[IDIR] =  CDIFF_X2(Bx3,k,j,i)/dx2[j] - CDIFF_X3(Bx2,k,j,i)/dx3[k];
+    J[JDIR] =  CDIFF_X3(Bx1,k,j,i)/dx3[k] - CDIFF_X1(Bx3,k,j,i)/dx1[i];
+    J[KDIR] =  CDIFF_X1(Bx2,k,j,i)/dx1[i] - CDIFF_X2(Bx1,k,j,i)/dx2[j];
+    
+    NVAR_LOOP(nv) vgas[nv] = data->Vc[nv][k][j][i];
+    
+    /* -- Compute current and resistivity at cell center -- */
+  
+    Resistive_eta (vgas, x1[i], x2[j], x3[k], J, eta);
+    emfr[IDIR][k][j][i] = eta[IDIR]*J[IDIR];
+    emfr[JDIR][k][j][i] = eta[JDIR]*J[JDIR];
+    emfr[KDIR][k][j][i] = eta[KDIR]*J[KDIR];
+  }}}
+
+/* ------------------------------------
+   2b. In parallel, fill ghost zones
+       for resistive electric field
+       since it is computed using
+       central differences
+   ------------------------------------ */
+  
+  #ifdef PARALLEL
+  MPI_Barrier (MPI_COMM_WORLD);
+  AL_Exchange ((char *)emfr[IDIR][0][0], SZ);
+  AL_Exchange ((char *)emfr[JDIR][0][0], SZ);
+  AL_Exchange ((char *)emfr[KDIR][0][0], SZ);
+  #endif
+
+  #endif  /* (PHYSICS == MHD) && (RESISTIVITY != NO) */
+
+  #if PHYSICS == ResRMHD
+  TOT_LOOP(k,j,i){
+    vg[IDIR] = data->Vc[VX1][k][j][i]; B[IDIR] = data->Vc[BX1][k][j][i];
+    vg[JDIR] = data->Vc[VX2][k][j][i]; B[JDIR] = data->Vc[BX2][k][j][i];
+    vg[KDIR] = data->Vc[VX3][k][j][i]; B[KDIR] = data->Vc[BX3][k][j][i];
+  
+    E[IDIR] = -(vg[JDIR]*B[KDIR] - vg[KDIR]*B[JDIR]);
+    E[JDIR] = -(vg[KDIR]*B[IDIR] - vg[IDIR]*B[KDIR]);
+    E[KDIR] = -(vg[IDIR]*B[JDIR] - vg[JDIR]*B[IDIR]);
+
+    emfr[IDIR][k][j][i] = (data->Vc[EX1][k][j][i] - E[IDIR]);
+    emfr[JDIR][k][j][i] = (data->Vc[EX2][k][j][i] - E[JDIR]);
+    emfr[KDIR][k][j][i] = (data->Vc[EX3][k][j][i] - E[KDIR]);
   }
+  #endif
+
+  #endif  /* PARTICLES_CR_FEEDBACK == NO */
 
 }
-#endif  /* (PARTICLES_TYPE == COSMIC_RAYS) && (PARTICLES_TEST == NO) */
+
+#endif /* PARTICLES_CR_GC == NO */

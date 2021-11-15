@@ -22,6 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO Test Problems
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -79,8 +80,8 @@ Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>The Orszag Tang vortex system describes a doubly periodic fluid configuration leading to two-dimensional supersonic MHD turbulence. Although an analytical solution is not known, its simple and reproducible set of initial conditions has made it a widespread benchmark for inter-scheme comparison.</p>
-<p>The computational domain is the periodic box <img class="formulaInl" alt="$[0,2\pi]^D$" src="form_157.png"/> where <code>D</code> is the number of spatial dimensions. In 2D, the initial condition is given by </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ \vec{v} = \left(-\sin y,\, \sin x, 0\right) \,,\qquad \vec{B} = \left(-\sin y,\, \sin 2x, 0\right) \,,\qquad \rho = 25/9\,,\qquad p = 5/3 \]" src="form_158.png"/>
+<p>The computational domain is the periodic box <img class="formulaInl" alt="$[0,2\pi]^D$" src="form_140.png"/> where <code>D</code> is the number of spatial dimensions. In 2D, the initial condition is given by </p><p class="formulaDsp">
+<img class="formulaDsp" alt="\[ \vec{v} = \left(-\sin y,\, \sin x, 0\right) \,,\qquad \vec{B} = \left(-\sin y,\, \sin 2x, 0\right) \,,\qquad \rho = 25/9\,,\qquad p = 5/3 \]" src="form_141.png"/>
 </p>
 <p>This test problem does not have any input parameter.</p>
 <p>A snapshot of the solution on a <code>512x512</code> grid is shown below.</p>
@@ -122,14 +123,14 @@ Density at t=3.1 (configuration #02).</div></div>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Assign initial condition by looping over the computational domain. Called after the usual <a class="el" href="_particles_2_c_r_2_gyration_2init_8c.html#a8488b38b779097d732c203983f9bb9bf">Init()</a> function to assign initial conditions on primitive variables. Value assigned here will overwrite those prescribed during <a class="el" href="_particles_2_c_r_2_gyration_2init_8c.html#a8488b38b779097d732c203983f9bb9bf">Init()</a>. </p>
+<p>Assign initial condition by looping over the computational domain. Called after the usual <a class="el" href="_particles_2_dust_2_r_v___drift_2init_8c.html#a8488b38b779097d732c203983f9bb9bf">Init()</a> function to assign initial conditions on primitive variables. Value assigned here will overwrite those prescribed during <a class="el" href="_particles_2_dust_2_r_v___drift_2init_8c.html#a8488b38b779097d732c203983f9bb9bf">Init()</a>. </p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Jun 15 2018 22:46:22 for PLUTO Test Problems by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:25:25 for PLUTO Test Problems by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

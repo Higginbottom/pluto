@@ -8,7 +8,6 @@ var searchData=
   ['sb_5fsymmetrize_5fey',['SB_SYMMETRIZE_EY',['../shearingbox_8h.html#aaaf40726f697b47511019ea6d1a9373b',1,'shearingbox.h']]],
   ['sb_5fsymmetrize_5fez',['SB_SYMMETRIZE_EZ',['../shearingbox_8h.html#ad198071a039e0d00bf4197807256656b',1,'shearingbox.h']]],
   ['sb_5fsymmetrize_5fhydro',['SB_SYMMETRIZE_HYDRO',['../shearingbox_8h.html#a2850a6353bebba125057c58a6cc8de7a',1,'shearingbox.h']]],
-  ['select',['SELECT',['../macros_8h.html#ac3c82a72138bdfd56ab10a2c9383cd86',1,'macros.h']]],
   ['set_5ffl_5flimiter',['SET_FL_LIMITER',['../plm__coeffs_8h.html#a32e137ab20f1db339b5b65cd9ad881f8',1,'plm_coeffs.h']]],
   ['set_5fgm_5flimiter',['SET_GM_LIMITER',['../plm__coeffs_8h.html#a6401f31ab427757578962f18143ad3ce',1,'plm_coeffs.h']]],
   ['set_5fmc_5flimiter',['SET_MC_LIMITER',['../plm__coeffs_8h.html#a8dbb5c4257f82b1cdb18cdcb36019564',1,'plm_coeffs.h']]],

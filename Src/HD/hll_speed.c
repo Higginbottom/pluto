@@ -8,8 +8,8 @@
   ::stateL->v, ::stateR->v.
   Depending on the estimate, several variants are possible.
  
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    Feb 13, 2018
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    June 25, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
@@ -86,8 +86,7 @@ void HLL_Speed (const State *stateL, const State *stateR,
 
      scrh  = fabs(stateL->v[i][VXn]) + fabs(stateR->v[i][VXn]);    
      scrh /= aL + aR;
-
-     g_maxMach = MAX(scrh, g_maxMach); 
+     g_maxMach = MAX(scrh, g_maxMach);
    }
 #endif /* DAVIS_ESTIMATE == YES */
 
@@ -137,11 +136,11 @@ void HLL_Speed (const State *stateL, const State *stateR,
      explicitly computing the enthalpy:                                 
      ------------------------------------------------------ */
    
-    EXPAND(dvx = vL[i][VX1] - vR[i][VX1];  ,
-           dvy = vL[i][VX2] - vR[i][VX2];  ,
-           dvz = vL[i][VX3] - vR[i][VX3];)
+    dvx = vL[i][VX1] - vR[i][VX1];
+    dvy = vL[i][VX2] - vR[i][VX2];
+    dvz = vL[i][VX3] - vR[i][VX3];
 
-    scrh = EXPAND(dvx*dvx, + dvy*dvy, + dvz*dvz);
+    scrh = dvx*dvx, + dvy*dvy, + dvz*dvz;
   
     a_av = sqrt(s*aL2 + c*aR2 + 0.5*s*c*gmm1*scrh);
 

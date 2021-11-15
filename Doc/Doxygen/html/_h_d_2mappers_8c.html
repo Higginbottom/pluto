@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -78,18 +78,18 @@ $(function() {
 Functions</h2></td></tr>
 <tr class="memitem:a93838880d9332986406a83d305b90eab"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="_h_d_2mappers_8c.html#a93838880d9332986406a83d305b90eab">PrimToCons</a> (double **uprim, double **ucons, int ibeg, int iend)</td></tr>
 <tr class="separator:a93838880d9332986406a83d305b90eab"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9738f839a81df03953a565aebc8e3670"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="_h_d_2mappers_8c.html#a9738f839a81df03953a565aebc8e3670">ConsToPrim</a> (double **ucons, double **uprim, int ibeg, int iend, unsigned char *flag)</td></tr>
-<tr class="separator:a9738f839a81df03953a565aebc8e3670"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3efa9977d34204c9ff4e9cb810b4e82a"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="_h_d_2mappers_8c.html#a3efa9977d34204c9ff4e9cb810b4e82a">ConsToPrim</a> (double **ucons, double **uprim, int beg, int end, uint16_t *flag)</td></tr>
+<tr class="separator:a3efa9977d34204c9ff4e9cb810b4e82a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>The <a class="el" href="_h_d_2mappers_8c.html#a93838880d9332986406a83d305b90eab">PrimToCons()</a> converts an array of primitive quantities to an array of conservative variables for the HD equations.</p>
-<p>The <a class="el" href="_h_d_2mappers_8c.html#a9738f839a81df03953a565aebc8e3670">ConsToPrim()</a> converts an array of conservative quantities to an array of primitive quantities. During the conversion, pressure is normally recovered from total energy unless zone has been tagged with FLAG_ENTROPY. In this case we recover pressure from conserved entropy: </p><pre class="fragment">if (FLAG_ENTROPY is TRUE)  --&gt; p = p(S)
+<p>The <a class="el" href="_h_d_2mappers_8c.html#a3efa9977d34204c9ff4e9cb810b4e82a">ConsToPrim()</a> converts an array of conservative quantities to an array of primitive quantities. During the conversion, pressure is normally recovered from total energy unless zone has been tagged with FLAG_ENTROPY. In this case we recover pressure from conserved entropy: </p><pre class="fragment">if (FLAG_ENTROPY is TRUE)  --&gt; p = p(S)
 else                       --&gt; p = p(E)
 </pre><dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'ph'+'.un'+'it'+'o.i'+'t'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@p<span style="display: none;">.nosp@m.</span>h.uni<span style="display: none;">.nosp@m.</span>to.i<span style="display: none;">.nosp@m.</span>t</a>) B. Vaidya </dd></dl>
 <dl class="section date"><dt>Date</dt><dd>June 24, 2015 </dd></dl>
 </div><h2 class="groupheader">Function Documentation</h2>
-<a id="a9738f839a81df03953a565aebc8e3670"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9738f839a81df03953a565aebc8e3670">&#9670;&nbsp;</a></span>ConsToPrim()</h2>
+<a id="a3efa9977d34204c9ff4e9cb810b4e82a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3efa9977d34204c9ff4e9cb810b4e82a">&#9670;&nbsp;</a></span>ConsToPrim()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -110,18 +110,18 @@ else                       --&gt; p = p(E)
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>ibeg</em>, </td>
+          <td class="paramname"><em>beg</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>iend</em>, </td>
+          <td class="paramname"><em>end</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">unsigned char *&#160;</td>
+          <td class="paramtype">uint16_t *&#160;</td>
           <td class="paramname"><em>flag</em>&#160;</td>
         </tr>
         <tr>
@@ -199,7 +199,7 @@ else                       --&gt; p = p(E)
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:50 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:57 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

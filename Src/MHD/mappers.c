@@ -15,8 +15,8 @@
       if (FLAG_ENTROPY is TRUE)  --> p = p(S)
       else                       --> p = p(E)
   
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   June 24, 2015
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Nov 27, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -47,16 +47,16 @@ void PrimToCons (double **uprim, double **ucons, int ibeg, int iend)
 
     u[RHO] = v[RHO];
         
-    EXPAND (u[MX1] = v[RHO]*v[VX1];  ,
-            u[MX2] = v[RHO]*v[VX2];  ,
-            u[MX3] = v[RHO]*v[VX3];)
+    u[MX1] = v[RHO]*v[VX1];
+    u[MX2] = v[RHO]*v[VX2];
+    u[MX3] = v[RHO]*v[VX3];
 
-    EXPAND (u[BX1] = v[BX1];  ,
-            u[BX2] = v[BX2];  ,
-            u[BX3] = v[BX3];)
+    u[BX1] = v[BX1];
+    u[BX2] = v[BX2];
+    u[BX3] = v[BX3];
 
-    kinb2   = EXPAND(v[VX1]*v[VX1], + v[VX2]*v[VX2], + v[VX3]*v[VX3]);
-    kinb2   = v[RHO]*kinb2 + EXPAND(v[BX1]*v[BX1], + v[BX2]*v[BX2], + v[BX3]*v[BX3]);
+    kinb2   = v[VX1]*v[VX1] + v[VX2]*v[VX2] + v[VX3]*v[VX3];
+    kinb2   = v[RHO]*kinb2  + v[BX1]*v[BX1] + v[BX2]*v[BX2] + v[BX3]*v[BX3];
     kinb2  *= 0.5;
 
     #if EOS == IDEAL
@@ -71,7 +71,8 @@ void PrimToCons (double **uprim, double **ucons, int ibeg, int iend)
     u[ENG] = rhoe + kinb2;
 
     if (u[ENG] != u[ENG]){
-      print("! PrimToCons: KE:%12.6e uRHO : %12.6e, m2 : %12.6e \n",rhoe,v[RHO],u[ENG]);
+      printLog("! PrimToCons(): KE:%12.6e uRHO : %12.6e, m2 : %12.6e \n",
+                  rhoe,v[RHO],u[ENG]);
       QUIT_PLUTO(1);
     }
     #endif
@@ -85,8 +86,7 @@ void PrimToCons (double **uprim, double **ucons, int ibeg, int iend)
   }
 }
 /* ********************************************************************* */
-int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend, 
-                unsigned char *flag)
+int ConsToPrim (double **ucons, double **uprim, int beg, int end, uint16_t *flag)
 /*!
  * Convert from conservative to primitive variables.
  *
@@ -106,7 +106,8 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
  *
  *********************************************************************** */
 {
-  int  i, nv, err, ifail;
+  int  i, nv, err;
+  int  ifail = 0;
   int  use_entropy, use_energy=1;
   double tau, rho, gmm1, rhoe, T;
   double b2, m2, kinb2, rhog1;
@@ -116,22 +117,23 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
    gmm1 = g_gamma - 1.0;
 #endif
 
-  ifail = 0;
-  for (i = ibeg; i <= iend; i++) {
+  for (i = beg; i <= end; i++) {
 
     u = ucons[i];
     v = uprim[i];
 
-    m2 = EXPAND(u[MX1]*u[MX1], + u[MX2]*u[MX2], + u[MX3]*u[MX3]);
-    b2 = EXPAND(u[BX1]*u[BX1], + u[BX2]*u[BX2], + u[BX3]*u[BX3]);
+    m2 = u[MX1]*u[MX1] + u[MX2]*u[MX2] + u[MX3]*u[MX3];
+    b2 = u[BX1]*u[BX1] + u[BX2]*u[BX2] + u[BX3]*u[BX3];
 
   /* -- Check density positivity -- */
   
     if (u[RHO] < 0.0) {
-      print("! ConsToPrim: negative density (%8.2e), ", u[RHO]);
+      printLog("! ConsToPrim(): negative density (%8.2e), ", u[RHO]);
+// printLogLog ()      
       Where (i, NULL);
       u[RHO]   = g_smallDensity;
       flag[i] |= FLAG_CONS2PRIM_FAIL;
+      flag[i] |= FLAG_NEGATIVE_DENSITY;
       ifail    = 1;
     }
 
@@ -139,29 +141,29 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
 
     v[RHO] = rho = u[RHO];
     tau = 1.0/u[RHO];
-    EXPAND(v[VX1] = u[MX1]*tau;  ,
-           v[VX2] = u[MX2]*tau;  ,
-           v[VX3] = u[MX3]*tau;)
+    v[VX1] = u[MX1]*tau;
+    v[VX2] = u[MX2]*tau;
+    v[VX3] = u[MX3]*tau;
 
-    EXPAND(v[BX1] = u[BX1];  ,
-           v[BX2] = u[BX2];  ,
-           v[BX3] = u[BX3];)
+    v[BX1] = u[BX1];
+    v[BX2] = u[BX2];
+    v[BX3] = u[BX3];
 
     kinb2 = 0.5*(m2*tau + b2);    
 
   /* -- Check energy positivity -- */
 
-#if HAVE_ENERGY
+    #if HAVE_ENERGY
     if (u[ENG] < 0.0) {
       WARNING(
-        print("! ConsToPrim: negative energy (%8.2e), ", u[ENG]);
+        printLog("! ConsToPrim(): negative energy (%8.2e), ", u[ENG]);
         Where (i, NULL);
       )
       u[ENG]    = g_smallPressure/gmm1 + kinb2;
       flag[i] |= FLAG_CONS2PRIM_FAIL;
-      ifail    = 1;
+//      ifail    = 1;
     }
-#endif
+    #endif
 
   /* -- Compute pressure from total energy or entropy -- */
 
@@ -174,12 +176,13 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
       v[PRS] = u[ENTR]*rhog1; 
       if (v[PRS] < 0.0){
         WARNING(
-               print("! ConsToPrim: negative p(S) (%8.2e, %8.2e), ", v[PRS], u[ENTR]);
+               printLog("! ConsToPrim(): negative p(S) (%8.2e, %8.2e), ",
+                         v[PRS], u[ENTR]);
                Where (i, NULL);
            )
         v[PRS]   = g_smallPressure;
         flag[i] |= FLAG_CONS2PRIM_FAIL;
-        ifail    = 1;
+//        ifail    = 1;
       }
       u[ENG] = v[PRS]/gmm1 + kinb2; /* -- recompute energy -- */
     }
@@ -189,14 +192,13 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
       v[PRS] = gmm1*(u[ENG] - kinb2);
       if (v[PRS] < 0.0){
         WARNING(
-          print("! ConsToPrim: negative p(E) (%8.2e), ", v[PRS]);
-Show(ucons,i);                
+          printLog("! ConsToPrim(): negative p(E) (%8.2e), ", v[PRS]);
           Where (i, NULL);
         )
         v[PRS]    = g_smallPressure;
         u[ENG]    = v[PRS]/gmm1 + kinb2; /* -- recompute energy -- */
         flag[i] |= FLAG_CONS2PRIM_FAIL;
-        ifail    = 1;
+//        ifail    = 1;
       }
       #if ENTROPY_SWITCH
       u[ENTR] = v[PRS]/pow(rho,gmm1);  /* -- Recompute entropy -- */
@@ -222,8 +224,8 @@ Show(ucons,i);
     #endif    
 
     if (u[ENG] != u[ENG]){
-      print("! ConsToPrim: NaN found\n");
-      Show(ucons,i);
+      printLog ("! ConsToPrim(): NaN found\n");
+      ShowState(ucons[i],0);
       QUIT_PLUTO(1);
     }
     rhoe  = u[ENG] - kinb2; 
@@ -234,13 +236,13 @@ Show(ucons,i);
                /* recompute internal and total energies.        */
       T = T_CUT_RHOE;
       WARNING(  
-        print ("! ConsToPrim: rhoe < 0 or T < T_CUT_RHOE; ");
+        printLog ("! ConsToPrim(): rhoe < 0 or T < T_CUT_RHOE; ");
         Where(i,NULL);
       )
       rhoe     = InternalEnergy(v, T);
       u[ENG]   = rhoe + kinb2; /* -- redefine total energy -- */
       flag[i] |= FLAG_CONS2PRIM_FAIL;
-      ifail    = 1;
+//      ifail    = 1;
     }
     v[PRS] = Pressure(v, T);
 

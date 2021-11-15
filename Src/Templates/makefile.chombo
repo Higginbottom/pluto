@@ -76,7 +76,9 @@ HEADERS += AMRLevelPlutoFactory.H AMRLevelPluto.H
 HEADERS += LevelPluto.H PatchPluto.H PatchGrid.H
 
 OBJ = adv_flux.o arrays.o boundary.o check_states.o cmd_line_opt.o \
-      entropy_switch.o flag_shock.o flatten.o get_nghost.o \
+      debug_tools.o entropy_switch.o \
+      flag_shock.o flatten.o fluid_interface_boundary.o \
+      get_nghost.o  \
       init.o int_bound_reset.o input_data.o   \
       mappers3D.o mean_mol_weight.o \
       parse_file.o plm_coeffs.o rbox.o runtime_setup.o  \

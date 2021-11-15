@@ -38,8 +38,8 @@
    xend   = atof(ParamFileGet("xdomain", 2));
   \endcode
   
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    June 18, 2014
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    Aug 21, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -66,7 +66,7 @@ int ParamFileRead (char *fname)
 
   fp = fopen(fname,"r");
   if (fp == NULL) {
-    printf ("! ParamFileRead: file %s not found\n", fname);
+    printf ("! ParamFileRead(): file %s not found\n", fname);
     QUIT_PLUTO(1);
   }
   nlines = 0;
@@ -113,13 +113,13 @@ char *ParamFileGet (const char *label, int pos)
     if (nwords > 0 && strcmp(words[0],label) == 0){  /* check if 1st word  */
       if (pos <= nwords) return words[pos];          /* matches label      */
       else {
-        printf ("! ParamFileGet: field # %d does not exist\n",pos);
+        printf ("! ParamFileGet(): field # %d does not exist\n",pos);
         QUIT_PLUTO(1);
       }
     }
   }
 
-  printf ("! ParamFileGet: label '%s' was not found\n",label);
+  printf ("! ParamFileGet(): label '%s' was not found\n",label);
   QUIT_PLUTO(1);
 
   return NULL;    

@@ -1,7 +1,0 @@
-Additional tools
---------------------------------
-
-.. currentmodule:: pyPLUTO
-
-.. autoclass:: Tools
-   :members:

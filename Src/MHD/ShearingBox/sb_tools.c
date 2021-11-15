@@ -25,9 +25,9 @@
   In serial or when there's only 1 processor along y, the 
   interpolation function does all the job (integer+fractional).
     
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \authors A. Mignone (mignone@to.infn.it)\n
            G. Muscianisi (g.musicanisi@cineca.it)
-  \date    Nov 13, 2015
+  \date    July 08, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -57,7 +57,7 @@ void SB_SetBoundaryVar(double ***U, RBox *box, int side, double t, Grid *grid)
   static double *qL, *qR;
 
   if (side != X1_BEG && side != X1_END){
-    print ("! SB_SetBoundaryVar: wrong boundary\n");
+    printLog ("! SB_SetBoundaryVar(): wrong boundary\n");
     QUIT_PLUTO(1);
   }
 
@@ -66,6 +66,7 @@ void SB_SetBoundaryVar(double ***U, RBox *box, int side, double t, Grid *grid)
     qR = ARRAY_1D(NMAX_POINT, double);
   }
 
+#if INCLUDE_JDIR == YES
   sb_Ly = g_domEnd[JDIR] - g_domBeg[JDIR];
 
 /* -- Get number of ghost zones to the left and to the right --*/
@@ -105,7 +106,9 @@ void SB_SetBoundaryVar(double ***U, RBox *box, int side, double t, Grid *grid)
 /* -- Exchange values between processors to fill ghost zones -- */
 
   SB_FillBoundaryGhost (U, box, nghL, nghR, grid);
+#else
   return;
+#endif /* INCLUDE_JDIR == YES */
 }
 
 #ifdef PARALLEL
@@ -163,8 +166,8 @@ void SB_ShiftBoundaryVar(double ***q, RBox *box, int side, double t, Grid *grid)
   ngh_y = grid->nghost[JDIR];
   if (snd_buf == NULL){
     int nz = NX3_TOT;
-    #if defined STAGGERED_MHD && DIMENSIONS == 3
-     nz += 1;
+    #if (defined STAGGERED_MHD) && INCLUDE_KDIR
+    nz += 1;
     #endif
     snd_buf = ARRAY_1D(nz*NX2_TOT*ngh_x, double);
     rcv_buf = ARRAY_1D(nz*NX2_TOT*ngh_x, double);
@@ -209,14 +212,14 @@ void SB_ShiftBoundaryVar(double ***q, RBox *box, int side, double t, Grid *grid)
     buf1.jbeg = 0; buf1.jend = ny_buf1 - 1;
     buf2.jbeg = 0; buf2.jend = ny_buf2 - 1;
 
-    for (i = 0; i < DIMENSIONS; i++) coords[i] = grid->rank_coord[i];
+    DIM_LOOP(i) coords[i] = grid->rank_coord[i];
     coords[JDIR] += shift_coordy_div;
     MPI_Cart_rank(cartcomm, coords, &dst1);
     
     coords[JDIR] += 1;
     MPI_Cart_rank(cartcomm, coords, &dst2);
     
-    for (i = 0; i < DIMENSIONS; i++) coords[i] = grid->rank_coord[i];
+    DIM_LOOP(i) coords[i] = grid->rank_coord[i];
     coords[JDIR] -= shift_coordy_div;
     MPI_Cart_rank(cartcomm, coords, &src1);
 
@@ -231,14 +234,14 @@ void SB_ShiftBoundaryVar(double ***q, RBox *box, int side, double t, Grid *grid)
     buf1.jbeg = 0; buf1.jend = ny_buf1 - 1;
     buf2.jbeg = 0; buf2.jend = ny_buf2 - 1;
 
-    for (i = 0; i < DIMENSIONS; i++) coords[i] = grid->rank_coord[i];
+    DIM_LOOP(i) coords[i] = grid->rank_coord[i];
     coords[JDIR] -= shift_coordy_div;
     MPI_Cart_rank(cartcomm, coords, &dst2);
     
     coords[JDIR] -= 1;
     MPI_Cart_rank(cartcomm, coords, &dst1);
     
-    for (i = 0; i < DIMENSIONS; i++) coords[i] = grid->rank_coord[i];
+    DIM_LOOP(i) coords[i] = grid->rank_coord[i];
     coords[JDIR] += shift_coordy_div;
     MPI_Cart_rank(cartcomm, coords, &src2);
 
@@ -246,7 +249,7 @@ void SB_ShiftBoundaryVar(double ***q, RBox *box, int side, double t, Grid *grid)
     MPI_Cart_rank(cartcomm, coords, &src1);
 
   }else{
-    print ("! SB_ShiftBoundaryVar: wrong boundary\n");
+    printLog ("! SB_ShiftBoundaryVar: wrong boundary\n");
     QUIT_PLUTO(1);
   }
 
@@ -304,10 +307,11 @@ void SB_FillBoundaryGhost(double ***U, RBox *box,
  * \param [in,out] box the RBox structure containing the grid indices in 
  *                     the x and z directions. Indices in the y-directions 
  *                     are reset here for convenience. 
- * \param [in] nghL number of ghost zones on the left 
- * \param [in] nghR number of ghost zones on the right
- * \param [in] grid pointer to an 
- * \note nghL and nghR can be different for staggered fields like BY.
+ * \param [in] nghL    number of ghost zones on the left 
+ * \param [in] nghR    number of ghost zones on the right
+ * \param [in] grid    pointer to a Grid structure
+ *
+ * \note nghL and nghR can be different for staggered fields like BX2.
  *
  * \return This function has no return value.
  *********************************************************************** */
@@ -334,6 +338,7 @@ void SB_FillBoundaryGhost(double ***U, RBox *box,
     Impose periodic b.c. if there's only 1 processor along y
    ------------------------------------------------------------------ */
 
+  #if INCLUDE_JDIR
   if (grid->nproc[JDIR] == 1){
     box->jbeg = JBEG - nghL; 
     box->jend = JBEG - 1;
@@ -346,6 +351,7 @@ void SB_FillBoundaryGhost(double ***U, RBox *box,
     box->jbeg = jb0; box->jend = je0;
     return;
   }
+  #endif
  
 #ifdef PARALLEL
 
@@ -373,7 +379,7 @@ void SB_FillBoundaryGhost(double ***U, RBox *box,
 
     AL_Get_cart_comm(SZ, &cartcomm);
 
-    for (i = 0; i < DIMENSIONS; i++) coords[i] = grid->rank_coord[i];
+    DIM_LOOP(i) coords[i] = grid->rank_coord[i];
     coords[JDIR] -= 1;
     MPI_Cart_rank(cartcomm, coords, &dst1);
 
@@ -449,13 +455,13 @@ void SB_ShearingInterp (double *qL, double *qR, double t, int side,
  *  or just by \f$ \epsilon \f$ (otherwise) by advecting the initial
  *  profile of qR (when side == X1_BEG) or qL (when side == X1_END).
  * 
- * \param [in,out] qL 1D array containing the un-shifted values on the 
- *                 left boundary
- * \param [in,out] qR 1D array containing the un-shifted values on the
- *                 right boundary
- * \param [in] t simulation time
- * \param [in] side boundary side
- * \param [in] grid pointer to an array of Grid structures
+ * \param [in,out] qL    1D array containing the un-shifted values on the 
+ *                       left boundary
+ * \param [in,out] qR    1D array containing the un-shifted values on the
+ *                       right boundary
+ * \param [in]     t     simulation time
+ * \param [in]     side  boundary side
+ * \param [in]     grid  pointer to an array of Grid structures
  * 
  * \return This function has no return value.
  *********************************************************************** */
@@ -521,7 +527,7 @@ void SB_ShearingInterp (double *qL, double *qR, double t, int side,
                            conservative MUSCL-Hancock scheme 
                           ------------------------------------------ */
 /*   vanleer_lim (dq + 1, dq, dql, JBEG - 1, JEND + 1, grid);  */
-   for (j = JBEG - 1; j <= JEND + 1; j++) dql[j] = VAN_LEER(dq[j+1], dq[j]);
+   for (j = JBEG - 1; j <= JEND + 1; j++) dql[j] = VANLEER_LIMITER(dq[j+1], dq[j]);
 
    if (side == X1_BEG){
      for (j = JBEG - 1; j <= JEND; j++) {
@@ -552,7 +558,7 @@ void SB_ShearingInterp (double *qL, double *qR, double t, int side,
    }       
     
 /*    mc_lim (dq + 1, dq, dql, JBEG - 2, JEND + 2, grid);  */
-   for (j = JBEG - 2; j <= JEND + 2; j++) dql[j] = MC(dq[j+1], dq[j]);
+   for (j = JBEG - 2; j <= JEND + 2; j++) dql[j] = MC_LIMITER(dq[j+1], dq[j]);
    for (j = JBEG - 1; j <= JEND + 1; j++){
      qp[j] = 0.5*(q_from[j] + q_from[j+1]) - (dql[j+1] - dql[j])/6.0;
      qm[j] = 0.5*(q_from[j] + q_from[j-1]) - (dql[j]   - dql[j-1])/6.0;
@@ -590,7 +596,7 @@ void SB_ShearingInterp (double *qL, double *qR, double t, int side,
    
   #else
   
-   print ("! SB_ORDER should lie between 1 and 3\n");
+   printLog ("! SB_ORDER should lie between 1 and 3\n");
    QUIT_PLUTO(1);
    
   #endif      
@@ -648,7 +654,7 @@ int SB_JSHIFT (int jc)
   if (jj < JBEG) jj += (int)NX2;
 
   if (jj < JBEG || jj > JEND){
-    print (" ! j index out of range in JSHIFT  %d, %d\n", jc, jj);
+    printLog (" ! j index out of range in JSHIFT  %d, %d\n", jc, jj);
     QUIT_PLUTO(1);
   }
 

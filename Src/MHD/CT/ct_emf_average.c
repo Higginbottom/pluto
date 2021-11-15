@@ -4,7 +4,7 @@
   \brief  Collects different EMF averaging schemes.
 
   \author A. Mignone
-  \date   March 1, 2017
+  \date   Dec 09, 2020
 */  
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -37,14 +37,32 @@ void CT_EMF_ArithmeticAverage (const EMF *Z1, const double w)
   for (k = Z1->kbeg; k <= Z1->kend; k++){
   for (j = Z1->jbeg; j <= Z1->jend; j++){
   for (i = Z1->ibeg; i <= Z1->iend; i++){      
+    #if INCLUDE_JDIR && INCLUDE_KDIR
+    Z1->Ex1e[k][j][i] = w*(  Z1->exk[k][j][i] + Z1->exk[k][j+1][i] 
+                           + Z1->exj[k][j][i] + Z1->exj[k+1][j][i]);
+    #endif
+
+    #if INCLUDE_IDIR && INCLUDE_KDIR
+    Z1->Ex2e[k][j][i] = w*(  Z1->eyi[k][j][i] + Z1->eyi[k+1][j][i] 
+                           + Z1->eyk[k][j][i] + Z1->eyk[k][j][i+1]);
+    #endif
+
+    #if INCLUDE_IDIR && INCLUDE_JDIR
+    Z1->Ex3e[k][j][i] = w*(  Z1->ezi[k][j][i] + Z1->ezi[k][j+1][i] 
+                           + Z1->ezj[k][j][i] + Z1->ezj[k][j][i+1]);
+    #endif
+
+    #if (PHYSICS == ResRMHD) && (DIVE_CONTROL == CONSTRAINED_TRANSPORT)
     #if DIMENSIONS == 3
-     Z1->ex[k][j][i] = w*(  Z1->exk[k][j][i] + Z1->exk[k][j + 1][i] 
-                          + Z1->exj[k][j][i] + Z1->exj[k + 1][j][i]);
-     Z1->ey[k][j][i] = w*(  Z1->eyi[k][j][i] + Z1->eyi[k + 1][j][i] 
-                          + Z1->eyk[k][j][i] + Z1->eyk[k][j][i + 1]);
+    Z1->Bx1e[k][j][i] = w*(  Z1->Bxk[k][j][i] + Z1->Bxk[k][j+1][i] 
+                           + Z1->Bxj[k][j][i] + Z1->Bxj[k+1][j][i]);
+    Z1->Bx2e[k][j][i] = w*(  Z1->Byi[k][j][i] + Z1->Byi[k+1][j][i] 
+                           + Z1->Byk[k][j][i] + Z1->Byk[k][j][i+1]);
     #endif 
-    Z1->ez[k][j][i] = w*(  Z1->ezi[k][j][i] + Z1->ezi[k][j + 1][i] 
-                         + Z1->ezj[k][j][i] + Z1->ezj[k][j][i + 1]);
+    Z1->Bx3e[k][j][i] = w*(  Z1->Bzi[k][j][i] + Z1->Bzi[k][j+1][i] 
+                           + Z1->Bzj[k][j][i] + Z1->Bzj[k][j][i+1]);
+    #endif
+    
   }}}
 }
 
@@ -91,15 +109,15 @@ void CT_EMF_IntegrateToCorner (const Data *d, const EMF *emf, Grid *grid)
   if (g_intStage == 1) return; /* -- not needed in predictor step of CTU -- */
 #endif
 
-  for (k = emf->kbeg; k <= emf->kend + KOFFSET; k++){
-  for (j = emf->jbeg; j <= emf->jend + 1      ; j++){
-  for (i = emf->ibeg; i <= emf->iend + 1      ; i++){      
+  for (k = emf->kbeg; k <= emf->kend + INCLUDE_KDIR; k++){
+  for (j = emf->jbeg; j <= emf->jend + INCLUDE_JDIR; j++){
+  for (i = emf->ibeg; i <= emf->iend + INCLUDE_IDIR; i++){      
 
-    D_EXPAND(sx = emf->svx[k][j][i];  ,
+    DIM_EXPAND(sx = emf->svx[k][j][i];  ,
              sy = emf->svy[k][j][i];  ,
              sz = emf->svz[k][j][i];)
 
-    D_EXPAND(iu = sx > 0 ? i:i+1;  ,  /* -- upwind index -- */
+    DIM_EXPAND(iu = sx > 0 ? i:i+1;  ,  /* -- upwind index -- */
              ju = sy > 0 ? j:j+1;  ,
              ku = sz > 0 ? k:k+1;)
 
@@ -108,19 +126,23 @@ void CT_EMF_IntegrateToCorner (const Data *d, const EMF *emf, Grid *grid)
     ---------------------------------------- */
 
     if (sx == 0) {
-      emf->ez[k][j][i]   += 0.5*(DEZ_DYP(k,j,i) + DEZ_DYP(k,j,i+1));
-      emf->ez[k][j-1][i] -= 0.5*(DEZ_DYM(k,j,i) + DEZ_DYM(k,j,i+1));
-#if DIMENSIONS == 3
-      emf->ey[k][j][i]   += 0.5*(DEY_DZP(k,j,i) + DEY_DZP(k,j,i+1));
-      emf->ey[k-1][j][i] -= 0.5*(DEY_DZM(k,j,i) + DEY_DZM(k,j,i+1));
-#endif
+      #if INCLUDE_IDIR && INCLUDE_JDIR
+      emf->Ex3e[k][j][i]   += 0.5*(DEZ_DYP(k,j,i) + DEZ_DYP(k,j,i+1));
+      emf->Ex3e[k][j-1][i] -= 0.5*(DEZ_DYM(k,j,i) + DEZ_DYM(k,j,i+1));
+      #endif
+      #if INCLUDE_IDIR && INCLUDE_KDIR
+      emf->Ex2e[k][j][i]   += 0.5*(DEY_DZP(k,j,i) + DEY_DZP(k,j,i+1));
+      emf->Ex2e[k-1][j][i] -= 0.5*(DEY_DZM(k,j,i) + DEY_DZM(k,j,i+1));
+      #endif
     }else{
-      emf->ez[k][j][i]   += DEZ_DYP(k,j,iu);
-      emf->ez[k][j-1][i] -= DEZ_DYM(k,j,iu);
-#if DIMENSIONS == 3
-      emf->ey[k][j][i]   += DEY_DZP(k,j,iu);
-      emf->ey[k-1][j][i] -= DEY_DZM(k,j,iu);
-#endif
+      #if INCLUDE_IDIR && INCLUDE_JDIR
+      emf->Ex3e[k][j][i]   += DEZ_DYP(k,j,iu);
+      emf->Ex3e[k][j-1][i] -= DEZ_DYM(k,j,iu);
+      #endif
+      #if INCLUDE_IDIR && INCLUDE_KDIR
+      emf->Ex2e[k][j][i]   += DEY_DZP(k,j,iu);
+      emf->Ex2e[k-1][j][i] -= DEY_DZM(k,j,iu);
+      #endif
     }
 
  /* ----------------------------------------
@@ -128,19 +150,23 @@ void CT_EMF_IntegrateToCorner (const Data *d, const EMF *emf, Grid *grid)
     ---------------------------------------- */
 
     if (sy == 0) {
-      emf->ez[k][j][i]   += 0.5*(DEZ_DXP(k,j,i) + DEZ_DXP(k,j+1,i));
-      emf->ez[k][j][i-1] -= 0.5*(DEZ_DXM(k,j,i) + DEZ_DXM(k,j+1,i));
-#if DIMENSIONS == 3
-      emf->ex[k][j][i]   += 0.5*(DEX_DZP(k,j,i) + DEX_DZP(k,j+1,i));
-      emf->ex[k-1][j][i] -= 0.5*(DEX_DZM(k,j,i) + DEX_DZM(k,j+1,i));
-#endif
+      #if INCLUDE_IDIR && INCLUDE_JDIR
+      emf->Ex3e[k][j][i]   += 0.5*(DEZ_DXP(k,j,i) + DEZ_DXP(k,j+1,i));
+      emf->Ex3e[k][j][i-1] -= 0.5*(DEZ_DXM(k,j,i) + DEZ_DXM(k,j+1,i));
+      #endif
+      #if INCLUDE_JDIR && INCLUDE_KDIR
+      emf->Ex1e[k][j][i]   += 0.5*(DEX_DZP(k,j,i) + DEX_DZP(k,j+1,i));
+      emf->Ex1e[k-1][j][i] -= 0.5*(DEX_DZM(k,j,i) + DEX_DZM(k,j+1,i));
+      #endif
     }else{
-      emf->ez[k][j][i]   += DEZ_DXP(k,ju,i);
-      emf->ez[k][j][i-1] -= DEZ_DXM(k,ju,i);
-#if DIMENSIONS == 3
-      emf->ex[k][j][i]   += DEX_DZP(k,ju,i);
-      emf->ex[k-1][j][i] -= DEX_DZM(k,ju,i);
-#endif
+      #if INCLUDE_IDIR && INCLUDE_JDIR
+      emf->Ex3e[k][j][i]   += DEZ_DXP(k,ju,i);
+      emf->Ex3e[k][j][i-1] -= DEZ_DXM(k,ju,i);
+      #endif
+      #if INCLUDE_JDIR && INCLUDE_KDIR
+      emf->Ex1e[k][j][i]   += DEX_DZP(k,ju,i);
+      emf->Ex1e[k-1][j][i] -= DEX_DZM(k,ju,i);
+      #endif
     }
 
  /* ----------------------------------------
@@ -149,15 +175,23 @@ void CT_EMF_IntegrateToCorner (const Data *d, const EMF *emf, Grid *grid)
 
 #if DIMENSIONS == 3
     if (sz == 0) {
-      emf->ex[k][j][i]   += 0.5*(DEX_DYP(k,j,i) + DEX_DYP(k+1,j,i));
-      emf->ex[k][j-1][i] -= 0.5*(DEX_DYM(k,j,i) + DEX_DYM(k+1,j,i));
-      emf->ey[k][j][i]   += 0.5*(DEY_DXP(k,j,i) + DEY_DXP(k+1,j,i));
-      emf->ey[k][j][i-1] -= 0.5*(DEY_DXM(k,j,i) + DEY_DXM(k+1,j,i));
+      #if INCLUDE_JDIR && INCLUDE_KDIR
+      emf->Ex1e[k][j][i]   += 0.5*(DEX_DYP(k,j,i) + DEX_DYP(k+1,j,i));
+      emf->Ex1e[k][j-1][i] -= 0.5*(DEX_DYM(k,j,i) + DEX_DYM(k+1,j,i));
+      #endif
+      #if INCLUDE_IDIR && INCLUDE_KDIR
+      emf->Ex2e[k][j][i]   += 0.5*(DEY_DXP(k,j,i) + DEY_DXP(k+1,j,i));
+      emf->Ex2e[k][j][i-1] -= 0.5*(DEY_DXM(k,j,i) + DEY_DXM(k+1,j,i));
+      #endif
     }else{
-      emf->ex[k][j][i]   += DEX_DYP(ku,j,i);
-      emf->ex[k][j-1][i] -= DEX_DYM(ku,j,i);
-      emf->ey[k][j][i]   += DEY_DXP(ku,j,i);
-      emf->ey[k][j][i-1] -= DEY_DXM(ku,j,i);
+      #if INCLUDE_JDIR && INCLUDE_KDIR
+      emf->Ex1e[k][j][i]   += DEX_DYP(ku,j,i);
+      emf->Ex1e[k][j-1][i] -= DEX_DYM(ku,j,i);
+      #endif
+      #if INCLUDE_IDIR && INCLUDE_KDIR
+      emf->Ex2e[k][j][i]   += DEY_DXP(ku,j,i);
+      emf->Ex2e[k][j][i-1] -= DEY_DXM(ku,j,i);
+      #endif
     }
 #endif
   }}}
@@ -176,184 +210,531 @@ void CT_EMF_IntegrateToCorner (const Data *d, const EMF *emf, Grid *grid)
 #undef DEZ_DYM
 
 /* ********************************************************************* */
-void CT_EMF_HLL_Solver (const Data *d, const EMF *emf, Grid *grid)
+void CT_EMF_Riemann2D(const Data *d, const EMF *emf, Grid *grid)
 /*!
- *  Solve 2-D Riemann problem using the 2D HLL Riemann flux 
- *  formula of Londrillo & Del Zanna (2004), JCP, eq. 56.
- *  Here N, W, E, S refer to the following configuration:
- *  \verbatim
- *                    |
- *                    N
- *                 NW | NE
- *                    | 
- *               --W--+--E--
- *                    | 
- *                 SW | SE
- *                    S
- *                    |
- * \endverbatim
+ * Reconstruct the electric field to zone edge using the general
+ * UCT formalism,
  *
- * \param [in]      d     pointer to PLUTO Data structure
- * \param [in]      grid  pointer to Grid structure;
+ * E = (aL*vL[i]*bL[i] + aR*vR[i]*bR[i]) +- (dR*bR - dL*bL)
+ *
+ * where the a and d coefficients are retrieved from the 1D Riemann solver
+ * at zone edges.
+ * This function is used by UCT_HLL, UCT_HLLD and UCT_GFORCE
  *
  *********************************************************************** */
-
-/* -- 2D interpolation macro for integrating the velocity 
-      from the cell center to the edge                     -- */
-#define dPP(a,x,y,i,j,k) (a[k][j][i] + 0.5*(d##a##_##d##x[k][j][i] + \
-                                            d##a##_##d##y[k][j][i]))
-
-#define dPM(a,x,y,i,j,k) (a[k][j][i] + 0.5*(d##a##_##d##x[k][j][i] - \
-                                            d##a##_##d##y[k][j][i]))
-
-#define dMM(a,x,y,i,j,k) (a[k][j][i] - 0.5*(d##a##_##d##x[k][j][i] + \
-                                            d##a##_##d##y[k][j][i]))
-
-#define dMP(a,x,y,i,j,k) (a[k][j][i] - 0.5*(d##a##_##d##x[k][j][i] - \
-                                            d##a##_##d##y[k][j][i]))
-
-/* -- 1D interpolation macro for integrating the staggered  
-      magnetic field from the face to the edge              -- */
-#define dP(a,x,i,j,k) (a[k][j][i] + 0.5*(d##a##_##d##x[k][j][i]))
-#define dM(a,x,i,j,k) (a[k][j][i] - 0.5*(d##a##_##d##x[k][j][i]))
-
+#define UPWIND_AVERAGE  NO
 {
-  int i,j,k;
-  int ip, jp, kp;
-  double a_xp, a_yp, a_zp;
-  double a_xm, a_ym, a_zm;
-
-  double eSE, eSW, eNW, eNE;
-  double bS, bN, bW, bE;
-
-  double *x,  *y,  *z;
-  double *xr, *yr, *zr;
+  int i, j, k;
+#if RECONSTRUCTION == LINEAR
+  #if LIMITER == DEFAULT
+  int recV = VANLEER_LIM;
+  #else
+  int recV = LIMITER;
+  #endif
+  int recB = MC_LIM;
+#else
+  int recV = RECONSTRUCTION;
+  int recB = RECONSTRUCTION;
+#endif
+  DIM_EXPAND(double ***Bx1s = d->Vs[BX1s];  ,
+             double ***Bx2s = d->Vs[BX2s];  ,
+             double ***Bx3s = d->Vs[BX3s];)
+#if BACKGROUND_FIELD == YES
   double B0[3];
+  double *x  = grid->x[IDIR],  *y  = grid->x[JDIR],  *z  = grid->x[KDIR];
+  double *xr = grid->xr[IDIR], *yr = grid->xr[JDIR], *zr = grid->xr[KDIR];
+#endif
 
-  double ***bx, ***by, ***bz; 
-  double ***vx, ***vy, ***vz;
-  double   ***dvx_dx, ***dvx_dy, ***dvx_dz;
-  double   ***dvy_dx, ***dvy_dy, ***dvy_dz;
-  double   ***dvz_dx, ***dvz_dy, ***dvz_dz;
+  static uint16_t *flag;
+  static double *vL, *vR, *bL, *bR;
+  double SL, SR, aL, aR, dL, dR, phi;
+#if UPWIND_AVERAGE == YES
+  double alphaR, alphaL, wN, wS, scrh;
+#endif
 
-  double   ***dbx_dy, ***dbx_dz;
-  double   ***dby_dx, ***dby_dz;
-  double   ***dbz_dx, ***dbz_dy;
+  if (bL == NULL) {
+    vL   = ARRAY_1D(NMAX_POINT, double);
+    vR   = ARRAY_1D(NMAX_POINT, double);
+    bL   = ARRAY_1D(NMAX_POINT, double);
+    bR   = ARRAY_1D(NMAX_POINT, double);
+    flag = ARRAY_1D(NMAX_POINT, uint16_t);
+  }
 
-  D_EXPAND(vx = d->Vc[VX1]; bx = d->Vs[BX1s];  ,
-           vy = d->Vc[VX2]; by = d->Vs[BX2s];  ,
-           vz = d->Vc[VX3]; bz = d->Vs[BX3s];)
+/* --------------------------------------------------------
+   X1. Reconstruct along the x1-direction:
 
-  dvx_dx = emf->dvx_dx; dvx_dy = emf->dvx_dy; dvx_dz = emf->dvx_dz;
-  dvy_dx = emf->dvy_dx; dvy_dy = emf->dvy_dy; dvy_dz = emf->dvy_dz;
-  dvz_dx = emf->dvz_dx; dvz_dy = emf->dvz_dy; dvz_dz = emf->dvz_dz;
- 
-                        dbx_dy = emf->dbx_dy; dbx_dz = emf->dbx_dz;
-  dby_dx = emf->dby_dx;                       dby_dz = emf->dby_dz;
-  dbz_dx = emf->dbz_dx; dbz_dy = emf->dbz_dy;                      
+     o -vx(j+1/2) and By(j+1/2) --> (i+1/2, j+1/2, k)
+     o +vx(k+1/2) and Bz(k+1/2) --> (i+1/2, j, k+1/2)
+   -------------------------------------------------------- */
+   
+  #if INCLUDE_IDIR
+  for (k = emf->kbeg; k <= emf->kend; k++){ 
+  for (j = emf->jbeg; j <= emf->jend; j++){
 
-  x  = grid->x[IDIR];  y  = grid->x[JDIR];  z  = grid->x[KDIR];
-  xr = grid->xr[IDIR]; yr = grid->xr[JDIR]; zr = grid->xr[KDIR];
-
-  for (k = emf->kbeg; k <= emf->kend; k++){  kp = k + 1;
-  for (j = emf->jbeg; j <= emf->jend; j++){  jp = j + 1;
-  for (i = emf->ibeg; i <= emf->iend; i++){  ip = i + 1;
-
-  /* ------------------------------------------- 
-        EMF: Z component at (i+1/2, j+1/2, k)
-     ------------------------------------------- */
-
-    a_xp = MAX(emf->SxR[k][j][i], emf->SxR[k][jp][i]);
-    a_xm = MAX(emf->SxL[k][j][i], emf->SxL[k][jp][i]);
-    a_yp = MAX(emf->SyR[k][j][i], emf->SyR[k][j][ip]);
-    a_ym = MAX(emf->SyL[k][j][i], emf->SyL[k][j][ip]);
-
-    bS = dP(bx, y, i , j , k); bW = dP(by, x, i , j , k);
-    bN = dM(bx, y, i , jp, k); bE = dM(by, x, ip, j , k);
- 
-    #if BACKGROUND_FIELD == YES
-     BackgroundField (xr[i], yr[j], z[k], B0);
-     bS += B0[0]; bW += B0[1];
-     bN += B0[0]; bE += B0[1];
+    #if INCLUDE_JDIR
+    #if SHOCK_FLATTENING == MULTID
+    for (i = emf->ibeg; i <= emf->iend+1; i++){   /* Interface flag */
+      flag[i] = d->flag[k][j][i] | d->flag[k][j+1][i];
+    }
     #endif
+    ArrayReconstruct (emf->ezj, flag, i, j, k, IDIR, vL, vR, recV, grid); /* -vx */
+    ArrayReconstruct (Bx2s,     flag, i, j, k, IDIR, bL, bR, recB, grid); 
+    for (i = emf->ibeg; i <= emf->iend; i++){
+      #if BACKGROUND_FIELD == YES
+      BackgroundField (xr[i], yr[j], z[k], B0);
+      bR[i] += B0[JDIR];
+      bL[i] += B0[JDIR];
+      #endif
 
-    eSW = dPP(vy,x,y,i ,j ,k)*bS - dPP(vx,x,y,i ,j ,k)*bW;
-    eSE = dMP(vy,x,y,ip,j ,k)*bS - dMP(vx,x,y,ip,j ,k)*bE;
-    eNE = dMM(vy,x,y,ip,jp,k)*bN - dMM(vx,x,y,ip,jp,k)*bE;
-    eNW = dPM(vy,x,y,i ,jp,k)*bN - dPM(vx,x,y,i ,jp,k)*bW;
+      #if CT_EMF_AVERAGE == UCT_GFORCE
+      aL = aR = 0.5;
+      dL = 0.5*(emf->dxL[k][j][i] + emf->dxL[k][j+1][i]);
+      dR = 0.5*(emf->dxR[k][j][i] + emf->dxR[k][j+1][i]);
+      #else
+      #if UPWIND_AVERAGE == YES
+      alphaR = MAX(emf->SyR[k][j][i], emf->SyR[k][j][i+1]);
+      alphaR = MAX(0,alphaR);
+      alphaL = MIN(emf->SyL[k][j][i], emf->SyL[k][j][i+1]);
+      alphaL = MIN(0,alphaL);
+      
+      scrh = 1.0/(alphaR - alphaL);
+      wS =  alphaR*scrh;
+      wN = -alphaL*scrh;
+      aL = wS*emf->axL[k][j][i] + wN*emf->axL[k][j+1][i];
+      aR = wS*emf->axR[k][j][i] + wN*emf->axR[k][j+1][i];
+      dL = wS*emf->dxL[k][j][i] + wN*emf->dxL[k][j+1][i];
+      dR = wS*emf->dxR[k][j][i] + wN*emf->dxR[k][j+1][i];
+      #else
+      aL = 0.5*(emf->axL[k][j][i] + emf->axL[k][j+1][i]);
+      aR = 0.5*(emf->axR[k][j][i] + emf->axR[k][j+1][i]);
+      dL = 0.5*(emf->dxL[k][j][i] + emf->dxL[k][j+1][i]);
+      dR = 0.5*(emf->dxR[k][j][i] + emf->dxR[k][j+1][i]);
+      #endif
+      #endif
 
-    emf->ez[k][j][i] =   a_xp*a_yp*eSW + a_xm*a_yp*eSE 
-                       + a_xm*a_ym*eNE + a_xp*a_ym*eNW;
-    emf->ez[k][j][i] /= (a_xp + a_xm)*(a_yp + a_ym);
-    emf->ez[k][j][i] -= a_yp*a_ym*(bN - bS)/(a_yp + a_ym);
-    emf->ez[k][j][i] += a_xp*a_xm*(bE - bW)/(a_xp + a_xm);
+      phi = dR*bR[i] - dL*bL[i];
+      emf->Ex3e[k][j][i] = (aL*vL[i]*bL[i] + aR*vR[i]*bR[i]) + phi;
 
-  /* ------------------------------------------- 
-        EMF: X component at (i, j+1/2, k+1/2)
-     ------------------------------------------- */
+    }
+    #endif  /* INCLUDE_JDIR */
 
-    #if DIMENSIONS == 3
-     a_xp = MAX(emf->SyR[k][j][i], emf->SyR[kp][j][i]);
-     a_xm = MAX(emf->SyL[k][j][i], emf->SyL[kp][j][i]);
-     a_yp = MAX(emf->SzR[k][j][i], emf->SzR[k][jp][i]);
-     a_ym = MAX(emf->SzL[k][j][i], emf->SzL[k][jp][i]);
+    #if INCLUDE_KDIR
+    #if SHOCK_FLATTENING == MULTID
+    for (i = emf->ibeg; i <= emf->iend+1; i++){   /* Interface flag */
+      flag[i] = d->flag[k][j][i] | d->flag[k+1][j][i];
+    }
+    #endif
+    ArrayReconstruct (emf->eyk, flag, i, j, k, IDIR, vL, vR, recV, grid); /* +vx */
+    ArrayReconstruct (Bx3s,     flag, i, j, k, IDIR, bL, bR, recB, grid); 
+    for (i = emf->ibeg; i <= emf->iend; i++){
+      #if BACKGROUND_FIELD == YES
+      BackgroundField (xr[i], yr[j], z[k], B0);
+      bR[i] += B0[KDIR];
+      bL[i] += B0[KDIR];
+      #endif
 
-     bS = dP(by, z, i, j, k ); bW = dP(bz, y, i, j , k);
-     bN = dM(by, z, i, j, kp); bE = dM(bz, y, i, jp, k);
+      #if CT_EMF_AVERAGE == UCT_GFORCE
+      aL  = aR = 0.5;
+      dL = 0.5*(emf->dxL[k][j][i] + emf->dxL[k+1][j][i]);
+      dR = 0.5*(emf->dxR[k][j][i] + emf->dxR[k+1][j][i]);
+      #else
+      #if UPWIND_AVERAGE == YES
+      alphaR = MAX(emf->SzR[k][j][i], emf->SzR[k][j][i+1]);
+      alphaR = MAX(0,alphaR);
+      alphaL = MIN(emf->SzL[k][j][i], emf->SzL[k][j][i+1]);
+      alphaL = MIN(0,alphaL);
+      
+      scrh = 1.0/(alphaR - alphaL);
+      wS =  alphaR*scrh;
+      wN = -alphaL*scrh;
+      aL = wS*emf->axL[k][j][i] + wN*emf->axL[k+1][j][i];
+      aR = wS*emf->axR[k][j][i] + wN*emf->axR[k+1][j][i];
+      dL = wS*emf->dxL[k][j][i] + wN*emf->dxL[k+1][j][i];
+      dR = wS*emf->dxR[k][j][i] + wN*emf->dxR[k+1][j][i];
+      #else
+      aL = 0.5*(emf->axL[k][j][i] + emf->axL[k+1][j][i]);
+      aR = 0.5*(emf->axR[k][j][i] + emf->axR[k+1][j][i]);
+      dL = 0.5*(emf->dxL[k][j][i] + emf->dxL[k+1][j][i]);
+      dR = 0.5*(emf->dxR[k][j][i] + emf->dxR[k+1][j][i]);
+      #endif
+      #endif
 
-     #if BACKGROUND_FIELD == YES
-      BackgroundField (x[i], yr[j], zr[k], B0);
-      bS += B0[1]; bW += B0[2];
-      bN += B0[1]; bE += B0[2];
-     #endif
- 
-     eSW = dPP(vz,y,z,i,j ,k )*bS - dPP(vy,y,z,i ,j ,k )*bW;
-     eSE = dMP(vz,y,z,i,jp,k )*bS - dMP(vy,y,z,i ,jp,k )*bE;
-     eNE = dMM(vz,y,z,i,jp,kp)*bN - dMM(vy,y,z,i ,jp,kp)*bE;
-     eNW = dPM(vz,y,z,i,j ,kp)*bN - dPM(vy,y,z,i ,j ,kp)*bW;  
+      phi = dR*bR[i] - dL*bL[i];
+      emf->Ex2e[k][j][i] = (aL*vL[i]*bL[i] + aR*vR[i]*bR[i]) - phi;
+    }
+    #endif  /* INCLUDE_KDIR */
+  }}
+  #endif
 
-     emf->ex[k][j][i] =   a_xp*a_yp*eSW + a_xm*a_yp*eSE 
-                        + a_xm*a_ym*eNE + a_xp*a_ym*eNW;
-     emf->ex[k][j][i] /= (a_xp + a_xm)*(a_yp + a_ym);
-     emf->ex[k][j][i] -= a_yp*a_ym*(bN - bS)/(a_yp + a_ym);
-     emf->ex[k][j][i] += a_xp*a_xm*(bE - bW)/(a_xp + a_xm);
+/* --------------------------------------------------------
+   X2. Reconstruct along the x2-direction:
 
-  /* ------------------------------------------- 
-        EMF: Y component at (i+1/2, j, k+1/2)
-     ------------------------------------------- */
+     o -vy(k+1/2) and Bz(k+1/2) --> (i, j+1/2, k+1/2)
+     o +vy(i+1/2) and Bx(i+1/2) --> (i+1/2, j+1/2, k)
+   -------------------------------------------------------- */
 
-     a_xp = MAX(emf->SzR[k][j][i], emf->SzR[k][j][ip]);
-     a_xm = MAX(emf->SzL[k][j][i], emf->SzL[k][j][ip]);
-     a_yp = MAX(emf->SxR[k][j][i], emf->SxR[kp][j][i]);
-     a_ym = MAX(emf->SxL[k][j][i], emf->SxL[kp][j][i]);
+  #if INCLUDE_JDIR
+  for (k = emf->kbeg; k <= emf->kend; k++){ 
+  for (i = emf->ibeg; i <= emf->iend; i++){
+  
+    #if INCLUDE_KDIR
+    #if SHOCK_FLATTENING == MULTID
+    for (j = emf->jbeg; j <= emf->jend+1; j++){   /* Interface flag */
+      flag[j] = d->flag[k][j][i] | d->flag[k+1][j][i];
+    }
+    #endif
+    ArrayReconstruct (emf->exk, flag, i, j, k, JDIR, vL, vR, recV, grid);  /* - vy */
+    ArrayReconstruct (Bx3s,     flag, i, j, k, JDIR, bL, bR, recB, grid); 
+    for (j = emf->jbeg; j <= emf->jend; j++){
+      #if BACKGROUND_FIELD == YES
+      BackgroundField (xr[i], yr[j], z[k], B0);
+      bR[j] += B0[KDIR];
+      bL[j] += B0[KDIR];
+      #endif
 
-     bS = dP(bz, x, i , j, k); bW = dP(bx, z, i, j, k);
-     bN = dM(bz, x, ip, j, k); bE = dM(bx, z, i, j, kp);
+      #if CT_EMF_AVERAGE == UCT_GFORCE
+      aL  = aR = 0.5;
+      dL = 0.5*(emf->dyL[k][j][i] + emf->dyL[k+1][j][i]);
+      dR = 0.5*(emf->dyR[k][j][i] + emf->dyR[k+1][j][i]);
+      #else
+      #if UPWIND_AVERAGE == YES
+      alphaR = MAX(emf->SzR[k][j][i], emf->SzR[k][j+1][i]);
+      alphaR = MAX(0,alphaR);
+      alphaL = MIN(emf->SzL[k][j][i], emf->SzL[k][j+1][i]);
+      alphaL = MIN(0,alphaL);
+      
+      scrh = 1.0/(alphaR - alphaL);
+      wS =  alphaR*scrh;
+      wN = -alphaL*scrh;
+      aL = wS*emf->ayL[k][j][i] + wN*emf->ayL[k+1][j][i];
+      aR = wS*emf->ayR[k][j][i] + wN*emf->ayR[k+1][j][i];
+      dL = wS*emf->dyL[k][j][i] + wN*emf->dyL[k+1][j][i];
+      dR = wS*emf->dyR[k][j][i] + wN*emf->dyR[k+1][j][i];
+      #else
+      aL = 0.5*(emf->ayL[k][j][i] + emf->ayL[k+1][j][i]);
+      aR = 0.5*(emf->ayR[k][j][i] + emf->ayR[k+1][j][i]);
+      dL = 0.5*(emf->dyL[k][j][i] + emf->dyL[k+1][j][i]);
+      dR = 0.5*(emf->dyR[k][j][i] + emf->dyR[k+1][j][i]);
+      #endif
+      #endif
 
-     #if BACKGROUND_FIELD == YES
+      phi = dR*bR[j] - dL*bL[j];
+      emf->Ex1e[k][j][i] = (aL*vL[j]*bL[j] + aR*vR[j]*bR[j]) + phi;
+    }
+    #endif /* INCLUDE_KDIR */
+    
+    #if INCLUDE_IDIR
+    #if SHOCK_FLATTENING == MULTID
+    for (j = emf->jbeg; j <= emf->jend+1; j++){   /* Interface flag */
+      flag[j] = d->flag[k][j][i+1] | d->flag[k][j][i];
+    }
+    #endif
+    ArrayReconstruct (emf->ezi, flag, i, j, k, JDIR, vL, vR, recV, grid);  /* + vy */
+    ArrayReconstruct (Bx1s,     flag, i, j, k, JDIR, bL, bR, recB, grid);
+    for (j = emf->jbeg; j <= emf->jend; j++){
+
+      #if BACKGROUND_FIELD == YES
+      BackgroundField (xr[i], yr[j], z[k], B0);
+      bR[j] += B0[IDIR];
+      bL[j] += B0[IDIR];
+      #endif
+
+      #if CT_EMF_AVERAGE == UCT_GFORCE
+      aL  = aR = 0.5;
+      dL = 0.5*(emf->dyL[k][j][i] + emf->dyL[k][j][i+1]);
+      dR = 0.5*(emf->dyR[k][j][i] + emf->dyR[k][j][i+1]);
+      #else
+      #if UPWIND_AVERAGE == YES
+      alphaR = MAX(emf->SxR[k][j][i], emf->SxR[k][j+1][i]);
+      alphaR = MAX(0,alphaR);
+      alphaL = MIN(emf->SxL[k][j][i], emf->SxL[k][j+1][i]);
+      alphaL = MIN(0,alphaL);
+      
+      scrh = 1.0/(alphaR - alphaL);
+      wS =  alphaR*scrh;
+      wN = -alphaL*scrh;
+      aL = wS*emf->ayL[k][j][i] + wN*emf->ayL[k][j][i+1];
+      aR = wS*emf->ayR[k][j][i] + wN*emf->ayR[k][j][i+1];
+      dL = wS*emf->dyL[k][j][i] + wN*emf->dyL[k][j][i+1];
+      dR = wS*emf->dyR[k][j][i] + wN*emf->dyR[k][j][i+1];
+      #else
+      aL = 0.5*(emf->ayL[k][j][i] + emf->ayL[k][j][i+1]);
+      aR = 0.5*(emf->ayR[k][j][i] + emf->ayR[k][j][i+1]);
+      dL = 0.5*(emf->dyL[k][j][i] + emf->dyL[k][j][i+1]);
+      dR = 0.5*(emf->dyR[k][j][i] + emf->dyR[k][j][i+1]);
+      #endif
+      #endif
+
+      phi = dR*bR[j] - dL*bL[j];
+      emf->Ex3e[k][j][i] += (aL*vL[j]*bL[j] + aR*vR[j]*bR[j]) - phi;
+    }
+    #endif /* INCLUDE_IDIR */
+
+  }}
+  #endif
+
+/* --------------------------------------------------------
+   X3. Reconstruct along the x3-direction:
+
+     o -vz(i+1/2) and Bx(i+1/2) --> (i+1/2, j, k+1/2)
+     o +vz(j+1/2) and By(j+1/2) --> (i, j+1/2, k+1/2)
+   -------------------------------------------------------- */
+
+  #if INCLUDE_KDIR
+  for (j = emf->jbeg; j <= emf->jend; j++){ 
+  for (i = emf->ibeg; i <= emf->iend; i++){
+
+    #if INCLUDE_IDIR
+    #if SHOCK_FLATTENING == MULTID
+    for (k = emf->kbeg; k <= emf->kend+1; k++){    /* Interface flag */
+      flag[k] = d->flag[k][j][i] | d->flag[k][j][i+1];
+    }
+    #endif
+    ArrayReconstruct (emf->eyi, flag, i, j, k, KDIR, vL, vR, recV, grid);  /* - vz */
+    ArrayReconstruct (Bx1s,     flag, i, j, k, KDIR, bL, bR, recB, grid);  
+    for (k = emf->kbeg; k <= emf->kend; k++){ 
+      #if BACKGROUND_FIELD == YES
       BackgroundField (xr[i], y[j], zr[k], B0);
-      bS += B0[2]; bW += B0[0];
-      bN += B0[2]; bE += B0[0];
-     #endif
- 
-     eSW = dPP(vx,z,x,i, j,k )*bS - dPP(vz,z,x,i ,j ,k )*bW;
-     eSE = dMP(vx,z,x,i, j,kp)*bS - dMP(vz,z,x,i ,j ,kp)*bE;
-     eNE = dMM(vx,z,x,ip,j,kp)*bN - dMM(vz,z,x,ip,j ,kp)*bE;
-     eNW = dPM(vx,z,x,ip,j,k )*bN - dPM(vz,z,x,ip,j ,k )*bW;
+      bR[k] += B0[IDIR];
+      bL[k] += B0[IDIR];
+      #endif
 
-     emf->ey[k][j][i] =   a_xp*a_yp*eSW + a_xm*a_yp*eSE 
-                        + a_xm*a_ym*eNE + a_xp*a_ym*eNW;
-     emf->ey[k][j][i] /= (a_xp + a_xm)*(a_yp + a_ym);
-     emf->ey[k][j][i] -= a_yp*a_ym*(bN - bS)/(a_yp + a_ym);
-     emf->ey[k][j][i] += a_xp*a_xm*(bE - bW)/(a_xp + a_xm);
-    #endif  /* DIMENSIONS == 3 */
-  }}}
+      #if CT_EMF_AVERAGE == UCT_GFORCE
+      aL  = aR = 0.5;
+      dL = 0.5*(emf->dzL[k][j][i] + emf->dzL[k][j][i+1]);
+      dR = 0.5*(emf->dzR[k][j][i] + emf->dzR[k][j][i+1]);
+      #else 
+      #if UPWIND_AVERAGE == YES
+      alphaR = MAX(emf->SxR[k][j][i], emf->SxR[k+1][j][i]);
+      alphaR = MAX(0,alphaR);
+      alphaL = MIN(emf->SxL[k][j][i], emf->SxL[k+1][j][i]);
+      alphaL = MIN(0,alphaL);
+      
+      scrh = 1.0/(alphaR - alphaL);
+      wS =  alphaR*scrh;
+      wN = -alphaL*scrh;
+      aL = wS*emf->azL[k][j][i] + wN*emf->azL[k][j][i+1];
+      aR = wS*emf->azR[k][j][i] + wN*emf->azR[k][j][i+1];
+      dL = wS*emf->dzL[k][j][i] + wN*emf->dzL[k][j][i+1];
+      dR = wS*emf->dzR[k][j][i] + wN*emf->dzR[k][j][i+1];
+      #else
+      aL = 0.5*(emf->azL[k][j][i] + emf->azL[k][j][i+1]);
+      aR = 0.5*(emf->azR[k][j][i] + emf->azR[k][j][i+1]);
+      dL = 0.5*(emf->dzL[k][j][i] + emf->dzL[k][j][i+1]);
+      dR = 0.5*(emf->dzR[k][j][i] + emf->dzR[k][j][i+1]);
+      #endif
+      #endif
 
+      phi = dR*bR[k] - dL*bL[k];
+      emf->Ex2e[k][j][i] += (aL*vL[k]*bL[k] + aR*vR[k]*bR[k]) + phi;
+    }
+    #endif /* INCLUDE_IDIR */
+
+    #if INCLUDE_JDIR
+    #if SHOCK_FLATTENING == MULTID
+    for (k = emf->kbeg; k <= emf->kend+1; k++){    /* Interface flag */
+      flag[k] = d->flag[k][j][i] | d->flag[k][j+1][i];
+    }
+    #endif
+    ArrayReconstruct (emf->exj, flag, i, j, k, KDIR, vL, vR, recV, grid);   /* + vz */
+    ArrayReconstruct (Bx2s,     flag, i, j, k, KDIR, bL, bR, recB, grid);  
+    for (k = emf->kbeg; k <= emf->kend; k++){ 
+      #if BACKGROUND_FIELD == YES
+      BackgroundField (x[i], yr[j], zr[k], B0);
+      bR[k] += B0[JDIR];
+      bL[k] += B0[JDIR];
+      #endif
+
+      #if CT_EMF_AVERAGE == UCT_GFORCE
+      aL  = aR = 0.5;
+      dL = 0.5*(emf->dzL[k][j][i] + emf->dzL[k][j+1][i]);
+      dR = 0.5*(emf->dzR[k][j][i] + emf->dzR[k][j+1][i]);
+      #else
+      #if UPWIND_AVERAGE == YES
+      alphaR = MAX(emf->SyR[k][j][i], emf->SyR[k+1][j][i]);
+      alphaR = MAX(0,alphaR);
+      alphaL = MIN(emf->SyL[k][j][i], emf->SyL[k+1][j][i]);
+      alphaL = MIN(0,alphaL);
+      
+      scrh = 1.0/(alphaR - alphaL);
+      wS =  alphaR*scrh;
+      wN = -alphaL*scrh;
+      aL = wS*emf->azL[k][j][i] + wN*emf->azL[k][j+1][i];
+      aR = wS*emf->azR[k][j][i] + wN*emf->azR[k][j+1][i];
+      dL = wS*emf->dzL[k][j][i] + wN*emf->dzL[k][j+1][i];
+      dR = wS*emf->dzR[k][j][i] + wN*emf->dzR[k][j+1][i];
+      #else
+      aL = 0.5*(emf->azL[k][j][i] + emf->azL[k][j+1][i]);
+      aR = 0.5*(emf->azR[k][j][i] + emf->azR[k][j+1][i]);
+      dL = 0.5*(emf->dzL[k][j][i] + emf->dzL[k][j+1][i]);
+      dR = 0.5*(emf->dzR[k][j][i] + emf->dzR[k][j+1][i]);
+      #endif
+      #endif
+
+      phi = dR*bR[k] - dL*bL[k];
+      emf->Ex1e[k][j][i] += (aL*vL[k]*bL[k] + aR*vR[k]*bR[k]) - phi;
+    }
+    #endif /* INCLUDE_JDIR */
+  }}
+  #endif
 }
-#undef dPP
-#undef dPM
-#undef dMM
-#undef dMP
-#undef dP
-#undef dM
+#undef UPWIND_AVERAGE
 
+/* ********************************************************************* */
+void CT_EMF_Flux(const Data *d, const EMF *emf, Grid *grid)
+/*!
+ * Reconstruct electric field at faces to the edges.
+ * The electric field interpolated from the 1D Riemann solver and
+ * defined as E = E(pnt) + 2*E(diff), that is, the sum of the smooth
+ * flux term plust \e twice the diffusive part.
+ *********************************************************************** */
+{
+  int i, j, k;
+#if RECONSTRUCTION == LINEAR
+  #if LIMITER == DEFAULT
+  int recE = MC_LIM;
+  int recD = MC_LIM;
+  #else
+  int recE = LIMITER;
+  int recD = LIMITER;
+  #endif
+#else
+  int recE = RECONSTRUCTION;
+  int recD = RECONSTRUCTION;
+#endif
+  DIM_EXPAND(double ***Bx1s = d->Vs[BX1s];  ,
+             double ***Bx2s = d->Vs[BX2s];  ,
+             double ***Bx3s = d->Vs[BX3s];)
+
+  static uint16_t *flag;
+  static double *eL, *eR, *dL, *dR;
+
+  if (eL == NULL) {
+    eL = ARRAY_1D(NMAX_POINT, double);
+    eR = ARRAY_1D(NMAX_POINT, double);
+    dL = ARRAY_1D(NMAX_POINT, double);
+    dR = ARRAY_1D(NMAX_POINT, double);
+    flag = ARRAY_1D(NMAX_POINT, uint16_t);
+  }
+
+/* --------------------------------------------------------
+   X1. Reconstruct along the x1-direction:
+
+     o Ezj(j+1/2) and Dy(j+1/2) --> (i+1/2, j+1/2, k)
+     o Eyk(k+1/2) and Dz(k+1/2) --> (i+1/2, j, k+1/2)
+   -------------------------------------------------------- */
+
+  #if INCLUDE_IDIR
+  for (k = emf->kbeg; k <= emf->kend; k++){ 
+  for (j = emf->jbeg; j <= emf->jend; j++){
+
+    #if INCLUDE_JDIR
+    #if SHOCK_FLATTENING == MULTID
+    for (i = emf->ibeg; i <= emf->iend+1; i++){   /* Interface flag */
+      flag[i] = d->flag[k][j][i] | d->flag[k][j+1][i];
+    }
+    #endif
+    ArrayReconstruct (emf->ezj,     flag, i, j, k, IDIR, eL, eR, recE, grid);
+    ArrayReconstruct (emf->ezj_dff, flag, i, j, k, IDIR, dL, dR, recD, grid);    
+    for (i = emf->ibeg; i <= emf->iend; i++){
+      emf->Ex3e[k][j][i] = 0.25*(eL[i] + eR[i]) + 0.5*(dL[i] + dR[i]);
+    }
+    #endif  /* INCLUDE_JDIR */
+
+    #if INCLUDE_KDIR
+    #if SHOCK_FLATTENING == MULTID
+    for (i = emf->ibeg; i <= emf->iend+1; i++){   /* Interface flag */
+      flag[i] = d->flag[k][j][i] | d->flag[k+1][j][i];
+    }
+    #endif
+    ArrayReconstruct (emf->eyk,     flag, i, j, k, IDIR, eL, eR, recE, grid);
+    ArrayReconstruct (emf->eyk_dff, flag, i, j, k, IDIR, dL, dR, recD, grid);
+    for (i = emf->ibeg; i <= emf->iend; i++){
+      emf->Ex2e[k][j][i] = 0.25*(eL[i] + eR[i]) + 0.5*(dL[i] + dR[i]);
+    }
+    #endif  /* INCLUDE_KDIR */
+
+  }}
+  #endif
+
+/* --------------------------------------------------------
+   X2. Reconstruct along the x2-direction:
+
+     o Exk(k+1/2) and Dz(k+1/2) --> (i, j+1/2, k+1/2)
+     o Ezi(i+1/2) and Dx(i+1/2) --> (i+1/2, j+1/2, k)
+   -------------------------------------------------------- */
+
+  #if INCLUDE_JDIR
+  for (k = emf->kbeg; k <= emf->kend; k++){ 
+  for (i = emf->ibeg; i <= emf->iend; i++){
+
+    #if INCLUDE_KDIR
+    #if SHOCK_FLATTENING == MULTID
+    for (j = emf->jbeg; j <= emf->jend+1; j++){   /* Interface flag */
+      flag[j] = d->flag[k][j][i] | d->flag[k+1][j][i];
+    }
+    #endif
+    ArrayReconstruct (emf->exk,     flag, i, j, k, JDIR, eL, eR, recE, grid);
+    ArrayReconstruct (emf->exk_dff, flag, i, j, k, JDIR, dL, dR, recD, grid);    
+    for (j = emf->jbeg; j <= emf->jend; j++){
+      emf->Ex1e[k][j][i] = 0.25*(eL[j] + eR[j]) + 0.5*(dL[j] + dR[j]);
+    }
+    #endif  /* INCLUDE_KDIR */
+
+    #if INCLUDE_IDIR
+    #if SHOCK_FLATTENING == MULTID
+    for (j = emf->jbeg; j <= emf->jend+1; j++){   /* Interface flag */
+      flag[j] = d->flag[k][j][i+1] | d->flag[k][j][i];
+    }
+    #endif
+    ArrayReconstruct (emf->ezi,     flag, i, j, k, JDIR, eL, eR, recE, grid);
+    ArrayReconstruct (emf->ezi_dff, flag, i, j, k, JDIR, dL, dR, recD, grid);
+    for (j = emf->jbeg; j <= emf->jend; j++){
+      emf->Ex3e[k][j][i] += 0.25*(eL[j] + eR[j]) + 0.5*(dL[j] + dR[j]);
+    }
+    #endif /* INCLUDE_IDIR */
+
+  }}
+  #endif
+
+/* --------------------------------------------------------
+   X3. Reconstruct along the x3-direction:
+
+     o Eyi(i+1/2) and Dx(i+1/2) --> (i+1/2, j, k+1/2)
+     o Exj(j+1/2) and Dy(j+1/2) --> (i, j+1/2, k+1/2)
+   -------------------------------------------------------- */
+
+  #if INCLUDE_KDIR
+  for (j = emf->jbeg; j <= emf->jend; j++){ 
+  for (i = emf->ibeg; i <= emf->iend; i++){
+
+    #if INCLUDE_IDIR
+    #if SHOCK_FLATTENING == MULTID
+    for (k = emf->kbeg; k <= emf->kend+1; k++){    /* Interface flag */
+      flag[k] = d->flag[k][j][i] | d->flag[k][j][i+1];
+    }
+    #endif
+    ArrayReconstruct (emf->eyi,     flag, i, j, k, KDIR, eL, eR, recE, grid);
+    ArrayReconstruct (emf->eyi_dff, flag, i, j, k, KDIR, dL, dR, recD, grid);
+    for (k = emf->kbeg; k <= emf->kend; k++){
+      emf->Ex2e[k][j][i] += 0.25*(eL[k] + eR[k]) + 0.5*(dL[k] + dR[k]);
+    }
+    #endif /* INCLUDE_IDIR */
+
+    #if INCLUDE_JDIR
+    #if SHOCK_FLATTENING == MULTID
+    for (k = emf->kbeg; k <= emf->kend+1; k++){    /* Interface flag */
+      flag[k] = d->flag[k][j][i] | d->flag[k][j+1][i];
+    }
+    #endif
+    ArrayReconstruct (emf->exj,     flag, i, j, k, KDIR, eL, eR, recE, grid);
+    ArrayReconstruct (emf->exj_dff, flag, i, j, k, KDIR, dL, dR, recD, grid);
+    for (k = emf->kbeg; k <= emf->kend; k++){
+      emf->Ex1e[k][j][i] += 0.25*(eL[k] + eR[k]) + 0.5*(dL[k] + dR[k]);
+    }
+    #endif /* INCLUDE_IDIR */
+
+  }}
+  #endif
+ 
+}

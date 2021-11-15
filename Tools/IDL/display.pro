@@ -10,10 +10,10 @@
 ; SYNTAX:  display, img[,x1=x1][,x2=x2][,BACKGROUND=value]
 ;                  [,CBDIV=integer][,CHARSIZE=value][,COLOR=value][,/EPS]
 ;                  [,FILENAME=string][,IMAX=value][,IMIN=value]
-;                  [,IMSIZE=value][,LABEL1=string][,LABEL2=string][,/LOG_GRID]
+;                  [,IMSIZE=value][,LABEL1=string][,LABEL2=string]
 ;                  [,/SMOOTH][,TITLE=string][,/HBAR][,/VBAR][,/XSYM][,/YSYM]
-;                  [,XRANGE=[min,max]][,YRANGE=[min,max]][,NWIN=integer]
-;                  [,/POLAR][,{LFT,RGT,TOP,BOT}=value]
+;                  [,/XLOG],[,/YLOG][,XRANGE=[min,max]][,YRANGE=[min,max]]
+;                  [,NWIN=integer][,/POLAR][,{LFT,RGT,TOP,BOT}=value]
 ;
 ;
 ; KEYWORDS:
@@ -127,7 +127,7 @@
 ;      IDL> display, img, x1 = x1, x2 = 0.5*!PI - x2, /polar, ims = [400,400]
 ;
 ;
-;  LAST MODIFIED:   June 6, 2015 by A.Mignone (mignone@ph.unito.it)
+;  LAST MODIFIED:   Dec 09, 2019 by A.Mignone (mignone@to.infn.it)
 ;
 ;-
 PRO DISPLAY, a_in, x1 = x1, x2 = x2, $

@@ -7,13 +7,14 @@
  elements.
 
  \authors B. Vaidya (bvaidya@unito.it)\n
-          A. Mignone (mignone@ph.unito.it)\n
+          A. Mignone (mignone@to.infn.it)\n
  
-  \date   March 31, 2018
+  \date   Aug 27, 2020
  */
 /* ///////////////////////////////////////////////////////////////////// */
 #include <pluto.h>
 
+#if (PARTICLES == PARTICLES_CR) || (PARTICLES == PARTICLES_DUST)
 /* ********************************************************************* */
 void Particles_Restart(Data *d, int nrestart, Grid *grid)
 /*!
@@ -26,8 +27,9 @@ void Particles_Restart(Data *d, int nrestart, Grid *grid)
 * \param [in]  grid        Pointer to the PLUTO grid structure.
 ************************************************************************  */
 {
-  int j, k, dir, np, count, nv;
   int nfields;     /* The number of structure fields to be read */
+  long int j, k, dir, np, nv;
+  long int count;
   long int np_tot; /* Total number of particles to be read */
   long int nchunk; /* Number of particles in a chunk of data */
   long int off;
@@ -61,14 +63,12 @@ void Particles_Restart(Data *d, int nrestart, Grid *grid)
         if (strcmp(A1, "nparticles")   == 0) np_tot      = atoi(A2);
         if (strcmp(A1, "nfields")      == 0) nfields     = atoi(A2);
         if (strcmp(A1, "idCounter")    == 0) p_idCounter = atoi(A2);
-        if (strcmp(A1, "dt_particles") == 0) d->Dts->invDt_particles = 0.99/atof(A2);
+        if (strcmp(A1, "dt_particles") == 0) d->Dts->invDt_particles = 1.0/atof(A2);
         off = ftell(fp);
       }
     }
     fclose(fp);
   }  
-  print("> Restarting from Particle File : %s, idCounter = %d\n",
-        filename, p_idCounter);
  
 #ifdef PARALLEL
 /* --------------------------------------------------------
@@ -87,9 +87,6 @@ void Particles_Restart(Data *d, int nrestart, Grid *grid)
   MPI_Bcast(&p_idCounter, 1, MPI_LONG_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&(d->Dts->invDt_particles), 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-  print("> Restarting from Particle File : %s, idCounter = %d\n",
-          filename, p_idCounter);
- 
   Particles_StructDatatype();  /* ??? Why are we calling this function here ?? */
   MPI_Type_contiguous(nfields, MPI_DOUBLE, &ParticleFields);
   MPI_Type_commit(&ParticleFields);
@@ -103,10 +100,13 @@ void Particles_Restart(Data *d, int nrestart, Grid *grid)
   fseek(fp, off, SEEK_SET);
 #endif
 
+  print ("> Restarting from Particle File : %s, idCounter = %d\n",
+          filename, p_idCounter);
+
 /* -------------------------------------------------------
    1b. Each processor reads the whole file in chunks of
        nchunk particles.
-       Particles are insertted to the linked list only
+       Particles are inserted to the linked list only
        if they lie on the computational domain.
    ------------------------------------------------------- */
 
@@ -119,14 +119,16 @@ void Particles_Restart(Data *d, int nrestart, Grid *grid)
                    * of processors.                                    */
 #endif
   
-  print("  building linked list of %d particles [nchunk = %d]\n",np_tot, nchunk);
+  print ("  building linked list of %d particles [nchunk = %d]\n",np_tot, nchunk);
   if (buf == NULL) buf = ARRAY_2D(nchunk, nfields, double); 
+  LogFileFlush(); /* Advisable to flush here... we may run into trouble below */
 
-  for (count = 1; count <= np_tot; count += nchunk){
+  for (count = 1L; count <= np_tot; count += nchunk){
     np = nchunk;  /* Number of particles to be read */
     if ( (count + nchunk) > np_tot) np = np_tot - count + 1;
     #ifdef PARALLEL
-    MPI_File_read_all(fres, buf[0], np, ParticleFields, MPI_STATUS_IGNORE);
+//    MPI_File_read_all(fres, buf[0], np, ParticleFields, MPI_STATUS_IGNORE);
+    MPI_File_read(fres, buf[0], np, ParticleFields, MPI_STATUS_IGNORE);
     #else
     fread(buf[0], sizeof(double), np*nfields, fp);
     #endif
@@ -142,7 +144,7 @@ void Particles_Restart(Data *d, int nrestart, Grid *grid)
 
     for (j = 0; j < np; j++){
       k = 0;
-      #if PARTICLES_TYPE == COSMIC_RAYS
+      #if PARTICLES == PARTICLES_CR
       p.id          = buf[j][k++];
       p.coord[IDIR] = buf[j][k++];
       p.coord[JDIR] = buf[j][k++];
@@ -150,21 +152,26 @@ void Particles_Restart(Data *d, int nrestart, Grid *grid)
       p.speed[IDIR] = buf[j][k++];
       p.speed[JDIR] = buf[j][k++];
       p.speed[KDIR] = buf[j][k++];
-      p.rho         = buf[j][k++];      
+      p.mass        = buf[j][k++];      
       p.tinj        = buf[j][k++];
       p.color       = buf[j][k++];
-      #if PARTICLES_CR_WRITE_4VEL == YES
-      u2 =   p.speed[IDIR]*p.speed[IDIR] 
-           + p.speed[JDIR]*p.speed[JDIR] 
-           + p.speed[KDIR]*p.speed[KDIR]; 
-      gamma = sqrt(1.0 + u2/(PARTICLES_CR_C*PARTICLES_CR_C));
-      p.speed[IDIR] /= gamma;
-      p.speed[JDIR] /= gamma;
-      p.speed[KDIR] /= gamma;
       #endif
+
+      #if PARTICLES == PARTICLES_DUST
+      p.id          = buf[j][k++];
+      p.coord[IDIR] = buf[j][k++];
+      p.coord[JDIR] = buf[j][k++];
+      p.coord[KDIR] = buf[j][k++];
+      p.speed[IDIR] = buf[j][k++];
+      p.speed[JDIR] = buf[j][k++];
+      p.speed[KDIR] = buf[j][k++];
+      p.mass        = buf[j][k++];
+      p.tau_s       = buf[j][k++];
+      p.tinj        = buf[j][k++];
+      p.color       = buf[j][k++];
       #endif
      
-      #if PARTICLES_TYPE == LAGRANGIAN
+      #if PARTICLES == PARTICLES_LP
       p.id          = buf[j][k++];
       p.coord[IDIR] = buf[j][k++];
       p.coord[JDIR] = buf[j][k++];
@@ -182,9 +189,9 @@ void Particles_Restart(Data *d, int nrestart, Grid *grid)
       p.shk_gradp   = buf[j][k++];
       p.ca          = buf[j][k++];
       p.cr          = buf[j][k++];
-      for (nv = 0; nv < NFLX; nv++) p.shk_vL[nv] = buf[j][k++];
-      for (nv = 0; nv < NFLX; nv++) p.shk_vL[nv] = buf[j][k++];
-      for(nv = 0; nv < PARTICLES_LP_NEBINS; nv++) {
+      for (nv = 0; nv < NFLX; nv++) p.Vshk_upst[nv] = buf[j][k++];
+      for (nv = 0; nv < NFLX; nv++) p.Vshk_upst[nv] = buf[j][k++];
+      for(nv = 0; nv <= PARTICLES_LP_NEBINS; nv++) {
         p.eng[nv] = buf[j][k++];
       }
       for(nv = 0; nv < PARTICLES_LP_NEBINS; nv++) {
@@ -215,7 +222,8 @@ void Particles_Restart(Data *d, int nrestart, Grid *grid)
   }
   #endif
 
-  print("  restart took: %f (s)\n",((double)(t_rend - t_rbeg)/CLOCKS_PER_SEC));
+  print ("  restart took: %f (s)\n",((double)(t_rend - t_rbeg)/CLOCKS_PER_SEC));
 
   FreeArray2D((void **) buf);
 }
+#endif /* (PARTICLES == PARTICLES_CR) || (PARTICLES == PARTICLES_DUST) */

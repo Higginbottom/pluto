@@ -1,15 +1,13 @@
 #define  PHYSICS                        MHD
 #define  DIMENSIONS                     2
-#define  COMPONENTS                     3
 #define  GEOMETRY                       CARTESIAN
 #define  BODY_FORCE                     NO
-#define  FORCED_TURB                    NO
 #define  COOLING                        NO
 #define  RECONSTRUCTION                 LINEAR
 #define  TIME_STEPPING                  RK3
-#define  DIMENSIONAL_SPLITTING          NO
 #define  NTRACER                        0
-#define  USER_DEF_PARAMETERS            16
+#define  PARTICLES                      NO
+#define  USER_DEF_PARAMETERS            20
 
 /* -- physics dependent declarations -- */
 
@@ -42,10 +40,17 @@
 #define  PR_RIGHT                       13
 #define  BX_CONST                       14
 #define  GAMMA_EOS                      15
+#define  INT_JX                         16
+#define  INT_JY                         17
+#define  INT_KX                         18
+#define  INT_KZ                         19
 
 /* [Beg] user-defined constants (do not change this line) */
 
-#define  LIMITER                        MC_LIM
+#define  ASSIGN_VECTOR_POTENTIAL        NO
+#define  CHECK_DIVB_CONDITION           NO
 #define  CT_EMF_AVERAGE                 UCT0
+#define  DIVIDE_BY_4PI                  TRUE
+#define  LIMITER                        MC_LIM
 
 /* [End] user-defined constants (do not change this line) */

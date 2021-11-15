@@ -13,8 +13,10 @@ void Init (double *us, double x1, double x2, double x3)
   double x, y, z = 0.0, r2; 
   double kp, mu;
   double dvx, dvy, dBx, dBy, arg;
-  
+
+#if EOS == IDEAL  
   g_gamma = 5./3.;
+#endif
 
   if (first_call == 1){
     srand(time(NULL) + prank);
@@ -22,7 +24,7 @@ void Init (double *us, double x1, double x2, double x3)
   }
   rnd = (double)(rand())/((double)RAND_MAX + 1.0);
   
-  D_EXPAND(x = x1;, y = x2;, z = x3;)
+  DIM_EXPAND(x = x1;, y = x2;, z = x3;)
 
   kp  = g_inputParam[KPAR];
   mu  = g_inputParam[MUPAR];
@@ -38,24 +40,33 @@ void Init (double *us, double x1, double x2, double x3)
   us[RHO] = 1.0; // mu*mu/(kp*kp);
 
   us[VX1] = dvx + g_inputParam[PERT_AMPL]*(rnd-0.5)*exp(-x1*x1/4.0);
+  
+  #ifdef FARGO
+  us[VX2]     = dvy;
+  us[FARGO_W] = 0.5*g_inputParam[MACH]*tanh(x1);
+  #else
   us[VX2] = dvy + 0.5*g_inputParam[MACH]*tanh(x1);
+  #endif
   us[VX3] = 0.0;
+
   #if DIMENSIONS == 3
-   us[VX3] = 0.1*sin(2.0*CONST_PI*x3/10.0);
+  us[VX3] = 0.1*sin(2.0*CONST_PI*x3/10.0);
   #endif
 
+  #if EOS == IDEAL
   us[PRS] = 1.0/g_gamma + exp(arg)*(mu*mu*(1.0 - r2 + z*z) - us[RHO]*kp*kp)*0.5;
-
-  #if PHYSICS == MHD
-   us[BX1] = dBx;
-   us[BX2] = dBy;  
-   us[BX3] = 0.0;
-
-   #ifdef STAGGERED_MHD
-    us[AX1] = us[AX2] = 0.0;
-    us[AX3] = mu*exp(0.5*arg);
-   #endif
   #endif
+
+#if PHYSICS == MHD
+  us[BX1] = dBx;
+  us[BX2] = dBy;  
+  us[BX3] = 0.0;
+
+  #ifdef STAGGERED_MHD
+  us[AX1] = us[AX2] = 0.0;
+  us[AX3] = mu*exp(0.5*arg);
+  #endif
+#endif
 
 }
 
@@ -99,12 +110,14 @@ void Analysis (const Data *d, Grid *grid)
 
     pm  += pm0;
     kin += kinx;
-
-    rhoe += d->Vc[PRS][k][j][i]/(g_gamma - 1.0);
+   
     my   += d->Vc[RHO][k][j][i]*d->Vc[VX2][k][j][i];
+    #if EOS == IDEAL
+    rhoe += d->Vc[PRS][k][j][i]/(g_gamma - 1.0);
     E    += d->Vc[PRS][k][j][i]/(g_gamma - 1.0) + kinx + kiny + pm0;
+    #endif
     #if PHYSICS == MHD
-     BxBy += d->Vc[BX1][k][j][i]*d->Vc[BX2][k][j][i];
+    BxBy += d->Vc[BX1][k][j][i]*d->Vc[BX2][k][j][i];
     #endif
   }
 

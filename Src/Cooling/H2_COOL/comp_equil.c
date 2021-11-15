@@ -41,7 +41,7 @@
 #include "pluto.h"
 
 /* ********************************************************************* */
-void CompEquil(double n, double T, double *v)
+double CompEquil(double n, double T, double *v)
 /*!
  *  \param [in]      n  the particle number density (not needed, but
  *                      kept for compatibility)
@@ -122,6 +122,9 @@ void CompEquil(double n, double T, double *v)
   v[X_HI]  = f;
   v[X_HII] = h;
   v[X_H2]  = g;
+
+
+  return 0;
 }
 
 /*

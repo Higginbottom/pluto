@@ -1,20 +1,19 @@
 #define  PHYSICS                        RHD
 #define  DIMENSIONS                     2
-#define  COMPONENTS                     2
 #define  GEOMETRY                       SPHERICAL
 #define  BODY_FORCE                     NO
-#define  FORCED_TURB                    NO
 #define  COOLING                        NO
 #define  RECONSTRUCTION                 LINEAR
 #define  TIME_STEPPING                  RK2
-#define  DIMENSIONAL_SPLITTING          NO
 #define  NTRACER                        0
+#define  PARTICLES                      NO
 #define  USER_DEF_PARAMETERS            4
 
 /* -- physics dependent declarations -- */
 
 #define  EOS                            TAUB
 #define  ENTROPY_SWITCH                 NO
+#define  RADIATION                      NO
 
 /* -- user-defined parameters (labels) -- */
 

@@ -2,11 +2,11 @@
 
 /* ********************************************************************* */
 void HLL_Solver (const Sweep *sweep, int beg, int end, 
-                 real *cmax, Grid *grid)
+                 double *cmax, Grid *grid)
 /*
  *
  *
- **************************************************************************** */
+ *********************************************************************** */
 {
   int    nv, i;
 
@@ -17,6 +17,17 @@ void HLL_Solver (const Sweep *sweep, int beg, int end,
   double *uL, *uR, *SR, *SL;
   double **fL = stateL->flux, **fR = stateR->flux;
   double  *pL = stateL->prs,   *pR = stateR->prs;
+
+#if TIME_STEPPING == CHARACTERISTIC_TRACING
+{
+  static int first_call = 1;
+  if (first_call){
+    print ("! HLL_Solver(): employment of this solver with ");
+    print ("CHARACTERISTIC_TRACING may degrade order of accuracy to 1.\n");
+    first_call = 0;
+  }
+}
+#endif
 
 /* ----------------------------------------------------
      compute sound speed & fluxes at zone interfaces
@@ -42,12 +53,12 @@ void HLL_Solver (const Sweep *sweep, int beg, int end,
 
     if (SL[i] >= 0.0){
     
-      for (nv = NFLX; nv--; ) sweep->flux[i][nv] = fL[i][nv];
+      NFLX_LOOP(nv) sweep->flux[i][nv] = fL[i][nv];
       sweep->press[i] = pL[i];
 
     }else if (SR[i] <= 0.0){
 
-      for (nv = NFLX; nv--; ) sweep->flux[i][nv] = fR[i][nv];
+      NFLX_LOOP(nv) sweep->flux[i][nv] = fR[i][nv];
       sweep->press[i] = pR[i];
 
     }else{
@@ -56,7 +67,7 @@ void HLL_Solver (const Sweep *sweep, int beg, int end,
       uR = stateR->u[i];
 
       scrh = 1.0/(SR[i] - SL[i]);
-      for (nv = NFLX; nv--; ){  
+      NFLX_LOOP(nv) {  
         sweep->flux[i][nv]  =   SL[i]*SR[i]*(uR[nv] - uL[nv])
                               + SR[i]*fL[i][nv] - SL[i]*fR[i][nv];
         sweep->flux[i][nv] *= scrh;

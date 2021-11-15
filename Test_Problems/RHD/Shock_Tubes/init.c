@@ -17,7 +17,7 @@
        \left(\rho,\, v_x,\, p\right)_R & \quad\mathrm{otherwise} 
       \end{array}\right.
   \f]  
-  The four available configurations correspond to Problem 1-4 of Mignone
+  The first four configurations correspond to Problem 1-4 of Mignone
   \& Bodo (2005):
     
   <CENTER>
@@ -33,6 +33,8 @@
    4R  |  1   | 0.0 |1.e-2|    -
   </CENTER>
 
+  Conf #05 and #06 are equivalent to the first two, 
+  using the entropy equation.
   Results are shown in the four figures below:
 
   \image html rhd_shock_tube.01.jpg "Flow profiles for the 1st shock tube problem"
@@ -40,8 +42,8 @@
   \image html rhd_shock_tube.03.jpg "Flow profiles for the 3rd shock tube problem"
   \image html rhd_shock_tube.04.jpg "Flow profiles for the 4th shock tube problem"
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   Aug 10, 2015
+  \author A. Mignone (mignone@to.infn.it)
+  \date   May 03, 2020
 
   \b References
      - "An HLLC Riemann solver for relativistic flows - I. Hydrodynamics"

@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -80,11 +80,23 @@ Files</h2></td></tr>
 <tr class="memdesc:ct__emf__average_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Collects different <a class="el" href="struct_e_m_f.html">EMF</a> averaging schemes. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ct__field__average_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ct__field__average_8c.html">ct_field_average.c</a></td></tr>
-<tr class="memdesc:ct__field__average_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Performs various magnetic field averaging operations. <br /></td></tr>
+<tr class="memdesc:ct__field__average_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Average staggered magnetic field to zone center. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ct__fill__mag__field_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ct__fill__mag__field_8c.html">ct_fill_mag_field.c</a></td></tr>
 <tr class="memdesc:ct__fill__mag__field_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Assign the normal component of the staggered magnetic field in the ghost zone-faces. Using the div.B = 0 condition in staggered MHD, this function computes the staggered component of magnetic field lying on the zone-faces parallel to the boundary specified by "side". This is preformed by solving the div.B = 0 condition for one variable only which in 2-D requires the knowledge of the other 3 components while in 3-D required the knowledge of the other 5 staggered components.<br />
 . <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ct__flux_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ct__flux_8c.html">ct_flux.c</a></td></tr>
+<tr class="memdesc:ct__flux_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Define point and diffusive fluxes for CT. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ct__imex__update___e_l_r_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ct__imex__update___e_l_r_8c.html">ct_imex_update_ELR.c</a></td></tr>
+<tr class="memdesc:ct__imex__update___e_l_r_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update staggered electric field in resistive RMHD. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ct__maxwell__solver_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ct__maxwell__solver_8c.html">ct_maxwell_solver.c</a></td></tr>
+<tr class="memdesc:ct__maxwell__solver_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maxwell solver for the Resistive RMHD equations. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ct__maxwell__solver__balsara__rec_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ct__maxwell__solver__balsara__rec_8c.html">ct_maxwell_solver_balsara_rec.c</a></td></tr>
+<tr class="memdesc:ct__maxwell__solver__balsara__rec_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maxwell solver for the Resistive RMHD equations. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ct__update_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ct__update_8c.html">ct_update.c</a></td></tr>
 <tr class="memdesc:ct__update_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update staggered magnetic field. <br /></td></tr>
@@ -93,7 +105,7 @@ Files</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:51 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:58 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

@@ -60,8 +60,8 @@
   A stencil of 3 zones is required for all limiters except for
   the FOURTH_ORDER_LIM which requires  5 zones. 
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   Oct 18, 2016
+  \author A. Mignone (mignone@to.infn.it)
+  \date   July 1, 2019
 
   \b References
      - "High-order conservative reconstruction schemes for finite
@@ -74,7 +74,10 @@
 static void MonotonicityTest(double **, double **, double **, int, int);
 
 #if CHAR_LIMITING == NO
+
+#if LIMITER == FOURTH_ORDER_LIM
 static void FourthOrderLinear(const Sweep *, int, int, Grid *);
+#endif
 
 /* ********************************************************************* */
 void States (const Sweep *sweep, int beg, int end, Grid *grid)
@@ -105,11 +108,15 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
   PLM_Coeffs plm_coeffs;
   static double **dv;
 
+#if (INTERNAL_BOUNDARY == YES) && (INTERNAL_BOUNDARY_REFLECT == YES)
+  FluidInterfaceBoundary(sweep, beg, end, grid);
+#endif
+
 #if LIMITER == FOURTH_ORDER_LIM
   FourthOrderLinear(sweep, beg, end, grid);
   return;
 #endif
-  
+
 /* -----------------------------------------------------------
    0. Memory allocation and pointer shortcuts, geometrical
       coefficients and conversion to 4vel (if required)
@@ -169,7 +176,7 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
      
 #if SHOCK_FLATTENING == MULTID
     if (sweep->flag[i] & FLAG_FLAT) {
-      NVAR_LOOP(nv)vp[i][nv] = vm[i][nv] = v[i][nv];
+      NVAR_LOOP(nv) vp[i][nv] = vm[i][nv] = v[i][nv];
       continue;
     }else if (sweep->flag[i] & FLAG_MINMOD) {
       NVAR_LOOP(nv){
@@ -177,7 +184,7 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
         vp[i][nv] = v[i][nv] + dv_lim[nv]*dp;
         vm[i][nv] = v[i][nv] - dv_lim[nv]*dm;
       }
-      #if (PHYSICS == RHD || PHYSICS == RMHD)
+      #if (PHYSICS == RHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
       VelocityLimiter (v[i], vp[i], vm[i]);
       #endif
       continue;
@@ -192,19 +199,19 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
 #if LIMITER == DEFAULT
     SET_MC_LIMITER(dv_lim[RHO], dvp[RHO], dvm[RHO], cp, cm);
     #if PHYSICS != ADVECTION
-    EXPAND(SET_VL_LIMITER(dv_lim[VX1], dvp[VX1], dvm[VX1], cp, cm);  ,
-           SET_VL_LIMITER(dv_lim[VX2], dvp[VX2], dvm[VX2], cp, cm);  ,
-           SET_VL_LIMITER(dv_lim[VX3], dvp[VX3], dvm[VX3], cp, cm);)
+    SET_VL_LIMITER(dv_lim[VX1], dvp[VX1], dvm[VX1], cp, cm);
+    SET_VL_LIMITER(dv_lim[VX2], dvp[VX2], dvm[VX2], cp, cm);
+    SET_VL_LIMITER(dv_lim[VX3], dvp[VX3], dvm[VX3], cp, cm);
     #endif
 
-    #if PHYSICS == MHD || PHYSICS == RMHD
-    EXPAND(SET_VL_LIMITER(dv_lim[BX1], dvp[BX1], dvm[BX1], cp, cm);  ,
-           SET_VL_LIMITER(dv_lim[BX2], dvp[BX2], dvm[BX2], cp, cm);  ,
-           SET_VL_LIMITER(dv_lim[BX3], dvp[BX3], dvm[BX3], cp, cm);)
-    #if PHYSICS == RMHD && RESISTIVITY != NO
-    EXPAND(SET_VL_LIMITER(dv_lim[EX1], dvp[EX1], dvm[EX1], cp, cm);  ,
-           SET_VL_LIMITER(dv_lim[EX2], dvp[EX2], dvm[EX2], cp, cm);  ,
-           SET_VL_LIMITER(dv_lim[EX3], dvp[EX3], dvm[EX3], cp, cm);)
+    #if (PHYSICS == MHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
+    SET_VL_LIMITER(dv_lim[BX1], dvp[BX1], dvm[BX1], cp, cm);
+    SET_VL_LIMITER(dv_lim[BX2], dvp[BX2], dvm[BX2], cp, cm);
+    SET_VL_LIMITER(dv_lim[BX3], dvp[BX3], dvm[BX3], cp, cm);
+    #if PHYSICS == ResRMHD
+    SET_VL_LIMITER(dv_lim[EX1], dvp[EX1], dvm[EX1], cp, cm);
+    SET_VL_LIMITER(dv_lim[EX2], dvp[EX2], dvm[EX2], cp, cm);
+    SET_VL_LIMITER(dv_lim[EX3], dvp[EX3], dvm[EX3], cp, cm);
     #endif
 
     #ifdef GLM_MHD
@@ -217,6 +224,13 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
 
     #if HAVE_ENERGY
     SET_MM_LIMITER(dv_lim[PRS], dvp[PRS], dvm[PRS], cp, cm);
+    #endif
+      
+    #if RADIATION
+    SET_VL_LIMITER(dv_lim[ENR], dvp[ENR], dvm[ENR], cp, cm);
+    SET_VL_LIMITER(dv_lim[FR1], dvp[FR1], dvm[FR1], cp, cm); 
+    SET_VL_LIMITER(dv_lim[FR2], dvp[FR2], dvm[FR2], cp, cm);
+    SET_VL_LIMITER(dv_lim[FR3], dvp[FR3], dvm[FR3], cp, cm);
     #endif
  
     #if NFLX != NVAR /* -- scalars: MC lim  -- */
@@ -243,40 +257,43 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
       2e.  Relativistic Limiter
      -------------------------------------- */
 
-    #if (PHYSICS == RHD || PHYSICS == RMHD) 
+    #if (PHYSICS == RHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD) 
     VelocityLimiter (v[i], vp[i], vm[i]);
     #endif
   } /* -- end loop on zones -- */
 
-/* ----------------------------------------------------
+/* ----------------------------------------------
    3a. Check monotonicity
-   ---------------------------------------------------- */ 
+   ---------------------------------------------- */ 
 
 #if CHECK_MONOTONICITY == YES
   MonotonicityTest(v, vp, vm, beg, end);
 #endif
 
-/* -------------------------------------------
+/* ----------------------------------------------
    3b. Shock flattening 
-   -------------------------------------------  */
+   ----------------------------------------------  */
 
 #if SHOCK_FLATTENING == ONED
   Flatten (sweep, beg, end, grid);
 #endif
 
-/* -------------------------------------------
+/* ----------------------------------------------
    4.  Assign face-centered magnetic field
-   -------------------------------------------  */
+   ----------------------------------------------  */
 
 #ifdef STAGGERED_MHD
   for (i = beg - 1; i <= end; i++) {
-    vp[i][BXn] = vm[i+1][BXn] = sweep->bn[i];
+    vp[i][BXn] = vm[i+1][BXn] = sweep->Bn[i];
+    #if (PHYSICS == ResRMHD) && (DIVE_CONTROL == CONSTRAINED_TRANSPORT)
+    vp[i][EXn] = vm[i+1][EXn] = sweep->En[i];
+    #endif
   }
 #endif
 
-/* --------------------------------------------------------
+/* ----------------------------------------------
    5. Evolve L/R states and center value by dt/2
-   -------------------------------------------------------- */
+   ---------------------------------------------- */
 
 #if TIME_STEPPING == CHARACTERISTIC_TRACING
   CharTracingStep(sweep, beg, end, grid);
@@ -284,9 +301,9 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
   HancockStep(sweep, beg, end, grid);  
 #endif
 
-/* --------------------------------------------------------
+/* ----------------------------------------------
    6. Convert back to 3-velocity
-   -------------------------------------------------------- */
+   ---------------------------------------------- */
 
 #if RECONSTRUCT_4VEL
   ConvertTo3vel (v, beg-1, end+1);
@@ -294,12 +311,13 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
   ConvertTo3vel (vm, beg, end);
 #endif
 
-/* --------------------------------------------------------
-   7. Evolve L/R state and center value by dt/2 using
-      conservative Hancock scheme [requires 3-vel in input]
-   -------------------------------------------------------- */
+/* ----------------------------------------------
+   7. Evolve L/R state and center value by dt/2
+      using conservative Hancock scheme
+      [requires 3-vel in input]
+   ---------------------------------------------- */
 
-#if TIME_STEPPING == HANCOCK && PRIMITIVE_HANCOCK == NO
+#if (TIME_STEPPING == HANCOCK) && (PRIMITIVE_HANCOCK == NO)
   HancockStep(sweep, beg, end, grid);  
 #endif
 
@@ -309,7 +327,9 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
 
   PrimToCons (vp, up, beg, end);
   PrimToCons (vm, um, beg, end);
+
 }
+
 #if LIMITER == FOURTH_ORDER_LIM
 /* ********************************************************************** */
 void FourthOrderLinear(const Sweep *sweep, int beg, int end, Grid *grid)
@@ -358,7 +378,7 @@ void FourthOrderLinear(const Sweep *sweep, int beg, int end, Grid *grid)
 
 /*
   #if GEOMETRY != CARTESIAN
-   print ("! FourthOrderLinear: only Cartesian geometry supported\n");
+   printLog ("! FourthOrderLinear: only Cartesian geometry supported\n");
    QUIT_PLUTO(1);  
   #endif
 */
@@ -394,7 +414,7 @@ void FourthOrderLinear(const Sweep *sweep, int beg, int end, Grid *grid)
       vp[i][nv] = v[i][nv] + 0.5*dvlim[i][nv];
       vm[i][nv] = v[i][nv] - 0.5*dvlim[i][nv];
     }
-    #if (PHYSICS == RHD || PHYSICS == RMHD)
+    #if (PHYSICS == RHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
     VelocityLimiter(v[i], vp[i], vm[i]);
     #endif
   }
@@ -421,7 +441,10 @@ void FourthOrderLinear(const Sweep *sweep, int beg, int end, Grid *grid)
 
 #ifdef STAGGERED_MHD
   for (i = beg - 1; i <= end; i++) {
-    stateL->v[i][BXn] = stateR->v[i][BXn] = sweep->bn[i];
+    stateL->v[i][BXn] = stateR->v[i][BXn] = sweep->Bn[i];
+    #if (PHYSICS == ResRMHD) && (DIVE_CONTROL == CONSTRAINED_TRANSPORT)
+    stateL->v[i][EXn] = stateR->v[i][EXn] = sweep->En[i];
+    #endif
   }
 #endif
 
@@ -488,6 +511,10 @@ void States (const Sweep *sweep, int beg, int end,  Grid *grid)
     dv = ARRAY_2D(NMAX_POINT, NVAR, double);
   }
 
+  #if (INTERNAL_BOUNDARY == YES) && (INTERNAL_BOUNDARY_REFLECT == YES)
+  FluidInterfaceBoundary(sweep, beg, end, grid);
+  #endif
+  
   #if UNIFORM_CARTESIAN_GRID == NO
    PLM_CoefficientsGet(&plm_coeffs, g_dir);
   #endif
@@ -515,13 +542,11 @@ void States (const Sweep *sweep, int beg, int end,  Grid *grid)
    -------------------------------------------------------------- */
 
   for (k = NVAR; k--;  ) kstp[k] = 2.0;
-#if PHYSICS == HD || PHYSICS == RHD
+#if (PHYSICS == HD) || (PHYSICS == RHD)
   kstp[0] = kstp[1] = 1.0;
 #elif PHYSICS == MHD
   kstp[KFASTP] = kstp[KFASTM] = 1.0;
-  #if COMPONENTS > 1
   kstp[KSLOWP] = kstp[KSLOWM] = 1.0; 
-  #endif
 #endif
 
 /* --------------------------------------------------------------
@@ -606,7 +631,7 @@ void States (const Sweep *sweep, int beg, int end,  Grid *grid)
 
       if (dvp[nv]*dvm[nv] > 0.0){
         d2v        = ABS_MIN(cp*dvp[nv], cm*dvm[nv]);
-        dv_lim[nv] = MINMOD(d2v, dc);
+        dv_lim[nv] = MINMOD_LIMITER(d2v, dc);
       }else dv_lim[nv] = 0.0;
     }
 
@@ -635,7 +660,7 @@ void States (const Sweep *sweep, int beg, int end,  Grid *grid)
       vm[i][nv] = v[i][nv] - dv_lim[nv]*dm;
     }
 
-    #if (PHYSICS == RHD || PHYSICS == RMHD)
+    #if (PHYSICS == RHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
     VelocityLimiter (v[i], vp[i], vm[i]);
     #endif
 
@@ -663,7 +688,10 @@ void States (const Sweep *sweep, int beg, int end,  Grid *grid)
 
 #ifdef STAGGERED_MHD
   for (i = beg-1; i <= end; i++) {
-    stateR->v[i][BXn] = stateL->v[i][BXn] = sweep->bn[i];
+    stateR->v[i][BXn] = stateL->v[i][BXn] = sweep->Bn[i];
+    #if (PHYSICS == ResRMHD) && (DIVE_CONTROL == CONSTRAINED_TRANSPORT)
+    stateR->v[i][EXn] = stateL->v[i][EXn] = sweep->En[i];
+    #endif
   }
 #endif
 
@@ -692,7 +720,7 @@ void States (const Sweep *sweep, int beg, int end,  Grid *grid)
       conservative Hancock scheme [requires 3-vel in input]
    -------------------------------------------------------- */
 
-#if TIME_STEPPING == HANCOCK && PRIMITIVE_HANCOCK == NO
+#if (TIME_STEPPING == HANCOCK) && (PRIMITIVE_HANCOCK == NO)
   HancockStep(sweep, beg, end, grid);  
 #endif
 
@@ -705,7 +733,6 @@ void States (const Sweep *sweep, int beg, int end,  Grid *grid)
 }
 #endif  /* CHAR_LIMITING == YES */
 
-
 /* ********************************************************************* */
 void MonotonicityTest(double **v, double **vp, double **vm, int beg, int end)
 /*
@@ -715,7 +742,7 @@ void MonotonicityTest(double **v, double **vp, double **vm, int beg, int end)
   int    i, nv;
   double vp_max, vp_min, vm_max, vm_min;
   
-  for (i = beg; i <= end; i++){ VAR_LOOP(nv) {
+  for (i = beg; i <= end; i++){ NVAR_LOOP(nv) {
     vp_max = MAX(v[i][nv], v[i+1][nv]) + 1.e-9;
     vp_min = MIN(v[i][nv], v[i+1][nv]) - 1.e-9;
 
@@ -723,18 +750,17 @@ void MonotonicityTest(double **v, double **vp, double **vm, int beg, int end)
     vm_min = MIN(v[i][nv], v[i-1][nv]) - 1.e-9;
   
     if (vp[i][nv] > vp_max || vp[i][nv] < vp_min){
-       print ("! States: monotonicity violated at + interface, i = %d\n",i);
-       print ("vp = %12.6e; vmax = %12.6e, vmin = %12.6e\n", 
+       printLog ("! States: monotonicity violated at + interface, i = %d\n",i);
+       printLog ("vp = %12.6e; vmax = %12.6e, vmin = %12.6e\n", 
                vp[i][nv], vp_max, vp_min);
        QUIT_PLUTO(1);
     }
 
     if (vm[i][nv] > vm_max || vm[i][nv] < vm_min){
-      print ("! States: monotonicity violated at - interface, i = %d\n",i);
-      print ("vm = %12.6e; vmax = %12.6e, vmin = %12.6e\n",
+      printLog ("! States: monotonicity violated at - interface, i = %d\n",i);
+      printLog ("vm = %12.6e; vmax = %12.6e, vmin = %12.6e\n",
               vm[i][nv], vm_max, vm_min);
       QUIT_PLUTO(1);
     }
   }}
 }
-      

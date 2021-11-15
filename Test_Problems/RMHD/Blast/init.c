@@ -35,95 +35,123 @@
   factor \f$\eta\f$  by letting
   \f$ \{\rho,\, p\} \to \eta^2\{\rho,\,p\},\, B \to \eta B \f$.
 
-  The different configurations are: 
-  - #01 and #02 are taken from  Del Zanna et al, A&A (2003) 400,397
-  - #03 and #04 are taken from  Mignone et al, ApJS (2007), 170, 228
+  The different configurations are given in the following table
 
-  - #05 and #06 are taken from Beckwith & Stone, ApJS (2011), 193, 6
-    Strongly magnetized case, sec. 4.6 (Fig. 14)
+  <CENTER>
+  Conf.|rho, p (in) | rho, p (out) |  B  | Dim  | Ref 
+  -----|------------| -------------|-----|------|------------
+  #01  | 1,  10^3   | 1.0, 0.01    | 4.0 |  2   | [dZBL2003], Sec 4.2
+  #02  | 1,  10^3   | 1.0, 0.01    | 4.0 |  2   | [dZBL2003], Sec 4.2
+  #03  | 0.01, 1    | 1.e-4, 3.e-5 | 1.0 |  3   | [Mig_etal2007], sec 5.7
+  #04  | 0.01, 1    | 1.e-4, 3.e-5 | 1.0 | 2(ax)| [Mig_etal2007, MB2006]
+  #05  | 0.01, 1    | 1.e-4, 5.e-3 | 1.0 |  2   | [BS2011], Sec 4.6
+  #06  | 0.01, 1    | 1.e-4, 5.e-3 | 1.0 |  2   | [BS2011]
+  #07  | 0.01, 1    | 1.e-4, 5.e-3 | 1.0 |  2   | [BS2011]
+  #08  | 0.01, 1    | 1.e-4, 5.e-4 | 0.1 |  2   | [Leis_etal2005, dZZBL2007]
+  </CENTER>
 
-  Strongly magnetized configurations can pass this test only by taking 
-  some precautions (e.g. correcting total energy with staggered magnetic 
-  field).
+  Some of the strongly magnetized configurations can pass this test
+  only by taking some precautions (e.g. correcting total energy with
+  staggered magnetic field).
 
   \image html rmhd_blast.02.jpg "Density map (in log scale) for configuration #02"
 
-  \authors A. Mignone (mignone@ph.unito.it)\n
-  \date    Sept 16, 2014
+  \b References
+     - [dZBL2003]      Del Zanna, Bucciantini, Londrillo. A&A (2003) 397
+     - [dZZBL2007]     Del Zanna et al, A&A (2007) 473, 11
+     - [Leis_etal2005] Leismann, et al. A&A (2005) 436, 503
+     - [Mig_etal2007]  Mignone et al, ApJS (2007), 170, 228
+     - [MB2006]        Mignone \& Bodo, MNRAS (2006) 368, 1040
+     - [BS2011]        Beckwith & Stone, ApJS (2011), 193, 6
+
+  \authors A. Mignone (mignone@to.infn.it)\n
+  \date    Jan 03, 2020\n
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
 /* ********************************************************************* */
-void Init (double *us, double x1, double x2, double x3)
+void Init (double *v, double x1, double x2, double x3)
 /*
  *
  *********************************************************************** */
 {
-  double r, rc, theta, phi;
-  double dc, pc, de, pe;
+  double r;
+  double rc = g_inputParam[RADIUS];
+  double dc = g_inputParam[RHO_IN];
+  double pc = g_inputParam[PRS_IN];
+  double de = g_inputParam[RHO_OUT];
+  double pe = g_inputParam[PRS_OUT];
+  double theta0 = g_inputParam[THETA]*CONST_PI/180.0;
+  double phi0   = g_inputParam[PHI]*CONST_PI/180.0;
+  double Bx     = g_inputParam[BMAG]*sin(theta0)*cos(phi0);
+  double By     = g_inputParam[BMAG]*sin(theta0)*sin(phi0);
+  double Bz     = g_inputParam[BMAG]*cos(theta0);
 
   g_gamma = 4./3.;
-                        
-  #if DIMENSIONS == 2
-   r = sqrt(x1*x1 + x2*x2);
-  #elif DIMENSIONS == 3
-   r = sqrt(x1*x1 + x2*x2 + x3*x3);
-  #endif 
-  rc = g_inputParam[RADIUS];
 
-  dc = g_inputParam[RHO_IN];
-  pc = g_inputParam[PRS_IN];
-  de = g_inputParam[RHO_OUT];
-  pe = g_inputParam[PRS_OUT];
+  #if (GEOMETRY == CARTESIAN) || (GEOMETRY == CYLINDRICAL)
+  r = sqrt(DIM_EXPAND(x1*x1, + x2*x2, + x3*x3));
+  #elif GEOMETRY == POLAR
+  r = sqrt(DIM_EXPAND(x1*x1, + 0.0, + x3*x3));
+  #elif GEOMETRY == SPHERICAL
+  r = x1;
+  #endif
 
   if (r <= rc) {
-    us[RHO] = dc;
-    us[PRS] = pc;
-  #if DIMENSIONS == 3
-   }else if (r > rc && r < 1.0){
-     us[RHO] = de*(r - rc)/(1.0 - rc) + dc*(r - 1.0)/(rc - 1.0);
-     us[PRS] = pe*(r - rc)/(1.0 - rc) + pc*(r - 1.0)/(rc - 1.0);
+    v[RHO] = dc;
+    v[PRS] = pc;
+  #if (GEOMETRY == CARTESIAN) && (DIMENSIONS == 3)
+  }else if (r > rc && r < 1.0){
+    v[RHO] = de*(r - rc)/(1.0 - rc) + dc*(r - 1.0)/(rc - 1.0);
+    v[PRS] = pe*(r - rc)/(1.0 - rc) + pc*(r - 1.0)/(rc - 1.0);
   #endif
   }else{
-    us[RHO] = de;
-    us[PRS] = pe;
+    v[RHO] = de;
+    v[PRS] = pe;
   }
 
-  us[VX1] = us[VX2] = us[VX3] = 0.0;
-  us[AX1] = us[AX2] = us[AX3] = 0.0;
-
-  theta = g_inputParam[THETA]*CONST_PI/180.0;
-  phi   =   g_inputParam[PHI]*CONST_PI/180.0;
+  v[VX1] = v[VX2] = v[VX3] = 0.0;
+  v[AX1] = v[AX2] = v[AX3] = 0.0;
 
   #if GEOMETRY == CARTESIAN
-   us[BX1]  = g_inputParam[BMAG]*sin(theta)*cos(phi);
-   us[BX2]  = g_inputParam[BMAG]*sin(theta)*sin(phi);
-   us[BX3]  = g_inputParam[BMAG]*cos(theta);
+  v[BX1]  = Bx;
+  v[BX2]  = By;
+  v[BX3]  = Bz;
 
-   us[AX1] = 0.0;
-   us[AX2] = us[BX3]*x1;
-   us[AX3] = -us[BX2]*x1 + us[BX1]*x2;
+  v[AX1] =   0.0;
+  v[AX2] =  v[BX3]*x1;
+  v[AX3] = -v[BX2]*x1 + v[BX1]*x2;
   #elif GEOMETRY == CYLINDRICAL
-   us[BX1]  = 0.0;
-   us[BX2]  = g_inputParam[BMAG];
-   us[BX3]  = 0.0;
+  v[BX1]  = 0.0;
+  v[BX2]  = g_inputParam[BMAG];
+  v[BX3]  = 0.0;
 
-   us[AX1] = us[AX2] = 0.0;
-   us[AX3] = 0.5*us[BX2]*x1;
+  v[AX1] = v[AX2] = 0.0;
+  v[AX3] = 0.5*v[BX2]*x1;
+  #elif GEOMETRY == POLAR
+  v[BX1]  = 0.0;
+  v[BX2]  = 0.0;
+  v[BX3]  = g_inputParam[BMAG];
+
+  v[AX1] = v[AX2] = 0.0;
+  v[AX2] = 0.5*v[BX3]*x1;
+  #elif GEOMETRY == SPHERICAL
+  v[BX1] =  Bx*sin(x2)*cos(x3) + By*sin(x2)*sin(x3) + Bz*cos(x2);
+  v[BX2] = -Bx*cos(x2)*cos(x3) + By*cos(x2)*sin(x3) - Bz*sin(x2);
+  v[BX3] = -Bx*sin(x3)         + By*cos(x3);
   #endif
 
+/* Force Bz to be zero when theta is very close to 90 deg */
+
+  if (fabs(g_inputParam[THETA] - 90.0) < 1.e-5) v[BX3] = 0.0;
+  
   g_smallPressure = 1.e-6;  
 }
 
 /* ********************************************************************* */
 void InitDomain (Data *d, Grid *grid)
-/*! 
- * Assign initial condition by looping over the computational domain.
- * Called after the usual Init() function to assign initial conditions
- * on primitive variables.
- * Value assigned here will overwrite those prescribed during Init().
- *
+/*
  *
  *********************************************************************** */
 {

@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -81,11 +81,11 @@ Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Integrate the ODE </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ dp_{\rm cgs}/dt_{\rm cgs} = -(\Gamma - 1) \Lambda(\rho_{\rm cgs}, T_{\rm cgs}) \qquad{\rm where}\qquad \Lambda = \frac{a_{br}}{(\mu m_H)^2} \rho_{\rm cgs}^2 \sqrt{T_{\rm cgs}} \,,\qquad a_{br} = 2.e-27 c.g.s \]" src="form_75.png"/>
+<img class="formulaDsp" alt="\[ dp_{\rm cgs}/dt_{\rm cgs} = -(\Gamma - 1) \Lambda(\rho_{\rm cgs}, T_{\rm cgs}) \qquad{\rm where}\qquad \Lambda = \frac{a_{br}}{(\mu m_H)^2} \rho_{\rm cgs}^2 \sqrt{T_{\rm cgs}} \,,\qquad a_{br} = 2.e-27 c.g.s \]" src="form_12.png"/>
 </p>
 <p> which accounts for bremmstrahlung cooling. Here the subscript 'cgs' means that the corresponding quantity is given in c.g.s units. We denote with <code>mu</code> the molecular weight, <code>mH</code> the hydrogen mass (in c.g.s).</p>
 <p>The previous integration is carried out analytically since the density does not change during this step. In non-dimensional form: </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ \frac{dp}{dt} = -{\rm cost} \;\rho (\rho p)^{\HALF} \]" src="form_76.png"/>
+<img class="formulaDsp" alt="\[ \frac{dp}{dt} = -{\rm cost} \;\rho (\rho p)^{\HALF} \]" src="form_13.png"/>
 </p>
 <p>[notice that since <code>p/rho=T/KELVIN</code> this is equivalent to: <code>dp/dt=-cost</code> rho^2 (T/KELVIN)^(1/2) ]</p>
 <p>The quantity <code>cost</code> is determined by transforming the dimensional equation into the non-dimensional one. If p, rho and t are in code (non-dimensional) units and if <code>L_0</code>, <code>rho_0</code>, and <code>V_0</code> are the unit length, density and velocity, then <code>cost</code> is found to be: </p><pre class="fragment">                 a_br * (gamma - 1) * L_0 * rho_0
@@ -147,7 +147,7 @@ Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:50 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:57 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

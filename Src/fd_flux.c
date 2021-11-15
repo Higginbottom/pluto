@@ -12,9 +12,9 @@
   since high-order reconstruction is done on the characteristic
   projection of the cell-centered fluxes.
 
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \authors A. Mignone (mignone@to.infn.it)\n
            P. Tzeferacos (petros.tzeferacos@ph.unito.it)
-  \date    Fen 28, 2017
+  \date    April 19, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -63,36 +63,40 @@ void FD_Flux (const Sweep *sweep, int beg, int end,
   double **L, **R;
   double (*REC)(double *, double, int);
 
-/* -----------------------------------------------
+/* --------------------------------------------------------
    0. Check compatibility with other modules 
-   ----------------------------------------------- */
+   -------------------------------------------------------- */
 
 #if TIME_STEPPING != RK3 && TIME_STEPPING != SSP_RK4
-  print ("! Finite Difference schemes work with RK3 only \n");
+  printLog ("! Finite Difference schemes work with RK3 only \n");
   QUIT_PLUTO(1);
 #endif
 #if GEOMETRY != CARTESIAN
-  print ("! Finite Difference schemes work in Cartesian coordinates only\n");
+  printLog ("! Finite Difference schemes work in Cartesian coordinates only\n");
   QUIT_PLUTO(1);
 #endif
-#if PHYSICS == RMHD || PHYSICS == RHD
-  print ("! Finite difference schemes work only for HD od MHD modules\n");
+#if (PHYSICS == RMHD) || (PHYSICS == RHD) || (PHYSICS == ResRMHD)
+  printLog ("! Finite difference schemes work only for HD od MHD modules\n");
   QUIT_PLUTO(1);
 #endif   
 #ifdef STAGGERED_MHD
-  print ("! Finite difference schemes work only with cell-centered schemes\n");
+  printLog ("! Finite difference schemes work only with cell-centered schemes\n");
   QUIT_PLUTO(1);
 #endif   
-#if PHYSICS == MHD && BACKGROUND_FIELD == YES
-  print ("! Background field splitting not supported with FD schemes\n");
+#if (PHYSICS == MHD) && (BACKGROUND_FIELD == YES)
+  printLog ("! Background field splitting not supported with FD schemes\n");
   QUIT_PLUTO(1);
 #endif  
 
-/* --------------------------------------------------------------
+  #if (INTERNAL_BOUNDARY == YES) && (INTERNAL_BOUNDARY_REFLECT == YES)
+  FluidInterfaceBoundary(sweep, beg, end, grid);
+  #endif
+
+/* --------------------------------------------------------
    1. Define pointer to reconstruction function and 
       compute the stencil for interpolation.
       For given S, the stencil is: i-S <= i <= i+S+1
-   -------------------------------------------------------------- */
+   -------------------------------------------------------- */
 
   dx = grid->dx[g_dir][beg];
 #if RECONSTRUCTION == WENO3_FD
@@ -132,12 +136,13 @@ void FD_Flux (const Sweep *sweep, int beg, int end,
   memset ((void *)stateLR->Rp[0][0], '\0', NMAX_POINT*NFLX*NFLX*sizeof(double));
   memset ((void *)stateLR->Lp[0][0], '\0', NMAX_POINT*NFLX*NFLX*sizeof(double));
 
-/* ---------------------------------------------------------------------
-   3. Compute cell-centered fluxes. Pressure is added to the normal
-      component of momentum.
-      To save computational time, we also solve the linear GLM-MHD
-      subsystem here and use the solution in the nonlinear fluxes later.
-   --------------------------------------------------------------------- */
+/* --------------------------------------------------------
+   3. Compute cell-centered fluxes. Pressure is added to
+      the normal component of momentum.
+      To save computational time, we also solve the linear
+      GLM-MHD subsystem here and use the solution in the
+      nonlinear fluxes later.
+   -------------------------------------------------------- */
 
   PrimToCons (v, u, 0, np_tot - 1);
   SoundSpeed2 (stateC, 0, np_tot-1, CELL_CENTER, grid);
@@ -173,7 +178,7 @@ void FD_Flux (const Sweep *sweep, int beg, int end,
     Bm[i]   = (fp - fm)/glm_ch;
     psim[i] =  fp + fm;
     #if GLM_COMPUTE_DIVB == YES
-    sweep->bn[i] = Bm[i];
+    sweep->Bn[i] = Bm[i];
     #endif
   }
   #if GLM_COMPUTE_DIVB == YES
@@ -185,9 +190,9 @@ void FD_Flux (const Sweep *sweep, int beg, int end,
   Kmax = NFLX;
 #endif 
 
-/* ----------------------------------------------------
-   4. Compute average state
-   ---------------------------------------------------- */
+/* --------------------------------------------------------
+   4. Compute average state & sound speed
+   -------------------------------------------------------- */
 
   for (i = beg; i <= end; i++){
     for (nv = NFLX; nv--;    ){
@@ -200,15 +205,11 @@ void FD_Flux (const Sweep *sweep, int beg, int end,
     #endif 
   }
 
-/* ---------------------------------------
-   5. Compute sound speed
-   --------------------------------------- */
-
   SoundSpeed2 (stateLR, beg, end, FACE_CENTER, grid);
 
-/* ----------------------------------------------------
-   6. Compute eigenvectors and eigenvalues
-   ---------------------------------------------------- */
+/* --------------------------------------------------------
+   5. Compute eigenvectors and eigenvalues
+   -------------------------------------------------------- */
 
   for (i = beg; i <= end; i++){
     L = stateLR->Lp[i];
@@ -224,7 +225,7 @@ void FD_Flux (const Sweep *sweep, int beg, int end,
     cmax[i] = fs;
   }
 
-/* ---------------------------------------------------------
+/* --------------------------------------------------------
    6. Main spatial loop.
       At each interface construct, for each characteristic 
       field k, the positive and negative part of the flux:
@@ -235,7 +236,7 @@ void FD_Flux (const Sweep *sweep, int beg, int end,
       a is the global maximum eigenvalue for the k-th 
       characteristic.
       Reconstruct F_{+,j} and F_{-,j}.
-   --------------------------------------------------------- */
+   -------------------------------------------------------- */
 
   for (i = beg; i <= end; i++){
     L = stateLR->Lp[i];

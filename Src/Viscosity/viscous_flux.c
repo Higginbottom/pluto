@@ -8,29 +8,124 @@
   called in the during the sweep integrators. The stress tensor is given by
 
   \f[                                                      
-    \tens{\Pi} = \left(
-    \begin{array}{ccc}
-      \Pi_{xx} & \Pi_{xy} & \Pi_{xz} \\
-      \Pi_{yx} & \Pi_{yy} & \Pi_{yz} \\
-      \Pi_{zx} & \Pi_{zy} & \Pi{zz} 
-    \end{array}\right)
+    \tens{\Pi} =  \nu_1\Big[\nabla\vec{v} + (\nabla\vec{v})^\intercal\Big]
+                + \left(\nu_2 - \frac{2}{3}\nu_1\right)(\nabla\cdot\vec{v}) \tens{I}
   \f]
      
-  where \f$ \Pi_{ij} = \Pi_{ji}\f$ and the components are given by 
-  \f$ \Pi_{ij} = 2\,m\,e(ij) + (l - 2/3 m) \nabla\cdot {\bf V}\, \delta_{ij} \f$
-  where \f$ e(ij)= e_{ij}/(h_ih_j)\f$ and  
-  \f$ e_{ij} = 0.5( V_{i;j} + V_{j;i} ) \f$  whereas m,l are the first and 
-  second parameter of viscosity respectively.
+  where \f$\nu_1 = \mu\f$ is the dynamic viscosity and \f$\tens{I}\f$ is
+  the unit tensor.
  
-  \authors Petros Tzeferacos (petros.tzeferacos@ph.unito.it) \n
-           Andrea Mignone
-  \date    April 20, 2018
+  In order to compute the viscous stress tensor, we report here the
+  expression for the gradient of a vector in cylindrical and spherical 
+  coordinates (see the book "I do like CFD, vol. I" by K. Masatsuka,
+  Sec. 1.5.5, Eq. 1.5.35):  
+
+  - Cylindrical:
+  \f[
+    \nabla\vec{v} = \left[\begin{array}{ccc}
+    \DS  \pd{v_r}{r}  & \DS \frac{1}{r}\pd{v_r}{\phi}-\frac{v_\phi}{r}
+                      & \DS \pd{v_r}{z}
+    \\ \noalign{\medskip}
+    \DS \pd{v_\phi}{r} & \DS \frac{1}{r}\pd{v_\phi}{\phi} + \frac{v_r}{r}
+                       & \DS \pd{v_\phi}{z}
+    \\ \noalign{\medskip}
+    \DS \pd{v_z}{r} & \DS \frac{1}{r}\pd{v_z}{\phi}
+                       & \DS \pd{v_z}{z}
+    \end{array}\right]
+    \quad\rightarrow\quad
+    \boxed{
+    \Pi = \nu_1\left[\begin{array}{ccc}
+      \DS  2\pd{v_r}{r}
+    & \DS   r\pd{}{r}\left(\frac{v_\phi}{r}\right) + \frac{1}{r}\pd{v_r}{\phi}
+    & \DS   \pd{v_r}{z} + \pd{v_z}{r}
+    \\ \noalign{\medskip}
+      \DS  \Pi_{r\phi}
+    & \DS  2\left(\frac{1}{r}\pd{v_\phi}{\phi} + \frac{v_r}{r}\right)
+    & \DS \pd{v_\phi}{z} + \frac{1}{r}\pd{v_z}{\phi}
+    \\ \noalign{\medskip}
+      \DS \Pi_{rz}
+    & \DS \Pi_{\phi z}
+    & \DS 2\pd{v_z}{z}
+    \end{array}\right]
+    + \left(\nu_2 - \frac{2}{3}\nu_1\right)(\nabla\cdot\vec{v}) \tens{I}
+    }
+  \f]
+  To avoid the singularity at the origin (when \f$\partial_\phi=0\f$), we
+  compute the radial contribution of the divergence as
+  \f[
+     \frac{1}{r}\pd{(rv_r)}{r} \approx 2\frac{V_{r,i+1}|r_{i+1}| - V_{r,i}|r_{i}|}
+                                             {r_{i+1}|r_{i+1}| - r_i|r_{i}|}
+  \f]
+  The source terms are computed using Eq. (64) of [Mig14],
+  \f[
+      \left(\frac{T_{\phi\phi}}{r}\right)_i \approx
+      \frac{(T_{\phi\phi})_{i-\HALF} + (T_{\phi\phi})_{i+\HALF}}{2r_i}
+      \qquad{\rm using}\qquad
+      \left.\frac{v_r}{r}\right|_{i+\HALF} = \left(
+       \frac{1}{r}\pd{(rv_r)}{r} - \pd{v_r}{r}\right)_{i+\HALF}
+  \f]
+  
+  - Spherical:
+  \f[
+    \nabla\vec{v} = \left[\begin{array}{ccc}
+    \DS  \pd{v_r}{r}  & \DS \frac{1}{r\sin\theta}\pd{v_r}{\phi}-\frac{v_\phi}{r}
+                      & \DS \frac{1}{r}\pd{v_r}{\theta} - \frac{v_\theta}{r}
+    \\ \noalign{\medskip}
+    \DS \pd{v_\phi}{r} & \DS    \frac{1}{r\sin\theta}\pd{v_\phi}{\phi}
+                              + \frac{v_r}{r} + \frac{a_\theta}{r\tan\theta}             
+                       & \DS \frac{1}{r}\pd{v_\phi}{\theta}
+    \\ \noalign{\medskip}
+    \DS \pd{v_\phi}{r} & \DS   \frac{1}{r\sin\theta}\pd{v_\theta}{\phi}
+                             - \frac{v_\phi}{r\tan\theta}
+                       & \DS \frac{1}{r}\pd{v_\theta}{\theta} + \pd{v_r}{r}
+    \end{array}\right]
+  \f]
+  so that
+  \f[
+    \boxed{
+    \Pi = \nu_1\left[\begin{array}{ccc}
+      \DS  2\pd{v_r}{r}
+    & \DS   r\pd{}{r}\left(\frac{v_\theta}{r}\right) + \frac{1}{r}\pd{v_r}{\theta}
+    & \DS   \frac{1}{r\sin\theta}\pd{v_r}{\phi} + r\pd{}{r}\left(\frac{v_\phi}{r}\right)
+    \\ \noalign{\medskip}
+      \DS  \Pi_{r\theta}
+    & \DS  2\left(\frac{1}{r}\pd{v_\theta}{\theta} + \frac{v_r}{r}\right)
+    & \DS   \frac{\sin\theta}{r}\pd{}{\theta}\left(\frac{v_\phi}{\sin\theta}\right)
+          + \frac{1}{r\sin\theta}\pd{v_\theta}{\phi}
+    \\ \noalign{\medskip}
+      \DS \Pi_{r\phi}
+    & \DS \Pi_{\theta\phi}
+    & \DS 2\left(  \frac{1}{r\sin\theta}\pd{v_\phi}{\phi} + \frac{v_r}{r}
+                 + \frac{v_\theta\cot\theta}{r}\right)
+    \end{array}\right]
+    + \left(\nu_2 - \frac{2}{3}\nu_1\right)(\nabla\cdot\vec{v}) \tens{I}
+    }
+  \f]
+
+\code
+restart;
+
+#div := 2*(abs(r[i+1])*V[i+1] - abs(r[i])*V[i])/(r[i+1]*abs(r[i+1]) - r[i]*abs(r[i]));
+div := 3*(r[i+1]^2*V[i+1] - r[i]^2*V[i])/(r[i+1]^3 - r[i]^3);
+
+r[i] := -r[i+1]; V[i] := -V[i+1];
+simplify(div);
+\endcode
+
+  \b References
+     - [Mig14] "High-order conservative reconstruction schemes for finite
+        volume methods in cylindrical and spherical coordinates"
+        A. Mignone, JCP (2014), 270, 784 
+
+  \authors A. Mignone (mignone@to.infn.it) \n
+           Petros Tzeferacos
+  \date    Nov 25, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
 /* ********************************************************************* */
-void ViscousFlux (Data_Arr V, double **ViF, double **ViS, 
+void ViscousFlux (const Data *d, double **ViF, double **ViS, 
                   double *dcoeff, int beg, int end, Grid *grid)
 /*!
  *
@@ -44,32 +139,11 @@ void ViscousFlux (Data_Arr V, double **ViF, double **ViS,
  *
  *  \return This function has no return value.
  ************************************************************************* */
-#define D_DX_I(q)  (q[k][j][i + 1] - q[k][j][i])
-#define D_DY_J(q)  (q[k][j + 1][i] - q[k][j][i])
-#define D_DZ_K(q)  (q[k + 1][j][i] - q[k][j][i])
-
-#define D_DY_I(q)  (  0.25*(q[k][j + 1][i] + q[k][j + 1][i + 1]) \
-                    - 0.25*(q[k][j - 1][i] + q[k][j - 1][i + 1]))
-
-#define D_DZ_I(q)  (  0.25*(q[k + 1][j][i] + q[k + 1][j][i + 1])  \
-                    - 0.25*(q[k - 1][j][i] + q[k - 1][j][i + 1]))
-
-#define D_DX_J(q)  (  0.25*(q[k][j][i + 1] + q[k][j + 1][i + 1]) \
-                    - 0.25*(q[k][j][i - 1] + q[k][j + 1][i - 1]))
-
-#define D_DZ_J(q)  (  0.25*(q[k + 1][j][i] + q[k + 1][j + 1][i]) \
-                    - 0.25*(q[k - 1][j][i] + q[k - 1][j + 1][i]))
-
-#define D_DX_K(q)  (  0.25*(q[k][j][i + 1] + q[k + 1][j][i + 1]) \
-                    - 0.25*(q[k][j][i - 1] + q[k + 1][j][i - 1]))
-
-#define D_DY_K(q)  (  0.25*(q[k][j + 1][i] + q[k + 1][j + 1][i]) \
-                    - 0.25*(q[k][j - 1][i] + q[k + 1][j - 1][i]))                
 {
   int i,j,k,n,nv;
-  double nu1,nu2;
-  double div_v;
-  double dx_1, dy_1, dz_1;
+  double nu1, nu2;
+  const double c23 = 2.0/3.0;
+  double inv_dx1, inv_dx2, inv_dx3;
   double *x1 = grid->x[IDIR], *dx1 = grid->dx[IDIR];
   double *x2 = grid->x[JDIR], *dx2 = grid->dx[JDIR];
   double *x3 = grid->x[KDIR], *dx3 = grid->dx[KDIR];
@@ -77,27 +151,34 @@ void ViscousFlux (Data_Arr V, double **ViF, double **ViS,
   double *x2r = grid->xr[JDIR];
   double *x3r = grid->xr[KDIR];
   double dxVx, dxVy, dxVz, dyVx, dyVy, dyVz, dzVx, dzVy, dzVz;
+  double divV, divr, scrh;
   static double *tau_xx, *tau_xy, *tau_xz,
                 *tau_yx, *tau_yy, *tau_yz,
-                *tau_zx, *tau_zy, *tau_zz; 
-  double ***Vx, ***Vy, ***Vz;
-  double scrh;
-  double *r, *th, r_1, dr, dr_1, s_1, tan_1, dy;
-  double dVxi,dVyi,dVzi;
-  double dVxj,dVyj,dVzj;
-  double dVxk,dVyk,dVzk;
+                *tau_zx, *tau_zy, *tau_zz;
+  double ***Vx = d->Vc[VX1];
+  double ***Vy = d->Vc[VX2];
+  double ***Vz = d->Vc[VX3];
+  double *r, *th, r_1, dr, s_1, tan_1;
   double vc[NVAR], vi[NVAR]; /* Center and interface values */
   static double *one_dVr, *one_dmu; /*auxillary volume components for r_1 singularity @ cylindrical and spherical*/
+
+  #ifdef FARGO
+  static double ***Vphi_tot;
+  if (Vphi_tot == NULL) Vphi_tot = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  
+  FARGO_ComputeTotalVelocity (d, Vphi_tot, grid);
+  #if (GEOMETRY == CARTESIAN) || (GEOMETRY == POLAR)
+  Vy = Vphi_tot;
+  #elif GEOMETRY == SPHERICAL
+  Vz = Vphi_tot;
+  #endif
+  #endif
 
 /* --------------------------------------------------------
    0. Set pointers to coordinates and grid indices,
       allocate memory
    -------------------------------------------------------- */
 
-  EXPAND(Vx = V[VX1];  ,
-         Vy = V[VX2];  ,
-         Vz = V[VX3];)
-  
   if (tau_xx == NULL){
     tau_xx = ARRAY_1D(NMAX_POINT, double);
     tau_xy = ARRAY_1D(NMAX_POINT, double);
@@ -125,231 +206,212 @@ void ViscousFlux (Data_Arr V, double **ViF, double **ViS,
     }
   }
 #endif
+
+  i = g_i;
+  j = g_j;
+  k = g_k;
+
+  dxVx = dxVy = dxVz = 0.0;
+  dyVx = dyVy = dyVz = 0.0;
+  dzVx = dzVy = dzVz = 0.0;
   
   if (g_dir == IDIR){   
-    j = g_j; k = g_k;
 
-  /* ---------------------------------------------------------
-     3A. Loop on X1 direction 
-     --------------------------------------------------------- */
+  /* ------------------------------------------------------
+     1. Compute derivatives of velocity at x1-zone
+        interfaces
+     ------------------------------------------------------ */
 
-    dy_1 = 1.0/dx2[j]; 
-    dz_1 = 1.0/dx3[k];
+    inv_dx2 = 1.0/dx2[j]; 
+    inv_dx3 = 1.0/dx3[k];
     for (i = beg; i <= end; i++){
-      dx_1 = 1.0/dx1[i];
+      inv_dx1 = 1.0/dx1[i];
 
-    /* -- compute face- and cell-centered values */
+    /* -- 1a. Compute face- and cell-centered values  -- */
 
-      VAR_LOOP(nv) {
-        vi[nv] = 0.5*(V[nv][k][j][i] + V[nv][k][j][i+1]);
-        vc[nv] = V[nv][k][j][i];
+      NVAR_LOOP(nv) {
+        vi[nv] = 0.5*(d->Vc[nv][k][j][i] + d->Vc[nv][k][j][i+1]);
+        vc[nv] = d->Vc[nv][k][j][i];
       }
-
-    /* -- compute viscosity (face center) -- */
+      #ifdef FARGO
+      vi[VX1 + SDIR] = 0.5*(Vphi_tot[k][j][i] + Vphi_tot[k][j][i+1]);
+      #endif
+      
+      /* -- 1b. Compute viscosity and velocity derivatives -- */
     
       Visc_nu(vi, x1r[i], x2[j], x3[k], &nu1, &nu2);
 
       dcoeff[i]  = MAX(nu1, nu2);
       dcoeff[i] /= vi[RHO];
 
-      tau_xx[i] = tau_xy[i]= tau_xz[i]= tau_yx[i]= 
-      tau_yy[i] = tau_yz[i]= tau_zx[i]= tau_zy[i]= 
+      tau_xx[i] = tau_xy[i] = tau_xz[i] = tau_yx[i]= 
+      tau_yy[i] = tau_yz[i] = tau_zx[i] = tau_zy[i]= 
       tau_zz[i] = 0.0;
 
-      dVxi = dVxj = dVxk = dVyi = dVyj = dVyk = dVzi = dVzj = dVzk = 0.0;
-      dxVx = dxVy = dxVz = dyVx = dyVy = dyVz = dzVx = dzVy = dzVz = 0.0;
+      #if INCLUDE_IDIR
+      dxVx = FDIFF_X1(Vx,k,j,i)*inv_dx1;
+      dxVy = FDIFF_X1(Vy,k,j,i)*inv_dx1;
+      dxVz = FDIFF_X1(Vz,k,j,i)*inv_dx1;
+      #endif
+      #if INCLUDE_JDIR
+      dyVx = 0.5*(CDIFF_X2(Vx,k,j,i) + CDIFF_X2(Vx,k,j,i+1))*inv_dx2;
+      dyVy = 0.5*(CDIFF_X2(Vy,k,j,i) + CDIFF_X2(Vy,k,j,i+1))*inv_dx2;
+      dyVz = 0.5*(CDIFF_X2(Vz,k,j,i) + CDIFF_X2(Vz,k,j,i+1))*inv_dx2;
+      #endif
+      #if INCLUDE_KDIR
+      dzVx = 0.5*(CDIFF_X3(Vx,k,j,i) + CDIFF_X3(Vx,k,j,i+1))*inv_dx3;
+      dzVy = 0.5*(CDIFF_X3(Vy,k,j,i) + CDIFF_X3(Vy,k,j,i+1))*inv_dx3;
+      dzVz = 0.5*(CDIFF_X3(Vz,k,j,i) + CDIFF_X3(Vz,k,j,i+1))*inv_dx3;
+      #endif
 
-      EXPAND (dVxi = D_DX_I(Vx);, dVyi = D_DX_I(Vy);, dVzi = D_DX_I(Vz);)
-      #if DIMENSIONS >= 2
-      EXPAND (dVxj = D_DY_I(Vx);, dVyj = D_DY_I(Vy);, dVzj = D_DY_I(Vz);)
-      #if DIMENSIONS == 3
-      dVxk = D_DZ_I(Vx); dVyk = D_DZ_I(Vy); dVzk = D_DZ_I(Vz);   
-      #endif
-      #endif
-
-      EXPAND(dxVx = dVxi*dx_1; , dxVy = dVyi*dx_1; , dxVz = dVzi*dx_1; )
-      #if DIMENSIONS >= 2 
-      EXPAND(dyVx = dVxj*dy_1; , dyVy = dVyj*dy_1; , dyVz = dVzj*dy_1; )
-      #if DIMENSIONS == 3
-      dzVx = dVxk*dz_1; dzVy = dVyk*dz_1; dzVz = dVzk*dz_1;
-      #endif
-      #endif
+    /* ------------------------------------------
+       1c. Compute stress tensor components and
+           geometrical source terms in different
+           coordinate systems
+       ------------------------------------------ */
 
       #if GEOMETRY == CARTESIAN      
-      div_v = D_EXPAND(dxVx, + dyVy , + dzVz); 
 
-    /* -- stress tensor components (only some needed for flux computation) -- */
+      divV = DIM_EXPAND(dxVx, + dyVy , + dzVz); 
 
-      tau_xx[i] = 2.0*nu1*dxVx + (nu2 - (2.0/3.0)*nu1)*div_v; /*2eta1 dxVx + (eta2 - 2/3 eta1) divV*/
-      tau_xy[i] = nu1*(dyVx + dxVy);   /*eta1 (dyVx + dxVy)*/
-      tau_xz[i] = nu1*(dzVx + dxVz);   /*eta1 (dzVx + dxVz)*/
-      tau_yx[i] = tau_xy[i];                
-      tau_zx[i] = tau_xz[i];                
+      tau_xx[i] = 2.0*nu1*dxVx + (nu2 - c23*nu1)*divV; 
+      tau_xy[i] = nu1*(dyVx + dxVy); 
+      tau_xz[i] = nu1*(dzVx + dxVz); 
+      tau_yx[i] = tau_xy[i];
+      tau_zx[i] = tau_xz[i];
        
-    /* -- compute source terms -- */
-
-      EXPAND(ViS[i][MX1] = 0.0; ,
-             ViS[i][MX2] = 0.0; ,  
-             ViS[i][MX3] = 0.0; ) 
-                 
+      ViS[i][MX1] = 0.0; 
+      ViS[i][MX2] = 0.0; 
+      ViS[i][MX3] = 0.0; 
+     
       #elif GEOMETRY == CYLINDRICAL
 
       r = grid->x[IDIR]; dr = grid->dx[IDIR][i];
-      dr_1 = 1.0/dr; dz_1 = 0.0;
-      r_1 = 1.0/grid->x[IDIR][i];
+      inv_dx3 = 0.0;
+      r_1 = 1.0/x1[i];
        
-    /* -- calculate the div(v) (trick @ axis for dxVx) -- */
+      divV = DIM_EXPAND( (Vx[k][j][i+1]*r[i+1] - Vx[k][j][i]*fabs(r[i]))*one_dVr[i],
+                        + dyVy, + 0.0); 
 
-      dxVx = (Vx[k][j][i+1]*r[i+1] - Vx[k][j][i]*fabs(r[i]))*one_dVr[i];
-      div_v = D_EXPAND(  dxVx, + dVyj*dy_1, + 0.0); 
-      dxVx = dVxi*dx_1;
-
-    /* -- stress tensor components (only some needed for flux computation) -- */
-                                
-      tau_xx[i] = 2.0*nu1*dxVx + (nu2 - (2.0/3.0)*nu1)*div_v; /* tau_rr = 2 eta1 drVr + (eta2 - 2/3 eta1) divV    */
-      tau_xy[i] = nu1*(dyVx + dxVy);   /*tau_rz = eta1 (dzVr + drVz)*/
-      EXPAND(tau_xz[i] = nu1*(0.0);,
-            tau_xz[i] = nu1*(0.0);,   
-            tau_xz[i] = nu1*0.5*(r[i]+r[i+1])*dr_1*((1./r[i+1])*Vz[k][j][i+1] 
-                                               - (1./r[i])*Vz[k][j][i]);)   
-                               /*tau_rphi = eta1 (1/r dphiVr + drVphi - 1/r Vphi)= eta1 (r dr(1/r Vphi) )*/    
-      tau_yx[i] = tau_xy[i]; /*tau_zr*/
-      tau_zx[i] = tau_xz[i]; /*tau_phir*/
+      tau_xx[i] = 2.0*nu1*dxVx + (nu2 - (2.0/3.0)*nu1)*divV; 
+      tau_xy[i] = nu1*(dyVx + dxVy);  
+      tau_xz[i] = nu1*0.5*(r[i]+r[i+1])*inv_dx1*((1./r[i+1])*Vz[k][j][i+1] 
+                                               - (1./r[i])*Vz[k][j][i]);
+      tau_yx[i] = tau_xy[i]; 
+      tau_zx[i] = tau_xz[i]; 
       
       /* -- we calculate at the center cause we don't need it for flux
             but for src, avoiding 1/r->inf at r=r_f=0 -- */
 
       Visc_nu(vc, x1[i], x2[j], x3[k], &nu1, &nu2);
 
-      div_v = D_EXPAND( 0.5*(Vx[k][j][i+1]-Vx[k][j][i-1])*dx_1 + Vx[k][j][i]*r_1,
-                      + 0.5*(Vy[k][j + 1][i]-Vy[k][j - 1][i])*dy_1, 
+      divV = DIM_EXPAND(  0.5*(Vx[k][j][i+1]-Vx[k][j][i-1])*inv_dx1 + Vx[k][j][i]*r_1,
+                      + 0.5*(Vy[k][j + 1][i]-Vy[k][j - 1][i])*inv_dx2, 
                       + 0.0 ); 
  
-      tau_zz[i] = 2.0*nu1*r_1*Vx[k][j][i] + (nu2 - (2.0/3.0)*nu1)*div_v;
+      tau_zz[i] = 2.0*nu1*r_1*Vx[k][j][i] + (nu2 - (2.0/3.0)*nu1)*divV;
        
-    /* -- compute source terms -- */
+      ViS[i][MX1] = -tau_zz[i]*r_1;
+      ViS[i][MX2] = 0.0;
+      ViS[i][MX3] = 0.0;
 
-      EXPAND(ViS[i][MX1] = -tau_zz[i]*r_1; ,
-             ViS[i][MX2] = 0.0;            ,  
-             ViS[i][MX3] = 0.0; ) 
+      #elif GEOMETRY == POLAR 
+      r_1  = 1.0/x1r[i];
 
-     #elif GEOMETRY == POLAR 
+    /* -- Here divr = 1/r*diff(r*vr,r) -- */
+    
+      divr = 2.0*(Vx[k][j][i+1]*fabs(x1[i+1]) - Vx[k][j][i]*fabs(x1[i]))
+                /(x1[i+1]*fabs(x1[i+1]) - x1[i]*fabs(x1[i]));
+      divV = DIM_EXPAND(divr, + r_1*dyVy, + dzVz); 
+
+      tau_xx[i] = 2.0*nu1*dxVx + (nu2 - c23*nu1)*divV;
       
-      r    = grid->xr[IDIR];    th = grid->x[JDIR];
-      dr   = grid->dx[IDIR][i]; dr_1 = 1.0/dr;
-      r_1  = 1.0/grid->xr[IDIR][i];
+    /* -- Compute d(vphi/r) / dr -- */
+    
+      scrh = x1r[i]*(Vy[k][j][i+1]/x1[i+1] - Vy[k][j][i]/x1[i])*inv_dx1;
+      scrh = DIM_EXPAND(scrh, + r_1*dyVx, + 0.0);
+      tau_xy[i] = nu1*scrh;
+      tau_xz[i] = nu1*(dzVx + dxVz);       
+      tau_yx[i] = tau_xy[i];
+      tau_zx[i] = tau_xz[i]; 
 
-    /* -- calculate div(v) -- */
-
-      div_v =  D_EXPAND(r_1*vi[VX1] + dVxi*dr_1, + r_1*dVyj*dy_1, + dVzk*dz_1); 
-
-    /* -- stress tensor components (only some needed for flux computation) -- */
-
-      tau_xx[i] = 2.0*nu1*dxVx + (nu2 - (2.0/3.0)*nu1)*div_v; /*tau_rr as in cylindrical */
-      EXPAND(tau_xy[i] = nu1*dxVy;                              ,
-             tau_xy[i] = nu1*(r_1*dyVx + dxVy - r_1*vi[VX2]);   ,
-             tau_xy[i] = nu1*(r_1*dyVx + dxVy - r_1*vi[VX2]);)
-                      /*tau_rphi = eta1 (1/r dphiVr + drVphi - 1/r Vphi) */
-      tau_xz[i] = nu1*(dzVx + dxVz);  /*tau_rz as in cylindrical*/
-      tau_yx[i] = tau_xy[i];               /*tau_phir = tau_rphi*/
-      EXPAND(tau_yy[i] = 2.0*nu1*r_1*dyVy + (nu2 - (2.0/3.0)*nu1)*div_v;,
-             tau_yy[i] = 2.0*nu1*(r_1*dyVy + r_1*vi[VX1])
-                         + (nu2 - (2.0/3.0)*nu1)*div_v;,
-             tau_yy[i] = 2.0*nu1*(r_1*dyVy + r_1*vi[VX1])
-                         + (nu2 - (2.0/3.0)*nu1)*div_v;)
-                        /*tau_phiphi = 2 eta1 (1/r dphiVphi + 1/r Vr) + (eta2 - 2/3 eta1) divV*/
-      tau_zx[i] = tau_xz[i]; /*tau_zr = tau_rz*/
-
-    /* -- compute source terms -- */
+    /* ------------------------------------------
+       To avoid singularity vr/r, we note that
+       vr/r = divr - dvr/dr
+       ------------------------------------------ */
+      
+      scrh = DIM_EXPAND(divr - dxVx, + r_1*dyVy, + 0.0);
+      tau_yy[i] = 2.0*nu1*scrh + (nu2 - c23*nu1)*divV;
 
       r_1  = 1.0/x1[i];
       
-      EXPAND(ViS[i][MX1] = -0.5*(tau_yy[i-1] + tau_yy[i])*r_1; ,
-             ViS[i][MX2] = 0.0;                                  ,
-             ViS[i][MX3] = 0.0;)
+      ViS[i][MX1] = -0.5*(tau_yy[i-1] + tau_yy[i])*r_1;
+      ViS[i][MX2] = 0.0;
+      ViS[i][MX3] = 0.0;
                                             
       #elif GEOMETRY == SPHERICAL
 
       r = grid->xr[IDIR]; th = grid->x[JDIR];
-      dr_1 = 1.0/grid->dx[IDIR][i]; r_1  = 1.0/grid->xr[IDIR][i];
+      r_1  = 1.0/x1r[i];
       tan_1= 1.0/tan(th[j]); s_1 = 1.0/sin(th[j]);
 
-      /* -- calculate div(v) -- */
-
-      div_v = D_EXPAND(  2.0*r_1*vi[VX1] + dVxi*dr_1 ,
-                      + r_1*dVyj*dy_1 + r_1*tan_1*vi[VX2], 
-                      + r_1*s_1*dVzk*dz_1); 
+      divV = DIM_EXPAND(  2.0*r_1*vi[VX1] + dxVx,
+                      + r_1*dyVy + r_1*tan_1*vi[VX2], 
+                      + r_1*s_1*dzVz); 
        
-    /* -- stress tensor components (only some needed for flux computation) -- */
-                                
-      /* tau_rr = 2eta1 drVr + + (eta2 - 2/3 eta1) divV */
-      tau_xx[i] = 2.0*nu1*dxVx + (nu2 - (2.0/3.0)*nu1)*div_v;
-      EXPAND(tau_xy[i] = nu1*(r_1*dyVx + dxVy );                   ,
-             tau_xy[i] = nu1*(r_1*dyVx + dxVy - r_1*vi[VX2]);      ,
-             tau_xy[i] = nu1*(r_1*dyVx + dxVy - r_1*vi[VX2]);)
-                      /*tau_rthita = eta1 (1/r dthitaVr + drVthita -1/r Vthita)*/
-      EXPAND(tau_xz[i] = nu1*(r_1*s_1*dzVx + dxVz) ;   ,  
-             tau_xz[i] = nu1*(r_1*s_1*dzVx + dxVz );   ,   
-             tau_xz[i] = nu1*(r_1*s_1*dzVx + dxVz - r_1*vi[VX3]);)
-                      /*tau_rphi = eta1 (1/r dthitaVr + drVthita -1/r Vthita)*/
-             tau_yx[i] = tau_xy[i]; /*tau_thitar*/
-             tau_yy[i] = 2.0*nu1*(r_1*dyVy + r_1*vi[VX1]) 
-                        + (nu2 - (2.0/3.0)*nu1)*div_v; 
-                        /*tau_thitathita= 2 eta1 (1/r dthitaVthita + 1/r Vr) + (eta2 - 2/3 eta1)divV*/
-      tau_zx[i] = tau_xz[i]; /*tau_phir*/
-      EXPAND(tau_zz[i] = 2.0*nu1*(r_1*s_1*dzVz + r_1*vi[VX1] ) 
-                        + (nu2 - (2.0/3.0)*nu1)*div_v;,
-             tau_zz[i] = 2.0*nu1*(r_1*s_1*dzVz + r_1*vi[VX1]
-                                         + tan_1*r_1*vi[VX2]) 
-                        + (nu2 - (2.0/3.0)*nu1)*div_v;,
-             tau_zz[i] = 2.0*nu1*(r_1*s_1*dzVz + r_1*vi[VX1]
-                                         + tan_1*r_1*vi[VX2]) 
-                        + (nu2 - (2.0/3.0)*nu1)*div_v;)
-                        /*tau_phiphi= 2 eta1 (1/rs dphiVphi + 1/r Vr + 1/r cot Vthita) + (eta2 - 2/3 eta1)divV*/
+      tau_xx[i] = 2.0*nu1*dxVx + (nu2 - (2.0/3.0)*nu1)*divV;
+      tau_xy[i] = nu1*(r_1*dyVx + dxVy - r_1*vi[VX2]);
+      tau_xz[i] = nu1*(r_1*s_1*dzVx + dxVz - r_1*vi[VX3]);
+      tau_yx[i] = tau_xy[i]; 
+      tau_yy[i] = 2.0*nu1*(r_1*dyVy + r_1*vi[VX1]) + (nu2 - c23*nu1)*divV; 
+      tau_zx[i] = tau_xz[i];
+      tau_zz[i] = 2.0*nu1*(r_1*s_1*dzVz + r_1*vi[VX1] + tan_1*r_1*vi[VX2]) 
+                        + (nu2 - c23*nu1)*divV;
 
-    /* -- compute source terms -- */
-
-      r_1  = 1.0/grid->x[IDIR][i];
-      EXPAND(ViS[i][MX1] = -0.5*(  tau_yy[i - 1] + tau_yy[i]
-                                 + tau_zz[i - 1] + tau_zz[i])*r_1;,
-             ViS[i][MX2] = 0.0;,
-             ViS[i][MX3] = 0.0;)       
+      r_1  = 1.0/x1[i];
+      ViS[i][MX1] = -0.5*(  tau_yy[i-1] + tau_yy[i]
+                          + tau_zz[i-1] + tau_zz[i])*r_1;
+      ViS[i][MX2] = 0.0;
+      ViS[i][MX3] = 0.0;       
                
       #endif  /* -- end #if GEOMETRY -- */
 
-    /* -- compute fluxes -- */
+    /* ------------------------------------------
+       1d. Compute fluxes at x1-faces
+       ------------------------------------------ */
 
-      EXPAND(ViF[i][MX1] = tau_xx[i]; ,
-             ViF[i][MX2] = tau_xy[i]; ,
-             ViF[i][MX3] = tau_xz[i]; )
+      ViF[i][MX1] = tau_xx[i];
+      ViF[i][MX2] = tau_xy[i];
+      ViF[i][MX3] = tau_xz[i];
 
-      #if EOS != ISOTHERMAL
-      ViF[i][ENG] = EXPAND(  vi[VX1]*tau_xx[i],
-                           + vi[VX2]*tau_yx[i],
-                           + vi[VX3]*tau_zx[i]);
+      #if HAVE_ENERGY
+      ViF[i][ENG] = vi[VX1]*tau_xx[i] + vi[VX2]*tau_yx[i] + vi[VX3]*tau_zx[i];
       #endif
     }
 
   }else if (g_dir == JDIR){ 
-    i = g_i; k = g_k;
 
-  /* ---------------------------------------------------------
-     3B. Loop on X2 direction 
-     --------------------------------------------------------- */
+  /* ------------------------------------------------------
+     2. Compute derivatives of velocity at x2-zone
+        interfaces
+     ------------------------------------------------------ */
 
-    dx_1 = 1.0/dx1[i];
-    dz_1 = 1.0/dx3[k];
+    inv_dx1 = 1.0/dx1[i];
+    inv_dx3 = 1.0/dx3[k];
     for (j = beg ; j <= end; j++){
-      dy_1 = 1.0/dx2[j];
+      inv_dx2 = 1.0/dx2[j];
 
-    /* -- compute face- and cell-centered values */
+    /* -- 2a. Compute face- and cell-centered values  -- */
 
-      VAR_LOOP(nv) {
-        vi[nv] = 0.5*(V[nv][k][j+1][i] + V[nv][k][j][i]);
-        vc[nv] = V[nv][k][j][i];
+      NVAR_LOOP(nv) {
+        vi[nv] = 0.5*(d->Vc[nv][k][j+1][i] + d->Vc[nv][k][j][i]);
+        vc[nv] = d->Vc[nv][k][j][i];
       }
+      #ifdef FARGO
+      vi[VX1 + SDIR] = 0.5*(Vphi_tot[k][j+1][i] + Vphi_tot[k][j][i]);
+      #endif
 
-    /* -- compute viscosity (face center) -- */
+    /* -- 2b. Compute viscosity and velocity derivatives -- */
     
       Visc_nu(vi, x1[i], x2r[j], x3[k], &nu1, &nu2);
       dcoeff[j]  = MAX(nu1,nu2);
@@ -358,102 +420,80 @@ void ViscousFlux (Data_Arr V, double **ViF, double **ViS,
       tau_xx[j]= tau_xy[j]= tau_xz[j]= tau_yx[j] = tau_yy[j]= 
       tau_yz[j]= tau_zx[j]= tau_zy[j]= tau_zz[j] =0.0;
       
-      dVxi = dVxj = dVxk = dVyi = dVyj = dVyk = dVzi = dVzj = dVzk = 0.0;
-      dxVx = dxVy = dxVz = dyVx = dyVy = dyVz = dzVx = dzVy = dzVz = 0.0;
-
-    /* ------ CALCULATE DERIVATIVES ---------- */
-
-      EXPAND (dVxi = D_DX_J(Vx);, dVyi = D_DX_J(Vy);, dVzi = D_DX_J(Vz);)
-      EXPAND (dVxj = D_DY_J(Vx);, dVyj = D_DY_J(Vy);, dVzj = D_DY_J(Vz);)
-      #if DIMENSIONS == 3
-       dVxk = D_DZ_J(Vx); dVyk = D_DZ_J(Vy); dVzk = D_DZ_J(Vz);   
+      #if INCLUDE_IDIR
+      dxVx = 0.5*(CDIFF_X1(Vx,k,j,i) + CDIFF_X1(Vx,k,j+1,i))*inv_dx1;
+      dxVy = 0.5*(CDIFF_X1(Vy,k,j,i) + CDIFF_X1(Vy,k,j+1,i))*inv_dx1;
+      dxVz = 0.5*(CDIFF_X1(Vz,k,j,i) + CDIFF_X1(Vz,k,j+1,i))*inv_dx1;
       #endif
-      
-      EXPAND(dxVx = dVxi*dx_1; , dxVy = dVyi*dx_1; , dxVz = dVzi*dx_1; )
-      EXPAND(dyVx = dVxj*dy_1; , dyVy = dVyj*dy_1; , dyVz = dVzj*dy_1; )
-      #if DIMENSIONS == 3
-       dzVx = dVxk*dz_1; dzVy = dVyk*dz_1; dzVz = dVzk*dz_1;
+      #if INCLUDE_JDIR
+      dyVx = FDIFF_X2(Vx,k,j,i)*inv_dx2;
+      dyVy = FDIFF_X2(Vy,k,j,i)*inv_dx2;
+      dyVz = FDIFF_X2(Vz,k,j,i)*inv_dx2;
       #endif
-     
+      #if INCLUDE_KDIR
+      dzVx = 0.5*(CDIFF_X3(Vx,k,j,i) + CDIFF_X3(Vx,k,j+1,i))*inv_dx3;
+      dzVy = 0.5*(CDIFF_X3(Vy,k,j,i) + CDIFF_X3(Vy,k,j+1,i))*inv_dx3;
+      dzVz = 0.5*(CDIFF_X3(Vz,k,j,i) + CDIFF_X3(Vz,k,j+1,i))*inv_dx3;
+      #endif
+
+    /* ------------------------------------------
+       2c. Compute stress tensor components and
+           geometrical source terms in different
+           coordinate systems
+       ------------------------------------------ */
+
       #if GEOMETRY == CARTESIAN
-   
-    /* -- calculate div(v) -- */
+      divV = DIM_EXPAND(dxVx, + dyVy, + dzVz); 
        
-       div_v = D_EXPAND(dxVx, + dyVy, + dzVz); 
+      tau_xy[j] = nu1*(dyVx + dxVy);
+      tau_yx[j] = tau_xy[j];
+      tau_yy[j] = 2.0*nu1*dyVy + (nu2 - c23*nu1)*divV;
+      tau_yz[j] = nu1*(dyVz + dzVy);
+      tau_zy[j] = tau_yz[j];
        
-    /* -- stress tensor components (only some needed for flux computation) -- */
-
-       tau_xy[j] = nu1*(dyVx + dxVy);
-       tau_yx[j] = tau_xy[j];
-       tau_yy[j] = 2.0*nu1*dyVy + (nu2 - (2.0/3.0)*nu1)*div_v;
-       tau_yz[j] = nu1*(dyVz + dzVy);
-       tau_zy[j] = tau_yz[j];
-       
-    /* -- compute source terms -- */
-
-       EXPAND(ViS[j][MX1] = 0.0; ,
-              ViS[j][MX2] = 0.0; ,  
-              ViS[j][MX3] = 0.0; )                              
+      ViS[j][MX1] = 0.0;
+      ViS[j][MX2] = 0.0;
+      ViS[j][MX3] = 0.0;
 
       #elif GEOMETRY == CYLINDRICAL
        
-       r = grid->x[IDIR]; th = grid->x[KDIR];
-       dr = grid->dx[IDIR][i]; dr_1 = 1.0/dr;
-       r_1 = 1.0/grid->x[IDIR][i]; dz_1 = 0.0;
+      r = grid->x[IDIR]; th = grid->x[KDIR];
+      dr = grid->dx[IDIR][i];
+      r_1 = 1.0/grid->x[IDIR][i]; inv_dx3 = 0.0;
 
-     /* -- calculate div(v) -- */
+      divV = DIM_EXPAND(r_1*vi[VX1] + dxVx, + dyVy, + 0.0); 
+
+      tau_xy[j] = nu1*(dyVx + dxVy);
+      tau_yx[j] = tau_xy[j];  
+      tau_yy[j] = 2.0*nu1*dyVy + (nu2 - c23*nu1)*divV; 
+      tau_yz[j] = nu1*(dyVz); 
+      tau_zy[j] = tau_yz[j]; 
        
-       div_v = D_EXPAND(r_1*vi[VX1] + dVxi*dr_1, + dVyj*dy_1, + 0.0); 
-
-    /* -- stress tensor components (only some needed for flux computation) -- */
-      
-       tau_xy[j] = nu1*(dyVx + dxVy); /*tau_rz = eta1 (dzVr + drVz)*/
-       tau_yx[j] = tau_xy[j];  /* tau_zr */
-       tau_yy[j] = 2.0*nu1*dyVy + (nu2 - (2.0/3.0)*nu1)*div_v; /*tau_zz = 2eta1 dzVz + (eta2 - 2/3 eta1)divV*/
-       EXPAND(tau_yz[j] = 0.0;  ,
-              tau_yz[j] = 0.0;  ,
-              tau_yz[j] = nu1*(dyVz);) /*tau_zphi = eta1(1/r dphiVz + dzVphi)*/
-       tau_zy[j] = tau_yz[j]; /*tau_phiz*/
-       
-    /* -- compute source terms -- */
-
-       EXPAND(ViS[j][MX1] = 0.0; ,
-              ViS[j][MX2] = 0.0; ,  
-              ViS[j][MX3] = 0.0; ) 
+      ViS[j][MX1] = 0.0;
+      ViS[j][MX2] = 0.0;
+      ViS[j][MX3] = 0.0;
 
       #elif GEOMETRY == POLAR 
 
-       r = grid->x[IDIR]; th = grid->xr[JDIR]; dr   = grid->dx[IDIR][i];
-       dr_1 = 1.0/dr; r_1  = 1.0/grid->x[IDIR][i];
+      r_1  = 1.0/x1[i];
        
-    /* -- calculate div(v) -- */
-       
-       div_v = D_EXPAND(r_1*vi[VX1] + dVxi*dr_1, + r_1*dVyj*dy_1, + dVzk*dz_1); 
+      divV = DIM_EXPAND(r_1*vi[VX1] + dxVx, + r_1*dyVy, + dzVz); 
 
-    /* -- stress tensor components (only some needed for flux computation) -- */
-
-       tau_xy[j] = nu1*(r_1*dyVx + dxVy - r_1*vi[VX2]); 
-                    /*tau_rphi = eta1(1/r dphiVr + drVphi -1/r Vphi)*/
-       tau_yx[j] = tau_xy[j]; /*tau_phir*/
-       tau_yy[j] = 2.0*nu1*(r_1*dyVy + r_1*vi[VX1])
-                  + (nu2 - (2.0/3.0)*nu1)*div_v;
-                  /*tau_phiphi = 2 eta1 (1/r dphiVphi + 1/rVr) + (eta2 - 2/3 eta1)divV*/
-       tau_yz[j] = nu1*(r_1*dyVz + dzVy); /* tau_phiz = eta1(dzVphi + 1/r dphiVz)*/
-       tau_zy[j] = tau_yz[j]; /*tau_zphi*/
+      tau_xy[j] = nu1*(r_1*dyVx + dxVy - r_1*vi[VX2]); 
+      tau_yx[j] = tau_xy[j]; 
+      tau_yy[j] = 2.0*nu1*(r_1*dyVy + r_1*vi[VX1]) + (nu2 - c23*nu1)*divV;
+      tau_yz[j] = nu1*(r_1*dyVz + dzVy); 
+      tau_zy[j] = tau_yz[j]; 
      
-       r_1  = 1.0/x1[i];
-
-    /* -- compute source terms -- */
-       
-       EXPAND(ViS[j][MX1] = 0.0; ,
-              ViS[j][MX2] = 0.0; ,
-              ViS[j][MX3] = 0.0; )
+      ViS[j][MX1] = 0.0;
+      ViS[j][MX2] = 0.0;
+      ViS[j][MX3] = 0.0;
       
       #elif GEOMETRY == SPHERICAL
        
-       r = grid->x[IDIR]; th = grid->xr[JDIR];
-       dr_1 = 1.0/grid->dx[IDIR][i]; r_1  = 1.0/grid->x[IDIR][i];
-       tan_1= 1.0/tan(th[j]); s_1 = 1.0/sin(th[j]);
+      r = grid->x[IDIR]; th = grid->xr[JDIR];
+      r_1  = 1.0/x1[i];
+      tan_1= 1.0/tan(th[j]); s_1 = 1.0/sin(th[j]);
 
        /*------------------------------------
        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -472,92 +512,79 @@ void ViscousFlux (Data_Arr V, double **ViF, double **ViS,
          s_1   = 0.0;
        }
        
-       /* -- calculate div(v) -- */
-
        th = grid->x[JDIR];
        
-       div_v = D_EXPAND( 2.0*r_1*vi[VX1] + dVxi*dr_1    ,
+       divV = DIM_EXPAND( 2.0*r_1*vi[VX1] + dxVx,
                        + ( sin(th[j + 1])*Vy[k][j + 1][i] - fabs(sin(th[j]))*Vy[k][j][i])*r_1*one_dmu[j], 
-                       + r_1*s_1*dVzk*dz_1 ); 
+                       + r_1*s_1*dzVz); 
       
        th = grid->xr[JDIR];
 
-    /* -- stress tensor components (only some needed for flux computation) -- */
-
       tau_xy[j] = nu1*(r_1*dyVx + dxVy - r_1*vi[VX2]); 
-                  /*tau_rthita = eta1(1/r dthitaVr + drVthita -1/r Vthita)*/
-      tau_yx[j] = tau_xy[j]; /*tau_thitar*/
-      tau_yy[j] = 2.0*nu1*(r_1*dyVy + r_1*vi[VX1]) 
-                 + (nu2 - (2.0/3.0)*nu1)*div_v;
-                 /*tau_thitathita= 2 eta1 (1/r dthitaVthita + 1/r Vr) + (eta2 - 2/3 eta1)divV*/
-       #if DIMENSIONS <= 2                  
-        EXPAND(tau_yz[j] = nu1*r_1*dyVz;  ,
-               tau_yz[j] = nu1*r_1*dyVz;  ,
-               tau_yz[j] = nu1*(r_1*dyVz - tan_1*r_1*vi[VX3]));
-       #endif       
-       #if DIMENSIONS == 3                  
-        tau_yz[j] = nu1*(s_1*r_1*dzVy + r_1*dyVz - tan_1*r_1*vi[VX3]);
-       #endif       /*tau_thitaphi= eta1 (1/rs dphiVthita + 1/r dthitaVphi -1/r cot Vphi)*/
-       tau_zy[j] = tau_yz[j]; /*tau_phithita*/
-       #if DIMENSIONS <= 2                  
-        EXPAND(tau_zz[j] = 2.0*nu1*r_1*vi[VX1] 
-                          + (nu2 - (2.0/3.0)*nu1)*div_v;    ,
-               tau_zz[j] = 2.0*nu1*(r_1*vi[VX1] + tan_1*r_1*vi[VX2]) 
-                          + (nu2 - (2.0/3.0)*nu1)*div_v;,
-               tau_zz[j] = 2.0*nu1*(r_1*vi[VX1] + tan_1*r_1*vi[VX2]) 
-                          + (nu2 - (2.0/3.0)*nu1)*div_v;)
-       #endif       
-       #if DIMENSIONS == 3                  
-        tau_zz[j] = 2.0*nu1*(r_1*s_1*dzVz + r_1*vi[VX1] + tan_1*r_1*vi[VX2]) 
-                   + (nu2 - (2.0/3.0)*nu1)*div_v;
-       #endif       /*tau_phiphi = 2eta1(1/rs dphiVphi + 1/r Vr + 1/r cot Vthita) + (eta2 -2/3 eta1)divV */
+      tau_yx[j] = tau_xy[j]; 
+      tau_yy[j] = 2.0*nu1*(r_1*dyVy + r_1*vi[VX1]) + (nu2 - c23*nu1)*divV;
+      #if INCLUDE_JDIR
+      tau_yz[j] = nu1*(r_1*dyVz - tan_1*r_1*vi[VX3]);
+      #endif       
+      #if INCLUDE_KDIR
+      tau_yz[j] = nu1*(s_1*r_1*dzVy + r_1*dyVz - tan_1*r_1*vi[VX3]);
+      #endif       /*tau_thitaphi= eta1 (1/rs dphiVthita + 1/r dthitaVphi -1/r cot Vphi)*/
+      tau_zy[j] = tau_yz[j]; /*tau_phithita*/
+      #if DIMENSIONS <= 2                  
+      tau_zz[j] = 2.0*nu1*(r_1*vi[VX1] + tan_1*r_1*vi[VX2]) 
+                          + (nu2 - c23*nu1)*divV;
+      #endif       
+      #if INCLUDE_KDIR
+      tau_zz[j] = 2.0*nu1*(r_1*s_1*dzVz + r_1*vi[VX1] + tan_1*r_1*vi[VX2]) 
+                  + (nu2 - c23*nu1)*divV;
+      #endif       /*tau_phiphi = 2eta1(1/rs dphiVphi + 1/r Vr + 1/r cot Vthita) + (eta2 -2/3 eta1)divV */
                   
-    /* -- compute source terms -- */
-
-       th = grid->x[JDIR]; tan_1= 1.0/tan(th[j]);
+      th = grid->x[JDIR]; tan_1= 1.0/tan(th[j]);
       
-       EXPAND(ViS[j][MX1] = 0.0;                                              ,
-              ViS[j][MX2] = 0.5*(  tau_yx[j-1] + tau_yx[j])*r_1
-                                 - tan_1*0.5*(tau_zz[j-1] + tau_zz[j])*r_1; ,
-              ViS[j][MX3] = 0.0; )
+      ViS[j][MX1] = 0.0;
+      ViS[j][MX2] = 0.5*(  tau_yx[j-1] + tau_yx[j])*r_1
+                         - tan_1*0.5*(tau_zz[j-1] + tau_zz[j])*r_1;
+      ViS[j][MX3] = 0.0;
 
-      #endif  /* -- end #if GEOMETRY -- */
+      #endif  /* -- GEOMETRY -- */
       
-    /* -- compute fluxes -- */
+    /* ------------------------------------------
+       2d. Compute fluxes at x2-faces
+       ------------------------------------------ */
 
-      EXPAND(ViF[j][MX1] = tau_yx[j]; ,
-             ViF[j][MX2] = tau_yy[j]; ,
-             ViF[j][MX3] = tau_yz[j]; )
+      ViF[j][MX1] = tau_yx[j];
+      ViF[j][MX2] = tau_yy[j];
+      ViF[j][MX3] = tau_yz[j];
 
-      #if EOS != ISOTHERMAL
-       ViF[j][ENG] = EXPAND(  vi[VX1]*tau_xy[j],
-                            + vi[VX2]*tau_yy[j],
-                            + vi[VX3]*tau_zy[j]);
+      #if HAVE_ENERGY
+      ViF[j][ENG] = vi[VX1]*tau_xy[j] + vi[VX2]*tau_yy[j] + vi[VX3]*tau_zy[j];
       #endif
 
     }      
 
   }else if (g_dir == KDIR){ 
    
-    i = g_i; j = g_j;
-
-  /* ---------------------------------------------------------
-     3C. Loop on X3 direction 
-     --------------------------------------------------------- */
+  /* ------------------------------------------------------
+     3. Compute derivatives of velocity at x3-zone
+        interfaces
+     ------------------------------------------------------ */
      
-    dx_1 = 1.0/dx1[i];
-    dy_1 = 1.0/dx2[j]; 
+    inv_dx1 = 1.0/dx1[i];
+    inv_dx2 = 1.0/dx2[j]; 
     for (k = beg; k <= end; k++){
-      dz_1 = 1.0/grid->dx[KDIR][k];
+      inv_dx3 = 1.0/grid->dx[KDIR][k];
 
-    /* -- compute face- and cell-centered values */
+    /* -- 3a. Compute face- and cell-centered values  -- */
 
-      VAR_LOOP(nv) {
-        vi[nv] = 0.5*(V[nv][k][j][i] + V[nv][k+1][j][i]);
-        vc[nv] = V[nv][k][j][i];
+      NVAR_LOOP(nv) {
+        vi[nv] = 0.5*(d->Vc[nv][k][j][i] + d->Vc[nv][k+1][j][i]);
+        vc[nv] = d->Vc[nv][k][j][i];
       }
+      #ifdef FARGO
+      vi[VX1+SDIR] = 0.5*(Vphi_tot[k][j][i] + Vphi_tot[k+1][j][i]);
+      #endif
 
-    /* -- compute viscosity (face center) -- */
+    /* -- 3b. Compute viscosity and velocity derivatives -- */
     
       Visc_nu(vi, x1[i], x2[j], x3r[k], &nu1, &nu2);
       dcoeff[k]  = MAX(nu1, nu2);
@@ -565,108 +592,92 @@ void ViscousFlux (Data_Arr V, double **ViF, double **ViS,
 
       tau_xx[k] = tau_xy[k] = tau_xz[k]= tau_yx[k]= tau_yy[k]= tau_yz[k]= 
       tau_zx[k] = tau_zy[k] = tau_zz[k]=0.0;
-      dVxi = dVxj = dVxk = dVyi = dVyj = dVyk = dVzi = dVzj = dVzk = 0.0;
 
-      dVxi = D_DX_K(Vx); dVyi = D_DX_K(Vy); dVzi = D_DX_K(Vz);
-      dVxj = D_DY_K(Vx); dVyj = D_DY_K(Vy); dVzj = D_DY_K(Vz);
-      dVxk = D_DZ_K(Vx); dVyk = D_DZ_K(Vy); dVzk = D_DZ_K(Vz);
-  
-      /* ------ CALCULATE DERIVATIVES ---------- */
+      #if INCLUDE_IDIR
+      dxVx = 0.5*(CDIFF_X1(Vx,k,j,i) + CDIFF_X1(Vx,k+1,j,i))*inv_dx1;
+      dxVy = 0.5*(CDIFF_X1(Vy,k,j,i) + CDIFF_X1(Vy,k+1,j,i))*inv_dx1;
+      dxVz = 0.5*(CDIFF_X1(Vz,k,j,i) + CDIFF_X1(Vz,k+1,j,i))*inv_dx1;
+      #endif
+      #if INCLUDE_JDIR
+      dyVx = 0.5*(CDIFF_X2(Vx,k,j,i) + CDIFF_X2(Vx,k+1,j,i))*inv_dx2;
+      dyVy = 0.5*(CDIFF_X2(Vy,k,j,i) + CDIFF_X2(Vy,k+1,j,i))*inv_dx2;
+      dyVz = 0.5*(CDIFF_X2(Vz,k,j,i) + CDIFF_X2(Vz,k+1,j,i))*inv_dx2;
+      #endif
+      #if INCLUDE_KDIR
+      dzVx = FDIFF_X3(Vx,k,j,i)*inv_dx3;
+      dzVy = FDIFF_X3(Vy,k,j,i)*inv_dx3;
+      dzVz = FDIFF_X3(Vz,k,j,i)*inv_dx3;
+      #endif
 
-      dxVx = dVxi*dx_1; dxVy = dVyi*dx_1; dxVz = dVzi*dx_1; 
-      dyVx = dVxj*dy_1; dyVy = dVyj*dy_1; dyVz = dVzj*dy_1;
-      dzVx = dVxk*dz_1; dzVy = dVyk*dz_1; dzVz = dVzk*dz_1;
-         
+    /* ------------------------------------------
+       3c. Compute stress tensor components and
+           geometrical source terms in different
+           coordinate systems
+       ------------------------------------------ */
+
       #if GEOMETRY == CARTESIAN
-        
-    /* -- calculate div(v) -- */
-       
-       div_v = dxVx + dyVy + dzVz;
-      
-    /* -- stress tensor components (only some needed for flux computation) -- */
 
-       tau_xz[k] = nu1*(dzVx + dxVz);  
-       tau_yz[k] = nu1*(dyVz + dzVy);
-       tau_zx[k] = tau_xz[k];
-       tau_zy[k] = tau_yz[k];
-       tau_zz[k] = 2.0*nu1*dzVz + (nu2 - (2.0/3.0)*nu1)*div_v;
+      divV = dxVx + dyVy + dzVz;
 
-    /* -- compute source terms -- */
+      tau_xz[k] = nu1*(dzVx + dxVz);  
+      tau_yz[k] = nu1*(dyVz + dzVy);
+      tau_zx[k] = tau_xz[k];
+      tau_zy[k] = tau_yz[k];
+      tau_zz[k] = 2.0*nu1*dzVz + (nu2 - c23*nu1)*divV;
 
-       EXPAND(ViS[k][MX1] = 0.0; ,
-              ViS[k][MX2] = 0.0; ,  
-              ViS[k][MX3] = 0.0; )                              
+      ViS[k][MX1] = 0.0;
+      ViS[k][MX2] = 0.0;
+      ViS[k][MX3] = 0.0;
 
       #elif GEOMETRY == POLAR 
 
-       r = grid->x[IDIR]; th = grid->x[JDIR];
-       dr   = grid->dx[IDIR][i]; dr_1 = 1.0/dr;
-       r_1  = 1.0/grid->x[IDIR][i];
+      r_1  = 1.0/x1[i];
 
-       /* -- calculate the div U -- */
-       
-       div_v = r_1*vi[VX1] + dVxi*dr_1 + r_1*dVyj*dy_1 + dVzk*dz_1; 
+      divV = DIM_EXPAND(r_1*vi[VX1] + dxVx, + r_1*dyVy, + dzVz); 
 
-    /* -- stress tensor components (only some needed for flux computation) -- */
+      tau_xz[k] = nu1*(dzVx + dxVz); 
+      tau_yy[k] = 2.0*nu1*(r_1*dyVy + r_1*vi[VX1]) + (nu2 - c23*nu1)*divV;
+      tau_yz[k] = nu1*(r_1*dyVz + dzVy); 
+      tau_zx[k] = tau_xz[k]; 
+      tau_zy[k] = tau_yz[k]; 
+      tau_zz[k] = 2.0*nu1*dzVz + (nu2 - c23*nu1)*divV;
 
-       tau_xz[k] = nu1*(dzVx + dxVz);  /*tau_rz = eta1(drVz + dzVr)*/
-       tau_yy[k] = 2.0*nu1*(r_1*dyVy + r_1*vi[VX1])
-                  + (nu2 - (2.0/3.0)*nu1)*div_v;
-                  /*tau_phiphi = 2eta1(1/r dphiVphi + 1/r V) + (eta2- 2/3 eta1)divV*/
-       tau_yz[k] = nu1*(r_1*dyVz + dzVy); /*tau_phiz = eta1(dzVphi + 1/r dphiVz)*/
-       tau_zx[k] = tau_xz[k]; /* tau_zr   */
-       tau_zy[k] = tau_yz[k]; /* tau_zphi */
-       tau_zz[k] = 2.0*nu1*dzVz + (nu2 - (2.0/3.0)*nu1)*div_v;
-                  /*tau_zz = 2eta1(dzVz) + (eta2- 2/3 eta1)divV*/
-
-       EXPAND(ViS[k][MX1] = 0.0; ,
-              ViS[k][MX2] = 0.0; ,  
-              ViS[k][MX3] = 0.0; )                              
+      ViS[k][MX1] = 0.0;
+      ViS[k][MX2] = 0.0;
+      ViS[k][MX3] = 0.0;
                    
       #elif GEOMETRY == SPHERICAL
-       r    = grid->x[IDIR]; th = grid->x[JDIR];
-       dr_1 = 1.0/grid->dx[IDIR][i];
-       r_1  = 1.0/grid->x[IDIR][i]; tan_1= 1.0/tan(th[j]); s_1 = 1.0/sin(th[j]);
 
-    /* -- calculate div(v) -- */
+      r    = grid->x[IDIR]; th = grid->x[JDIR];
+      r_1  = 1.0/grid->x[IDIR][i]; tan_1= 1.0/tan(th[j]); s_1 = 1.0/sin(th[j]);
 
-       div_v =   2.0*r_1*vi[VX1] + dVxi*dr_1 + r_1*dVyj*dy_1 + r_1*tan_1*vi[VX2]
-               + r_1*s_1*dVzk*dz_1; 
+      divV =   2.0*r_1*vi[VX1] + dxVx + r_1*dyVy + r_1*tan_1*vi[VX2]
+                    + r_1*s_1*dzVz; 
 
-    /* -- stress tensor components (only some needed for flux computation) -- */
+      tau_xz[k] = nu1*(r_1*s_1*dzVx + dxVz - r_1*vi[VX3]);  
+      tau_yz[k] = nu1*(s_1*r_1*dzVy + r_1*dyVz - tan_1*r_1*vi[VX3]);
+      tau_zx[k] = tau_xz[k];
+      tau_zy[k] = tau_yz[k];
+      tau_zz[k] = 2.0*nu1*(r_1*s_1*dzVz + r_1*vi[VX1] + tan_1*r_1*vi[VX2])
+                  + (nu2 - c23*nu1)*divV;
 
-       tau_xz[k] = nu1*(r_1*s_1*dzVx + dxVz - r_1*vi[VX3]);  
-                    /*tau_rphi = eta1(drVphi + 1/rs dphiVr - 1/r Vphi)*/ 
-       tau_yz[k] = nu1*(s_1*r_1*dzVy + r_1*dyVz - tan_1*r_1*vi[VX3]);
-                    /*tau_thitaphi = eta1(1/rs dphiVthita + 1/r dthitaVphi - 1/r cot Vphi)*/ 
-       tau_zx[k] = tau_xz[k]; /* tau_phir */
-       tau_zy[k] = tau_yz[k]; /* tau_phithita */
-       tau_zz[k] = 2.0*nu1*(r_1*s_1*dzVz + r_1*vi[VX1]
-                                    + tan_1*r_1*vi[VX2]) 
-                  + (nu2 - (2.0/3.0)*nu1)*div_v;
-                    /*tau_phiphi = 2eta1(1/rs dphiVphi +1/r Vr +1/r cot Vthita) + (eta2 - 2/3 eta1)divV*/
-
-    /* -- compute source terms -- */
-
-       EXPAND(ViS[k][MX1] = 0.0; ,
-              ViS[k][MX2] = 0.0; ,  
-              ViS[k][MX3] = 0.0; )                              
+      ViS[k][MX1] = 0.0;
+      ViS[k][MX2] = 0.0;
+      ViS[k][MX3] = 0.0;
                                      
       #endif  /* -- end #if GEOMETRY -- */
 
-    /* -- compute fluxes -- */
+    /* ------------------------------------------
+       3d. Compute fluxes at x3-faces
+       ------------------------------------------ */
 
       ViF[k][MX1] = tau_zx[k];
       ViF[k][MX2] = tau_zy[k]; 
       ViF[k][MX3] = tau_zz[k]; 
 
-      #if EOS != ISOTHERMAL
-       ViF[k][ENG] =   vi[VX1]*tau_xz[k]
-                     + vi[VX2]*tau_yz[k]
-                     + vi[VX3]*tau_zz[k];
+      #if HAVE_ENERGY
+      ViF[k][ENG] = vi[VX1]*tau_xz[k] + vi[VX2]*tau_yz[k] + vi[VX3]*tau_zz[k];
       #endif
     }/*loop*/
   }/*sweep*/
-
 }
-

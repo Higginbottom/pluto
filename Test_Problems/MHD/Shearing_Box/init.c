@@ -88,10 +88,6 @@
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
-//double sb_Omega = 1.0; /* Orbital frequency (global variable) */
-//double sb_q     = 1.5; /* Shear parameter   (global variable) */
-
-
 /* ********************************************************************* */
 void Init (double *v, double x, double y, double z)
 /*
@@ -143,25 +139,28 @@ void Init (double *v, double x, double y, double z)
 /* -- in 2D we don't use any perturbation -- */
 
   #if DIMENSIONS == 2
-   dvy = 0.0;
+  dvy = 0.0;
   #endif
 
 /* -- set initial condition -- */
 
   #if STRATIFICATION == YES
-   v[RHO] = exp(-z*z/(H*H));
+  v[RHO] = exp(-z*z/(H*H));
   #else
-   v[RHO] = 1.0;
+  v[RHO] = 1.0;
   #endif
 
   v[VX1] = 0.0;
-//v[VX2] = -sb_q*sb_Omega*x + dvy;
   v[VX2] = -SB_Q*SB_OMEGA*x + dvy;
+  #ifdef FARGO
+  v[FARGO_W] = -SB_Q*SB_OMEGA*x;
+  v[VX2]     = dvy;
+  #endif
   v[VX3] = 0.0;
   #if EOS == IDEAL
-   v[PRS] = cs*cs*v[RHO];
+  v[PRS] = cs*cs*v[RHO];
   #elif EOS == ISOTHERMAL
-   g_isoSoundSpeed = cs;
+  g_isoSoundSpeed = cs;
   #endif
 
   v[TRC] = 0.0;
@@ -262,9 +261,9 @@ void Analysis (const Data *d, Grid *grid)
 
   /* -- magnetic pressure -- */
 
-    pm += 0.5*(EXPAND(  d->Vc[BX1][k][j][i]*d->Vc[BX1][k][j][i],
-                      + d->Vc[BX2][k][j][i]*d->Vc[BX2][k][j][i],
-                      + d->Vc[BX3][k][j][i]*d->Vc[BX3][k][j][i]))*dV;
+    pm += 0.5*(  d->Vc[BX1][k][j][i]*d->Vc[BX1][k][j][i]
+               + d->Vc[BX2][k][j][i]*d->Vc[BX2][k][j][i]
+               + d->Vc[BX3][k][j][i]*d->Vc[BX3][k][j][i])*dV;
 
   /* -- Maxwell and Reynolds stresses -- */
 
@@ -370,16 +369,16 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   double ***prs = d->Vc[PRS];
 #endif
   double cs = g_inputParam[CSOUND], cs2 = cs*cs, H;
-  EXPAND(double ***vx = d->Vc[VX1];  ,
-         double ***vy = d->Vc[VX2];  ,
-         double ***vz = d->Vc[VX3];)
-  EXPAND(double ***Bx = d->Vc[BX1];  ,
-         double ***By = d->Vc[BX2];  ,
-         double ***Bz = d->Vc[BX3];)
+  double ***vx = d->Vc[VX1];  
+  double ***vy = d->Vc[VX2];  
+  double ***vz = d->Vc[VX3];
+  double ***Bx = d->Vc[BX1]; 
+  double ***By = d->Vc[BX2];  
+  double ***Bz = d->Vc[BX3];
 #ifdef STAGGERED_MHD
-  EXPAND(double ***Bxs = d->Vs[BX1s];  ,
-         double ***Bys = d->Vs[BX2s];  ,
-         double ***Bzs = d->Vs[BX3s];)
+  DIM_EXPAND(double ***Bxs = d->Vs[BX1s];  ,
+           double ***Bys = d->Vs[BX2s];  ,
+           double ***Bzs = d->Vs[BX3s];)
 #endif
 
   H   = sqrt(2.0)*cs/SB_OMEGA;   /* pressure scale height */
@@ -405,13 +404,13 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
 #elif EOS == ISOTHERMAL
         rho[k][j][i] = rho[KBEG][j][i]*(1.0 - a)/(1.0 + a);
 #endif
-        EXPAND(vx[k][j][i]  =  vx[2*KBEG-k-1][j][i];  ,
-               vy[k][j][i]  =  vy[2*KBEG-k-1][j][i];  ,
-               vz[k][j][i]  = -vz[2*KBEG-k-1][j][i];)
+        vx[k][j][i]  =  vx[2*KBEG-k-1][j][i];  
+        vy[k][j][i]  =  vy[2*KBEG-k-1][j][i];  
+        vz[k][j][i]  = -vz[2*KBEG-k-1][j][i];
 
-        EXPAND(Bx[k][j][i]  = -Bx[2*KBEG-k-1][j][i];  ,
-               By[k][j][i]  = -By[2*KBEG-k-1][j][i];  ,
-               Bz[k][j][i]  =  Bz[2*KBEG-k-1][j][i];)
+        Bx[k][j][i]  = -Bx[2*KBEG-k-1][j][i];  
+        By[k][j][i]  = -By[2*KBEG-k-1][j][i];  
+        Bz[k][j][i]  =  Bz[2*KBEG-k-1][j][i];
       }
     }
 #ifdef STAGGERED_MHD
@@ -435,13 +434,13 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
 #elif EOS == ISOTHERMAL
         rho[k][j][i] = rho[KEND][j][i]*(1.0 + a)/(1.0 - a);
 #endif
-        EXPAND(vx[k][j][i]  =  vx[2*KEND-k+1][j][i];  ,
-               vy[k][j][i]  =  vy[2*KEND-k+1][j][i];  ,
-               vz[k][j][i]  = -vz[2*KEND-k+1][j][i];)
+        vx[k][j][i]  =  vx[2*KEND-k+1][j][i];  
+        vy[k][j][i]  =  vy[2*KEND-k+1][j][i];  
+        vz[k][j][i]  = -vz[2*KEND-k+1][j][i];
 
-        EXPAND(Bx[k][j][i]  = -Bx[2*KEND-k+1][j][i];  ,
-               By[k][j][i]  = -By[2*KEND-k+1][j][i];  ,
-               Bz[k][j][i]  =  Bz[2*KEND-k+1][j][i];)
+        Bx[k][j][i]  = -Bx[2*KEND-k+1][j][i];  
+        By[k][j][i]  = -By[2*KEND-k+1][j][i];  
+        Bz[k][j][i]  =  Bz[2*KEND-k+1][j][i];
       }
     }
 #ifdef STAGGERED_MHD
@@ -516,13 +515,3 @@ double BodyForcePotential(double x, double y, double z)
 #endif
 }
 
-/* ************************************************************** */
-double FARGO_SetVelocity(double x1, double x2)
-/*!
- *   Compute the shear angular velocity to be subtracted from 
- *   the HD or MHD equations.
- * 
- **************************************************************** */
-{
-  return -SB_Q*SB_OMEGA*x1;
-}

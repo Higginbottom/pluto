@@ -14,9 +14,9 @@
   The actual boundary condition is imposed by calling SB_SetBoundaryVar() 
   with the desired array and its box layout.
 
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \authors A. Mignone (mignone@to.infn.it)\n
            G. Muscianisi (g.muscianisi@cineca.it)
-  \date    Nov 13, 2015
+  \date    Aug 21, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -45,22 +45,26 @@ void SB_Boundary (const Data *d, int side, Grid *grid)
   Lx    = g_domEnd[IDIR] - g_domBeg[IDIR];
   sb_vy = fabs(2.0*SB_A*Lx);
 
-{
-t = g_time;
-#if TIME_STEPPING == RK2
+#if INCLUDE_JDIR
+
+/* ----------------------------------------------
+   1. Non-axisymmetric case
+   ---------------------------------------------- */
+
+  t = g_time;
+  #if TIME_STEPPING == RK2
  if (g_intStage == 2) t += g_dt;
-#elif TIME_STEPPING == RK3
+  #elif TIME_STEPPING == RK3
  if (g_intStage == 2) t += 0.5*g_dt;
  if (g_intStage == 3) t += g_dt;
-#endif
-#ifdef CTU
- if (g_intStage == 2) t += 0.5*g_dt;
-#endif
-}
+  #endif
+  #ifdef CTU
+  if (g_intStage == 2) t += 0.5*g_dt;
+  #endif
 
-/* -------------------------------------------------
-                  X1 Beg Boundary
-   ------------------------------------------------- */
+/* ----------------------------------------------
+   1a. X1 Beg Boundary
+   ---------------------------------------------- */
 
   if (side == X1_BEG){
 
@@ -71,33 +75,33 @@ t = g_time;
     box.kbeg = 0; box.kend = NX3_TOT-1;
     for (nv = 0; nv < NVAR; nv++){
       #ifdef STAGGERED_MHD
-       D_EXPAND(if (nv == BX1) continue;  ,
-                if (nv == BX2) continue;  ,
-                if (nv == BX3) continue;)
+      DIM_EXPAND(if (nv == BX1) continue;  ,
+               if (nv == BX2) continue;  ,
+               if (nv == BX3) continue;)
       #endif
       SB_SetBoundaryVar(d->Vc[nv], &box, side, t, grid);
-      if (nv == VX2) {
-        X1_BEG_LOOP(k,j,i) d->Vc[nv][k][j][i] += sb_vy;
-      }
+      #ifndef FARGO
+      if (nv == VX2) X1_BEG_LOOP(k,j,i) d->Vc[nv][k][j][i] += sb_vy;
+      #endif
     }  /* -- end loop on cell-centered variables -- */
 
     #ifdef STAGGERED_MHD
-      box.ibeg =  0; box.iend = IBEG-1;
-      box.jbeg = -1; box.jend = NX2_TOT-1;
-      box.kbeg =  0; box.kend = NX3_TOT-1;
-      SB_SetBoundaryVar(d->Vs[BX2s], &box, side, t, grid);
-      #if DIMENSIONS == 3
-       box.ibeg =  0; box.iend = IBEG-1;
-       box.jbeg =  0; box.jend = NX2_TOT-1;
-       box.kbeg = -1; box.kend = NX3_TOT-1;
-       SB_SetBoundaryVar(d->Vs[BX3s], &box, side, t, grid);
-      #endif
+    box.ibeg =  0; box.iend = IBEG-1;
+    box.jbeg = -1; box.jend = NX2_TOT-1;
+    box.kbeg =  0; box.kend = NX3_TOT-1;
+    SB_SetBoundaryVar(d->Vs[BX2s], &box, side, t, grid);
+    #if INCLUDE_KDIR
+    box.ibeg =  0; box.iend = IBEG-1;
+    box.jbeg =  0; box.jend = NX2_TOT-1;
+    box.kbeg = -1; box.kend = NX3_TOT-1;
+    SB_SetBoundaryVar(d->Vs[BX3s], &box, side, t, grid);
+    #endif /* INCLUDE_KDIR */
     #endif /* STAGGERED_MHD */
   } /* -- END side X1_BEG -- */
 
-/* -------------------------------------------------
-                  X1 End Boundary
-   ------------------------------------------------- */
+/* ----------------------------------------------
+   1b. X1 End Boundary
+   ---------------------------------------------- */
 
   if (side == X1_END){
 
@@ -108,27 +112,43 @@ t = g_time;
     box.kbeg =      0; box.kend = NX3_TOT-1;
     for (nv = 0; nv < NVAR; nv++){
       #ifdef STAGGERED_MHD
-       D_EXPAND(if (nv == BX1) continue;  ,
-                if (nv == BX2) continue;  ,
-                if (nv == BX3) continue;)
+      DIM_EXPAND(if (nv == BX1) continue;  ,
+               if (nv == BX2) continue;  ,
+               if (nv == BX3) continue;)
       #endif
       SB_SetBoundaryVar(d->Vc[nv], &box, side, t, grid);
-      if (nv == VX2){
-        X1_END_LOOP(k,j,i) d->Vc[nv][k][j][i] -= sb_vy;
-      }
+      #ifndef FARGO
+      if (nv == VX2)  X1_END_LOOP(k,j,i) d->Vc[nv][k][j][i] -= sb_vy;
+      #endif
     }  /* -- end loop on cell-centered variables -- */
 
     #ifdef STAGGERED_MHD
-     box.ibeg = IEND+1; box.iend = NX1_TOT-1;
-     box.jbeg =     -1; box.jend = NX2_TOT-1;
-     box.kbeg =      0; box.kend = NX3_TOT-1;
-     SB_SetBoundaryVar(d->Vs[BX2s], &box, side, t, grid);
-     #if DIMENSIONS == 3
-      box.ibeg = IEND+1; box.iend = NX1_TOT-1;
-      box.jbeg =      0; box.jend = NX2_TOT-1;
-      box.kbeg =     -1; box.kend = NX3_TOT-1;
-      SB_SetBoundaryVar(d->Vs[BX3s], &box, side, t, grid);
-     #endif /* DIMENSIONS == 3 */
+    box.ibeg = IEND+1; box.iend = NX1_TOT-1;
+    box.jbeg =     -1; box.jend = NX2_TOT-1;
+    box.kbeg =      0; box.kend = NX3_TOT-1;
+    SB_SetBoundaryVar(d->Vs[BX2s], &box, side, t, grid);
+    #if INCLUDE_KDIR
+    box.ibeg = IEND+1; box.iend = NX1_TOT-1;
+    box.jbeg =      0; box.jend = NX2_TOT-1;
+    box.kbeg =     -1; box.kend = NX3_TOT-1;
+    SB_SetBoundaryVar(d->Vs[BX3s], &box, side, t, grid);
+    #endif /* INCLUDE_KDIR */
     #endif /* STAGGERED_MHD */
   }
+
+#else
+
+/* ----------------------------------------------
+   2. Axisymmetric case
+   ---------------------------------------------- */
+
+  #ifndef FARGO
+  if (side == X1_BEG){
+    X1_BEG_LOOP(k,j,i) d->Vc[VX2][k][j][i] += sb_vy;
+  }else if (side == X1_END){
+    X1_END_LOOP(k,j,i) d->Vc[VX2][k][j][i] -= sb_vy;
+  }
+  #endif
+  
+#endif 
 }

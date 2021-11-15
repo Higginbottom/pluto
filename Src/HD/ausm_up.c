@@ -1,7 +1,7 @@
 #include"pluto.h"
 
 /* ********************************************************************** */
-void AUSMp_Solver (const Sweep *sweep, real *cmax, Grid *grid)
+void AUSMp_Solver (const Sweep *sweep, double *cmax, Grid *grid)
 /*
  *
  * PURPOSE

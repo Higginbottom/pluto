@@ -43,9 +43,6 @@
   
   \image html rmhd_sod.11.jpg "Results for the generic Alfven test at t = 0.5 on 1600 grid zones for conf. #11."
   	 
-  \authors A. Mignone (mignone@ph.unito.it)\n
-  \date    Oct 6, 2014 16, 2014
-
   \b References 
      - [MB06]: "An HLLC Riemann solver for relativistic flows -- 
        II. Magnetohydrodynamics", Mignone & Bodo MNRAS(2006) 368,1040 
@@ -55,6 +52,10 @@
        magnetic fields", Mignone, Massaglia & Bodo, SSRv (2005), 121,21
      - Balsara, ApJS (2001), 132, 83
      - Del Zanna, Bucciantini, Londrillo, A&A (2003) 
+
+  \authors A. Mignone (mignone@to.infn.it)\n
+
+  \date    Oct 6, 2014
 */
 /* ///////////////////////////////////////////////////////////////////// */
 

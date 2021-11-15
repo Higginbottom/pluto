@@ -55,7 +55,7 @@ void EMF_BOUNDARY (EMF *emf, Grid *grid)
   int par_dim[3] = {0, 0, 0};
   double ***e1, ***e2, vsign;
 
-  D_EXPAND(par_dim[0] = grid[IDIR].nproc > 1;  ,
+  DIM_EXPAND(par_dim[0] = grid[IDIR].nproc > 1;  ,
            par_dim[1] = grid[JDIR].nproc > 1;  ,
            par_dim[2] = grid[KDIR].nproc > 1;)
 
@@ -108,16 +108,16 @@ return;
         that need boundaries               -- */
 
     if (side[is] == X1_BEG || side[is] == X1_END){
-      D_EXPAND(   , e1 = emf->ezj;, e2 = emf->eyk;)
+      DIM_EXPAND(   , e1 = emf->ezj;, e2 = emf->eyk;)
     } else if (side[is] == X2_BEG || side[is] == X2_END){
-      D_EXPAND(   , e1 = emf->ezi;, e2 = emf->exk;)
+      DIM_EXPAND(   , e1 = emf->ezi;, e2 = emf->exk;)
     } else if (side[is] == X3_BEG || side[is] == X3_END){
-      D_EXPAND(   , e1 = emf->exj;, e2 = emf->eyi;)
+      DIM_EXPAND(   , e1 = emf->exj;, e2 = emf->eyi;)
     }
 
     if (type[is] == OUTFLOW){
 /* --> replace in OutflowBound(..)
-      D_EXPAND(                                          ,
+      DIM_EXPAND(                                          ,
         OUTFLOW_BOUND(e1, grid + (is/2), -1, side[is]);  ,
         OUTFLOW_BOUND(e2, grid + (is/2), -1, side[is]);)
 */
@@ -128,7 +128,7 @@ return;
       vsign = -1.0;
       if (type[is] == EQTSYMMETRIC) vsign = 1.0;
 /* -- > replace in ReflectiveBound(...)
-      D_EXPAND(                                 ,
+      DIM_EXPAND(                                 ,
         REFLECTIVE_BOUND(e1, -1, side[is], vsign);  ,
         REFLECTIVE_BOUND(e2, -1, side[is], vsign);)
 */    
@@ -149,14 +149,14 @@ return;
       if (!par_dim[is/2]) {
 
 /* -- replace in PeriodicBound
-        D_EXPAND(                        ,
+        DIM_EXPAND(                        ,
           PERIODIC_BOUND(e1, -1, side[is]);  ,
           PERIODIC_BOUND(e2, -1, side[is]);)
 */
       } 
 /*
       #ifndef PARALLEL   
-       D_EXPAND(                        ,
+       DIM_EXPAND(                        ,
          PERIODIC_BOUND(e1, side[is]);  ,
          PERIODIC_BOUND(e2, side[is]);)
       #endif

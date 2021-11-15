@@ -236,11 +236,11 @@ Real LevelPluto::step(LevelData<FArrayBox>&       a_U,
 
    #if (TIME_STEPPING == RK2)
     // The current storage for flags (RK2 only)
-    BaseFab<unsigned char>& flags = m_Flags[dit];
+    BaseFab<uint16_t>& flags = m_Flags[dit];
     // Local temporary storage for conserved variables
     FArrayBox& curUtmp = m_Utmp[dit];
    #else
-    BaseFab<unsigned char> flags;
+    BaseFab<uint16_t> flags;
     FArrayBox curUtmp;
    #endif
 
@@ -316,7 +316,6 @@ Real LevelPluto::step(LevelData<FArrayBox>&       a_U,
                                              UInterval, UInterval,idir);
        }
     }
-
     CH_STOP(timeReflux);
   }
 
@@ -368,38 +367,36 @@ Real LevelPluto::step(LevelData<FArrayBox>&       a_U,
 void LevelPluto::setGridLevel()
 {
 
- CH_TIME("LevelPluto::setGrid");
+  CH_TIME("LevelPluto::setGrid");
 
- m_structs_grid.define(m_grids);
+  m_structs_grid.define(m_grids);
 
- #if GEOMETRY != CARTESIAN
+  #if GEOMETRY != CARTESIAN
   m_dV.define(m_grids,CHOMBO_NDV,m_numGhost*IntVect::Unit);
- #endif
+  #endif
 
- Real dlMinLoc = 1.e30;
+  Real dlMinLoc = 1.e30;
 
- for (DataIterator dit = m_grids.dataIterator(); dit.ok(); ++dit)
-   {
-      // The current box
-      Box curBox = m_grids.get(dit());
-      Grid *grid = m_structs_grid[dit].getGrid();
+  for (DataIterator dit = m_grids.dataIterator(); dit.ok(); ++dit){
+    // The current box
+    Box curBox = m_grids.get(dit());
+    Grid *grid = m_structs_grid[dit].getGrid();
 
-      #if GEOMETRY != CARTESIAN 
-       FArrayBox& curdV = m_dV[dit()];    
-      #else
-       FArrayBox  curdV; 
-      #endif
+    #if GEOMETRY != CARTESIAN 
+    FArrayBox& curdV = m_dV[dit()];    
+    #else
+    FArrayBox  curdV; 
+    #endif
        
-      m_patchPluto->setGrid(curBox, grid, curdV);           
+    m_patchPluto->setGrid(curBox, grid, curdV);           
        
-      for (int idir = 0; idir < SpaceDim; idir++) {
-        dlMinLoc = Min(dlMinLoc,grid->dl_min[idir]);
-      }
-   }
+    for (int idir = 0; idir < SpaceDim; idir++) {
+      dlMinLoc = Min(dlMinLoc,grid->dl_min[idir]);
+    }
+  }
 
 #if (GEOMETRY == CARTESIAN) || (GEOMETRY == CYLINDRICAL)
-
-   D_EXPAND(m_dl_min = m_dx; ,
+   DIM_EXPAND(m_dl_min = m_dx; ,
             m_dl_min = MIN(m_dl_min,m_dx*g_x2stretch); ,
             m_dl_min = MIN(m_dl_min,m_dx*g_x3stretch); )
 #else

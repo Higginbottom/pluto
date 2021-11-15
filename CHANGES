@@ -1,4 +1,64 @@
-CURRENT RELEASE: 4.3 (June 2018)
+CURRENT RELEASE: 4.4-patch1 (November 2020)
+**********************************************************
+*                CHANGES from 4.4
+*********************************************************
+
+- FARGO module has been fixed for restart operations and a few
+  other (minor) bugs;  
+- Added NGHOST_USR to specify number of ghost zones
+  different from PLUTO default;
+- d->flag[][][] has changed type, from "char" to "uint16_t"
+- A new macro "FAILSAFE" introduced to deal with problems
+  of negative density (see userguide);
+- Some pyPLUTO bugs fixed.
+
+**********************************************************
+*               CHANGES from 4.3
+**********************************************************
+
+- New Additions:
+  o New Radiation module for relativistic flows;
+  o New Resistive relativistic module [Under Condition]
+  o New Dust particles module [Under Condition]
+  o new parameter in pluto.ini, "tfreeze" to freeze fluid evolution;
+  o full compatibility with MPI 3.0;
+  o UCT schemes (for constrained transport, see Sec. 6.2.2.3);
+  o new syntax to read .dbl and .flt binary files with Gnuplot;
+  o new macro "MULTIPLE_LOG_FILES" to handle log files (sec. 1.4.1);  
+  o Singularity treatment for polar / spherical coordinates at the axis;
+  o Acceleration term in RHD / RMHD modules has been incorporated using a 
+    more consistent formalism (Taub 1948), see userguide.
+
+- Permanently removed:
+  o "DIMENSIONAL_SPLITTING" option has been permanently removed.
+     All numerical scheme are now fully dimensionally UNSPLIT.
+  o "EXPAND()" and "COMPONENTS" macros have been removed.
+     From now on, PLUTO will always include 3 components.
+  o "VAR_LOOP()" macro removed (use "NVAR_LOOP()" instead)
+  o "FORCED_TURB" module has been temporarily removed.
+
+- Changes:
+  o "UCT_CONTACT" changed to "CT_CONTACT";
+  o "D_EXPAND()" changed to "DIM_EXPAND()" (avoid conflict with Chombo lib);
+  o "CYLINDRICAL" geometry is obsolete and "POLAR" may be used instead by
+    excluding the phi-direction (simply set INCLUDE_JDIR to NO in definitions.h).
+  o Viscosity is now fully compatible with FARGO and/or Rotating Frame.
+  o FARGO module: only the residual should be defined in Init() as well as
+    in UserDef boundary condition functions, see the userguide.
+  o cooling_source.c has been improved and cooling dir has been restructured.
+  o InputData() has been changed  [see doc]
+  o PARTICLES_TYPE removed and replaced by PARTICLES (= PARTICLES_CR, 
+    PARTICLES_LP, PARTICLES_DUST)
+  o Using INTERNAL_BOUNDARY to floor primitive variables in active domain
+    computational zones should be followed by a call to PrimToCons().
+    (See the userguide, Sec. 5.3.1).
+
+
+Bug Fixes:
+==========
+
+- Restart from .h5 files is now possible again.
+
 **********************************************************
 *           CHANGES from 4.2
 **********************************************************

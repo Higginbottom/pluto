@@ -72,11 +72,11 @@ dx0 = 12.8*2/64.0;
   Ubox.jbeg = Ubox.jend = Ubox.kbeg = Ubox.kend = 0;
   Gbox.jbeg = Gbox.jend = Gbox.kbeg = Gbox.kend = 0;
 
-  D_EXPAND(Ubox.ibeg = UFab.loVect()[IDIR]; Ubox.iend = UFab.hiVect()[IDIR]; ,
+  DIM_EXPAND(Ubox.ibeg = UFab.loVect()[IDIR]; Ubox.iend = UFab.hiVect()[IDIR]; ,
            Ubox.jbeg = UFab.loVect()[JDIR]; Ubox.jend = UFab.hiVect()[JDIR]; ,
            Ubox.kbeg = UFab.loVect()[KDIR]; Ubox.kend = UFab.hiVect()[KDIR]; );
 
-  D_EXPAND(Gbox.ibeg = gFab.loVect()[IDIR]; Gbox.iend = gFab.hiVect()[IDIR]; ,
+  DIM_EXPAND(Gbox.ibeg = gFab.loVect()[IDIR]; Gbox.iend = gFab.hiVect()[IDIR]; ,
            Gbox.jbeg = gFab.loVect()[JDIR]; Gbox.jend = gFab.hiVect()[JDIR]; ,
            Gbox.kbeg = gFab.loVect()[KDIR]; Gbox.kend = gFab.hiVect()[KDIR]; );
 

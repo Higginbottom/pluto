@@ -13,8 +13,8 @@
   - \c VXt, \c MXt and \c VXb, \c MXb are the transverse components
     (tangent \c "t" and bi-tangent \c "b").
 
- \author A. Mignone (mignone@ph.unito.it)
- \date   Oct 12, 2016
+ \author A. Mignone (mignone@to.infn.it)
+ \date   June 25, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -35,13 +35,12 @@ void Flux (const State *state, int beg, int end)
     v  = state->v[i];
     u  = state->u[i];
     fx = state->flux[i];
-
     vn = v[VXn];
 
-    fx[RHO]  = u[RHO]*vn;
-    EXPAND(fx[MX1] = u[MX1]*vn;  ,
-           fx[MX2] = u[MX2]*vn;  ,
-           fx[MX3] = u[MX3]*vn;)
+    fx[RHO] = u[RHO]*vn;
+    fx[MX1] = u[MX1]*vn;
+    fx[MX2] = u[MX2]*vn;
+    fx[MX3] = u[MX3]*vn;
     fx[ENG] = u[MXn];
     state->prs[i] = v[PRS];
   }

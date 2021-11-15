@@ -25,56 +25,29 @@
   The functions ArrayMap() can be used to convert a one-dimensional
   array into a 3D array.
   
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   Sep 18, 2012
+  \author A. Mignone (mignone@to.infn.it)
+  \date   June 24, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 #define NONZERO_INITIALIZE YES /* Fill arrays to nonsense values to catch
                                   uninitialized values later in the code */
 
-/* ********************************************************************* */
-void FreeArray1D (void *v)
-/*! 
- * Free memory allocated by the pointer *v.
- *
- *********************************************************************** */
-{
-  free ((char *)v);
-}
-/* ********************************************************************* */
-void FreeArray2D (void **m)
-/*! 
- * Free memory allocated by the double pointer **v.
- *
- *********************************************************************** */
-{
-  free ((char *) m[0]);
-  free ((char *) m);
-}
-/* ********************************************************************* */
-void FreeArray3D (void ***m) 
-/*! 
- * Free memory allocated by the pointer ***v.
- *
- *********************************************************************** */
-{
-  free ((char *) m[0][0]);
-  free ((char *) m[0]);
-  free ((char *) m);
-}
-/* ********************************************************************* */
-void FreeArray4D (void ****m)
-/*! 
- * Free memory allocated by the pointer ****v.
- *
- *********************************************************************** */
-{
-  free ((char *) m[0][0][0]);
-  free ((char *) m[0][0]);
-  free ((char *) m[0]);
-  free ((char *) m);
-}
+#define ARRAYS_DEBUG  NO
+
+#define NMAX_ARRAYS    2048
+static char *p1_list[NMAX_ARRAYS];
+static char **p2_list[NMAX_ARRAYS];
+static char ***p3_list[NMAX_ARRAYS];
+static char ****p4_list[NMAX_ARRAYS];
+static char ***pb_list[NMAX_ARRAYS];
+
+static int p1_count=0;
+static int p2_count=0;
+static int p3_count=0;
+static int p4_count=0;
+static int pb_count=0;
+static int pb_nrl[NMAX_ARRAYS], pb_ncl[NMAX_ARRAYS], pb_ndl[NMAX_ARRAYS];
 
 /* ********************************************************************* */
 char *Array1D (int nx, size_t dsize)
@@ -93,15 +66,32 @@ char *Array1D (int nx, size_t dsize)
   PlutoError (!v, "Allocation failure in Array1D");
   g_usedMemory += nx*dsize;
 
+  #if ARRAYS_DEBUG
+  p1_list[p1_count++] = v;
+  printLog ("> Array1D(): called %d times, nx = %d\n", p1_count, nx);
+  #endif
+  
   #if NONZERO_INITIALIZE == YES
-   if (dsize==sizeof(double)){
-     int i;
-     double *q;
-     q = (double *) v;
-     for (i = nx; i--; ) q[i] =sqrt(-1.0); // i*1.e18 - 1.e16;
-   }
+  if (dsize==sizeof(double)){
+    int i;
+    double *q;
+    q = (double *) v;
+    for (i = nx; i--; ) q[i] =sqrt(-1.0); 
+  }
   #endif
   return v;
+}
+/* ********************************************************************* */
+void FreeArray1D (void *v)
+/*! 
+ * Free memory allocated by the pointer *v.
+ *
+ *********************************************************************** */
+{
+  free ((char *)v);
+  #if ARRAYS_DEBUG
+  printLog ("> FreeArray1D() called (%d)\n", --p1_count);
+  #endif
 }
 
 /* ********************************************************************* */
@@ -128,7 +118,12 @@ char **Array2D (int nx, int ny, size_t dsize)
  
   for (i = 1; i < nx; i++) m[i] = m[(i - 1)] + ny*dsize;
  
-  g_usedMemory += nx*ny*dsize;
+  g_usedMemory += nx*ny*dsize + nx*sizeof(char *);
+  
+  #if ARRAYS_DEBUG
+  p2_list[p2_count++] = m;
+  printLog ("> Array2D(): called %d times, [nx, ny] = [%d, %d]\n", p2_count, nx, ny);
+  #endif
 
   #if NONZERO_INITIALIZE == YES
    if (dsize==sizeof(double)){
@@ -137,12 +132,25 @@ char **Array2D (int nx, int ny, size_t dsize)
      q = (double **)m;
      for (i = nx; i--; ){
      for (j = ny; j--; ){
-       q[i][j] = sqrt(-1.0); // i*j*1.e18 + 1.e16*j;
+       q[i][j] = sqrt(-1.0);
      }} 
    }
   #endif
 
   return m;
+}
+/* ********************************************************************* */
+void FreeArray2D (void **m)
+/*! 
+ * Free memory allocated by the double pointer **v.
+ *
+ *********************************************************************** */
+{
+  free ((char *) m[0]);
+  free ((char *) m);
+  #if ARRAYS_DEBUG
+  printLog ("> FreeArray2D() called (%d)\n", --p2_count);
+  #endif
 }
 
 /* ********************************************************************* */
@@ -196,28 +204,49 @@ char ***Array3D (int nx, int ny, int nz, size_t dsize)
   for (j = 0; j < ny; j++){
   for (i = 0; i < nx; i++){
     if (m[i][j] == NULL){
-      print ("! Allocation failure in Array3D\n");
+      printLog ("! Allocation failure in Array3D\n");
       QUIT_PLUTO(1);
     }
   }}
   
   g_usedMemory += nx*ny*nz*dsize;
+  
+  #if ARRAYS_DEBUG
+  p3_list[p3_count++] = m;
+  printLog ("> Array3D(): called %d times, [nx, ny, nz] = [%d, %d, %d]\n",
+            p3_count, nx, ny, nz);
+  #endif
 
   #if NONZERO_INITIALIZE == YES
-   if (dsize==sizeof(double)){
-     double ***q;
-     int k;
-     q = (double ***)m;
-     for (i = nx; i--; ){
-     for (j = ny; j--; ){
-     for (k = nz; k--; ){
-       q[i][j][k] = sqrt(-1.0); // 1.e18*i + 1.e17*j + 1.e16*k + 1.e15;
-     }}}
-   }
+  if (dsize==sizeof(double)){
+    double ***q;
+    int k;
+    q = (double ***)m;
+    for (i = nx; i--; ){
+    for (j = ny; j--; ){
+    for (k = nz; k--; ){
+      q[i][j][k] = sqrt(-1.0); 
+    }}}
+  }
   #endif
 
   return m;
 }
+/* ********************************************************************* */
+void FreeArray3D (void ***m) 
+/*! 
+ * Free memory allocated by the pointer ***v.
+ *
+ *********************************************************************** */
+{
+  free ((char *) m[0][0]);
+  free ((char *) m[0]);
+  free ((char *) m);
+  #if ARRAYS_DEBUG
+  printLog ("> FreeArray3D() called (%d)\n", --p3_count);
+  #endif
+}
+
 /* ********************************************************************* */
 char ****Array4D (int nx, int ny, int nz, int nv, size_t dsize)
 /*! 
@@ -318,29 +347,51 @@ char ****Array4D (int nx, int ny, int nz, int nv, size_t dsize)
   }
       
   g_usedMemory += nx*ny*nz*nv*dsize;
+  #if ARRAYS_DEBUG
+  p4_list[p4_count++] = m;
+  printLog ("> Array4D(): called %d times, [nx, ny, nz, nv] = [%d, %d, %d, %d]\n",
+            p4_count, nx, ny, nz, nv);
+  #endif
 
   #if NONZERO_INITIALIZE == YES
-   if (dsize==sizeof(double)){
-     int l;
-     double ****q;
-     q = (double ****)m;
-     for (i = nx; i--; ){
-     for (j = ny; j--; ){
-     for (k = nz; k--; ){
-     for (l = nv; l--; ){
-       q[i][j][k][l] = sqrt(-1.0); // l*1.e18*i + 1.e17*i*j - 1.e16*k*j + 1.e17;
-     }}}}
-   }
+  if (dsize==sizeof(double)){
+    int l;
+    double ****q;
+    q = (double ****)m;
+    for (i = nx; i--; ){
+    for (j = ny; j--; ){
+    for (k = nz; k--; ){
+    for (l = nv; l--; ){
+      q[i][j][k][l] = sqrt(-1.0); 
+    }}}}
+  }
   #endif
 
   return m;
 }
+
+/* ********************************************************************* */
+void FreeArray4D (void ****m)
+/*! 
+ * Free memory allocated by the pointer ****v.
+ *
+ *********************************************************************** */
+{
+  free ((char *) m[0][0][0]);
+  free ((char *) m[0][0]);
+  free ((char *) m[0]);
+  free ((char *) m);
+  #if ARRAYS_DEBUG
+  printLog ("> FreeArray4D() called (%d)\n", --p4_count);
+  #endif
+}
+
 #undef NONZERO_INITIALIZE
 
 /* ********************************************************************* */
-double ***ArrayBox(long int nrl, long int nrh, 
-                     long int ncl, long int nch,
-                     long int ndl, long int ndh)
+char ***ArrayBox(long int nrl, long int nrh, 
+                 long int ncl, long int nch,
+                 long int ndl, long int ndh, size_t dsize)
 /*! 
  * Allocate memory for a 3-D array in double precision with given
  * subscript range [low...high] for each direction.
@@ -359,46 +410,57 @@ double ***ArrayBox(long int nrl, long int nrh,
  *********************************************************************** */
 {
   long i,j,nrow=nrh-nrl+1,ncol=nch-ncl+1,ndep=ndh-ndl+1;
-  double ***t;
+  char ***t;
 
 /* allocate pointers to pointers to rows */
 
-  t=(double ***) malloc((unsigned int)(nrow*sizeof(double**)));
+  t = (char ***) malloc((size_t) nrow*sizeof(char **));
   if (!t) {
-    print ("! ArrayBox: allocation failure (1)\n");
+    printLog ("! ArrayBox: allocation failure (1)\n");
     QUIT_PLUTO(1);
   }
   t -= nrl;
 
 /* allocate pointers to rows and set pointers to them */
 
-  t[nrl]=(double **) malloc((unsigned int)(nrow*ncol*sizeof(double*)));
+  t[nrl] = (char **) malloc((size_t) nrow*ncol*sizeof(char *));
   if (!t[nrl]) {
-    print ("! ArrayBox: allocation failure (2)\n");
+    printLog ("! ArrayBox: allocation failure (2)\n");
     QUIT_PLUTO(1);
   }
   t[nrl] -= ncl;
 
 /* allocate rows and set pointers to them */
 
-  t[nrl][ncl]=(double *) malloc((unsigned int)(nrow*ncol*ndep*sizeof(double)));
+  t[nrl][ncl] = (char *) malloc((size_t) nrow*ncol*ndep*dsize);
   if (!t[nrl][ncl]) {
-    print ("! ArrayBox: allocation failure (3)\n");
+    printLog ("! ArrayBox: allocation failure (3)\n");
     QUIT_PLUTO(1);
   }
-  t[nrl][ncl] -= ndl;
+  t[nrl][ncl] -= ndl*dsize;
 
-  for(j=ncl+1;j<=nch;j++) t[nrl][j]=t[nrl][j-1]+ndep;
-  for(i=nrl+1;i<=nrh;i++) {
-    t[i]=t[i-1]+ncol;
-    t[i][ncl]=t[i-1][ncl]+ncol*ndep;
-    for(j=ncl+1;j<=nch;j++) t[i][j]=t[i][j-1]+ndep;
+  for(j = ncl+1; j <= nch; j++) t[nrl][j] = t[nrl][j-1] + ndep*dsize;
+  for(i = nrl+1; i <= nrh; i++) {
+    t[i]      = t[i-1] + ncol;
+    t[i][ncl] = t[i-1][ncl] + ncol*ndep*dsize;
+    for(j = ncl+1; j <= nch; j++) t[i][j] = t[i][j-1] + ndep*dsize;
   }
+
+  #if ARRAYS_DEBUG
+  pb_list[pb_count] = t;
+  pb_nrl[pb_count] = nrl;
+  pb_ncl[pb_count] = ncl;
+  pb_ndl[pb_count] = ndl;
+  pb_count++;
+  printLog ("> ArrayBox(): called %d times, [nx, ny, nz] = [%d - %d, %d - %d, %d - %d]\n",
+            pb_count, nrl, nrh, ncl, nch, ndl, ndh);
+  #endif
 
 /* return pointer to array of pointers to rows */
 
   return t;
 }
+
 /* ********************************************************************* */
 void FreeArrayBox(double ***t, long nrl, long ncl, long ndl)
 /*!
@@ -414,8 +476,10 @@ void FreeArrayBox(double ***t, long nrl, long ncl, long ndl)
   free((char *) (t[nrl][ncl]+ndl));
   free((char *) (t[nrl]+ncl));
   free((char *) (t+nrl));
+  #if ARRAYS_DEBUG
+  printLog ("> FreeArrayBox() called (%d)\n", --pb_count);
+  #endif
 }
-
 
 /* ********************************************************************* */
 double ***ArrayMap(int nx, int ny, int nz, double *uptr)
@@ -441,7 +505,7 @@ double ***ArrayMap(int nx, int ny, int nz, double *uptr)
    
   t = (double ***) malloc((size_t)((nx)*sizeof(double**)));
   if (!t) {
-    print ("! ArrayMap: allocation failure (1) \n");
+    printLog ("! ArrayMap: allocation failure (1) \n");
     QUIT_PLUTO (1);
   }
 
@@ -449,7 +513,7 @@ double ***ArrayMap(int nx, int ny, int nz, double *uptr)
 
   t[0] = (double **) malloc((size_t)((nx*ny)*sizeof(double*)));
   if (!t[0]) {
-    print ("! ArrayMap: allocation failure (2) \n");
+    printLog ("! ArrayMap: allocation failure (2) \n");
     QUIT_PLUTO(1);
   }
 
@@ -457,7 +521,7 @@ double ***ArrayMap(int nx, int ny, int nz, double *uptr)
 
   t[0][0] = uptr;
   if (!t[0][0]) {
-    print ("! ArrayMap: allocation failure (3) \n");
+    printLog ("! ArrayMap: allocation failure (3) \n");
     QUIT_PLUTO (1);
   }
 
@@ -468,30 +532,33 @@ double ***ArrayMap(int nx, int ny, int nz, double *uptr)
     t[i][0] = t[i-1][0] + ny*nz;
     for(j = 1; j < ny; j++) t[i][j] = t[i][j-1] + nz;
   }
-     
+  #if ARRAYS_DEBUG
+//  printLog ("> ArrayMap() called\n");
+  #endif
+
   return t;
 }
 
 /* ********************************************************************* */
-unsigned char ***ArrayCharMap(int nx, int ny, int nz, unsigned char *uptr)
+uint16_t ***ArrayUint16_tMap(int nx, int ny, int nz, uint16_t *uptr)
 /* ********************************************************************* */
 {
   int i,j;
-  unsigned char ***t;
+  uint16_t ***t;
 
 /* -- allocate pointers to pointers to rows -- */
 
-  t = (unsigned char ***) malloc((size_t)((nx)*sizeof(unsigned char**)));
+  t = (uint16_t ***) malloc((size_t)((nx)*sizeof(uint16_t**)));
   if (!t) {
-    print ("! ArrayCharMap: allocation failure (1) \n");
+    printLog ("! ArrayUint16_tMap: allocation failure (1) \n");
     QUIT_PLUTO (1);
   }
 
 /* -- allocate pointers to rows and set pointers to them -- */
 
-  t[0] = (unsigned char **) malloc((size_t)((nx*ny)*sizeof(unsigned char*)));
+  t[0] = (uint16_t **) malloc((size_t)((nx*ny)*sizeof(uint16_t*)));
   if (!t[0]) {
-    print ("! ArrayCharMap: allocation failure (2) \n");
+    printLog ("! ArrayUint16_tMap: allocation failure (2) \n");
     QUIT_PLUTO(1);
   }
 
@@ -499,7 +566,7 @@ unsigned char ***ArrayCharMap(int nx, int ny, int nz, unsigned char *uptr)
 
   t[0][0] = uptr;
   if (!t[0][0]) {
-    print ("! ArrayCharMap: allocation failure (3) \n");
+    printLog ("! ArrayUint16_tMap: allocation failure (3) \n");
     QUIT_PLUTO (1);
   }
 
@@ -524,10 +591,14 @@ void FreeArrayMap(double ***t)
 {
   free((char*) t[0]);
   free((char*) t);
+  #if ARRAYS_DEBUG
+//  printLog ("> FreeArrayMap() called\n");
+  #endif
+
 }
 
 /* ********************************************************************* */
-void FreeArrayCharMap(unsigned char ***t)
+void FreeArrayUint16_tMap(uint16_t ***t)
 {
   free((char*) t[0]);
   free((char*) t);
@@ -541,7 +612,6 @@ double ***ArrayBoxMap(int nrl, int nrh,
  * Convert a one-dimensional array into a 3D array with given
  * subscript range [low...high] for each direction.
  * 
- *
  *********************************************************************** */
 {
   int i,j,nrow=nrh-nrl+1,ncol=nch-ncl+1,ndep=ndh-ndl+1;
@@ -551,7 +621,7 @@ double ***ArrayBoxMap(int nrl, int nrh,
 
   t = (double ***) malloc((size_t)((nrow)*sizeof(double**)));
   if (!t) {
-    print ("! ArrayBoxMap: allocation failure (1) \n");
+    printLog ("! ArrayBoxMap: allocation failure (1) \n");
     QUIT_PLUTO (1);
   }
   t -= nrl;
@@ -560,14 +630,14 @@ double ***ArrayBoxMap(int nrl, int nrh,
 
   t[nrl] = (double **) malloc((size_t)((nrow*ncol)*sizeof(double*)));
   if (!t[nrl]) {
-    print ("! ArrayBoxMap: allocation failure (2) \n");
+    printLog ("! ArrayBoxMap: allocation failure (2) \n");
     QUIT_PLUTO (1);
   }
   t[nrl] -= ncl;
 
   t[nrl][ncl] = uptr;
   if (!t[nrl][ncl]) {
-    print ("! ArrayBoxMap: allocation failure (3) \n");
+    printLog ("! ArrayBoxMap: allocation failure (3) \n");
     QUIT_PLUTO (1);
   }
   t[nrl][ncl] -= ndl;
@@ -578,6 +648,10 @@ double ***ArrayBoxMap(int nrl, int nrh,
     t[i][ncl] = t[i-1][ncl] + ncol*ndep;
     for(j = ncl+1; j <= nch; j++) t[i][j] = t[i][j-1] + ndep;
   }
+
+  #if ARRAYS_DEBUG
+//  printLog ("> ArrayBoxMap() called\n");
+  #endif
 
   return t;
 }
@@ -593,6 +667,79 @@ void FreeArrayBoxMap(double ***t, int nrl, int nrh,
 {
   free((char*) (t[nrl]+ncl));
   free((char*) (t+nrl));
+  #if ARRAYS_DEBUG
+//  printLog ("> FreeArrayBoxMap() called\n");
+  #endif
 }
-
     
+/* ********************************************************************* */
+void ShowMemoryInfo()
+/*
+ *********************************************************************** */
+{
+  printLog ("> ShowMemoryInfo():\n");
+  printLog ("  # Arrays (1D)  = %d\n", p1_count);
+  printLog ("  # Arrays (2D)  = %d\n", p2_count);
+  printLog ("  # Arrays (3D)  = %d\n", p3_count);
+  printLog ("  # Arrays (4D)  = %d\n", p4_count);
+  printLog ("  # Arrays (Box) = %d\n", pb_count);
+ 
+}
+/* ********************************************************************* */
+void FreeAll()
+/*
+ *********************************************************************** */
+{
+  int i;
+  int count;
+
+  printLog ("> FreeAll():\n");
+  
+/* ------------------------------------
+   1. Free 1D Arrays()
+   ------------------------------------ */
+
+  count = p1_count; /* p1_count may change while calling Free() functions */
+  for (i = 0; i < count; i++){
+    if (p1_list[i] != NULL) FreeArray1D((void *)p1_list[i]);
+  }
+
+/* ------------------------------------
+   2. Free 2D Arrays()
+   ------------------------------------ */
+
+  count = p2_count; /* p1_count may change while calling Free() functions */
+  for (i = 0; i < count; i++){
+    if (p2_list[i] != NULL) FreeArray2D((void *)p2_list[i]);
+  }
+
+/* ------------------------------------
+   3. Free 3D Arrays()
+   ------------------------------------ */
+
+  count = p3_count; /* p1_count may change while calling Free() functions */
+  for (i = 0; i < count; i++){
+    if (p3_list[i] != NULL) FreeArray3D((void *)p3_list[i]);
+  }
+
+/* ------------------------------------
+   4. Free 4D Arrays()
+   ------------------------------------ */
+
+  count = p4_count; /* p1_count may change while calling Free() functions */
+  for (i = 0; i < count; i++){
+    if (p4_list[i] != NULL) FreeArray4D((void *)p4_list[i]);
+  }
+
+/* ------------------------------------
+   5. Free ArrayBox()
+   ------------------------------------ */
+
+  count = pb_count; /* p1_count may change while calling Free() functions */
+  for (i = 0; i < count; i++){
+    if (pb_list[i] != NULL) {
+      FreeArrayBox((void *)pb_list[i], pb_nrl[i], pb_ncl[i], pb_ndl[i]);
+    }
+  }
+  
+}

@@ -22,11 +22,17 @@
   - Convert to primitive  u(n+1/2) -> v(n+1/2)
   - Add time incerement v(n+1/2)-v(n) to left/right states
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   April 16, 2017
+  \author A. Mignone (mignone@to.infn.it)
+  \date   July 1, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
+
+#if (PHYSICS == ResRMHD)
+  #error Hancock time stepping not suited for ResRMHD
+  QUIT_PLUTO(1);
+#endif
+
 
 #if PRIMITIVE_HANCOCK == YES
 /* ********************************************************************* */
@@ -62,11 +68,11 @@ void HancockStep (const Sweep *sweep, int beg, int end, Grid *grid)
    ------------------------------------------------ */
 
 #if RECONSTRUCTION != LINEAR
-  print ("! MUSCL-Hancock scheme works with Linear reconstruction only\n");
+  printLog ("! MUSCL-Hancock scheme works with Linear reconstruction only\n");
   QUIT_PLUTO(1);
 #endif
 #if PHYSICS == RMHD
-  print ("! Primitive MUSCL-Hancock scheme does not work with RMHD\n");
+  printLog ("! Primitive MUSCL-Hancock scheme does not work with RMHD\n");
   QUIT_PLUTO(1);
 #endif
 
@@ -81,8 +87,8 @@ void HancockStep (const Sweep *sweep, int beg, int end, Grid *grid)
 
 #if GEOMETRY == CARTESIAN || GEOMETRY == CYLINDRICAL
   for (i = beg; i <= end; i++) d_dl[i] = 1.0/grid->dx[g_dir][i];  
-#elif GEOMETRY == SPHERICAL || GEOMETRY == POLAR
-  if (g_dir == IDIR){
+#elif GEOMETRY == POLAR
+  if (g_dir == IDIR || g_dir == KDIR){
     for (i = beg; i <= end; i++) d_dl[i] = 1.0/grid->dx[g_dir][i];     
   }else if (g_dir == JDIR){
     for (i = beg; i <= end; i++) {
@@ -102,12 +108,10 @@ void HancockStep (const Sweep *sweep, int beg, int end, Grid *grid)
   SoundSpeed2 (stateC, beg, end, CELL_CENTER, grid);
 #endif
   PrimSource (stateC, src, beg, end, grid);
-#ifdef PARTICLES
-  #if (PARTICLES_TYPE == COSMIC_RAYS) && (PARTICLES_CR_FEEDBACK == YES)
+  #if (PARTICLES == PARTICLES_CR) && (PARTICLES_CR_FEEDBACK == YES)
   Particles_CR_Flux(stateL, beg, end);
   Particles_CR_Flux(stateR, beg-1, end-1);
   #endif
-#endif
 
 /* --------------------------------------------------------
    3. Loop over 1D row of zones
@@ -127,17 +131,16 @@ void HancockStep (const Sweep *sweep, int beg, int end, Grid *grid)
       vp[nv] -= scrh;
       vm[nv] -= scrh;
     }
+
   }
 
 /* --------------------------------------------------------
    4. Add CR source term 
    -------------------------------------------------------- */
 
-#ifdef PARTICLES
-  #if (PARTICLES_TYPE == COSMIC_RAYS) && (PARTICLES_CR_FEEDBACK == YES)
+  #if (PARTICLES == PARTICLES_CR) && (PARTICLES_CR_FEEDBACK == YES)
   Particles_CR_StatesSource(sweep, 0.5*g_dt, beg, end, grid);
   #endif
-#endif
 
 /* --------------------------------------------------------
    5. Evolve center value by dt/2 
@@ -156,7 +159,7 @@ void HancockStep (const Sweep *sweep, int beg, int end, Grid *grid)
 
 }
 
-#else
+#else  /* Conservative Hancock Scheme */
 
 /* ********************************************************************* */
 void HancockStep (const Sweep *sweep, int beg, int end, Grid *grid)
@@ -188,22 +191,22 @@ void HancockStep (const Sweep *sweep, int beg, int end, Grid *grid)
    -------------------------------------------------------- */
 
 #if GEOMETRY != CARTESIAN && GEOMETRY != CYLINDRICAL
-  print ("! HancockStep(): conservative MUSCL-Hancock does not work\n");
-  print ("                 in this geometry \n");
+  printLog ("! HancockStep(): conservative MUSCL-Hancock does not work\n");
+  printLog ("                 in this geometry \n");
   QUIT_PLUTO(1);
 #endif
 #if BODY_FORCE != NO
-  print ("! HancockStep(): conservative Hancock scheme does not support gravity\n");
+  printLog ("! HancockStep(): conservative Hancock scheme does not support gravity\n");
   QUIT_PLUTO(1);
 #endif
 #if RECONSTRUCTION != LINEAR
-  print ("! HancockStep(): conservative Hancock scheme works with \n");
-  print ("                 linear reconstruction only\n");
+  printLog ("! HancockStep(): conservative Hancock scheme works with \n");
+  printLog ("                 linear reconstruction only\n");
   QUIT_PLUTO(1);
 #endif
 #if (PARABOLIC_FLUX & EXPLICIT)
-  print ("! HancockStep(): conservative MUSCL-Hancock does not support \n");
-  print ("                 explicit diffusion \n");
+  printLog ("! HancockStep(): conservative MUSCL-Hancock does not support \n");
+  printLog ("                 explicit diffusion \n");
   QUIT_PLUTO(1);
 #endif
 
@@ -224,13 +227,15 @@ void HancockStep (const Sweep *sweep, int beg, int end, Grid *grid)
   PrimToCons (stateL->v, stateL->u, beg, end);
   PrimToCons (stateR->v, stateR->u, beg-1, end-1);
 
+#if HAVE_ENERGY
   Enthalpy (stateL->v, stateL->h, beg, end);
   Enthalpy (stateR->v, stateR->h, beg-1, end-1);
+#endif
 
   Flux(stateL, beg, end);
   Flux(stateR, beg-1, end-1);
-#ifdef PARTICLES
-  #if (PARTICLES_TYPE == COSMIC_RAYS) && (PARTICLES_CR_FEEDBACK == YES) 
+
+#if (PARTICLES == PARTICLES_CR) && (PARTICLES_CR_FEEDBACK == YES) 
   Particles_CR_Flux (stateL, beg, end);
   Particles_CR_Flux (stateR, beg-1, end-1);
   for (i = beg; i <= end; i++){
@@ -239,7 +244,6 @@ void HancockStep (const Sweep *sweep, int beg, int end, Grid *grid)
       fm[i][nv] += stateR->fluxCR[i-1][nv];
     }
   }
-  #endif
 #endif
 
   dx = grid->dx[g_dir];
@@ -307,18 +311,18 @@ void HancockStep (const Sweep *sweep, int beg, int end, Grid *grid)
 
     #if (PHYSICS == MHD || PHYSICS == RMHD) && (DIVB_CONTROL == EIGHT_WAVES)
     dBx = (vp[BXn]*A[i] - vm[BXn]*A[i-1])/dV[i];
-    EXPAND(rhs[i][BX1] -= dt*vc[VX1]*dBx;  ,
-           rhs[i][BX2] -= dt*vc[VX2]*dBx;  ,
-           rhs[i][BX3] -= dt*vc[VX3]*dBx;)
+    rhs[i][BX1] -= dt*vc[VX1]*dBx; 
+    rhs[i][BX2] -= dt*vc[VX2]*dBx;  
+    rhs[i][BX3] -= dt*vc[VX3]*dBx;
     #endif
 
   /* -- 2b- Add extended GLM source term -- */
 
     #if (defined GLM_MHD) && GLM_EXTENDED == YES
     dBx  = (vp[BXn]*A[i] - vm[BXn]*A[i-1])/dV[i];
-    EXPAND(rhs[i][MX1] -= dt*vc[BX1]*dBx;  ,
-           rhs[i][MX2] -= dt*vc[BX2]*dBx;  ,
-           rhs[i][MX3] -= dt*vc[BX3]*dBx;)
+    rhs[i][MX1] -= dt*vc[BX1]*dBx;  
+    rhs[i][MX2] -= dt*vc[BX2]*dBx;  
+    rhs[i][MX3] -= dt*vc[BX3]*dBx;
     #if HAVE_ENERGY
     dpsi = (vp[PSI_GLM] - vm[PSI_GLM])/dx[i];
     rhs[i][ENG] -= dt*vc[BXn]*dpsi;
@@ -330,7 +334,7 @@ void HancockStep (const Sweep *sweep, int beg, int end, Grid *grid)
    3. Add source term in cylindrical geometry
    -------------------------------------------------------- */
 
-#if GEOMETRY == CYLINDRICAL && COMPONENTS == 3
+#if GEOMETRY == CYLINDRICAL
   #if PHYSICS == RMHD
   if (g_dir == IDIR) {
     double vB, vel2, g_2, r_1, *uc;
@@ -340,8 +344,8 @@ void HancockStep (const Sweep *sweep, int beg, int end, Grid *grid)
       vc  = stateC->v[i];
       uc  = stateC->u[i];
 
-      vB   = EXPAND(vc[VX1]*vc[BX1], + vc[VX2]*vc[BX2], + vc[VX3]*vc[BX3]);
-      vel2 = EXPAND(vc[VX1]*vc[VX1], + vc[VX2]*vc[VX2], + vc[VX3]*vc[VX3]);
+      vB   = vc[VX1]*vc[BX1] + vc[VX2]*vc[BX2] + vc[VX3]*vc[BX3];
+      vel2 = vc[VX1]*vc[VX1] + vc[VX2]*vc[VX2] + vc[VX3]*vc[VX3];
       g_2  = 1.0 - vel2;
 
       rhs[i][iMR] += dt*((uc[MX3]*vc[VX3] - (vc[BX3]*g_2 + vB*vc[VX3])*vc[BX3]))*r_1;
@@ -353,7 +357,7 @@ void HancockStep (const Sweep *sweep, int beg, int end, Grid *grid)
     }
   }
   #else
-  print ("! Hancock(): conservative hancock step does not work in this geometry\n");
+  error ("! Hancock(): conservative hancock step does not work in this geometry\n");
   QUIT_PLUTO(1);
   #endif 
 #endif
@@ -370,13 +374,11 @@ void HancockStep (const Sweep *sweep, int beg, int end, Grid *grid)
     
   /* -- Add CR feedback (source term) to conservative cell-centered values -- */
 
-    #ifdef PARTICLES
-    #if (PARTICLES_TYPE == COSMIC_RAYS) && (PARTICLES_CR_FEEDBACK == YES) 
+    #if (PARTICLES == PARTICLES_CR) && (PARTICLES_CR_FEEDBACK == YES) 
     uh[i][MX1] -= dt*stateC->Fcr[i][IDIR];
     uh[i][MX2] -= dt*stateC->Fcr[i][JDIR];
     uh[i][MX3] -= dt*stateC->Fcr[i][KDIR];
     uh[i][ENG] -= dt*stateC->Fcr[i][3];
-    #endif
     #endif
   }
 
@@ -394,8 +396,8 @@ void HancockStep (const Sweep *sweep, int beg, int end, Grid *grid)
           stateL->v[i][nv] = stateR->v[i-1][nv] = vn[i][nv];
         }
         #ifdef STAGGERED_MHD
-        stateL->v[i][BXn]   = sweep->bn[i];
-        stateR->v[i-1][BXn] = sweep->bn[i-1];
+        stateL->v[i][BXn]   = sweep->Bn[i];
+        stateR->v[i-1][BXn] = sweep->Bn[i-1];
         #endif
       }
     }
@@ -424,10 +426,9 @@ void HancockStep (const Sweep *sweep, int beg, int end, Grid *grid)
 //      stateC->u[i][nv] = uh[i][nv];
     }
   }
-
 #ifdef STAGGERED_MHD
   for (i = beg-1; i <= end; i++){
-    stateL->v[i][BXn] = stateR->v[i][BXn] = sweep->bn[i];
+    stateL->v[i][BXn] = stateR->v[i][BXn] = sweep->Bn[i];
   }
 #endif
 

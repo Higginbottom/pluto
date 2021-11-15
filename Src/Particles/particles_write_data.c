@@ -5,9 +5,9 @@
         stage.
   
  \authors B. Vaidya (bvaidya@unito.it)\n
-          A. Mignone (mignone@ph.unito.it)\n
+          A. Mignone (mignone@to.infn.it)\n
   
- \date   Nov 05, 2015
+ \date   Aug 20, 2020
  */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -22,26 +22,33 @@ void Particles_WriteData(Data *d, Output *output, Grid *grid)
  *
  **************************************************************************** */
 {
-  char filename[128];   
+  char filename[512];   
+  time_t tbeg, tend;
 
-/* -------------------------------------------------------------
-   1. Make sure all particles lie in the active computational
-      zones. This will be essential for restarting.
-   ------------------------------------------------------------- */
+/* ----------------------------------------------
+   1. Make sure all particles lie in the active
+      computational zones.
+      This will be essential for restarting.
+   ---------------------------------------------- */
 
   Particles_Boundary(d, grid);
   Particles_BoundaryExchange(d, grid);
 
-/* ------------------------------------------------------------
+/* ----------------------------------------------
    2. Call the appropriate writing function.
-   ------------------------------------------------------------ */
+   ---------------------------------------------- */
 
   output->nfile++;  /* Increment file output number */
 
   sprintf (filename,"%s/particles.%04d.%s", output->dir, output->nfile,
                                             output->ext);
-  print ("> Writing particle file #%d (%s) to disk...", 
-          output->nfile, output->ext);
+  print ("> Writing particle file #%d (%s) to disk...\n", 
+             output->nfile, output->ext);
+
+#ifdef PARALLEL
+  MPI_Barrier (MPI_COMM_WORLD);
+  if (prank == 0) time(&tbeg);
+#endif
 
   if (   output->type == PARTICLES_DBL_OUTPUT
       || output->type == PARTICLES_FLT_OUTPUT) { 
@@ -59,6 +66,12 @@ void Particles_WriteData(Data *d, Output *output, Grid *grid)
     
   }
   
-  print ("\n");
+#ifdef PARALLEL
+  MPI_Barrier (MPI_COMM_WORLD);
+  if (prank == 0){
+    time(&tend);
+    print ("  [%5.2f sec ]\n",difftime(tend,tbeg));
+  }
+#endif
 
 }

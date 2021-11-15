@@ -21,6 +21,12 @@
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
+#if (PHYSICS == ResRMHD)
+  #error Hancock time stepping not suited for ResRMHD
+  QUIT_PLUTO(1);
+#endif
+
+
 #if RECONSTRUCTION == PARABOLIC || RECONSTRUCTION == WENO3 || RECONSTRUCTION == LimO3
 
 /* -------------------------------------------------------- */
@@ -90,12 +96,11 @@ void CharTracingStep(const Sweep *sweep, int beg, int end, Grid *grid)
   PrimEigenvectors (stateC, beg, end);
 #endif
   PrimSource  (stateC, src, beg, end, grid);
-#ifdef PARTICLES
-  #if (PARTICLES_TYPE == COSMIC_RAYS) && (PARTICLES_CR_FEEDBACK == YES) 
+
+  #if (PARTICLES == PARTICLES_CR) && (PARTICLES_CR_FEEDBACK == YES) 
   Particles_CR_Flux(stateL, beg, end);
   Particles_CR_Flux(stateR, beg-1, end-1);
   #endif
-#endif
 
 /* -------------------------------------------------------
    2. Sweep along 1D row of zones
@@ -232,7 +237,10 @@ void CharTracingStep(const Sweep *sweep, int beg, int end, Grid *grid)
 
 #ifdef STAGGERED_MHD
   for (i = beg-1; i <= end; i++) {
-    stateL->v[i][BXn] = stateR->v[i][BXn] = sweep->bn[i];
+    stateL->v[i][BXn] = stateR->v[i][BXn] = sweep->Bn[i];
+    #if PHYSICS == ResRMHD
+    stateL->v[i][EXn] = stateR->v[i][EXn] = sweep->En[i];
+    #endif
   }
 #endif
 
@@ -240,11 +248,9 @@ void CharTracingStep(const Sweep *sweep, int beg, int end, Grid *grid)
    4. Add CR source term 
    -------------------------------------------------------- */
 
-#ifdef PARTICLES
-  #if (PARTICLES_TYPE == COSMIC_RAYS) && (PARTICLES_CR_FEEDBACK == YES)
+  #if (PARTICLES == PARTICLES_CR) && (PARTICLES_CR_FEEDBACK == YES)
   Particles_CR_StatesSource(sweep, 0.5*g_dt, beg, end, grid);
   #endif
-#endif
 
   CheckPrimStates (stateL->v, stateR->v-1, stateC->v, beg, end);
 
@@ -324,12 +330,11 @@ void CharTracingStep(const Sweep *sweep, int beg, int end, Grid *grid)
   PrimEigenvectors(stateC, beg, end);
 #endif
   PrimSource  (stateC, src, beg, end, grid);
-#ifdef PARTICLES
-  #if (PARTICLES_TYPE == COSMIC_RAYS) && (PARTICLES_CR_FEEDBACK == YES) 
+
+  #if (PARTICLES == PARTICLES_CR) && (PARTICLES_CR_FEEDBACK == YES) 
   Particles_CR_Flux(stateL, beg, end);
   Particles_CR_Flux(stateR, beg-1, end-1);
   #endif
-#endif
 
 /* --------------------------------------------------------
    2. Sweep along 1D row of zones
@@ -366,7 +371,7 @@ void CharTracingStep(const Sweep *sweep, int beg, int end, Grid *grid)
      2b) Geometry
      -------------------------------------------- */
 
-    #if GEOMETRY == CYLINDRICAL
+    #if (GEOMETRY == CYLINDRICAL) || (GEOMETRY == POLAR)
     if (g_dir == IDIR) {
       double *xR = grid->xr[IDIR];
       for (k = NFLX; k--;  ){
@@ -495,7 +500,7 @@ void CharTracingStep(const Sweep *sweep, int beg, int end, Grid *grid)
     }
      
     nu[0] = dtdx*vc[VXn];
-    #if GEOMETRY == CYLINDRICAL
+    #if (GEOMETRY == CYLINDRICAL) || (GEOMETRY == POLAR)
     if (g_dir == IDIR) {
       double *xR = grid->xr[IDIR];
       betaR[0] = betaL[0] = 0.0;
@@ -538,7 +543,10 @@ void CharTracingStep(const Sweep *sweep, int beg, int end, Grid *grid)
 
 #ifdef STAGGERED_MHD
   for (i = beg-1; i <= end; i++) {
-   stateL->v[i][BXn] = stateR->v[i][BXn] = sweep->bn[i];
+    stateL->v[i][BXn] = stateR->v[i][BXn] = sweep->Bn[i];
+    #if PHYSICS == ResRMHD
+    stateL->v[i][EXn] = stateR->v[i][EXn] = sweep->En[i];
+    #endif
   }
 #endif
 
@@ -546,10 +554,8 @@ void CharTracingStep(const Sweep *sweep, int beg, int end, Grid *grid)
    5. Add CR source term 
    -------------------------------------------------------- */
 
-#ifdef PARTICLES
-#if (PARTICLES_TYPE == COSMIC_RAYS) && (PARTICLES_CR_FEEDBACK == YES)
+#if (PARTICLES == PARTICLES_CR) && (PARTICLES_CR_FEEDBACK == YES)
   Particles_CR_StatesSource(sweep, 0.5*g_dt, beg, end, grid);
-#endif
 #endif
 
 /* --------------------------------------------------------

@@ -70,12 +70,12 @@
  
   \authors A. Mignone (mignone@ph.unito.it)\n
            P. Tzeferacos (petros.tzeferacos@ph.unito.it)
-  \date   Sep 24, 2012
+  \date    Mar 18, 2021
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
-#if (PHYSICS == MHD || PHYSICS == RMHD) && (UPDATE_VECTOR_POTENTIAL == YES)
+#if (PHYSICS == MHD || PHYSICS == RMHD || PHYSICS == ResRMHD) && (UPDATE_VECTOR_POTENTIAL == YES)
 /* ********************************************************************* */
 void VectorPotentialUpdate (const Data *d, const void *vp, 
                             const Sweep *sweep, const Grid *grid)
@@ -134,15 +134,15 @@ void VectorPotentialUpdate (const Data *d, const void *vp,
     emf = (EMF *) vp;
 
     DOM_LOOP(k,j,i){
-      Ez = sEz*(emf->ez[k][j][i]     + emf->ez[k][j-1][i] + 
-                emf->ez[k][j-1][i-1] + emf->ez[k][j][i-1]);
+      Ez = sEz*(emf->Ex3e[k][j][i]     + emf->Ex3e[k][j-1][i] + 
+                emf->Ex3e[k][j-1][i-1] + emf->Ex3e[k][j][i-1]);
 
       #if DIMENSIONS == 3
-       Ex = 0.25*(emf->ex[k][j][i]     + emf->ex[k][j-1][i] + 
-                  emf->ex[k-1][j-1][i] + emf->ex[k-1][j][i]);
+       Ex = 0.25*(emf->Ex1e[k][j][i]     + emf->Ex1e[k][j-1][i] + 
+                  emf->Ex1e[k-1][j-1][i] + emf->Ex1e[k-1][j][i]);
 
-       Ey = 0.25*(emf->ey[k][j][i]     + emf->ey[k][j][i-1] + 
-                  emf->ey[k-1][j][i-1] + emf->ey[k-1][j][i]);
+       Ey = 0.25*(emf->Ex2e[k][j][i]     + emf->Ex2e[k][j][i-1] + 
+                  emf->Ex2e[k-1][j][i-1] + emf->Ex2e[k-1][j][i]);
       #endif
 
       d->Ax3[k][j][i] -= dt*Ez; 

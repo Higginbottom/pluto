@@ -16,8 +16,8 @@ void HallMHD_Flux (const Sweep *sweep, Data_Arr curlB, double **hall_flux,
  * \param [in]   end        final   index of computation
  * \param [in]  grid        pointer to an array of Grid structures.
  *
- \author A. Mignone (mignone@ph.unito.it)
- \date   March 21, 2017
+ \author A. Mignone (mignone@to.infn.it)
+ \date   June 27, 2019
  *********************************************************************** */
 {
   int  i, j, k, nv;
@@ -35,9 +35,9 @@ void HallMHD_Flux (const Sweep *sweep, Data_Arr curlB, double **hall_flux,
    */
 
   #ifdef STAGGERED_MHD
-   Jx1 = curlB[IDIR];
-   Jx2 = curlB[JDIR]; 
-   Jx3 = curlB[KDIR]; 
+  Jx1 = curlB[IDIR];
+  Jx2 = curlB[JDIR]; 
+  Jx3 = curlB[KDIR]; 
   #endif
 
   x1 = grid->x[IDIR];  
@@ -72,10 +72,8 @@ void HallMHD_Flux (const Sweep *sweep, Data_Arr curlB, double **hall_flux,
       eta = HallMHD_ne(v);
 
       #ifdef STAGGERED_MHD
-       EXPAND(                                 ;   ,
-              Jp[KDIR] = AVERAGE_Y(Jx3,k,j-1,i);   ,
-              Jp[JDIR] = AVERAGE_Z(Jx2,k-1,j,i);)
-
+      Jp[KDIR] = AVERAGE_Y(Jx3,k,j-1,i); 
+      Jp[JDIR] = AVERAGE_Z(Jx2,k-1,j,i);
       #else
        for (nv = 0; nv < 3; nv++) J[nv] = curlB[nv][k][j][i];
       #endif
@@ -89,23 +87,22 @@ void HallMHD_Flux (const Sweep *sweep, Data_Arr curlB, double **hall_flux,
 
 
       #if HAVE_ENERGY
-     
       Vh =  -J[g_dir]*eta; 
       Vhx = -J[IDIR]*eta;
       Vhy = -J[JDIR]*eta;  
       Vhz = -J[KDIR]*eta;
 
-      VhB   = EXPAND(Vhx*v[BX1] , + Vhy*v[BX2], + Vhz*v[BX3]);
-      Bsq = EXPAND(v[BX1]*v[BX1] , + v[BX2]*v[BX2], + v[BX3]*v[BX3]);
+      VhB = Vhx*v[BX1]    + Vhy*v[BX2]    + Vhz*v[BX3];
+      Bsq = v[BX1]*v[BX1] + v[BX2]*v[BX2] + v[BX3]*v[BX3];
       hall_flux[i][ENG] += 0.5*Vh*(Bsq) - (VhB)*v[BXn]; 
       #endif
 
     /* -- store diffusion coefficient -- */
 
-      EXPAND(lambdaH[i][BX1] = 0.0; ,
-	     lambdaH[i][BX2] = eta*J[JDIR]; , 
-	     lambdaH[i][BX3] = eta*J[KDIR]; )
-	     
+      lambdaH[i][BX1] = 0.0;
+      lambdaH[i][BX2] = eta*J[JDIR];
+      lambdaH[i][BX3] = eta*J[KDIR];
+             
     }
 
   }else if (g_dir == JDIR){
@@ -123,12 +120,10 @@ void HallMHD_Flux (const Sweep *sweep, Data_Arr curlB, double **hall_flux,
       eta = HallMHD_ne(v);
 
       #ifdef STAGGERED_MHD
-       EXPAND(Jp[KDIR] = AVERAGE_X(Jx3,k,j,i-1);   ,
-                                                    ;   ,
-              Jp[IDIR] = AVERAGE_Z(Jx1,k-1,j,i);)
-                                                 
+      Jp[KDIR] = AVERAGE_X(Jx3,k,j,i-1);
+      Jp[IDIR] = AVERAGE_Z(Jx1,k-1,j,i);
       #else
-       for (nv = 0; nv < 3; nv++) Jp[nv] = curlB[nv][k][j][i];
+      for (nv = 0; nv < 3; nv++) Jp[nv] = curlB[nv][k][j][i];
       #endif
 
       JxB[IDIR] =  J[JDIR]*v[BX3] - J[KDIR]*v[BX2];
@@ -138,24 +133,21 @@ void HallMHD_Flux (const Sweep *sweep, Data_Arr curlB, double **hall_flux,
       hall_flux[j][BX2] += 0.0;
       hall_flux[j][BX3] += eta*JxB[IDIR];
 
-      #if HAVE_ENERGY
-     
+      #if HAVE_ENERGY     
       Vh =  -J[g_dir]*eta; 
       Vhx = -J[IDIR]*eta;
       Vhy = -J[JDIR]*eta;  
       Vhz = -J[KDIR]*eta;
 
-      VhB   = EXPAND(Vhx*v[BX1] , + Vhy*v[BX2], + Vhz*v[BX3]);
-      Bsq = EXPAND(v[BX1]*v[BX1] , + v[BX2]*v[BX2], + v[BX3]*v[BX3]);
+      VhB = Vhx*v[BX1]    + Vhy*v[BX2]    + Vhz*v[BX3];
+      Bsq = v[BX1]*v[BX1] + v[BX2]*v[BX2] + v[BX3]*v[BX3];
       hall_flux[j][ENG] += 0.5*Vh*(Bsq) - (VhB)*v[BXn]; 
       #endif
 
-     
-     
      /* -- store diffusion coefficient -- */
-      EXPAND(lambdaH[i][BX1] = eta*J[IDIR]; ,
-	     lambdaH[i][BX2] = 0.0; , 
-	     lambdaH[i][BX3] = eta*J[KDIR]; )
+      lambdaH[i][BX1] = eta*J[IDIR]; 
+      lambdaH[i][BX2] = 0.0;
+      lambdaH[i][BX3] = eta*J[KDIR];
     }
 
   }else if (g_dir == KDIR){
@@ -174,9 +166,8 @@ void HallMHD_Flux (const Sweep *sweep, Data_Arr curlB, double **hall_flux,
       eta = HallMHD_ne(v);
 
       #ifdef STAGGERED_MHD
-       Jp[JDIR] = AVERAGE_X(Jx2,k,j,i-1);
-       Jp[IDIR] = AVERAGE_Y(Jx1,k,j-1,i);
-      
+      Jp[JDIR] = AVERAGE_X(Jx2,k,j,i-1);
+      Jp[IDIR] = AVERAGE_Y(Jx1,k,j-1,i);
       #else
        for (nv = 0; nv < 3; nv++) Jp[nv] = curlB[nv][k][j][i];
       #endif
@@ -194,16 +185,15 @@ void HallMHD_Flux (const Sweep *sweep, Data_Arr curlB, double **hall_flux,
       Vhy = -J[JDIR]*eta;  
       Vhz = -J[KDIR]*eta;
 
-      VhB   = EXPAND(Vhx*v[BX1] , + Vhy*v[BX2], + Vhz*v[BX3]);
-      Bsq = EXPAND(v[BX1]*v[BX1] , + v[BX2]*v[BX2], + v[BX3]*v[BX3]);
+      VhB = Vhx*v[BX1]    + Vhy*v[BX2]    + Vhz*v[BX3];
+      Bsq = v[BX1]*v[BX1] + v[BX2]*v[BX2] + v[BX3]*v[BX3];
       hall_flux[k][ENG] += 0.5*Vh*(Bsq) - (VhB)*v[BXn]; 
       #endif
  
    /* -- store diffusion coefficient -- */
-      EXPAND(lambdaH[i][BX1] = eta*J[IDIR]; ,
-	    lambdaH[i][BX2] = eta*J[JDIR]; , 
-	    lambdaH[i][BX3] = 0.0; )
-
+      lambdaH[i][BX1] = eta*J[IDIR];
+      lambdaH[i][BX2] = eta*J[JDIR];
+      lambdaH[i][BX3] = 0.0; 
     }
   }
 }

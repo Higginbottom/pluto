@@ -54,12 +54,26 @@ void Flatten (const Sweep *sweep, int beg, int end, Grid *grid)
 
 #endif
 
+#if RADIATION
+
+#define   RADEPS2     0.33
+#define   RADOME1     0.75
+#define   RADOME2     10.0
+
+#endif
+
 {
   int    i, nv, sj;
 
   double scrh, dp, d2p, min_p, vf, fj;
   double **v, **vp, **vm;
   static double *f_t;
+    
+#if RADIATION
+    static int Nh = NFLX - 1 - 3;
+#else
+    static int Nh = NFLX ;
+#endif
    
 #if EOS == ISOTHERMAL 
   int PRS = RHO;
@@ -115,10 +129,43 @@ void Flatten (const Sweep *sweep, int beg, int end, Grid *grid)
       vp[i][nv] = vf + vp[i][nv]*scrh;
     }
   }
+    
+#if RADIATION
+  for (i = beg - 1; i <= end + 1; i++) {
+    dp    = v[i + 1][ENR] - v[i - 1][ENR];
+    min_p = MIN(v[i + 1][ENR], v[i - 1][ENR]);
+    d2p   = v[i + 2][ENR] - v[i - 2][ENR];
+    scrh = fabs(dp)/min_p;
+    if (scrh < RADEPS2 ){
+      f_t[i] = 0.0;
+    }else{
+      scrh   = RADOME2*(fabs(dp/d2p) - RADOME1);
+      scrh   = MIN(1.0, scrh);
+      f_t[i] = MAX(0.0, scrh);
+    }
+  }
+    
+  for (i = beg; i <= end; i++) {
+    sj = (v[i + 1][ENR] < v[i - 1][ENR] ?  1 : -1);
+    fj = MAX(f_t[i], f_t[i + sj]);
+    for (nv = Nh; nv < NFLX; nv++){
+      vf   = v[i][nv]*fj;
+      scrh = 1.0 - fj;
+      vm[i][nv] = vf + vm[i][nv]*scrh;
+      vp[i][nv] = vf + vp[i][nv]*scrh;
+    }
+  }
+#endif
+    
 }
 #undef   EPS2
 #undef   OME1
 #undef   OME2
+#if RADIATION
+ #undef   RADEPS2
+ #undef   RADOME1
+ #undef   RADOME2
+#endif
 #else
 {
 

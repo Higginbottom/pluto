@@ -41,7 +41,7 @@ void MyFunctionTemplate (int var)
  * \param [in]      end   final   index of computation
  * \param [in,out]  d     pointer to PLUTO Data structure
  * \param [out]     src   2D array of source terms
- * \param [in]      grid  pointer to an array of Grid structures
+ * \param [in]      grid  pointer to Grid structure
  * 
  * The following is an itemized list of HOWTO:\n
  * - Display an extended math formula:

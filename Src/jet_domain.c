@@ -16,8 +16,8 @@
   \note In parallel, the domain is \e not decomposed along the
         propagation direction (see ParseCmdLineArgs()).
   
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   Feb 28, 2017
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Apr 07, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -46,9 +46,9 @@ void SetJetDomain (const Data *d, int dir, int log_freq, Grid *grid)
 
   dn = d->Vc[RHO];
   #if HAVE_ENERGY
-   pr = d->Vc[PRS];
+  pr = d->Vc[PRS];
   #else
-   pr = d->Vc[RHO];
+  pr = d->Vc[RHO];
   #endif
 
   ngh = grid->nghost[dir];
@@ -87,11 +87,11 @@ void SetJetDomain (const Data *d, int dir, int log_freq, Grid *grid)
    MPI_Allreduce (&n, &n_glob, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
    n = n_glob;
   #endif
-
+/*
   if (g_stepNumber%log_freq==0){
-/*    print ("- SetJetDomain: index %d / %d\n",n,jd_nend); */
+    printLog ("- SetJetDomain: index %d / %d\n",n,jd_nend);
   }
-
+*/
 /* ------------------------------------------------------------------
     Change global integer variables giving the rightmost integration 
     indexes. Also, suppress the rightmost physics boundary (rbound) 
@@ -101,7 +101,7 @@ void SetJetDomain (const Data *d, int dir, int log_freq, Grid *grid)
   if (dir == IDIR) {
     IEND = grid->lend[IDIR] = n;
     NX1_TOT = IEND + ngh;
-    NX1     = IEND - ngh;
+    NX1     = IEND - ngh + 1;
 
     grid->rbound[IDIR] = rbound;
     if (jd_nend != IEND) grid->rbound[IDIR] = 0;
@@ -110,7 +110,7 @@ void SetJetDomain (const Data *d, int dir, int log_freq, Grid *grid)
 
     JEND = grid->lend[JDIR] = n;
     NX2_TOT = JEND + ngh;
-    NX2     = JEND - ngh;
+    NX2     = JEND - ngh + 1;
     grid->rbound[JDIR] = rbound;
     if (jd_nend != JEND) grid->rbound[JDIR] = 0;
 
@@ -118,7 +118,7 @@ void SetJetDomain (const Data *d, int dir, int log_freq, Grid *grid)
 
     KEND = grid->lend[KDIR] = n;
     NX3_TOT = KEND + ngh;
-    NX3     = KEND - ngh;
+    NX3     = KEND - ngh + 1; 
 
     grid->rbound[KDIR] = rbound;
     if (jd_nend != KEND) grid->rbound[KDIR] = 0;  

@@ -1,9 +1,10 @@
 import os
 import matplotlib.pyplot as plt
-import pyPLUTO as pp
+import pyPLUTO.pload as pp
+import pyPLUTO.Image as img
 import numpy as np
 
-I = pp.Image()
+I = img.Image()
 plutodir = os.environ['PLUTO_DIR']
 wdir = plutodir+'/Test_Problems/HD/Viscosity/Flow_Past_Cylinder/'
 

@@ -6,8 +6,8 @@
   Provide a three-point stencil, third-order reconstruction algorithm 
   based on the limiter function of Cada & Torrilhon
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   Oct 10, 2016
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Aug 17, 2020
 
   \b References
      - "Compact third-order limiter functions for finite volume
@@ -56,9 +56,13 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
   vp = stateL->v;
   vm = stateR->v-1;
 
-#if RECONSTRUCT_4VEL
+  #if (INTERNAL_BOUNDARY == YES) && (INTERNAL_BOUNDARY_REFLECT == YES)
+  FluidInterfaceBoundary(sweep, beg, end, grid);
+  #endif
+  
+  #if RECONSTRUCT_4VEL
   ConvertTo4vel (stateC->v, beg-1, end+1);
-#endif
+  #endif
    
   dx = grid->dx[g_dir];
 
@@ -66,92 +70,92 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
    1. compute slopes and left and right interface values 
    -------------------------------------------------------- */
 
-  #if CHAR_LIMITING == NO  /* ----------------------------------------
-                                 Limiter on primitive variables
-                              ----------------------------------------  */
-   for (i = beg-1; i <= end; i++){
-   for (nv = NVAR; nv--; ){
-     dv[i][nv] = v[i+1][nv] - v[i][nv];
-   }}
+#if CHAR_LIMITING == NO  /* ---------------------------------------
+                             Limiter on primitive variables
+                            ----------------------------------------  */
+  for (i = beg-1; i <= end; i++){
+  for (nv = NVAR; nv--; ){
+    dv[i][nv] = v[i+1][nv] - v[i][nv];
+  }}
 
-   for (i = beg; i <= end; i++){
-     dvp = dv[i];   
-     dvm = dv[i-1]; 
+  for (i = beg; i <= end; i++){
+    dvp = dv[i];   
+    dvm = dv[i-1]; 
 
-     #if SHOCK_FLATTENING == MULTID    
-      if (sweep->flag[i] & FLAG_MINMOD){  
-        for (nv = NVAR; nv--;    ) {
-          dmm = MINMOD(dvp[nv], dvm[nv]);
-          vp[i][nv] = v[i][nv] + 0.5*dmm;
-          vm[i][nv] = v[i][nv] - 0.5*dmm;
-        }
-        continue;
-      }
-     #endif
-
-     for (nv = NVAR; nv--; ){
-       vp[i][nv] = v[i][nv] + 0.5*dvp[nv]*LimO3Func(dvp[nv], dvm[nv], dx[i]);
-       vm[i][nv] = v[i][nv] - 0.5*dvm[nv]*LimO3Func(dvm[nv], dvp[nv], dx[i]);
+    #if SHOCK_FLATTENING == MULTID    
+    if (sweep->flag[i] & FLAG_MINMOD){  
+      for (nv = NVAR; nv--;    ) {
+         dmm = MINMOD_LIMITER(dvp[nv], dvm[nv]);
+         vp[i][nv] = v[i][nv] + 0.5*dmm;
+         vm[i][nv] = v[i][nv] - 0.5*dmm;
+       }
+       continue;
      }
-   }       
+    #endif
+
+    for (nv = NVAR; nv--; ){
+      vp[i][nv] = v[i][nv] + 0.5*dvp[nv]*LimO3Func(dvp[nv], dvm[nv], dx[i]);
+      vm[i][nv] = v[i][nv] - 0.5*dvm[nv]*LimO3Func(dvm[nv], dvp[nv], dx[i]);
+    }
+  }       
   
-  #else       /* --------------------------------------------
-                    Limiter on characteristic variables
-                 --------------------------------------------  */
+#else       /* --------------------------------------------
+                Limiter on characteristic variables
+               --------------------------------------------  */
 
-   SoundSpeed2 (stateC, beg, end, CELL_CENTER, grid);
-   PrimEigenvectors (stateC, beg, end);
-   i = beg-1;
-   NVAR_LOOP(nv) dv[i][nv] = v[i+1][nv] - v[i][nv];
+  SoundSpeed2 (stateC, beg, end, CELL_CENTER, grid);
+  PrimEigenvectors (stateC, beg, end);
+  i = beg-1;
+  NVAR_LOOP(nv) dv[i][nv] = v[i+1][nv] - v[i][nv];
 
-   for (i = beg; i <= end; i++){
+  for (i = beg; i <= end; i++){
 
-     NVAR_LOOP(nv) dv[i][nv] = v[i+1][nv] - v[i][nv];
-     L      = stateC->Lp[i];
-     R      = stateC->Rp[i];
-     lambda = stateC->lambda[i];
-     dvp = dv[i];  
-     dvm = dv[i-1];
+    NVAR_LOOP(nv) dv[i][nv] = v[i+1][nv] - v[i][nv];
+    L      = stateC->Lp[i];
+    R      = stateC->Rp[i];
+    lambda = stateC->lambda[i];
+    dvp = dv[i];  
+    dvm = dv[i-1];
     
   /* -------------------------------
       project undivided differences 
       onto characteristic space
      ------------------------------- */
      
-     PrimToChar(L, dvp, dwp);
-     PrimToChar(L, dvm, dwm);
+    PrimToChar(L, dvp, dwp);
+    PrimToChar(L, dvm, dwm);
 
-     #if SHOCK_FLATTENING == MULTID    
-      if (sweep->flag[i] & FLAG_MINMOD){  
-        for (nv = NVAR; nv--;    ) {
-          dmm = MINMOD(dvp[nv], dvm[nv]);
-          vp[i][nv] = v[i][nv] + 0.5*dmm;
-          vm[i][nv] = v[i][nv] - 0.5*dmm;
-        }
-        continue;
+    #if SHOCK_FLATTENING == MULTID    
+    if (sweep->flag[i] & FLAG_MINMOD){  
+      for (nv = NVAR; nv--;    ) {
+        dmm = MINMOD_LIMITER(dvp[nv], dvm[nv]);
+        vp[i][nv] = v[i][nv] + 0.5*dmm;
+        vm[i][nv] = v[i][nv] - 0.5*dmm;
       }
-     #endif
+      continue;
+    }
+    #endif
 
   /* -----------------------------
       limit undivided differences
      ----------------------------- */
 
-     for (k = NFLX; k--; ){
-       dwp_lim[k] = dwp[k]*LimO3Func(dwp[k], dwm[k], dx[i]);
-       dwm_lim[k] = dwm[k]*LimO3Func(dwm[k], dwp[k], dx[i]);
-     }
-     for (nv = NFLX; nv--;   ){
-       dvpR = dvmR = 0.0;
-       #ifdef STAGGERED_MHD
-        if (nv == BXn) continue;
-       #endif
-       for (k = NFLX; k--; ){
-         dvpR += dwp_lim[k]*R[nv][k];
-         dvmR += dwm_lim[k]*R[nv][k];
-       }
-       vp[i][nv] = v[i][nv] + 0.5*dvpR;
-       vm[i][nv] = v[i][nv] - 0.5*dvmR;
-     }
+    for (k = NFLX; k--; ){
+      dwp_lim[k] = dwp[k]*LimO3Func(dwp[k], dwm[k], dx[i]);
+      dwm_lim[k] = dwm[k]*LimO3Func(dwm[k], dwp[k], dx[i]);
+    }
+    for (nv = NFLX; nv--;   ){
+      dvpR = dvmR = 0.0;
+      #ifdef STAGGERED_MHD
+      if (nv == BXn) continue;
+      #endif
+      for (k = NFLX; k--; ){
+        dvpR += dwp_lim[k]*R[nv][k];
+        dvmR += dwm_lim[k]*R[nv][k];
+      }
+      vp[i][nv] = v[i][nv] + 0.5*dvpR;
+      vm[i][nv] = v[i][nv] - 0.5*dvmR;
+    }
 
   /* -------------------------------------- 
       Compute limited slopes for tracers
@@ -167,9 +171,9 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
       vm[i][nv] = v[i][nv] - 0.5*dvmR;
     }
     #endif
-   }
+  }
    
-  #endif /* CHAR_LIMITING == YES */
+#endif /* CHAR_LIMITING == YES */
    
 /* --------------------------------------------------------
    2. Since the third-order limiter is not TVD, we 
@@ -180,29 +184,38 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
     dvp = dv[i];   
     dvm = dv[i-1]; 
     if (vp[i][RHO] < 0.0 || vm[i][RHO] < 0.0){
-      dmm = MINMOD(dvp[RHO], dvm[RHO]);
+      dmm = MINMOD_LIMITER(dvp[RHO], dvm[RHO]);
       vp[i][RHO] = v[i][RHO] + 0.5*dmm;
       vm[i][RHO] = v[i][RHO] - 0.5*dmm;
     }
 
     #if HAVE_ENERGY
     if (vp[i][PRS] < 0.0 || vm[i][PRS] < 0.0){
-      dmm = MINMOD(dvp[PRS], dvm[PRS]);
+      dmm = MINMOD_LIMITER(dvp[PRS], dvm[PRS]);
       vp[i][PRS] = v[i][PRS] + 0.5*dmm;
       vm[i][PRS] = v[i][PRS] - 0.5*dmm;
     }
     #endif
+
     #if ENTROPY_SWITCH
     if (vp[i][ENTR] < 0.0 || vm[i][ENTR] < 0.0){
-      dmm = MINMOD(dvp[ENTR], dvm[ENTR]);
+      dmm = MINMOD_LIMITER(dvp[ENTR], dvm[ENTR]);
       vp[i][ENTR] = v[i][ENTR] + 0.5*dmm;
       vm[i][ENTR] = v[i][ENTR] - 0.5*dmm;
     }
-    #endif      
+    #endif
+
+    #if RADIATION
+    if (vp[i][ENR] < 0.0 || vm[i][ENR] < 0.0){
+      dmm = MINMOD_LIMITER(dvp[ENR], dvm[ENR]);
+      vp[i][ENR] = v[i][ENR] + 0.5*dmm;
+      vm[i][ENR] = v[i][ENR] - 0.5*dmm;
+    }
+    #endif
 
   /* -- relativistic limiter --*/
 
-    #if PHYSICS == RHD || PHYSICS == RMHD
+    #if (PHYSICS == RHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
     VelocityLimiter (v[i], vp[i], vm[i]);
     #endif
   }
@@ -221,7 +234,10 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
 
 #ifdef STAGGERED_MHD
   for (i = beg - 1; i <= end; i++) {
-    stateL->v[i][BXn] = stateR->v[i][BXn] = sweep->bn[i];
+    stateL->v[i][BXn] = stateR->v[i][BXn] = sweep->Bn[i];
+    #if PHYSICS == ResRMHD
+    stateL->v[i][EXn] = stateR->v[i][EXn] = sweep->En[i];
+    #endif
   }
 #endif
 

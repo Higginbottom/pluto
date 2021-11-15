@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['ode_5fsolve',['ODE_Solve',['../math__ode_8c.html#ab276a6726cf35d2427d6250886f3b116',1,'math_ode.c']]],
-  ['outflowbound',['OutflowBound',['../boundary_8c.html#a59e38d28f7c1555a55bb62c228f67782',1,'boundary.c']]]
+  ['nexttimestep',['NextTimeStep',['../main_8c.html#ab71c795fb49b4b01214080c562db03b4',1,'main.c']]],
+  ['nr_5fran2',['NR_ran2',['../math__random_8c.html#a1ad69f586a11dfa77a019e82730f4ebb',1,'math_random.c']]],
+  ['numerical_5fjacobian',['Numerical_Jacobian',['../cooling_8h.html#a4538ff68bbabc1aa2cdb43d44b0c9d23',1,'Numerical_Jacobian(double *, double **):&#160;cooling_source.c'],['../cooling__source_8c.html#aa9e42c8ce15ae42fab409295a8402099',1,'Numerical_Jacobian(double *v, double **J):&#160;cooling_source.c']]]
 ];

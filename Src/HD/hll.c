@@ -51,6 +51,17 @@ void HLL_Solver (const Sweep *sweep, int beg, int end,
   double  *pL = stateL->prs,   *pR = stateR->prs;
   double *uR, *uL, *SL, *SR;
 
+#if TIME_STEPPING == CHARACTERISTIC_TRACING
+{
+  static int first_call = 1;
+  if (first_call){
+    print ("! HLL_Solver(): employment of this solver with ");
+    print ("CHARACTERISTIC_TRACING may degrade order of accuracy to 1.\n");
+    first_call = 0;
+  }
+}
+#endif
+
 /* ----------------------------------------------------
      compute sound speed & fluxes at zone interfaces
    ---------------------------------------------------- */

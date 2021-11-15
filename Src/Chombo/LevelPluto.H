@@ -117,7 +117,7 @@ protected:
 
  #if (TIME_STEPPING == RK2)
   // Flags to be passed from predictor to corrector (only RK2)
-  LevelData< BaseFab<unsigned char> > m_Flags;
+  LevelData< BaseFab<uint16_t> > m_Flags;
   // Temporary storage for conserved variables
   LevelData<FArrayBox> m_Utmp;
  #endif

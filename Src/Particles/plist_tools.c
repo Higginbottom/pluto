@@ -6,9 +6,9 @@
   Collect various functions for adding / destroying 
   particles.         
 
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \authors A. Mignone (mignone@to.infn.it)\n
 
-  \date    March 30, 2018
+  \date    Jul 25, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -16,11 +16,9 @@
 /* ********************************************************************* */
 int Particles_Insert(Particle *dummy, Data *d, char mode, Grid *grid)
 /*!
- * Insert a new particle in the linked list. 
- * ...if it lies on the local processor domain.
- * Set particle id and birth rank.
- * On output return a pointer to the newly allocated particle.
- *
+ * Insert a new particle in the linked list, if it lies on the local
+ * processor domain.
+ * Particle id is set to -1 by default.
  *
  * \param [in]     dummy   pointer to the particle structure to be
  *                         added to the linked list.
@@ -29,11 +27,12 @@ int Particles_Insert(Particle *dummy, Data *d, char mode, Grid *grid)
  * \param [in]     grid    pointer to an array of Grid structures.
  *
  *  <CENTER>
- *     Action          |Ownership Check| Set Id | Insert | RestartID |
- *   ------------------|---------------|--------|------- | --------- |
- *   PARTICLES_CREATE  |  Yes          |  No    |  Yes   |   --      |
- *   PARTICLES_TRANSFER|  No           |  No    |  Yes   |   No      |
- *   PARTICLES_RESTART |  Yes          |  No    |  Yes   |   No      |
+ *     Action                 |Ownership Check| Set Id | Insert |
+ *   -------------------------|---------------|--------|------- |
+ *   PARTICLES_CREATE         |  Yes          |  No    |  Yes   |
+ *   PARTICLES_CREATE_WITH_ID |  Yes          |  Yes   |  Yes   |
+ *   PARTICLES_RESTART        |  Yes          |  No    |  Yes   |
+ *   PARTICLES_TRANSFER       |  No           |  No    |  Yes   |
  *  </CENTER>
  *
  * Note that when mode == PARTICLES_TRANSFER we do not check the ownership
@@ -56,6 +55,7 @@ int Particles_Insert(Particle *dummy, Data *d, char mode, Grid *grid)
   
   xBool = TRUE;
   if (   mode == PARTICLES_CREATE
+      || mode == PARTICLES_CREATE_WITH_ID
       || mode == PARTICLES_RESTART){
     DIM_LOOP(nd) {  
       if (   dummy->coord[nd] <  grid->xbeg[nd]
@@ -76,8 +76,12 @@ int Particles_Insert(Particle *dummy, Data *d, char mode, Grid *grid)
     particleNode *curr, *prev, *new_node;
     
     if (mode == PARTICLES_CREATE){
-      dummy->id   = -1;     /* Set particle id     */
+      dummy->id   = -1;         /* Initialize particle id     */
       dummy->tinj = g_time;     /* Set injection time to current time */
+    }
+
+    if (mode == PARTICLES_CREATE_WITH_ID){  /* Id set by the user */
+      dummy->tinj = g_time;                 /* Set injection time to current time */
     }
     
     new_node      = malloc(sizeof(particleNode)); /* Allocate memory for a new node */
@@ -117,7 +121,6 @@ int Particles_Insert(Particle *dummy, Data *d, char mode, Grid *grid)
     p_nparticles++;
 
   }
-
   return xBool;
 }
 
@@ -159,16 +162,23 @@ void Particles_Display(Particle *p)
  * Prints the relevant quantities for particular particle.
  *
  * \param [in]      p  pointer to Particle structure whose values are to be 
-                       printed.
+                       printLoged.
  *********************************************************************** */
 {
-  print ("////////////////////////////////////////////////////////////////\n");
-  print ("// id:           %d\n", p->id);
-  print ("// (x1,x2,x3):   %f, %f, %f\n", p->coord[IDIR],  p->coord[JDIR], p->coord[KDIR]);
-  print ("// (v1,v2,v3):   %f, %f, %f\n", p->speed[IDIR], p->speed[JDIR], p->speed[KDIR]);
-  print ("// (i,j,k):      %d, %d, %d\n", p->cell[IDIR],  p->cell[JDIR], p->cell[KDIR]);
-  print ("// tinj:         %f\n", p->tinj);
-  print ("////////////////////////////////////////////////////////////////\n"); 
+  printLog ("////////////////////////////////////////////////////////////////\n");
+  printLog ("// id:           %d\n", p->id);
+  printLog ("// (x1,x2,x3):   %8.3e, %8.3e, %8.3e\n",
+                 p->coord[IDIR],  p->coord[JDIR], p->coord[KDIR]);
+  printLog ("// (v1,v2,v3):   %8.3e, %8.3e, %8.3e\n",
+                 p->speed[IDIR], p->speed[JDIR], p->speed[KDIR]);
+  #if PARTICLES == PARTICLES_DUST
+  printLog ("// mass:         %8.3e\n",p->mass);
+  printLog ("// tau_s:        %8.3e\n",p->tau_s);
+  #endif
+  printLog ("// tinj:         %8.3e\n", p->tinj);
+  printLog ("// (i,j,k):      %d, %d, %d\n",
+                 p->cell[IDIR],  p->cell[JDIR], p->cell[KDIR]);
+  printLog ("////////////////////////////////////////////////////////////////\n"); 
 }
 
 /* ********************************************************************* */
@@ -208,11 +218,11 @@ void Particles_ShowList(particleNode *PHead, int show_particles)
   particleNode *curr = PHead;
   
   while (curr != NULL){
-    print ("# %02d, curr = %p  (prev = %p, next = %p)\n", 
+    printLog ("# %02d, curr = %p  (prev = %p, next = %p)\n", 
            count, curr, curr->prev, curr->next);
     if (show_particles) Particles_Display(&(curr->p));       
     count++;   
     curr = curr->next;
   }
-  print ("------- Done ----- \n");
+  printLog ("------- Done ----- \n");
 }

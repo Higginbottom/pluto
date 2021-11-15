@@ -20,8 +20,8 @@
    - "On Godunov-Type Method near Low Densities"
      by B. Einfeldt, C.D. Munz, P.L. Roe, JCP 92, 273-295 (1991)
 
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    April 7, 2014
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    Dec 03, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
@@ -42,7 +42,7 @@ void HLL_Solver (const Sweep *sweep, int beg, int end,
  *********************************************************************** */
 {
   int    nv, i;
-  real   scrh, bmin, bmax;
+  double scrh, bmin, bmax;
   double *uL, *uR, *SL, *SR;
   static double **Uhll;
   const State   *stateL = &(sweep->stateL);
@@ -91,7 +91,7 @@ void HLL_Solver (const Sweep *sweep, int beg, int end,
     bmin = MIN(0.0, SL[i]);
     bmax = MAX(0.0, SR[i]);
     scrh = 1.0/(bmax - bmin);
-    for (nv = NFLX; nv--; ){
+    NFLX_LOOP(nv){
       sweep->flux[i][nv]  = bmin*bmax*(uR[nv] - uL[nv])
                          +  bmax*fL[i][nv] - bmin*fR[i][nv];
       sweep->flux[i][nv] *= scrh;
@@ -99,6 +99,14 @@ void HLL_Solver (const Sweep *sweep, int beg, int end,
     sweep->press[i] = (bmax*pL[i] - bmin*pR[i])*scrh;
   }
 
+/* --------------------------------------------------------
+   5. Define point and diffusive fluxes for CT
+   -------------------------------------------------------- */
+  
+#if DIVB_CONTROL == CONSTRAINED_TRANSPORT 
+  CT_Flux (sweep, beg, end, grid);
+#endif
+  
 /* --------------------------------------------------------
               initialize source term
    -------------------------------------------------------- */
@@ -115,11 +123,11 @@ void HLL_Solver (const Sweep *sweep, int beg, int end,
 /*
    for (i = beg; i <= end; i++) {
      uL = sweep->uL[i]; uR = sweep->uR[i];
-     for (nv = 0; nv < NFLX; nv++) {
+     NFLX_LOOP(nv) {
        Uhll[i][nv] = 0.5*(uR[nv] + uL[nv] + fL[i][nv] - fR[i][nv]);
      }
      Uhll[i][MXn] += (pL[i] - pR[i])*0.5;
-     for (nv = NFLX; nv < NVAR; nv++) Uhll[i][nv] = 0.0;
+     NFLX_LOOP(nv) Uhll[i][nv] = 0.0;
    }
 */
    HLL_DIVB_SOURCE (sweep, Uhll, beg + 1, end, grid);

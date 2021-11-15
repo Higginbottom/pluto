@@ -33,9 +33,9 @@ typedef struct PPM_COEFFS{
   double *hm;
 } PPM_Coeffs;
 
-void PPM_CoefficientsSet(Grid *grid);
+void PPM_CoefficientsSet(Grid *);
 void PPM_CoefficientsGet(PPM_Coeffs*, int);
 
 
-PPM_Coeffs* PPM_Coefficients(int action, Grid *grid);
-void PPM_Q6_Coeffs(double *hp, double *hm, int dir, Grid *grid);
+PPM_Coeffs* PPM_Coefficients(int, Grid *);
+void PPM_Q6_Coeffs(double *, double *, int, Grid *);

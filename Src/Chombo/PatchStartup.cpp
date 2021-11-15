@@ -33,32 +33,45 @@ void PatchPluto::startup(FArrayBox& a_U)
 
   jbg = jeg = kbg = keg = 0;
 
-  D_EXPAND(ibg = a_U.loVect()[0]; ieg = a_U.hiVect()[0];  ,
-           jbg = a_U.loVect()[1]; jeg = a_U.hiVect()[1];  ,
-           kbg = a_U.loVect()[2]; keg = a_U.hiVect()[2];)
+  DIM_EXPAND(ibg = a_U.loVect()[0]; ieg = a_U.hiVect()[0];  ,
+             jbg = a_U.loVect()[1]; jeg = a_U.hiVect()[1];  ,
+             kbg = a_U.loVect()[2]; keg = a_U.hiVect()[2];)
 
   NX1_TOT = nxtot = ieg - ibg + 1;
   NX2_TOT = nytot = jeg - jbg + 1;
   NX3_TOT = nztot = keg - kbg + 1;
 
- if (uprim == NULL){
-   uprim = ARRAY_2D(NMAX_POINT, NVAR, double);
-   ucons = ARRAY_2D(NMAX_POINT, NVAR, double);
+  if (uprim == NULL){
+    uprim = ARRAY_2D(NMAX_POINT, NVAR, double);
+    ucons = ARRAY_2D(NMAX_POINT, NVAR, double);
   }
 
- for (nv=0 ; nv<NVAR ; nv ++)
-   UU[nv] = ArrayMap(nztot,nytot,nxtot,a_U.dataPtr(nv));
+  for (nv=0 ; nv<NVAR ; nv ++){
+    UU[nv] = ArrayMap(nztot,nytot,nxtot,a_U.dataPtr(nv));
+  }
 
  /* ----  set labels  ---- */
 
-  EXPAND(MXn = VXn = VX1;  ,
-         MXt = VXt = VX2;  ,
-         MXb = VXb = VX3;)
+  MXn = VXn = VX1;
+  MXt = VXt = VX2;
+  MXb = VXb = VX3;
 
-  #if PHYSICS == MHD || PHYSICS == RMHD
-   EXPAND(BXn = BX1;  ,
-          BXt = BX2;  ,
-          BXb = BX3;)
+  #if PHYSICS == MHD || PHYSICS == RMHD || PHYSICS == ResRMD
+  BXn = BX1;
+  BXt = BX2;
+  BXb = BX3;
+  #endif
+
+  #if PHYSICS == ResRMHD
+  EXn = EX1;
+  EXt = EX2;
+  EXb = EX3;
+  #endif
+
+  #if RADIATION
+  FRn = FR1;
+  FRt = FR2;
+  FRb = FR3;
   #endif
 
   tbox.ibeg = 0; tbox.iend = nxtot-1;
@@ -147,17 +160,17 @@ void PatchPluto::startup(FArrayBox& a_U)
         QUIT_PLUTO(1);
       }
       #if EOS != ISOTHERMAL
-       if (us[PRS] <= 0.0) {
-         print ("! startup: pressure is negative\n");
-         QUIT_PLUTO(1);
-       }
+      if (us[PRS] <= 0.0) {
+        print ("! startup: pressure is negative\n");
+        QUIT_PLUTO(1);
+      }
       #endif
-      #if (PHYSICS == RHD) || (PHYSICS == RMHD)
-       scrh = EXPAND(us[VX1]*us[VX1], + us[VX2]*us[VX2], + us[VX3]*us[VX3]);
-       if (scrh >= 1.0){
-         print ("! startup: total velocity exceeds 1\n"); 
-         QUIT_PLUTO(1);
-       }
+      #if (PHYSICS == RHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
+      scrh = us[VX1]*us[VX1] + us[VX2]*us[VX2] + us[VX3]*us[VX3];
+      if (scrh >= 1.0){
+        print ("! startup: total velocity exceeds 1\n"); 
+        QUIT_PLUTO(1);
+      }
       #endif
     }
 

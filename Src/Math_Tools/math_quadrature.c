@@ -60,12 +60,12 @@ double GaussQuadrature(double (*func)(double, void *), void * par, double xb, do
 
     z[4] = 0.0; w[4] = 128.0/225.0;
   }else{
-    print ("! GaussQuadrature: order must be either 3 or 5\n");
+    printLog ("! GaussQuadrature(): order must be either 3 or 5\n");
     QUIT_PLUTO(1);
   }
   
   if (nstep <= 0){
-    print ("! GaussQuadrature: nstep must be > 0\n");
+    printLog ("! GaussQuadrature(): nstep must be > 0\n");
     QUIT_PLUTO(1);
   }
   

@@ -1,7 +1,7 @@
 /* ///////////////////////////////////////////////////////////////////// */
 /*! 
   \file  
-  \brief HDF5 I/O main driver.
+  \brief HDF5 I/O main driver for static grid implementation.
 
   This file provides I/O functionality for HDF5 data format.
   The output suffix is ".h5".
@@ -28,7 +28,7 @@
   \authors C. Zanni (zanni@oato.inaf.it)\n
            A. Mignone (mignone@ph.unito.it)
            G. Musicanisi (g.muscianisi@cineca.it)\n
-  \date   Feb 28, 2017
+  \date   Jul 21, 2018
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -101,26 +101,26 @@ void WriteHDF5 (Output *output, Grid *grid)
       node_coords[KDIR][kk][jj][ii] = 0.0;
      
       #if GEOMETRY == CARTESIAN || GEOMETRY == CYLINDRICAL
-       D_EXPAND(node_coords[IDIR][kk][jj][ii] = (float)x1;  ,
-                node_coords[JDIR][kk][jj][ii] = (float)x2;  ,
-                node_coords[KDIR][kk][jj][ii] = (float)x3;)
+      DIM_EXPAND(node_coords[IDIR][kk][jj][ii] = (float)x1;  ,
+               node_coords[JDIR][kk][jj][ii] = (float)x2;  ,
+               node_coords[KDIR][kk][jj][ii] = (float)x3;)
       #elif GEOMETRY == POLAR
-       D_EXPAND(node_coords[IDIR][kk][jj][ii] = (float)(x1*cos(x2)); ,
-                node_coords[JDIR][kk][jj][ii] = (float)(x1*sin(x2)); ,
-                node_coords[KDIR][kk][jj][ii] = (float)(x3);)
+      DIM_EXPAND(node_coords[IDIR][kk][jj][ii] = (float)(x1*cos(x2)); ,
+               node_coords[JDIR][kk][jj][ii] = (float)(x1*sin(x2)); ,
+               node_coords[KDIR][kk][jj][ii] = (float)(x3);)
       #elif GEOMETRY == SPHERICAL
-       #if DIMENSIONS <= 2
-        D_EXPAND(node_coords[IDIR][kk][jj][ii] = (float)(x1*sin(x2)); ,
+        #if DIMENSIONS <= 2
+        DIM_EXPAND(node_coords[IDIR][kk][jj][ii] = (float)(x1*sin(x2)); ,
                  node_coords[JDIR][kk][jj][ii] = (float)(x1*cos(x2)); ,
                  node_coords[KDIR][kk][jj][ii] = 0.0;)
-       #else
-        D_EXPAND(node_coords[IDIR][kk][jj][ii] = (float)(x1*sin(x2)*cos(x3)); ,
+        #else
+        DIM_EXPAND(node_coords[IDIR][kk][jj][ii] = (float)(x1*sin(x2)*cos(x3)); ,
                  node_coords[JDIR][kk][jj][ii] = (float)(x1*sin(x2)*sin(x3)); ,
                  node_coords[KDIR][kk][jj][ii] = (float)(x1*cos(x2));)
-       #endif
+        #endif
       #else
-       print ("! HDF5_IO: Unknown geometry\n");
-       QUIT_PLUTO(1);
+      printLog ("! HDF5_IO: Unknown geometry\n");
+      QUIT_PLUTO(1);
       #endif
     }}}
 
@@ -132,58 +132,57 @@ void WriteHDF5 (Output *output, Grid *grid)
       cell_coords[KDIR][kk][jj][ii] = 0.0;
 
       #if GEOMETRY == CARTESIAN || GEOMETRY == CYLINDRICAL
-       D_EXPAND(cell_coords[IDIR][kk][jj][ii] = (float)x1;  ,
+       DIM_EXPAND(cell_coords[IDIR][kk][jj][ii] = (float)x1;  ,
                 cell_coords[JDIR][kk][jj][ii] = (float)x2;  ,
                 cell_coords[KDIR][kk][jj][ii] = (float)x3;)
       #elif GEOMETRY == POLAR
-       D_EXPAND(cell_coords[IDIR][kk][jj][ii] = (float)(x1*cos(x2)); ,
+       DIM_EXPAND(cell_coords[IDIR][kk][jj][ii] = (float)(x1*cos(x2)); ,
                 cell_coords[JDIR][kk][jj][ii] = (float)(x1*sin(x2)); ,
                 cell_coords[KDIR][kk][jj][ii] = (float)(x3);)
       #elif GEOMETRY == SPHERICAL
        #if DIMENSIONS <= 2
-        D_EXPAND(cell_coords[IDIR][kk][jj][ii] = (float)(x1*sin(x2)); ,
+        DIM_EXPAND(cell_coords[IDIR][kk][jj][ii] = (float)(x1*sin(x2)); ,
                  cell_coords[JDIR][kk][jj][ii] = (float)(x1*cos(x2)); ,
                  cell_coords[KDIR][kk][jj][ii] = 0.0;)
        #else
-        D_EXPAND(cell_coords[IDIR][kk][jj][ii] = (float)(x1*sin(x2)*cos(x3)); ,
+        DIM_EXPAND(cell_coords[IDIR][kk][jj][ii] = (float)(x1*sin(x2)*cos(x3)); ,
                  cell_coords[JDIR][kk][jj][ii] = (float)(x1*sin(x2)*sin(x3)); ,
                  cell_coords[KDIR][kk][jj][ii] = (float)(x1*cos(x2));)
        #endif
       #else
-       print ("! HDF5_IO: Unknown geometry\n");
+       printLog ("! HDF5_IO: Unknown geometry\n");
        QUIT_PLUTO(1);
       #endif
     }}}
-
   } 
 
 /* --------------------------------------------------------------
-     Since data is written in reverse order (Z-Y-X) it is
-     convenient to define pointers to grid in reverse order
+   ! Important: data is written in reverse order (Z-Y-X),
+     and we will often use nr = DIMENSIONS-nd-1
    -------------------------------------------------------------- */
 
-  #ifdef PARALLEL
-   MPI_Barrier (MPI_COMM_WORLD);
-   if (prank == 0)time(&tbeg);
-  #endif
+#ifdef PARALLEL
+  MPI_Barrier (MPI_COMM_WORLD);
+  if (prank == 0)time(&tbeg);
+#endif
 
   sprintf (filename, "%s/data.%04d.%s", output->dir,output->nfile, output->ext);
 
   rank   = DIMENSIONS;
   dimstr = 3;
 
-  #ifdef PARALLEL
-   file_access = H5Pcreate(H5P_FILE_ACCESS);
-   #if MPI_POSIX == YES
-    H5Pset_fapl_mpiposix(file_access, MPI_COMM_WORLD, 1); 
-   #else
-    H5Pset_fapl_mpio(file_access,  MPI_COMM_WORLD, MPI_INFO_NULL);
-   #endif
-   file_identifier = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, file_access);
-   H5Pclose(file_access);
+#ifdef PARALLEL
+  file_access = H5Pcreate(H5P_FILE_ACCESS);
+  #if MPI_POSIX == YES
+  H5Pset_fapl_mpiposix(file_access, MPI_COMM_WORLD, 1); 
   #else
-   file_identifier = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  H5Pset_fapl_mpio(file_access,  MPI_COMM_WORLD, MPI_INFO_NULL);
   #endif
+  file_identifier = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, file_access);
+  H5Pclose(file_access);
+#else
+  file_identifier = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+#endif
 
   sprintf (tstepname, "Timestep_%d", output->nfile);
   timestep = H5Gcreate(file_identifier, tstepname, 0);
@@ -214,16 +213,15 @@ void WriteHDF5 (Output *output, Grid *grid)
  
   dataspace = H5Screate_simple(rank, dimens, NULL);
 
-  #ifdef PARALLEL 
-   for (nd = 0; nd < DIMENSIONS; nd++) {
-     nr = DIMENSIONS-nd-1;
-     start[nd]  = grid->beg[nr] - grid->nghost[nr];
-     stride[nd] = 1;
-     count[nd]  = grid->np_int[nr];
-   }
-
-   err = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, start, stride, count, NULL);
-  #endif
+#ifdef PARALLEL 
+  for (nd = 0; nd < DIMENSIONS; nd++) {
+    nr = DIMENSIONS-nd-1;
+    start[nd]  = grid->beg[nr] - grid->nghost[nr];
+    stride[nd] = 1;
+    count[nd]  = grid->np_int[nr];
+  }
+  err = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, start, stride, count, NULL);
+#endif
 
   for (nd = 0; nd < DIMENSIONS; nd++) {
     nr = DIMENSIONS-nd-1;
@@ -244,10 +242,10 @@ void WriteHDF5 (Output *output, Grid *grid)
       write cell-centered data
    ------------------------------------ */
 
- #if MPI_POSIX == NO
+#if MPI_POSIX == NO
   plist_id_mpiio = H5Pcreate(H5P_DATASET_XFER);
   H5Pset_dxpl_mpio(plist_id_mpiio,H5FD_MPIO_COLLECTIVE);
- #endif
+#endif
 
   for (nv = 0; nv < output->nvar; nv++) {
   
@@ -258,13 +256,13 @@ void WriteHDF5 (Output *output, Grid *grid)
     if (output->type == DBL_H5_OUTPUT){
       dataset = H5Dcreate(group, output->var_name[nv], H5T_NATIVE_DOUBLE,
                           dataspace, H5P_DEFAULT);
-     #if MPI_POSIX == NO
+      #if MPI_POSIX == NO
       err = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memspace, dataspace,
                      plist_id_mpiio, output->V[nv][0][0]);
-     #else
+      #else
       err = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memspace, dataspace,
                      H5P_DEFAULT, output->V[nv][0][0]);
-     #endif
+      #endif
     }else if (output->type == FLT_H5_OUTPUT){
       void *Vpt;
       Vpt = (void *)(Convert_dbl2flt(output->V[nv],1.0, 0))[0][0];
@@ -272,20 +270,20 @@ void WriteHDF5 (Output *output, Grid *grid)
       dataset = H5Dcreate(group, output->var_name[nv], H5T_NATIVE_FLOAT,
                           dataspace, H5P_DEFAULT);
 
-     #if MPI_POSIX == NO
+      #if MPI_POSIX == NO
       err = H5Dwrite(dataset, H5T_NATIVE_FLOAT, memspace,
                      dataspace, plist_id_mpiio, Vpt);
-     #else
+      #else
       err = H5Dwrite(dataset, H5T_NATIVE_FLOAT, memspace,
                      dataspace, H5P_DEFAULT, Vpt);
-     #endif
+      #endif
     }
     H5Dclose(dataset);
   }
 
- #if MPI_POSIX == NO
+#if MPI_POSIX == NO
   H5Pclose(plist_id_mpiio);
- #endif
+#endif
   H5Sclose(memspace);
   H5Sclose(dataspace);
   H5Gclose(group); /* Close group "vars" */
@@ -302,27 +300,27 @@ void WriteHDF5 (Output *output, Grid *grid)
     (instead of 0) in the staggered direction.                           */
 /*  --------------------------------------------------------------------- */
 
- #ifdef STAGGERED_MHD
+#ifdef STAGGERED_MHD
   if (output->type == DBL_H5_OUTPUT){
-   group = H5Gcreate(timestep, "stag_vars", 0); /* Create group "stag_vars" (staggered vars) */
+    group = H5Gcreate(timestep, "stag_vars", 0); /* Create group "stag_vars" (staggered vars) */
 
-  #if MPI_POSIX == NO
-   plist_id_mpiio = H5Pcreate(H5P_DATASET_XFER);
-   H5Pset_dxpl_mpio(plist_id_mpiio,H5FD_MPIO_COLLECTIVE);
-  #endif
+    #if MPI_POSIX == NO
+    plist_id_mpiio = H5Pcreate(H5P_DATASET_XFER);
+    H5Pset_dxpl_mpio(plist_id_mpiio,H5FD_MPIO_COLLECTIVE);
+    #endif
 
-   for (ns = 0; ns < DIMENSIONS; ns++) {
+    for (ns = 0; ns < DIMENSIONS; ns++) {
 
   /* -- skip variable if excluded from output or if it is cell-centered -- */
  
-     if (!output->dump_var[NVAR+ns] || output->stag_var[NVAR+ns] == -1) continue;
-     for (nd = 0; nd < DIMENSIONS; nd++) {
-       nr = DIMENSIONS-nd-1;
-       dimens[nd] = grid->np_int_glob[nr] + (ns == nr);
-     }
-     dataspace = H5Screate_simple(rank, dimens, NULL);
+      if (!output->dump_var[NVAR+ns] || output->stag_var[NVAR+ns] == -1) continue;
+      for (nd = 0; nd < DIMENSIONS; nd++) {
+        nr = DIMENSIONS-nd-1;
+        dimens[nd] = grid->np_int_glob[nr] + (ns == nr);
+      }
+      dataspace = H5Screate_simple(rank, dimens, NULL);
 
-     #ifdef PARALLEL
+      #ifdef PARALLEL
       for (nd = 0; nd < DIMENSIONS; nd++) {
         nr = DIMENSIONS-nd-1;
         start[nd]  = grid->beg[nr] - grid->nghost[nr];
@@ -335,62 +333,63 @@ void WriteHDF5 (Output *output, Grid *grid)
       }
       err = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET,
                                 start, stride, count, NULL);
-     #endif
-
-     for (nd = 0; nd < DIMENSIONS; nd++){
-       nr = DIMENSIONS-nd-1;
-       dimens[nd] = grid->np_tot[nr] + (ns==nr);
-     }
-     memspace = H5Screate_simple(rank,dimens,NULL);
-
-     for (nd = 0; nd < DIMENSIONS; nd++){
-       nr = DIMENSIONS-nd-1;
-       start[nd]  = grid->nghost[nr];
-       stride[nd] = 1;
-       count[nd]  = grid->np_int[nr];
-       if (ns == nr && grid->lbound[ns] != 0) {
-         start[nd] -= 1;
-         count[nd] += 1;
-       }
-     }
-
-     err = H5Sselect_hyperslab(memspace,H5S_SELECT_SET, start, stride, count, NULL);
-
-     if (output->type == DBL_H5_OUTPUT){
-       dataset = H5Dcreate(group, output->var_name[NVAR+ns], H5T_NATIVE_DOUBLE,
-                           dataspace, H5P_DEFAULT);
-      #if MPI_POSIX == NO
-       err = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memspace, dataspace,
-                      plist_id_mpiio, output->V[NVAR+ns][0][0]);
-      #else
-       err = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memspace, dataspace,
-                      H5P_DEFAULT, output->V[NVAR+ns][0][0]);
       #endif
-     }else if (output->type == FLT_H5_OUTPUT){
-       void *Vpt;
-       Vpt = (void *)(Convert_dbl2flt(output->V[NVAR+ns],1.0, 0))[0][0];
-       dataset = H5Dcreate(group, output->var_name[NVAR+ns], H5T_NATIVE_FLOAT,
+
+      for (nd = 0; nd < DIMENSIONS; nd++){
+        nr = DIMENSIONS-nd-1;
+        dimens[nd] = grid->np_tot[nr] + (ns==nr);
+      }
+      memspace = H5Screate_simple(rank,dimens,NULL);
+
+      for (nd = 0; nd < DIMENSIONS; nd++){
+        nr = DIMENSIONS-nd-1;
+        start[nd]  = grid->nghost[nr];
+        stride[nd] = 1;
+        count[nd]  = grid->np_int[nr];
+        if (ns == nr && grid->lbound[ns] != 0) {
+          start[nd] -= 1;
+          count[nd] += 1;
+        }
+      }
+
+      err = H5Sselect_hyperslab(memspace,H5S_SELECT_SET, start, stride, count, NULL);
+
+      if (output->type == DBL_H5_OUTPUT){
+        dataset = H5Dcreate(group, output->var_name[NVAR+ns], H5T_NATIVE_DOUBLE,
                            dataspace, H5P_DEFAULT);
+        #if MPI_POSIX == NO
+        err = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memspace, dataspace,
+                       plist_id_mpiio, output->V[NVAR+ns][0][0]);
+        #else
+        err = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memspace, dataspace,
+                       H5P_DEFAULT, output->V[NVAR+ns][0][0]);
+        #endif
+      }else if (output->type == FLT_H5_OUTPUT){
+        void *Vpt;
+        Vpt = (void *)(Convert_dbl2flt(output->V[NVAR+ns],1.0, 0))[0][0];
+        dataset = H5Dcreate(group, output->var_name[NVAR+ns], H5T_NATIVE_FLOAT,
+                            dataspace, H5P_DEFAULT);
 
-      #if MPI_POSIX == NO
-       err = H5Dwrite(dataset, H5T_NATIVE_FLOAT, memspace,
-                      dataspace, plist_id_mpiio, Vpt);
-      #else
-       err = H5Dwrite(dataset, H5T_NATIVE_FLOAT, memspace,
-                      dataspace, H5P_DEFAULT, Vpt);
-      #endif
-     }
+        #if MPI_POSIX == NO
+        err = H5Dwrite(dataset, H5T_NATIVE_FLOAT, memspace,
+                       dataspace, plist_id_mpiio, Vpt);
+        #else
+        err = H5Dwrite(dataset, H5T_NATIVE_FLOAT, memspace,
+                       dataspace, H5P_DEFAULT, Vpt);
+        #endif
+      }
 
-     H5Dclose(dataset);
-     H5Sclose(memspace);
-     H5Sclose(dataspace);
-   }
+      H5Dclose(dataset);
+      H5Sclose(memspace);
+      H5Sclose(dataspace);
+    }
 
-  #if MPI_POSIX == NO
-   H5Pclose(plist_id_mpiio);
-  #endif
-   H5Gclose(group);} /* Close group "stag_vars" */
-  #endif  /* STAGGERED_MHD */
+    #if MPI_POSIX == NO
+    H5Pclose(plist_id_mpiio);
+    #endif
+    H5Gclose(group);
+  } /* Close group "stag_vars" */
+#endif  /* STAGGERED_MHD */
 
   H5Gclose(timestep);
 
@@ -402,16 +401,16 @@ void WriteHDF5 (Output *output, Grid *grid)
   }
   dataspace = H5Screate_simple(rank, dimens, NULL);
 
-  #ifdef PARALLEL
-   for (nd = 0; nd < DIMENSIONS; nd++) {
-     nr = DIMENSIONS-nd-1;
-     start[nd]  = grid->beg[nr] - grid->nghost[nr];
-     stride[nd] = 1;
-     count[nd]  = grid->np_int[nr];
-   }
-   err = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET,
-                             start, stride, count, NULL);
-  #endif
+#ifdef PARALLEL
+  for (nd = 0; nd < DIMENSIONS; nd++) {
+    nr = DIMENSIONS-nd-1;
+    start[nd]  = grid->beg[nr] - grid->nghost[nr];
+    stride[nd] = 1;
+    count[nd]  = grid->np_int[nr];
+  }
+  err = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET,
+                            start, stride, count, NULL);
+#endif
 
   for (nd = 0; nd < DIMENSIONS; nd++){
     nr = DIMENSIONS-nd-1;
@@ -423,28 +422,28 @@ void WriteHDF5 (Output *output, Grid *grid)
        write cell centered mesh
    ------------------------------------ */
 
- #if MPI_POSIX == NO
+#if MPI_POSIX == NO
   plist_id_mpiio = H5Pcreate(H5P_DATASET_XFER);
   H5Pset_dxpl_mpio(plist_id_mpiio,H5FD_MPIO_COLLECTIVE);
- #endif
+#endif
 
   for (nc = 0; nc < 3; nc++) {
     dataset = H5Dcreate(group, cname[nc], H5T_NATIVE_FLOAT, dataspace, H5P_DEFAULT);
 
-   #if MPI_POSIX == NO
+    #if MPI_POSIX == NO
     err = H5Dwrite(dataset, H5T_NATIVE_FLOAT, memspace,
                    dataspace, plist_id_mpiio, cell_coords[nc][0][0]);
-   #else
+    #else
     err = H5Dwrite(dataset, H5T_NATIVE_FLOAT, memspace,
                    dataspace, H5P_DEFAULT, cell_coords[nc][0][0]);
-   #endif
+    #endif
 
     H5Dclose(dataset);
   }
 
- #if MPI_POSIX == NO
+#if MPI_POSIX == NO
   H5Pclose(plist_id_mpiio);
- #endif
+#endif
   H5Sclose(memspace);
   H5Sclose(dataspace);
   H5Gclose(group); /* Close group "cell_coords" */
@@ -469,7 +468,7 @@ void WriteHDF5 (Output *output, Grid *grid)
 
   err = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET,
                             start, stride, count, NULL);
-  #endif
+#endif
 
   for (nd = 0; nd < DIMENSIONS; nd++) {
     nr = DIMENSIONS-nd-1;
@@ -482,22 +481,21 @@ void WriteHDF5 (Output *output, Grid *grid)
           write node centered mesh
    ------------------------------------ */
 
- #if MPI_POSIX == NO
+#if MPI_POSIX == NO
   plist_id_mpiio = H5Pcreate(H5P_DATASET_XFER);
   H5Pset_dxpl_mpio(plist_id_mpiio,H5FD_MPIO_COLLECTIVE);
- #endif
+#endif
 
   for (nc = 0; nc < 3; nc++) {
     dataset = H5Dcreate(group, cname[nc], H5T_NATIVE_FLOAT, dataspace, H5P_DEFAULT);
 
-   #if MPI_POSIX == NO
+    #if MPI_POSIX == NO
     err = H5Dwrite(dataset, H5T_NATIVE_FLOAT, memspace,
                    dataspace, plist_id_mpiio, node_coords[nc][0][0]);
-   #else
+    #else
     err = H5Dwrite(dataset, H5T_NATIVE_FLOAT, memspace,
                    dataspace, H5P_DEFAULT, node_coords[nc][0][0]);
-   #endif
-
+    #endif
     H5Dclose(dataset);
   }
 
@@ -531,29 +529,29 @@ void WriteHDF5 (Output *output, Grid *grid)
     fprintf(fxmf, "   <Grid Name=\"node_mesh\" GridType=\"Uniform\">\n");
     fprintf(fxmf, "    <Time Value=\"%12.6e\"/>\n",g_time);
     #if DIMENSIONS == 2
-     fprintf(fxmf,"     <Topology TopologyType=\"2DSMesh\" NumberOfElements=\"%d %d\"/>\n",
-             grid->np_int_glob[JDIR]+1, grid->np_int_glob[IDIR]+1);
-     fprintf(fxmf, "     <Geometry GeometryType=\"X_Y\">\n");
-     for (nd = 0; nd < DIMENSIONS; nd++) {
-       fprintf(fxmf,"       <DataItem Dimensions=\"%d %d\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n",
-              grid->np_int_glob[JDIR]+1, grid->np_int_glob[IDIR]+1 );
-       fprintf(fxmf, "        %s:/node_coords/%s\n",filename,cname[nd]);
-       fprintf(fxmf, "       </DataItem>\n");
-     }
+    fprintf(fxmf,"     <Topology TopologyType=\"2DSMesh\" NumberOfElements=\"%d %d\"/>\n",
+            grid->np_int_glob[JDIR]+1, grid->np_int_glob[IDIR]+1);
+    fprintf(fxmf, "     <Geometry GeometryType=\"X_Y\">\n");
+    for (nd = 0; nd < DIMENSIONS; nd++) {
+      fprintf(fxmf,"       <DataItem Dimensions=\"%d %d\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n",
+             grid->np_int_glob[JDIR]+1, grid->np_int_glob[IDIR]+1 );
+      fprintf(fxmf, "        %s:/node_coords/%s\n",filename,cname[nd]);
+      fprintf(fxmf, "       </DataItem>\n");
+    }
     #elif DIMENSIONS == 3
-     fprintf(fxmf, "     <Topology TopologyType=\"3DSMesh\" NumberOfElements=\"%d %d %d\"/>\n",
-             grid->np_int_glob[KDIR]+1,
-             grid->np_int_glob[JDIR]+1,
-             grid->np_int_glob[IDIR]+1);
-     fprintf(fxmf, "     <Geometry GeometryType=\"X_Y_Z\">\n");
-     for (nd = 0; nd < DIMENSIONS; nd++) {
-       fprintf(fxmf, "       <DataItem Dimensions=\"%d %d %d\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n",
-               grid->np_int_glob[KDIR]+1,
-               grid->np_int_glob[JDIR]+1,
-               grid->np_int_glob[IDIR]+1 );
-       fprintf(fxmf, "        %s:/node_coords/%s\n",filename,cname[nd]);
-       fprintf(fxmf, "       </DataItem>\n");
-     }
+    fprintf(fxmf, "     <Topology TopologyType=\"3DSMesh\" NumberOfElements=\"%d %d %d\"/>\n",
+            grid->np_int_glob[KDIR]+1,
+            grid->np_int_glob[JDIR]+1,
+            grid->np_int_glob[IDIR]+1);
+    fprintf(fxmf, "     <Geometry GeometryType=\"X_Y_Z\">\n");
+    for (nd = 0; nd < DIMENSIONS; nd++) {
+      fprintf(fxmf, "       <DataItem Dimensions=\"%d %d %d\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n",
+              grid->np_int_glob[KDIR]+1,
+              grid->np_int_glob[JDIR]+1,
+              grid->np_int_glob[IDIR]+1 );
+      fprintf(fxmf, "        %s:/node_coords/%s\n",filename,cname[nd]);
+      fprintf(fxmf, "       </DataItem>\n");
+    }
     #endif
     fprintf(fxmf, "     </Geometry>\n");
     for (nv = 0; nv < output->nvar; nv++) { /* Write cell-centered variables */
@@ -561,14 +559,14 @@ void WriteHDF5 (Output *output, Grid *grid)
       fprintf(fxmf, "     <Attribute Name=\"%s\" AttributeType=\"Scalar\" Center=\"Cell\">\n",
               output->var_name[nv]);
       #if DIMENSIONS == 2
-       fprintf(fxmf, "       <DataItem Dimensions=\"%d %d\" NumberType=\"Float\" Precision=\"%d\" Format=\"HDF\">\n",
-               grid->np_int_glob[JDIR],
-               grid->np_int_glob[IDIR], nprec);
+      fprintf(fxmf, "       <DataItem Dimensions=\"%d %d\" NumberType=\"Float\" Precision=\"%d\" Format=\"HDF\">\n",
+              grid->np_int_glob[JDIR],
+              grid->np_int_glob[IDIR], nprec);
       #elif DIMENSIONS == 3
-       fprintf(fxmf, "       <DataItem Dimensions=\"%d %d %d\" NumberType=\"Float\" Precision=\"%d\" Format=\"HDF\">\n",
-               grid->np_int_glob[KDIR],
-               grid->np_int_glob[JDIR],
-               grid->np_int_glob[IDIR], nprec);
+      fprintf(fxmf, "       <DataItem Dimensions=\"%d %d %d\" NumberType=\"Float\" Precision=\"%d\" Format=\"HDF\">\n",
+              grid->np_int_glob[KDIR],
+              grid->np_int_glob[JDIR],
+              grid->np_int_glob[IDIR], nprec);
       #endif
       fprintf(fxmf, "        %s:%s/vars/%s\n",filename,tstepname,output->var_name[nv]);
       fprintf(fxmf, "       </DataItem>\n");
@@ -578,13 +576,13 @@ void WriteHDF5 (Output *output, Grid *grid)
       fprintf(fxmf, "     <Attribute Name=\"%s\" AttributeType=\"Scalar\" Center=\"Cell\">\n",
               cname[nd]);
       #if DIMENSIONS == 2
-       fprintf(fxmf, "       <DataItem Dimensions=\"%d %d\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n",
-               grid->np_int_glob[JDIR], grid->np_int_glob[IDIR]);
+      fprintf(fxmf, "       <DataItem Dimensions=\"%d %d\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n",
+              grid->np_int_glob[JDIR], grid->np_int_glob[IDIR]);
       #elif DIMENSIONS == 3
-       fprintf(fxmf, "       <DataItem Dimensions=\"%d %d %d\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n",
-               grid->np_int_glob[KDIR],
-               grid->np_int_glob[JDIR],
-               grid->np_int_glob[IDIR]);
+      fprintf(fxmf, "       <DataItem Dimensions=\"%d %d %d\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n",
+              grid->np_int_glob[KDIR],
+              grid->np_int_glob[JDIR],
+              grid->np_int_glob[IDIR]);
       #endif
       fprintf(fxmf, "        %s:/cell_coords/%s\n",filename,cname[nd]);
       fprintf(fxmf, "       </DataItem>\n");
@@ -598,13 +596,13 @@ void WriteHDF5 (Output *output, Grid *grid)
 
 /* XDMF file */
 
-  #ifdef PARALLEL
-   MPI_Barrier (MPI_COMM_WORLD);
-   if (prank == 0){
-     time(&tend);
-     print (" [%5.2f sec]",difftime(tend,tbeg));
-   }
-  #endif
+#ifdef PARALLEL
+  MPI_Barrier (MPI_COMM_WORLD);
+  if (prank == 0){
+    time(&tend);
+    printLog (" [%5.2f sec]",difftime(tend,tbeg));
+  }
+#endif
 }
 
 /* ********************************************************************* */
@@ -639,26 +637,26 @@ void ReadHDF5 (Output *output, Grid *grid)
      convenient to define pointers to grid in reverse order
    -------------------------------------------------------------- */
 
-  print ("> restarting from file #%d (dbl.h5)\n",output->nfile);
+  printLog ("> restarting from file #%d (dbl.h5)\n",output->nfile);
   sprintf (filename, "%s/data.%04d.dbl.h5", output->dir, output->nfile);
 
   rank = DIMENSIONS;
 
-  #ifdef PARALLEL
-   file_access = H5Pcreate (H5P_FILE_ACCESS);
-   #if MPI_POSIX == YES
-    H5Pset_fapl_mpiposix(file_access, MPI_COMM_WORLD, 1);
-   #else
-    H5Pset_fapl_mpio(file_access,  MPI_COMM_WORLD, MPI_INFO_NULL);
-   #endif
-   file_identifier = H5Fopen(filename, H5F_ACC_RDONLY, file_access);
-   H5Pclose(file_access);
+#ifdef PARALLEL
+  file_access = H5Pcreate (H5P_FILE_ACCESS);
+  #if MPI_POSIX == YES
+  H5Pset_fapl_mpiposix(file_access, MPI_COMM_WORLD, 1);
   #else
-   file_identifier = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+  H5Pset_fapl_mpio(file_access,  MPI_COMM_WORLD, MPI_INFO_NULL);
   #endif
+  file_identifier = H5Fopen(filename, H5F_ACC_RDONLY, file_access);
+  H5Pclose(file_access);
+#else
+  file_identifier = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+#endif
 
   if (file_identifier < 0){
-    print ("! HDF5_READ: file %s does not exist\n");
+    printLog ("! HDF5_READ: file %s does not exist\n");
     QUIT_PLUTO(1);
   }
 
@@ -666,10 +664,10 @@ void ReadHDF5 (Output *output, Grid *grid)
   timestep = H5Gopen(file_identifier, tstepname);
   group = H5Gopen(timestep, "vars");
 
- #if MPI_POSIX == NO
+#if MPI_POSIX == NO
   plist_id_mpiio = H5Pcreate(H5P_DATASET_XFER);
   H5Pset_dxpl_mpio(plist_id_mpiio,H5FD_MPIO_COLLECTIVE);
- #endif
+#endif
 
   for (nv = 0; nv < output->nvar; nv++) {
 
@@ -681,13 +679,13 @@ void ReadHDF5 (Output *output, Grid *grid)
     dataspace = H5Dget_space(dataset);
 
     #ifdef PARALLEL
-     for (nd = 0; nd < DIMENSIONS; nd++) {
-       nr = DIMENSIONS-nd-1;
-       start[nd]  = grid->beg[nr] - grid->nghost[nr];
-       stride[nd] = 1;
-       count[nd]  = grid->np_int[nr];
-     }
-     err = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, start, stride, count, NULL);  
+    for (nd = 0; nd < DIMENSIONS; nd++) {
+      nr = DIMENSIONS-nd-1;
+      start[nd]  = grid->beg[nr] - grid->nghost[nr];
+      stride[nd] = 1;
+      count[nd]  = grid->np_int[nr];
+    }
+    err = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, start, stride, count, NULL);  
     #endif
 
     for (nd = 0; nd < DIMENSIONS; nd++) {
@@ -706,88 +704,88 @@ void ReadHDF5 (Output *output, Grid *grid)
 
     err = H5Sselect_hyperslab(memspace,H5S_SELECT_SET, start, stride, count, NULL);
 
-     #if MPI_POSIX == NO
-      err = H5Dread(dataset, H5T_NATIVE_DOUBLE, memspace, dataspace,
-                    plist_id_mpiio, output->V[nv][0][0]);
-     #else
-      err = H5Dread(dataset, H5T_NATIVE_DOUBLE, memspace, dataspace,
-                    H5P_DEFAULT, output->V[nv][0][0]);
-     #endif
+    #if MPI_POSIX == NO
+    err = H5Dread(dataset, H5T_NATIVE_DOUBLE, memspace, dataspace,
+                  plist_id_mpiio, output->V[nv][0][0]);
+    #else
+    err = H5Dread(dataset, H5T_NATIVE_DOUBLE, memspace, dataspace,
+                  H5P_DEFAULT, output->V[nv][0][0]);
+    #endif
 
     H5Dclose(dataset);
     H5Sclose(memspace);
     H5Sclose(dataspace);
   }
 
- #if MPI_POSIX == NO
+#if MPI_POSIX == NO
   H5Pclose(plist_id_mpiio);
- #endif
+#endif
   H5Gclose(group);
 
-  #ifdef STAGGERED_MHD
-   group = H5Gopen(timestep, "stag_vars");
+#ifdef STAGGERED_MHD
+  group = H5Gopen(timestep, "stag_vars");
 
   #if MPI_POSIX == NO
-   plist_id_mpiio = H5Pcreate(H5P_DATASET_XFER);
-   H5Pset_dxpl_mpio(plist_id_mpiio,H5FD_MPIO_COLLECTIVE);
+  plist_id_mpiio = H5Pcreate(H5P_DATASET_XFER);
+  H5Pset_dxpl_mpio(plist_id_mpiio,H5FD_MPIO_COLLECTIVE);
   #endif
 
-   for (ns = 0; ns < DIMENSIONS; ns++) {
-     dataset   = H5Dopen(group, output->var_name[NVAR+ns]);
-     dataspace = H5Dget_space(dataset);
+  for (ns = 0; ns < DIMENSIONS; ns++) {
+    dataset   = H5Dopen(group, output->var_name[NVAR+ns]);
+    dataspace = H5Dget_space(dataset);
 
-     #ifdef PARALLEL
-      for (nd = 0; nd < DIMENSIONS; nd++) {
-        nr = DIMENSIONS-nd-1;
-        start[nd]  = grid->beg[nr] - grid->nghost[nr];
-        stride[nd] = 1;
-        count[nd]  = grid->np_int[nr];
-        if (ns == DIMENSIONS-1-nd){
-           if (grid[ns].lbound != 0) count[nd] += 1;
-           else                      start[nd] += 1;
-        }
+    #ifdef PARALLEL
+    for (nd = 0; nd < DIMENSIONS; nd++) {
+      nr = DIMENSIONS-nd-1;
+      start[nd]  = grid->beg[nr] - grid->nghost[nr];
+      stride[nd] = 1;
+      count[nd]  = grid->np_int[nr];
+      if (ns == DIMENSIONS-1-nd){
+        if (grid->lbound[ns] != 0) count[nd] += 1;
+        else                       start[nd] += 1;
       }
-      err = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET,
-                                start, stride, count, NULL);
-     #endif
+    }
+    err = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET,
+                              start, stride, count, NULL);
+    #endif
  
-     for (nd = 0; nd < DIMENSIONS; nd++){
-       nr = DIMENSIONS-nd-1;
-       dimens[nd] = grid->np_tot[nr] + (ns == nr);
-     }
+    for (nd = 0; nd < DIMENSIONS; nd++){
+      nr = DIMENSIONS-nd-1;
+      dimens[nd] = grid->np_tot[nr] + (ns == nr);
+    }
 
-     memspace = H5Screate_simple(rank,dimens,NULL);
+    memspace = H5Screate_simple(rank,dimens,NULL);
 
-     for (nd = 0; nd < DIMENSIONS; nd++){
-       nr = DIMENSIONS-nd-1;
-       start[nd]  = grid->nghost[nr];
-       stride[nd] = 1;
-       count[nd]  = grid->np_int[nr];
-       if (ns == nr && grid->lbound[ns] != 0) {
-         start[nd] -= 1;
-         count[nd] += 1;
-       }
-     }
+    for (nd = 0; nd < DIMENSIONS; nd++){
+      nr = DIMENSIONS-nd-1;
+      start[nd]  = grid->nghost[nr];
+      stride[nd] = 1;
+      count[nd]  = grid->np_int[nr];
+      if (ns == nr && grid->lbound[ns] != 0) {
+        start[nd] -= 1;
+        count[nd] += 1;
+      }
+    }
 
-     err = H5Sselect_hyperslab(memspace,H5S_SELECT_SET,
-                               start, stride, count, NULL); 
-     #if MPI_POSIX == NO
-      err = H5Dread(dataset, H5T_NATIVE_DOUBLE, memspace,
-                    dataspace, plist_id_mpiio, output->V[NVAR+ns][0][0]);
-     #else
-      err = H5Dread(dataset, H5T_NATIVE_DOUBLE, memspace,
-                    dataspace, H5P_DEFAULT, output->V[NVAR+ns][0][0]);
-     #endif
-     H5Dclose(dataset);
-     H5Sclose(memspace); 
-     H5Sclose(dataspace);
-   }
+    err = H5Sselect_hyperslab(memspace,H5S_SELECT_SET,
+                              start, stride, count, NULL); 
+    #if MPI_POSIX == NO
+    err = H5Dread(dataset, H5T_NATIVE_DOUBLE, memspace,
+                  dataspace, plist_id_mpiio, output->V[NVAR+ns][0][0]);
+    #else
+    err = H5Dread(dataset, H5T_NATIVE_DOUBLE, memspace,
+                  dataspace, H5P_DEFAULT, output->V[NVAR+ns][0][0]);
+    #endif
+    H5Dclose(dataset);
+    H5Sclose(memspace); 
+    H5Sclose(dataspace);
+  }
 
-  #if MPI_POSIX == NO
-   H5Pclose(plist_id_mpiio);
-  #endif
-   H5Gclose(group);
-  #endif
+#if MPI_POSIX == NO
+  H5Pclose(plist_id_mpiio);
+#endif
+  H5Gclose(group);
+#endif
 
   H5Gclose(timestep);
   H5Fclose(file_identifier);

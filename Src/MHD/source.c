@@ -28,8 +28,8 @@
     - "A positive conservative method for MHD based on HLL and Roe methods"
        P. Janhunen, JCP (2000), 160, 649.
        
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    March 3, 2017
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    July 1, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -123,13 +123,13 @@ void Roe_DivBSource (const Sweep *sweep, int beg, int end, Grid *grid)
     src = sweep->src[i];
     bgf = stateC->Bbck;
 
-    EXPAND (vx = vc[VX1];  ,
-            vy = vc[VX2];  ,
-            vz = vc[VX3];)
+    vx = vc[VX1];
+    vy = vc[VX2];
+    vz = vc[VX3];
 
-    EXPAND (bx = btx = vc[BX1];  ,
-            by = bty = vc[BX2];  ,
-            bz = btz = vc[BX3];)
+    bx = btx = vc[BX1];
+    by = bty = vc[BX2];
+    bz = btz = vc[BX3];
 
     #if BACKGROUND_FIELD == YES
     btx += bgf[i][BX1];
@@ -138,16 +138,16 @@ void Roe_DivBSource (const Sweep *sweep, int beg, int end, Grid *grid)
     #endif
 
     src[RHO] = 0.0;
-    EXPAND (src[MX1] = -divB[i]*btx;  ,
-            src[MX2] = -divB[i]*bty;  ,
-            src[MX3] = -divB[i]*btz;)
+    src[MX1] = -divB[i]*btx;
+    src[MX2] = -divB[i]*bty;
+    src[MX3] = -divB[i]*btz;
 
     #if HAVE_ENERGY
-    src[ENG] = -divB[i]*(EXPAND(vx*bx, +vy*by, +vz*bz));
+    src[ENG] = -divB[i]*(vx*bx + vy*by + vz*bz);
     #endif
-    EXPAND (src[BX1] = -divB[i]*vx;   ,
-            src[BX2] = -divB[i]*vy;   ,
-            src[BX3] = -divB[i]*vz;)
+    src[BX1] = -divB[i]*vx;
+    src[BX2] = -divB[i]*vy;
+    src[BX3] = -divB[i]*vz;
   }
 }
 
@@ -231,15 +231,15 @@ void HLL_DivBSource (const Sweep *sweep, double **Uhll,
     vc  = stateC->v[i];
     src = sweep->src[i];
 
-    vB = EXPAND(vc[VX1]*vc[BX1], + vc[VX2]*vc[BX2], + vc[VX3]*vc[BX3]);
+    vB = vc[VX1]*vc[BX1] + vc[VX2]*vc[BX2] + vc[VX3]*vc[BX3];
     src[RHO] = 0.0;
-    EXPAND(src[MX1] = -vc[BX1]*divB[i];  ,
-           src[MX2] = -vc[BX2]*divB[i];  ,
-           src[MX3] = -vc[BX3]*divB[i];)
+    src[MX1] = -vc[BX1]*divB[i];
+    src[MX2] = -vc[BX2]*divB[i];
+    src[MX3] = -vc[BX3]*divB[i];
 
-    EXPAND(src[BX1] = -vc[VX1]*divB[i];  ,
-           src[BX2] = -vc[VX2]*divB[i];  ,
-   	       src[BX3] = -vc[VX3]*divB[i];)
+    src[BX1] = -vc[VX1]*divB[i];
+    src[BX2] = -vc[VX2]*divB[i];
+    src[BX3] = -vc[VX3]*divB[i];
 
     #if HAVE_ENERGY 
     src[ENG] = -vB*divB[i];

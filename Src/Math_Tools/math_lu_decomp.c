@@ -2,8 +2,8 @@
 /*!
   \file
   \brief  Functions for LU decomposition and matrix inversion.
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   June 20, 2014
+  \author A. Mignone (mignone@to.infn.it)
+  \date   June 24, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -23,10 +23,19 @@ int LUDecompose (double **a, int n, int *indx, double *d)
 #define TINY 1.0e-20;
 {
   int i, imax, j, k;
+  static int max_size = 0;
   double big, dum, sum, temp;
-  double *vv;
+  static double *vv;
 
-  vv = ARRAY_1D (n, double);
+  if (n > max_size) {
+    if (vv != NULL) {
+      FreeArray1D(vv);
+      g_usedMemory -= sizeof(double)*max_size;
+    }
+    vv = ARRAY_1D (n, double);
+    max_size = n;
+  }
+
   *d = 1.0;
   for (i = 0; i < n; i++) {
     big = 0.0;
@@ -34,7 +43,7 @@ int LUDecompose (double **a, int n, int *indx, double *d)
       if ((temp = fabs (a[i][j])) > big)
         big = temp;
     if (big == 0.0) {
-/*      print ("! Singular matrix in routine LUDecompose - (i=%d, j=%d)",i,j); */
+/*      printLog ("! Singular matrix in routine LUDecompose - (i=%d, j=%d)",i,j); */
       return (0);
     }
     vv[i] = 1.0 / big;
@@ -75,8 +84,6 @@ int LUDecompose (double **a, int n, int *indx, double *d)
         a[i][j] *= dum;
     }
   }
-  FreeArray1D(vv);
-  g_usedMemory -= sizeof(double)*n;
   return (1); /* -- success -- */
 }
 #undef TINY
@@ -130,6 +137,7 @@ void LUBackSubst (double **a, int n, int *indx, double b[])
 void MatrixInverse (double **A, double **Ainv, int n)
 /*!
  * Find the inverse of a matrix.
+ * ! Important: the matrix A is destroyed on output !
  *
  *********************************************************************** */
 {
@@ -141,7 +149,7 @@ void MatrixInverse (double **A, double **Ainv, int n)
   
   LUDecompose (A,n,indx,&d); 
   for(j = 0; j < n;j++) {
-    for(i = 0; i < n; i++) col[i]=0.0; 
+    for (i = 0; i < n; i++) col[i]=0.0; 
     col[j] = 1.0;
     LUBackSubst(A,n,indx,col); 
     for(i = 0; i < n; i++) Ainv[i][j]=col[i];

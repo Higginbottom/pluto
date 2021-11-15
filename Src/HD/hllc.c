@@ -18,15 +18,15 @@
    -   "Riemann Solver and Numerical Methods for Fluid Dynamics"
         by E.F. Toro (Chapter 10)
        
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    Oct 12, 2016
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    June 27, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
 
 /* ********************************************************************* */
 void HLLC_Solver (const Sweep *sweep, int beg, int end, 
-                  real *cmax, Grid *grid)
+                  double *cmax, Grid *grid)
 /*!
  * Solve Riemann problem using the HLLC Riemann solver.
  * 
@@ -108,46 +108,45 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
      --------------------------------------- */    
 
       #if HAVE_ENERGY
-       qL = vL[PRS] + uL[MXn]*(vL[VXn] - SL[i]);
-       qR = vR[PRS] + uR[MXn]*(vR[VXn] - SR[i]);
+      qL = vL[PRS] + uL[MXn]*(vL[VXn] - SL[i]);
+      qR = vR[PRS] + uR[MXn]*(vR[VXn] - SR[i]);
 
-       wL = vL[RHO]*(vL[VXn] - SL[i]);
-       wR = vR[RHO]*(vR[VXn] - SR[i]);
+      wL = vL[RHO]*(vL[VXn] - SL[i]);
+      wR = vR[RHO]*(vR[VXn] - SR[i]);
 
-       vs = (qR - qL)/(wR - wL); /* wR - wL > 0 since SL < 0, SR > 0 */
+      vs = (qR - qL)/(wR - wL); /* wR - wL > 0 since SL < 0, SR > 0 */
 /*
       vs = vR[PRS] - vL[PRS] + uL[MXn]*(SL[i] - vxl) 
                            - uR[MXn]*(SR[i] - vxr);
       vs /= vL[RHO]*(SL[i] - vxl) - vR[RHO]*(SR[i] - vxr);
 */
 
-       usL[RHO] = uL[RHO]*(SL[i] - vxl)/(SL[i] - vs);
-       usR[RHO] = uR[RHO]*(SR[i] - vxr)/(SR[i] - vs);
-       EXPAND(usL[MXn] = usL[RHO]*vs;     usR[MXn] = usR[RHO]*vs;      ,
-              usL[MXt] = usL[RHO]*vL[VXt]; usR[MXt] = usR[RHO]*vR[VXt];  ,
-              usL[MXb] = usL[RHO]*vL[VXb]; usR[MXb] = usR[RHO]*vR[VXb];)
+      usL[RHO] = uL[RHO]*(SL[i] - vxl)/(SL[i] - vs);
+      usR[RHO] = uR[RHO]*(SR[i] - vxr)/(SR[i] - vs);
+      usL[MXn] = usL[RHO]*vs;     usR[MXn] = usR[RHO]*vs;
+      usL[MXt] = usL[RHO]*vL[VXt]; usR[MXt] = usR[RHO]*vR[VXt];
+      usL[MXb] = usL[RHO]*vL[VXb]; usR[MXb] = usR[RHO]*vR[VXb];
            
-       usL[ENG] =    uL[ENG]/vL[RHO] 
-                  + (vs - vxl)*(vs + vL[PRS]/(vL[RHO]*(SL[i] - vxl)));
-       usR[ENG] =    uR[ENG]/vR[RHO] 
-                  + (vs - vxr)*(vs + vR[PRS]/(vR[RHO]*(SR[i] - vxr)));
+      usL[ENG] =   uL[ENG]/vL[RHO]  
+                 + (vs - vxl)*(vs + vL[PRS]/(vL[RHO]*(SL[i] - vxl)));
+      usR[ENG] =   uR[ENG]/vR[RHO] 
+                 + (vs - vxr)*(vs + vR[PRS]/(vR[RHO]*(SR[i] - vxr)));
 
-       usL[ENG] *= usL[RHO];
-       usR[ENG] *= usR[RHO];
+      usL[ENG] *= usL[RHO];
+      usR[ENG] *= usR[RHO];
       #elif EOS == ISOTHERMAL
-       scrh = 1.0/(SR[i] - SL[i]);
-       rho  = (SR[i]*uR[RHO] - SL[i]*uL[RHO] - fR[i][RHO] + fL[i][RHO])*scrh;
-       mx   = (SR[i]*uR[MXn] - SL[i]*uL[MXn] - fR[i][MXn] + fL[i][MXn])*scrh;
+      scrh = 1.0/(SR[i] - SL[i]);
+      rho  = (SR[i]*uR[RHO] - SL[i]*uL[RHO] - fR[i][RHO] + fL[i][RHO])*scrh;
+      mx   = (SR[i]*uR[MXn] - SL[i]*uL[MXn] - fR[i][MXn] + fL[i][MXn])*scrh;
        
-       usL[RHO] = usR[RHO] = rho;
-       usL[MXn] = usR[MXn] = mx;
-       vs  = (  SR[i]*fL[i][RHO] - SL[i]*fR[i][RHO] 
-              + SR[i]*SL[i]*(uR[RHO] - uL[RHO]));
-       vs *= scrh;
-       vs /= rho;
-       EXPAND(                                            ,
-              usL[MXt] = rho*vL[VXt]; usR[MXt] = rho*vR[VXt]; ,
-              usL[MXb] = rho*vL[VXb]; usR[MXb] = rho*vR[VXb];)
+      usL[RHO] = usR[RHO] = rho;
+      usL[MXn] = usR[MXn] = mx;
+      vs  = (  SR[i]*fL[i][RHO] - SL[i]*fR[i][RHO] 
+             + SR[i]*SL[i]*(uR[RHO] - uL[RHO]));
+      vs *= scrh;
+      vs /= rho;
+      usL[MXt] = rho*vL[VXt]; usR[MXt] = rho*vR[VXt];
+      usL[MXb] = rho*vL[VXb]; usR[MXb] = rho*vR[VXb];
       #endif
 
         

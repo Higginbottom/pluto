@@ -3,13 +3,9 @@
   \file  
   \brief Initial particle loading.
 
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \author A. Mignone (mignone@to.infn.it)
 
-  \b References
-     - "Title" \n
-       Authors, Journal (year) vol, page
-
-  \date  May 18, 2016
+  \date  July 10, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -75,16 +71,21 @@ void Particles_LoadUniform(int i, int ntot, double *xbeg, double *xend,
  *                      [xbeg, xend]
  * \param [in]   xbeg   an array specifying the coordinates of the lower
  *                      bound in the domain to be filled
- * \param [in]   xbeg   an array specifying the coordinates of the upper 
+ * \param [in]   xend   an array specifying the coordinates of the upper 
  *                      bound in the domain to be filled
  * \param [out]  coor   an array containing the particle position
  *  
  *********************************************************************** */
-{  
+{
+  int    ndim = INCLUDE_IDIR + INCLUDE_JDIR + INCLUDE_KDIR;
   double Lx = xend[IDIR] - xbeg[IDIR];
   double Ly = xend[JDIR] - xbeg[JDIR];
   double Lz = xend[KDIR] - xbeg[KDIR];
 
+ 
+  double l = DIM_EXPAND(Lx, *Ly, *Lz)/(double)ntot;
+  l = pow(l, 1.0/(double)ndim);
+/*
 #if DIMENSIONS == 1
   double l = Lx/(double)ntot; 
 #elif DIMENSIONS == 2  
@@ -92,7 +93,8 @@ void Particles_LoadUniform(int i, int ntot, double *xbeg, double *xend,
 #elif DIMENSIONS == 3
   double l = pow(Lx*Ly*Lz/(double)ntot,1.0/3.0); 
 #endif  
-   
+*/
+
   double x0 = xbeg[IDIR] + l*0.5;  /* x-coordinate of 1st particles */
   double y0 = xbeg[JDIR] + l*0.5;  /* y-coordinate of 1st particles */
   double z0 = xbeg[KDIR] + l*0.5;  /* z-coordinate of 1st particles */

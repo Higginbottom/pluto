@@ -24,8 +24,8 @@
   and the vector v. The result containing the characteristic
   variables is stored in the vector w = L.v
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   Feb 13, 2018
+  \author A. Mignone (mignone@to.infn.it)
+  \date   June 25, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -53,10 +53,10 @@ void MaxSignalSpeed (const State *state, double *cmin, double *cmax,
   for (i = beg; i <= end; i++) {
     #if HAVE_ENERGY
 /*    a = sqrt(g_gamma*v[i][PRS]/v[i][RHO]);  */
-     a = sqrt(cs2[i]);
+    a = sqrt(cs2[i]);
     #elif EOS == ISOTHERMAL
 /*     a = g_isoSoundSpeed;   */
-     a = sqrt(cs2[i]);
+    a = sqrt(cs2[i]);
     #endif
 
     cmin[i] = v[i][VXn] - a;
@@ -143,58 +143,56 @@ void  PrimEigenvectors (const State *state, int beg, int end)
     lambda[0]  = q[VXn] - cs;  /*  lambda = u - c   */
     RR[RHO][0] =  0.5*rho_cs;
     RR[VXn][0] = -0.5;
-  #if HAVE_ENERGY
+    #if HAVE_ENERGY
     RR[PRS][0] =  0.5*rhocs;
-  #endif
+    #endif
   
     lambda[1]  = q[VXn] + cs;  /*  lambda = u + c   */  
     RR[RHO][1] = 0.5*rho_cs;
     RR[VXn][1] = 0.5; 
-  #if HAVE_ENERGY
+    #if HAVE_ENERGY
     RR[PRS][1] = 0.5*rhocs;
-  #endif
+    #endif
  
     for (k = 2; k < NFLX; k++) lambda[k] = q[VXn];  /*  lambda = u   */
   
-  #if HAVE_ENERGY
-    EXPAND(RR[RHO][2] = 1.0;  ,
-           RR[VXt][3] = 1.0;  ,
-           RR[VXb][4] = 1.0;)
-  #elif EOS == ISOTHERMAL
-    EXPAND(                   ,
-           RR[VXt][2] = 1.0;  ,
-           RR[VXb][3] = 1.0;)
-  #endif
+    #if HAVE_ENERGY
+    RR[RHO][2] = 1.0;
+    RR[VXt][3] = 1.0;
+    RR[VXb][4] = 1.0;
+    #elif EOS == ISOTHERMAL
+    RR[VXt][2] = 1.0;
+    RR[VXb][3] = 1.0;
+    #endif
   
   /* ------------------------------------------------------
      2. Compute LEFT eigenvectors 
      ------------------------------------------------------ */
   
     LL[0][VXn] = -1.0;  
-  #if HAVE_ENERGY
+    #if HAVE_ENERGY
     LL[0][PRS] =  1.0/rhocs;
-  #elif EOS == ISOTHERMAL
+    #elif EOS == ISOTHERMAL
     LL[0][RHO] =  1.0/rho_cs;
-  #endif
+    #endif
   
     LL[1][VXn] = 1.0;  
-  #if HAVE_ENERGY
+    #if HAVE_ENERGY
     LL[1][PRS] = 1.0/rhocs;
-  #elif EOS == ISOTHERMAL
+    #elif EOS == ISOTHERMAL
     LL[1][RHO] = 1.0/rho_cs;
-  #endif
+    #endif
   
-  #if HAVE_ENERGY
-    EXPAND(LL[2][RHO] = 1.0; ,
-           LL[3][VXt] = 1.0; ,
-           LL[4][VXb] = 1.0;)
+    #if HAVE_ENERGY
+    LL[2][RHO] = 1.0;
+    LL[3][VXt] = 1.0;
+    LL[4][VXb] = 1.0;
   
     LL[2][PRS] = -1.0/cs2;
-  #elif EOS == ISOTHERMAL
-    EXPAND(                  ,
-           LL[2][VXt] = 1.0; ,
-           LL[3][VXb] = 1.0;)
-  #endif
+    #elif EOS == ISOTHERMAL
+    LL[2][VXt] = 1.0;
+    LL[3][VXb] = 1.0;
+    #endif
   
   /* ------------------------------------------------------------
      3. If required, verify eigenvectors consistency by
@@ -212,13 +210,7 @@ void  PrimEigenvectors (const State *state, int beg, int end)
     if (A == NULL){
       A   = ARRAY_2D(NFLX, NFLX, double);
       ALR = ARRAY_2D(NFLX, NFLX, double);
-      #if COMPONENTS != 3
-       print ("! PrimEigenvectors(): eigenvector check requires 3 components\n");
-      #endif
     }
-    #if COMPONENTS != 3
-     return;
-    #endif
   
    /* --------------------------------------
        Construct the Jacobian analytically
@@ -253,12 +245,12 @@ void  PrimEigenvectors (const State *state, int beg, int end)
     for (j = 0; j < NFLX; j++){
       dA = ALR[i][j] - A[i][j];
       if (fabs(dA) > 1.e-8){
-        print ("! PrimEigenvectors: eigenvectors not consistent\n");
-        print ("! A[%d][%d] = %16.9e, R.Lambda.L[%d][%d] = %16.9e\n",
+        printLog ("! PrimEigenvectors: eigenvectors not consistent\n");
+        printLog ("! A[%d][%d] = %16.9e, R.Lambda.L[%d][%d] = %16.9e\n",
                   i,j, A[i][j], i,j,ALR[i][j]);
-        print ("! cs2 = %12.6e\n",cs2);
-        print ("\n\n A = \n");   ShowMatrix(A, NFLX, 1.e-8);
-        print ("\n\n R.Lambda.L = \n"); ShowMatrix(ALR, NFLX, 1.e-8);
+        printLog ("! cs2 = %12.6e\n",cs2);
+        printLog ("\n\n A = \n");   ShowMatrix(A, NFLX, 1.e-8);
+        printLog ("\n\n R.Lambda.L = \n"); ShowMatrix(ALR, NFLX, 1.e-8);
         QUIT_PLUTO(1);
       }
     }}  
@@ -271,9 +263,9 @@ void  PrimEigenvectors (const State *state, int beg, int end)
       for (k = 0; k < NFLX; k++) a += LL[i][k]*RR[k][j];
       if ( (i == j && fabs(a-1.0) > 1.e-8) ||
            (i != j && fabs(a)>1.e-8) ) {
-        print ("! PrimEigenvectors: Eigenvectors not orthogonal\n");
-        print ("!   i,j = %d, %d  %12.6e \n",i,j,a);
-        print ("!   g_dir: %d\n",g_dir);
+        printLog ("! PrimEigenvectors: Eigenvectors not orthogonal\n");
+        printLog ("!   i,j = %d, %d  %12.6e \n",i,j,a);
+        printLog ("!   g_dir: %d\n",g_dir);
         QUIT_PLUTO(1);
       }
     }}
@@ -304,8 +296,8 @@ void ConsEigenvectors (double *u, double *v, double a2,
   double H, a, gt_1, vmag2;
 
   #if EOS == PVTE_LAW
-   print( "! ConsEigenvectors: cannot be used presently\n");
-   QUIT_PLUTO(1);  
+  printLog( "! ConsEigenvectors: cannot be used presently\n");
+  QUIT_PLUTO(1);  
   #endif
 
 /* --------------------------------------------------------------
@@ -317,14 +309,14 @@ void ConsEigenvectors (double *u, double *v, double a2,
    --------------------------------------------------------------- */
     
   #if CHECK_EIGENVECTORS == YES
-   u[RHO] = v[RHO];
-   u[MX1] = v[RHO]*v[VX1];
-   u[MX2] = v[RHO]*v[VX2];
-   u[MX3] = v[RHO]*v[VX3];
-   #if EOS == IDEAL
-    u[ENG] =   v[PRS]/(g_gamma-1.0)
-            + 0.5*v[RHO]*(v[VX1]*v[VX1] + v[VX2]*v[VX2] + v[VX3]*v[VX3]);
-   #endif
+  u[RHO] = v[RHO];
+  u[MX1] = v[RHO]*v[VX1];
+  u[MX2] = v[RHO]*v[VX2];
+  u[MX3] = v[RHO]*v[VX3];
+  #if EOS == IDEAL
+  u[ENG] =   v[PRS]/(g_gamma-1.0)
+           + 0.5*v[RHO]*(v[VX1]*v[VX1] + v[VX2]*v[VX2] + v[VX3]*v[VX3]);
+  #endif
   #endif
 
   #if EOS == IDEAL
@@ -341,7 +333,7 @@ void ConsEigenvectors (double *u, double *v, double a2,
   #endif
   a = sqrt(a2);
 
-  vmag2 = EXPAND(v[VXn]*v[VXn], + v[VXt]*v[VXt], + v[VXb]*v[VXb]);
+  vmag2 = v[VXn]*v[VXn] + v[VXt]*v[VXt] + v[VXb]*v[VXb];
 
 /* -----------------------------------------------
     to compute H we use primitive variable since
@@ -367,11 +359,11 @@ void ConsEigenvectors (double *u, double *v, double a2,
   lambda[k] = v[VXn] - a;
 
   RR[RHO][k] = 1.0;
-  EXPAND(RR[MXn][k] = lambda[k];  ,
-         RR[MXt][k] = v[VXt];      ,
-         RR[MXb][k] = v[VXb]; )
+  RR[MXn][k] = lambda[k];
+  RR[MXt][k] = v[VXt];
+  RR[MXb][k] = v[VXb];
   #if EOS == IDEAL
-   RR[ENG][k] = H - a*v[VXn];
+  RR[ENG][k] = H - a*v[VXn];
   #endif
      
 /*       lambda = u + c       */
@@ -380,42 +372,37 @@ void ConsEigenvectors (double *u, double *v, double a2,
   lambda[k] = v[VXn] + a;
 
   RR[RHO][k] = 1.0;
-  EXPAND(RR[MXn][k] = lambda[k];  ,
-         RR[MXt][k] = v[VXt];      ,
-         RR[MXb][k] = v[VXb];)
+  RR[MXn][k] = lambda[k];
+  RR[MXt][k] = v[VXt];
+  RR[MXb][k] = v[VXb];
   #if EOS == IDEAL
-   RR[ENG][k] = H + a*v[VXn];
+  RR[ENG][k] = H + a*v[VXn];
   #endif
 
 /*       lambda = u        */
 
   #if EOS == IDEAL
-   k = 2;
-   lambda[k] = v[VXn];
+  k = 2;
+  lambda[k] = v[VXn];
 
-   RR[RHO][k] = 1.0;  
-   EXPAND(RR[MXn][k] = v[VXn];  ,
-          RR[MXt][k] = v[VXt];  ,
-          RR[MXb][k] = v[VXb];)
-   RR[ENG][k] = 0.5*vmag2;  
+  RR[RHO][k] = 1.0;  
+  RR[MXn][k] = v[VXn];
+  RR[MXt][k] = v[VXt];
+  RR[MXb][k] = v[VXb];
+  RR[ENG][k] = 0.5*vmag2;  
 
-   #if COMPONENTS > 1
-    k = 3;
-    lambda[k] = v[VXn];
-    RR[MXt][k] = 1.0;  
-    RR[ENG][k] = v[VXt];  
-   #endif
+  k = 3;
+  lambda[k] = v[VXn];
+  RR[MXt][k] = 1.0;  
+  RR[ENG][k] = v[VXt];  
 
-   #if COMPONENTS == 3
-    k = 4;
-    lambda[k] = v[VXn];
-    RR[MXb][k] = 1.0;  
-    RR[ENG][k] = v[VXb];  
-   #endif
+  k = 4;
+  lambda[k] = v[VXn];
+  RR[MXb][k] = 1.0;  
+  RR[ENG][k] = v[VXb];  
   #elif EOS == ISOTHERMAL 
-   EXPAND(                                      ,
-          lambda[2] = v[VXn]; RR[MXt][2] = 1.0;   ,
-          lambda[3] = v[VXn]; RR[MXb][3] = 1.0;)  
+  lambda[2] = v[VXn]; RR[MXt][2] = 1.0; 
+  lambda[3] = v[VXn]; RR[MXb][3] = 1.0;
   #endif
 
 /* ======================================================
@@ -426,62 +413,57 @@ void ConsEigenvectors (double *u, double *v, double a2,
 
   k = 0;
   #if EOS == IDEAL
-   LL[k][RHO] = H + a*gt_1*(v[VXn] - a); 
-   EXPAND(LL[k][MXn] = -(v[VXn] + a*gt_1); ,
-          LL[k][MXt] = -v[VXt];            ,
-          LL[k][MXb] = -v[VXb];)
-   LL[k][ENG] = 1.0;
+  LL[k][RHO] = H + a*gt_1*(v[VXn] - a); 
+  LL[k][MXn] = -(v[VXn] + a*gt_1);
+  LL[k][MXt] = -v[VXt];
+  LL[k][MXb] = -v[VXb];
+  LL[k][ENG] = 1.0;
   #elif EOS == ISOTHERMAL
-   LL[k][RHO] = 0.5*(1.0 + v[VXn]/a);
-   LL[k][MXn] = -0.5/a; 
+  LL[k][RHO] = 0.5*(1.0 + v[VXn]/a);
+  LL[k][MXn] = -0.5/a; 
   #endif 
 
 /*       lambda = u + c       */
 
   k = 1;
   #if EOS == IDEAL
-   LL[k][RHO] = H - a*gt_1*(v[VXn] + a); 
-   EXPAND(LL[k][MXn] = -v[VXn] + a*gt_1;  ,
-          LL[k][MXt] = -v[VXt];         ,
-          LL[k][MXb] = -v[VXb];)
-    LL[k][ENG] = 1.0;
+  LL[k][RHO] = H - a*gt_1*(v[VXn] + a); 
+  LL[k][MXn] = -v[VXn] + a*gt_1;
+  LL[k][MXt] = -v[VXt];
+  LL[k][MXb] = -v[VXb];
+  LL[k][ENG] = 1.0;
   #elif EOS == ISOTHERMAL
-   LL[k][RHO] = 0.5*(1.0 - v[VXn]/a);
-   LL[k][MXn] = 0.5/a; 
+  LL[k][RHO] = 0.5*(1.0 - v[VXn]/a);
+  LL[k][MXn] = 0.5/a; 
   #endif
 
 /*       lambda = u       */
 
   #if EOS == IDEAL
-   k = 2;
-   LL[k][RHO] = -2.0*H + 4.0*gt_1*a2; 
-   EXPAND(LL[k][MXn] = 2.0*v[VXn];   ,
-          LL[k][MXt] = 2.0*v[VXt];   ,
-          LL[k][MXb] = 2.0*v[VXb];)
-   LL[k][ENG] = -2.0;
+  k = 2;
+  LL[k][RHO] = -2.0*H + 4.0*gt_1*a2; 
+  LL[k][MXn] = 2.0*v[VXn];
+  LL[k][MXt] = 2.0*v[VXt];
+  LL[k][MXb] = 2.0*v[VXb];
+  LL[k][ENG] = -2.0;
 
-   #if COMPONENTS > 1
-    k = 3;
-    LL[k][RHO] = -2.0*v[VXt]*a2*gt_1; 
-    LL[k][MXt] = 2.0*a2*gt_1;    
-    LL[k][ENG] = 0.0;
-   #endif
+  k = 3;
+  LL[k][RHO] = -2.0*v[VXt]*a2*gt_1; 
+  LL[k][MXt] = 2.0*a2*gt_1;    
+  LL[k][ENG] = 0.0;
 
-   #if COMPONENTS == 3
-    k = 4; 
-    LL[k][RHO] = -2.0*v[VXb]*a2*gt_1; 
-    LL[k][MXb] = 2.0*a2*gt_1;
-   #endif
+  k = 4; 
+  LL[k][RHO] = -2.0*v[VXb]*a2*gt_1; 
+  LL[k][MXb] = 2.0*a2*gt_1;
 
-   for (k = 0; k < NFLX; k++){   /* normalization */
-   for (nv = 0; nv < NFLX; nv++){
+  for (k = 0; k < NFLX; k++){   /* normalization */
+  for (nv = 0; nv < NFLX; nv++){
      LL[k][nv] *= (g_gamma - 1.0)/(2.0*a2);
-   }}
+  }}
 
   #elif EOS == ISOTHERMAL
-   EXPAND(                                              ,
-          k = 2; LL[k][RHO] = -v[VXt]; LL[k][VXt] =  1.0;  ,
-          k = 3; LL[k][RHO] = -v[VXb]; LL[k][VXb] =  1.0; )
+  k = 2; LL[k][RHO] = -v[VXt]; LL[k][VXt] =  1.0;
+  k = 3; LL[k][RHO] = -v[VXb]; LL[k][VXb] =  1.0;
   #endif
 
 /* -----------------------------------------
@@ -496,13 +478,7 @@ void ConsEigenvectors (double *u, double *v, double a2,
   if (A == NULL){
     A   = ARRAY_2D(NFLX, NFLX, double);
     ALR = ARRAY_2D(NFLX, NFLX, double);
-    #if COMPONENTS != 3
-     print ("! ConsEigenvectors: eigenvector check requires 3 components\n");
-    #endif
   }
-  #if COMPONENTS != 3
-   return;
-  #endif
 
  /* --------------------------------------
      Construct the Jacobian analytically
@@ -565,15 +541,15 @@ void ConsEigenvectors (double *u, double *v, double a2,
   for (i = 0; i < NFLX; i++){
   for (j = 0; j < NFLX; j++){
     if (fabs(ALR[i][j] - A[i][j]) > 1.e-6){
-      print ("! ConsEigenvectors: eigenvectors not consistent\n");
-      print ("! g_dir = %d\n",g_dir);
-      print ("! A[%d][%d] = %16.9e, R.Lambda.L[%d][%d] = %16.9e\n",
+      printLog ("! ConsEigenvectors: eigenvectors not consistent\n");
+      printLog ("! g_dir = %d\n",g_dir);
+      printLog ("! A[%d][%d] = %16.9e, R.Lambda.L[%d][%d] = %16.9e\n",
                 i,j, A[i][j], i,j,ALR[i][j]);
-      print ("\n\n A   = \n"); ShowMatrix(A, NFLX, 1.e-8);
-      print ("\n\n R.Lambda.L = \n"); ShowMatrix(ALR, NFLX, 1.e-8);
+      printLog ("\n\n A   = \n"); ShowMatrix(A, NFLX, 1.e-8);
+      printLog ("\n\n R.Lambda.L = \n"); ShowMatrix(ALR, NFLX, 1.e-8);
       
-      print ("\n\n RR   = \n"); ShowMatrix(RR, NFLX, 1.e-8);
-      print ("\n\n LL   = \n"); ShowMatrix(LL, NFLX, 1.e-8);
+      printLog ("\n\n RR   = \n"); ShowMatrix(RR, NFLX, 1.e-8);
+      printLog ("\n\n LL   = \n"); ShowMatrix(LL, NFLX, 1.e-8);
       QUIT_PLUTO(1);
     }
   }}
@@ -586,9 +562,9 @@ void ConsEigenvectors (double *u, double *v, double a2,
     for (k = 0; k < NFLX; k++) dA += LL[i][k]*RR[k][j];
     if ( (i == j && fabs(dA-1.0) > 1.e-8) || 
          (i != j && fabs(dA)>1.e-8) ) {
-      print ("! ConsEigenvectors: Eigenvectors not orthogonal\n");
-      print ("!   i,j = %d, %d  %12.6e \n",i,j,dA);
-      print ("!   g_dir: %d\n",g_dir);
+      printLog ("! ConsEigenvectors: Eigenvectors not orthogonal\n");
+      printLog ("!   i,j = %d, %d  %12.6e \n",i,j,dA);
+      printLog ("!   g_dir: %d\n",g_dir);
       QUIT_PLUTO(1);
     }
   }}
@@ -616,17 +592,17 @@ void PrimToChar (double **L, double *v, double *w)
   int nv;
 
   #if HAVE_ENERGY
-   w[0] = L[0][VXn]*v[VXn] + L[0][PRS]*v[PRS];
-   w[1] = L[1][VXn]*v[VXn] + L[1][PRS]*v[PRS];
-   EXPAND( w[2] = v[RHO] + L[2][PRS]*v[PRS];  ,
-           w[3] = v[VXt];                   ,
-           w[4] = v[VXb];)
+  w[0] = L[0][VXn]*v[VXn] + L[0][PRS]*v[PRS];
+  w[1] = L[1][VXn]*v[VXn] + L[1][PRS]*v[PRS];
+  w[2] = v[RHO] + L[2][PRS]*v[PRS];
+  w[3] = v[VXt];
+  w[4] = v[VXb];
   #elif EOS == ISOTHERMAL
-    w[0] = L[0][RHO]*v[RHO] + L[0][VXn]*v[VXn];
-    w[1] = L[1][RHO]*v[RHO] + L[1][VXn]*v[VXn];
-    EXPAND(                     ,
-            w[2] = v[VXt];       ,
-            w[3] = v[VXb];)
+  w[0] = L[0][RHO]*v[RHO] + L[0][VXn]*v[VXn];
+  w[1] = L[1][RHO]*v[RHO] + L[1][VXn]*v[VXn];
+
+  w[2] = v[VXt];
+  w[3] = v[VXb];
   #endif
 
 /* ----------------------------------------------- 
@@ -635,7 +611,7 @@ void PrimToChar (double **L, double *v, double *w)
      since  l = r = (0,..., 1 , 0 ,....)
    ----------------------------------------------- */		   
 
-#if NSCL > 0
+  #if NSCL > 0
   NSCL_LOOP(nv)  w[nv] = v[nv];
-#endif   
+  #endif   
 }

@@ -2,7 +2,7 @@
 ;  PLOAD.PRO: main driver to read different data formats (flt, dbl, 
 ;             flt.h5, dbl.h5, hdf5 written by the PLUTO code.
 ;
-;  LAST MODIFIED:  Apr 25, 2015
+;  LAST MODIFIED:  Sep 30, 2018
 ; ----------------------------------------------------------------------
 
 COMMON PLUTO_GRID,  nx1,nx2,nx3,x1,x2,x3,$
@@ -10,11 +10,12 @@ COMMON PLUTO_GRID,  nx1,nx2,nx3,x1,x2,x3,$
                     AMRLevel, AMRBoxes;  ** Chombo data structure **
                                       ;  ** loaded when HDF5LOAD is called **
 
-COMMON PLUTO_VAR, NVAR, rho, vx1, vx2, vx3, $
-                             Ax1, Ax2, Ax3, $
-                             Bx1, Bx2, Bx3, $
-                             Bx1s, Bx2s, Bx3s,$
-                             Ex1, Ex2, Ex3,qg,$
+COMMON PLUTO_VAR, NVAR, rho, vx1, vx2, vx3,    $
+                             Ax1, Ax2, Ax3,    $
+                             Bx1, Bx2, Bx3,    $
+                             Bx1s, Bx2s, Bx3s, $
+                             Ex1,  Ex2,  Ex3,  $
+                             Ex1s, Ex2s, Ex3s, crg,$
                          ; ----------------------------------------
                              v1, v2, v3, $   ; Kept for backward
                              b1, b2, b3, $   ; compatibility with 
@@ -23,15 +24,17 @@ COMMON PLUTO_VAR, NVAR, rho, vx1, vx2, vx3, $
                              pr,            $ ;
                          ; -----------------------------------------
                   prs, phi_glm, psi_glm, $
-                  tr1, tr2, tr3, tr4, $
+                  tr1, tr2, tr3, tr4,tr5,tr6, $
                   x_HI, x_HII, x_H2, x_heI, x_heII,$
                   x_cI, x_cII, x_cIII, x_cIV, x_cV,$
                   x_nI, x_nII, x_nIII, x_nIV, x_nV,$
                   x_oI, x_oII, x_oIII, x_oIV, x_oV,$
                   x_neI, x_neII, x_neIII, x_neIV, x_neV,$
                   x_sI, x_sII, x_sIII, x_sIV, x_sV, $
-                  rho_d, vx1_d, vx2_d, vx3_d, $  ; Dust
+                  rho_d, vx1_d, vx2_d, vx3_d, $   ; Dust
+                  flag,                       $   ; Miscellaneous 
                   particles, particles_reduced, $ ; Particles
+                  enr, fr1, fr2, fr3,$            ; Radiation 
                   vars, vname
 COMMON PLUTO_RUN,  t, dt, nlast, first_call
 
@@ -93,10 +96,13 @@ PRO MATCH_VARNAME, vpt, name, silent=silent
    "Ex1":  BEGIN Ex1  = vpt & match = 1 & END
    "Ex2":  BEGIN Ex2  = vpt & match = 1 & END
    "Ex3":  BEGIN Ex3  = vpt & match = 1 & END
-   "qg":   BEGIN qg   = vpt & match = 1 & END
+   "crg":  BEGIN crg  = vpt & match = 1 & END
    "Bx1s": BEGIN Bx1s = vpt & match = 1 & END
    "Bx2s": BEGIN Bx2s = vpt & match = 1 & END
    "Bx3s": BEGIN Bx3s = vpt & match = 1 & END
+   "Ex1s": BEGIN Ex1s = vpt & match = 1 & END
+   "Ex2s": BEGIN Ex2s = vpt & match = 1 & END
+   "Ex3s": BEGIN Ex3s = vpt & match = 1 & END
    "psi_glm": BEGIN psi_glm = vpt & match = 1 & END
    "phi_glm": BEGIN phi_glm = vpt & match = 1 & END
 
@@ -105,6 +111,8 @@ PRO MATCH_VARNAME, vpt, name, silent=silent
    "tr2": BEGIN tr2 = vpt & match = 1 & END
    "tr3": BEGIN tr3 = vpt & match = 1 & END
    "tr4": BEGIN tr4 = vpt & match = 1 & END
+   "tr5": BEGIN tr5 = vpt & match = 1 & END
+   "tr6": BEGIN tr6 = vpt & match = 1 & END
  
   ; -- Ion fractions --
 
@@ -150,6 +158,16 @@ PRO MATCH_VARNAME, vpt, name, silent=silent
    "vx2_d":  BEGIN vx2_d  = vpt & match = 1 & END
    "vx3_d":  BEGIN vx3_d  = vpt & match = 1 & END
 
+  ; -- Radiation --
+
+   "enr":  BEGIN enr = vpt & match = 1 & END
+   "fr1":  BEGIN fr1 = vpt & match = 1 & END
+   "fr2":  BEGIN fr2 = vpt & match = 1 & END
+   "fr3":  BEGIN fr3 = vpt & match = 1 & END
+
+  ; -- Others --
+
+   "flag":   BEGIN flag   = vpt & match = 1 & END
  ELSE:
  ENDCASE
 
@@ -198,7 +216,7 @@ END
 ;
 ; AUTHOR:     A. Mignone
 ;
-; LAST MODIFIED:      Aug 26, 2012
+; LAST MODIFIED:   Dec 03, 2018
 ;
 ; SYNOPSIS:   read_pluto_grid
 ;
@@ -206,19 +224,22 @@ END
 ;************************************************************
 PRO READ_PLUTO_GRID, dir, silent=silent
 
- COMMON PLUTO_GRID
- COMMON PLUTO_VAR
- COMMON PLUTO_RUN
+  COMMON PLUTO_GRID
+  COMMON PLUTO_VAR
+  COMMON PLUTO_RUN
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    read grid files
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
- OPENR, U, dir+'grid.out', /GET_LUN, ERROR=err
- IF (NOT (err EQ 0)) THEN BEGIN
-   print,"! cannot find "+DIR+"grid.out"
-   RETURN
- ENDIF
+  OPENR, U, dir+'grid.out', /GET_LUN, ERROR=err
+  IF (NOT (err EQ 0)) THEN BEGIN
+    print,"! cannot find "+DIR+"grid.out"
+    nx1 = -1
+    nx2 = -1
+    nx3 = -1
+    RETURN
+  ENDIF
 
 ; -----------------------------------------------------------------
 ;  read the very first character: 
@@ -226,181 +247,181 @@ PRO READ_PLUTO_GRID, dir, silent=silent
 ;  otherwise we stick to the old format
 ; -----------------------------------------------------------------
 
- s = ''
- READF, U, s
- id = STRMID(s,0,1)
- IF (id EQ '#') THEN BEGIN; reading PLUTO 4 Grid file
+  s = ''
+  READF, U, s
+  id = STRMID(s,0,1)
+  IF (id EQ '#') THEN BEGIN; reading PLUTO 4 Grid file
 
-   IF (NOT KEYWORD_SET(SILENT)) THEN PRINT,"> Using PLUTO 4 Grid file"
-   WHILE (id EQ '#') DO BEGIN
-     POINT_LUN, -U, pos
-     READF, U, s 
-     id = STRMID(s, 0, 1)
-   ENDWHILE
-   POINT_LUN, U, pos
+    IF (NOT KEYWORD_SET(SILENT)) THEN PRINT,"> Using PLUTO 4 Grid file"
+    WHILE (id EQ '#') DO BEGIN
+      POINT_LUN, -U, pos
+      READF, U, s 
+      id = STRMID(s, 0, 1)
+    ENDWHILE
+    POINT_LUN, U, pos
    
-   j = LONG64(0) & xL = DOUBLE(0.0) & xR = DOUBLE(0.0)
+    j = LONG64(0) & xL = DOUBLE(0.0) & xR = DOUBLE(0.0)
 
-   READF, U, fn1
-   NX1 = LONG64(fn1) &  x1  = DBLARR(NX1) &  dx1 = DBLARR(NX1)
-   FOR i = 0L, NX1 - 1L DO BEGIN
-     READF, U, j, xL, xR
-     x1(i)  = 0.5d0*(xL + xR)
-     dx1(i) = xR - xL
-   ENDFOR
+    READF, U, fn1
+    NX1 = LONG64(fn1) &  x1  = DBLARR(NX1) &  dx1 = DBLARR(NX1)
+    FOR i = 0L, NX1 - 1L DO BEGIN
+      READF, U, j, xL, xR
+      x1(i)  = 0.5d0*(xL + xR)
+      dx1(i) = xR - xL
+    ENDFOR
 
-   READF, U, fn2
-   NX2 = LONG64(fn2) &  x2  = DBLARR(NX2) &  dx2 = DBLARR(NX2)
-   FOR i = 0L, NX2 - 1L DO BEGIN
-     READF, U, j, xL, xR
-     x2(i)  = 0.5d0*(xL + xR)
-     dx2(i) = xR - xL
-   ENDFOR
+    READF, U, fn2
+    nx2 = LONG64(fn2) &  x2  = DBLARR(nx2) &  dx2 = DBLARR(nx2)
+    FOR i = 0L, NX2 - 1L DO BEGIN
+      READF, U, j, xL, xR
+      x2(i)  = 0.5d0*(xL + xR)
+      dx2(i) = xR - xL
+    ENDFOR
 
-   READF, U, fn3
-   NX3 = LONG64(fn3) & x3 = DBLARR(NX3) & dx3 = DBLARR(NX3)
-   FOR i = 0L, NX3 - 1L DO BEGIN
-     READF, U, j, xL, xR
-     x3(i)  = 0.5d0*(xL + xR)
-     dx3(i) = xR - xL
-   ENDFOR
+    READF, U, fn3
+    nx3 = LONG64(fn3) & x3 = DBLARR(nx3) & dx3 = DBLARR(nx3)
+    FOR i = 0L, NX3 - 1L DO BEGIN
+      READF, U, j, xL, xR
+      x3(i)  = 0.5d0*(xL + xR)
+      dx3(i) = xR - xL
+    ENDFOR
 
- ENDIF ELSE BEGIN; reading PLUTO 3 Grid data file
+  ENDIF ELSE BEGIN; reading PLUTO 3 Grid data file
 
-   PRINT,"> Using PLUTO 3.0 Grid file"
-   fn1 = FLOAT(s)
-   NX1 = LONG64(fn1) &  x1  = FLTARR(NX1) &  dx1 = FLTARR(NX1)
-   FOR i = 0L,NX1-1L DO BEGIN
-     READF, U, j,xl_0,xc_0,xr_0,dx_0
-     x1(i)  = xc_0
-     dx1(i) = dx_0
-   ENDFOR
+    PRINT,"> Using PLUTO 3.0 Grid file"
+    fn1 = FLOAT(s)
+    NX1 = LONG64(fn1) &  x1  = FLTARR(NX1) &  dx1 = FLTARR(NX1)
+    FOR i = 0L,NX1-1L DO BEGIN
+      READF, U, j,xl_0,xc_0,xr_0,dx_0
+      x1(i)  = xc_0
+      dx1(i) = dx_0
+    ENDFOR
 
-   READF, U, fn2
-   NX2  = LONG64(fn2) & x2  = FLTARR(NX2) & dx2 = FLTARR(NX2)
-   for i = 0L,NX2-1L DO BEGIN
-     READF, U,j,xl_0,xc_0,xr_0,dx_0
-     x2(i)  = xc_0
-     dx2(i) = dx_0
-   ENDFOR
+    READF, U, fn2
+    NX2  = LONG64(fn2) & x2  = FLTARR(NX2) & dx2 = FLTARR(NX2)
+    for i = 0L,NX2-1L DO BEGIN
+      READF, U,j,xl_0,xc_0,xr_0,dx_0
+      x2(i)  = xc_0
+      dx2(i) = dx_0
+    ENDFOR
 
-   READF, U, fn3
-   NX3  = LONG64(fn3) &  x3  = FLTARR(NX3) & dx3 = FLTARR(NX3)
-   FOR i = 0L,NX3-1L DO BEGIN
-     READF, U,j,xl_0,xc_0,xr_0,dx_0
-     x3(i)  = xc_0
-     dx3(i) = dx_0
-   ENDFOR
- ENDELSE; read pluto grid
+    READF, U, fn3
+    NX3  = LONG64(fn3) &  x3  = FLTARR(NX3) & dx3 = FLTARR(NX3)
+    FOR i = 0L,NX3-1L DO BEGIN
+      READF, U,j,xl_0,xc_0,xr_0,dx_0
+      x3(i)  = xc_0
+      dx3(i) = dx_0
+    ENDFOR
+  ENDELSE; read pluto grid
 
- IF (NOT KEYWORD_SET (silent)) THEN BEGIN
-   xb = x1(0)-0.5*dx1(0) & xe = x1(NX1-1) + 0.5*dx1(NX1-1)
-   yb = x2(0)-0.5*dx2(0) & ye = x2(NX2-1) + 0.5*dx2(NX2-1)
-   zb = x3(0)-0.5*dx3(0) & ze = x3(NX3-1) + 0.5*dx3(NX3-1)
+  IF (NOT KEYWORD_SET (silent)) THEN BEGIN
+    xb = x1(0)-0.5*dx1(0) & xe = x1(NX1-1) + 0.5*dx1(NX1-1)
+    yb = x2(0)-0.5*dx2(0) & ye = x2(NX2-1) + 0.5*dx2(NX2-1)
+    zb = x3(0)-0.5*dx3(0) & ze = x3(NX3-1) + 0.5*dx3(NX3-1)
 
-   domstring = "["+ARG2STR(xb)+", "+ARG2STR(xe)+"]"
-   resstring = ARG2STR(NX1)
+    domstring = "["+ARG2STR(xb)+", "+ARG2STR(xe)+"]"
+    resstring = ARG2STR(NX1)
 
-   IF (NX2 GT 1) THEN BEGIN
-     domstring += " x ["+ARG2STR(yb)+", "+ARG2STR(ye)+"]"
-     resstring += " x "+ARG2STR(NX2)
-   ENDIF
+    IF (nx2 GT 1) THEN BEGIN
+      domstring += " x ["+ARG2STR(yb)+", "+ARG2STR(ye)+"]"
+      resstring += " x "+ARG2STR(nx2)
+    ENDIF
 
-   IF (NX3 GT 1) THEN BEGIN
-     domstring += " x ["+ARG2STR(zb)+", "+ARG2STR(ze)+"]"
-     resstring += " x "+ARG2STR(NX3)
-   ENDIF
+    IF (nx3 GT 1) THEN BEGIN
+      domstring += " x ["+ARG2STR(zb)+", "+ARG2STR(ze)+"]"
+      resstring += " x "+ARG2STR(nx3)
+    ENDIF
 
-   print,"> Domain: ",domstring
-   print,"> Size:   ",resstring
- ENDIF
- CLOSE,U
- FREE_LUN,U
+    print,"> Domain: ",domstring
+    print,"> Size:   ",resstring
+  ENDIF
+  CLOSE,U
+  FREE_LUN,U
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Read definitions.h if present
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
- OPENR, U, DIR+'definitions.h', /GET_LUN, ERROR=err
+  OPENR, U, DIR+'definitions.h', /GET_LUN, ERROR=err
 
- IF (NOT (err EQ 0)) THEN BEGIN
-   IF (KEYWORD_SET(verbose)) THEN print,"! Can not find definitions.h, skipping geometry definition..."
- ENDIF ELSE BEGIN
-   str = ' '
-   FOR i = 0,30 DO BEGIN
-     readf, U,format='(A)',str
-     str_el = strsplit(str,' ',/extract)
-     IF (str_el(1) EQ 'GEOMETRY') THEN GOTO, DEF_GEOMETRY
-   ENDFOR
+  IF (NOT (err EQ 0)) THEN BEGIN
+    IF (KEYWORD_SET(verbose)) THEN print,"! Can not find definitions.h, skipping geometry definition..."
+  ENDIF ELSE BEGIN
+    str = ' '
+    FOR i = 0,30 DO BEGIN
+      readf, U,format='(A)',str
+      str_el = strsplit(str,' ',/extract)
+      IF (str_el(1) EQ 'GEOMETRY') THEN GOTO, DEF_GEOMETRY
+    ENDFOR
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;     define geometry
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
- DEF_GEOMETRY:
-   IF (str_el(2) EQ 'CARTESIAN')   THEN BEGIN
-     geometry = 'cartesian'
-     x = x1
-     y = x2
-     z = x3
-     IF (NOT KEYWORD_SET (silent)) THEN BEGIN
-       print,"> Geometry:    Cartesian (x = x1; y = x2; z = x3)"
-     ENDIF
-   ENDIF
+  DEF_GEOMETRY:
+    IF (str_el(2) EQ 'CARTESIAN')   THEN BEGIN
+      geometry = 'cartesian'
+      x = x1
+      y = x2
+      z = x3
+      IF (NOT KEYWORD_SET (silent)) THEN BEGIN
+        print,"> Geometry:    Cartesian (x = x1; y = x2; z = x3)"
+      ENDIF
+    ENDIF
 
-   IF (str_el(2) EQ 'CYLINDRICAL') THEN BEGIN
-     geometry = 'cylindrical'
-     r   = x1
-     z   = x2
-     phi = x3
-     IF (NOT KEYWORD_SET (silent)) THEN BEGIN
-       print,"> Geometry:    Cylindrical (r = x1; z = x2; phi = x3)"
-     ENDIF
-   ENDIF
+    IF (str_el(2) EQ 'CYLINDRICAL') THEN BEGIN
+      geometry = 'cylindrical'
+      r   = x1
+      z   = x2
+      phi = x3
+      IF (NOT KEYWORD_SET (silent)) THEN BEGIN
+        print,"> Geometry:    Cylindrical (r = x1; z = x2; phi = x3)"
+      ENDIF
+    ENDIF
 
-   IF (str_el(2) EQ 'SPHERICAL') THEN BEGIN
-     geometry = 'spherical'
-     r     = x1
-     theta = x2
+    IF (str_el(2) EQ 'SPHERICAL') THEN BEGIN
+      geometry = 'spherical'
+      r     = x1
+      theta = x2
 
-     xpos = fltarr(NX1,NX2)  ; define projection on cartesian coordinates
-     ypos = fltarr(NX1,NX2)
+      xpos = fltarr(NX1,NX2)  ; define projection on cartesian coordinates
+      ypos = fltarr(NX1,NX2)
 
-     for i = 0,NX1-1 do begin
-     for j = 0,NX2-1 do begin
-       xpos(i,j) = (x1(i)-0.0*dx1(i))*sin(x2(j)-0.0*dx2(j))
-       ypos(i,j) = (x1(i)-0.0*dx1(i))*cos(x2(j)-0.0*dx2(j))
-     endfor
-     endfor
+      FOR i = 0,nx1-1 DO BEGIN
+      FOR j = 0,nx2-1 DO BEGIN
+        xpos(i,j) = (x1(i)-0.0*dx1(i))*sin(x2(j)-0.0*dx2(j))
+        ypos(i,j) = (x1(i)-0.0*dx1(i))*cos(x2(j)-0.0*dx2(j))
+      ENDFOR
+      ENDFOR
 
-     IF (NOT KEYWORD_SET (silent)) THEN BEGIN
-       print,"> Geometry:    Spherical (xpos = r*sin(theta); ypos = r*cos(theta))"
-     ENDIF
-   ENDIF
+      IF (NOT KEYWORD_SET (silent)) THEN BEGIN
+        print,"> Geometry:    Spherical (xpos = r*sin(theta); ypos = r*cos(theta))"
+      ENDIF
+    ENDIF
 
-   IF (str_el(2) EQ 'POLAR') THEN BEGIN
-     geometry = 'polar'
-     r   = x1
-     phi = x2
-     xpos = fltarr(NX1,NX2)  ; define projection on cartesian coordinates
-     ypos = fltarr(NX1,NX2)
+    IF (str_el(2) EQ 'POLAR') THEN BEGIN
+      geometry = 'polar'
+      r   = x1
+      phi = x2
+      xpos = fltarr(NX1,NX2)  ; define projection on cartesian coordinates
+      ypos = fltarr(NX1,NX2)
 
-     for i = 0,NX1-1 do begin
-     for j = 0,NX2-1 do begin
-       xpos(i,j) = x1(i)*cos(x2(j))
-       ypos(i,j) = x1(i)*sin(x2(j))
-     endfor
-     endfor
+      FOR i = 0,NX1-1 DO BEGIN
+      FOR j = 0,NX2-1 DO BEGIN
+        xpos(i,j) = x1(i)*cos(x2(j))
+        ypos(i,j) = x1(i)*sin(x2(j))
+      ENDFOR
+      ENDFOR
 
-     IF (NOT KEYWORD_SET (silent)) THEN BEGIN
-       print,"> Geometry:    Polar (xpos = r*cos(phi); ypos = r*sin(phi))"
-     ENDIF
-   ENDIF
+      IF (NOT KEYWORD_SET (silent)) THEN BEGIN
+        print,"> Geometry:    Polar (xpos = r*cos(phi); ypos = r*sin(phi))"
+      ENDIF
+    ENDIF
+  ENDELSE
 
- ENDELSE
- CLOSE,U
- FREE_LUN,U
- 
+  CLOSE,U
+  FREE_LUN,U
+
 END
 
 ;************************************************************
@@ -591,6 +612,9 @@ END
 ;      Bx1s, Bx2s, Bx3s = staggered components of magnetic field (only with 
 ;                         double precision binary data files) available with 
 ;                         constrained transport.
+;      Ex1s, Ex2s, Ex3s = staggered components of electric field (only with 
+;                         double precision binary data files) available with 
+;                         constrained transport in Resistive RMHD.
 ;                      
 ;   PLUTO_RUN -> contains time-related information:
 ;
@@ -779,7 +803,6 @@ PRO PLOAD, NOUT, ASSOC=ASSOC, DIR=DIR, FLOAT=FLOAT, H5=H5, HDF5=HDF5, $
 ; ----------------------------------
 ;  Read pluto grid file
 ; ----------------------------------
-
   READ_PLUTO_GRID, DIR, SILENT=SILENT
 
 ; -------------------------------------------------
@@ -885,7 +908,7 @@ PRO PLOAD, NOUT, ASSOC=ASSOC, DIR=DIR, FLOAT=FLOAT, H5=H5, HDF5=HDF5, $
     ext    = "."+extnum+".vtk"
     IF (SINGLE_FILE) THEN BEGIN
       fname = dir+"data"+ext
-      VTK_LOAD, fname, SILENT=SILENT, VAR=VAR, $
+      VTK_LOAD, fname, SILENT=SILENT, VAR=VAR, $ 
                 X1RANGE=X1RANGE, X2RANGE=X2RANGE, X3RANGE=X3RANGE, domain_indx, _EXTRA=extra
     ENDIF
     IF (MULTIPLE_FILES) THEN BEGIN; with multiple files, one has to separately
@@ -901,7 +924,8 @@ PRO PLOAD, NOUT, ASSOC=ASSOC, DIR=DIR, FLOAT=FLOAT, H5=H5, HDF5=HDF5, $
           IF (names[nout,nv] EQ "vx1") THEN fname = dir+"vfield"+ext
           IF (names[nout,nv] EQ "bx1") THEN fname = dir+"bfield"+ext
           VTK_LOAD, fname, SILENT=SILENT, $
-                    X1RANGE=X1RANGE, X2RANGE=X2RANGE, X3RANGE=X3RANGE, domain_indx, _EXTRA=extra
+                    X1RANGE=X1RANGE, X2RANGE=X2RANGE, X3RANGE=X3RANGE, $
+                    domain_indx, _EXTRA=extra
         ENDFOR
       ENDIF ELSE BEGIN
         fname = dir+VAR+ext
@@ -1021,9 +1045,9 @@ PRO PLOAD, NOUT, ASSOC=ASSOC, DIR=DIR, FLOAT=FLOAT, H5=H5, HDF5=HDF5, $
   ; **** set extra zones for staggered fields ****
 
     n1p = 0 & n2p = 0 & n3p = 0
-    IF (names(nout,nv) EQ "Bx1s") THEN n1p = 1
-    IF (names(nout,nv) EQ "Bx2s") THEN n2p = 1
-    IF (names(nout,nv) EQ "Bx3s") THEN n3p = 1
+    IF (names(nout,nv) EQ "Bx1s" OR names(nout,nv) EQ "Ex1s") THEN n1p = 1
+    IF (names(nout,nv) EQ "Bx2s" OR names(nout,nv) EQ "Ex2s") THEN n2p = 1
+    IF (names(nout,nv) EQ "Bx3s" OR names(nout,nv) EQ "Ex3s") THEN n3p = 1
 
   ; **** check if either one of shrink/xyassoc/xranges have been given ****
 
@@ -1073,9 +1097,9 @@ PRO PLOAD, NOUT, ASSOC=ASSOC, DIR=DIR, FLOAT=FLOAT, H5=H5, HDF5=HDF5, $
       n2_off = ulong64(NX2)
       n3_off = ulong64(NX3)
 
-      IF (names(nout,nv) EQ "Bx1s") THEN n1_off = ulong64(NX1 + 1)
-      IF (names(nout,nv) EQ "Bx2s") THEN n2_off = ulong64(NX2 + 1)
-      IF (names(nout,nv) EQ "Bx3s") THEN n3_off = ulong64(NX3 + 1)
+      IF (names(nout,nv) EQ "Bx1s" OR names(nout,nv) EQ "Ex1s") THEN n1_off = ulong64(NX1 + 1)
+      IF (names(nout,nv) EQ "Bx2s" OR names(nout,nv) EQ "Ex2s") THEN n2_off = ulong64(NX2 + 1)
+      IF (names(nout,nv) EQ "Bx3s" OR names(nout,nv) EQ "Ex3s") THEN n3_off = ulong64(NX3 + 1)
 
       offset = offset + ulong64(n1_off*n2_off*n3_off*NBYTES)
       POINT_LUN,unit,offset; move file pointer 

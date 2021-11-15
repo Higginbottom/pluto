@@ -196,11 +196,13 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
         d->Vc[RHO][k][j][i] = d->Vc[RHO][k][j][IBEG];
         d->Vc[VX1][k][j][i] = slp*d->Vc[VX1][k][j][IBEG];
         d->Vc[VX2][k][j][i] = slp*d->Vc[VX2][k][j][IBEG];
+        d->Vc[VX3][k][j][i] = 0.0;
         #if HAVE_ENERGY
         d->Vc[PRS][k][j][i] = d->Vc[PRS][k][j][IBEG];
         #endif
         d->Vc[BX1][k][j][i] = d->Vc[BX1][k][j][IBEG];
         d->Vc[BX2][k][j][i] = d->Vc[BX2][k][j][IBEG];
+        d->Vc[BX3][k][j][i] = 0.0;
         #ifdef GLM_MHD 
         d->Vc[PSI_GLM][k][j][i] = 0.0;
         #endif

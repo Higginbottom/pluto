@@ -2,7 +2,7 @@ var searchData=
 [
   ['b',['b',['../struct_r_box.html#a79efa7f58315bfdb060b03d99583ec2c',1,'RBox']]],
   ['b2',['B2',['../struct_map__param.html#ac25028524f0b3bb1e35a6f5b62bc4f47',1,'Map_param']]],
-  ['backgroundfield',['BackgroundField',['../init_8c.html#aadd0bb6736fd57811642342df2a86492',1,'init.c']]],
+  ['backgroundfield',['BackgroundField',['../_dust___fluid_2init_8c.html#aadd0bb6736fd57811642342df2a86492',1,'BackgroundField(double x1, double x2, double x3, double *B0):&#160;init.c'],['../_templates_2init_8c.html#aadd0bb6736fd57811642342df2a86492',1,'BackgroundField(double x1, double x2, double x3, double *B0):&#160;init.c']]],
   ['bbck',['Bbck',['../struct_state.html#ac9f82a078c0111fc179003439d01df25',1,'State']]],
   ['bbeg',['bbeg',['../struct_r_box.html#af3c0c0de0be7f1228322fef6a4e2deae',1,'RBox']]],
   ['bckgrnd_5ffield_2ec',['bckgrnd_field.c',['../bckgrnd__field_8c.html',1,'']]],
@@ -16,11 +16,18 @@ var searchData=
   ['besselk1',['BesselK1',['../math__misc_8c.html#ac5678c8e6e9ca45d1f518d8a5770276b',1,'math_misc.c']]],
   ['besselkn',['BesselKn',['../math__misc_8c.html#a5e5fcf6cbd11fcf501c1a4e94216a570',1,'math_misc.c']]],
   ['bin_5fio_2ec',['bin_io.c',['../bin__io_8c.html',1,'']]],
-  ['bn',['bn',['../struct_sweep.html#af0320ed01144b5b95c6265f01bdeffbb',1,'Sweep']]],
-  ['bodyforcepotential',['BodyForcePotential',['../init_8c.html#a50fbb57fcf94c4dbcc760d4c2a1a6fb0',1,'init.c']]],
-  ['bodyforcevector',['BodyForceVector',['../init_8c.html#ab423919d12d949e5c00c7e8534bd07c1',1,'init.c']]],
+  ['blackbody',['Blackbody',['../rad__tools_8c.html#aa4cb83e2e7fe9925199f147fbfe3a364',1,'Blackbody(double temperature):&#160;rad_tools.c'],['../radiation_8h.html#a1e7b9dd3f62eac6bc02ef9b18f9ea310',1,'Blackbody(double):&#160;rad_tools.c']]],
+  ['bn',['Bn',['../struct_sweep.html#a88839d7f714d8254a286ade05bd8779f',1,'Sweep']]],
+  ['bodyforcepotential',['BodyForcePotential',['../_dust___fluid_2init_8c.html#a50fbb57fcf94c4dbcc760d4c2a1a6fb0',1,'BodyForcePotential(double x1, double x2, double x3):&#160;init.c'],['../_templates_2init_8c.html#a50fbb57fcf94c4dbcc760d4c2a1a6fb0',1,'BodyForcePotential(double x1, double x2, double x3):&#160;init.c']]],
+  ['bodyforcevector',['BodyForceVector',['../_dust___fluid_2init_8c.html#ab423919d12d949e5c00c7e8534bd07c1',1,'BodyForceVector(double *v, double *g, double x1, double x2, double x3):&#160;init.c'],['../_templates_2init_8c.html#ab423919d12d949e5c00c7e8534bd07c1',1,'BodyForceVector(double *v, double *g, double x1, double x2, double x3):&#160;init.c']]],
   ['boundary',['Boundary',['../boundary_8c.html#a737d3862f4cf347b9f2216b6310edde7',1,'boundary.c']]],
   ['boundary_2ec',['boundary.c',['../boundary_8c.html',1,'']]],
   ['box_5floop',['BOX_LOOP',['../macros_8h.html#abe2d13287263af33dd3a60be65995848',1,'macros.h']]],
-  ['brent',['Brent',['../math__root__finders_8c.html#a8719d072b5a6782933da094f8ff1d5f5',1,'math_root_finders.c']]]
+  ['brent',['Brent',['../math__root__finders_8c.html#a8719d072b5a6782933da094f8ff1d5f5',1,'math_root_finders.c']]],
+  ['bxj',['Bxj',['../struct_e_m_f.html#a3a040f5117501319087734bdf77170d2',1,'EMF']]],
+  ['bxk',['Bxk',['../struct_e_m_f.html#a8d78208f94ddd4fa5ec0dbe72e55312a',1,'EMF']]],
+  ['byi',['Byi',['../struct_e_m_f.html#a4f97358bb77a21f7bf670a41e5df5c13',1,'EMF']]],
+  ['byk',['Byk',['../struct_e_m_f.html#a742cc0707a0439e04c740ae877d4048d',1,'EMF']]],
+  ['bzi',['Bzi',['../struct_e_m_f.html#a88b85277b43258d394f0da2a96292895',1,'EMF']]],
+  ['bzj',['Bzj',['../struct_e_m_f.html#ab3d2ece44f31780e4b0de37f3178cc89',1,'EMF']]]
 ];

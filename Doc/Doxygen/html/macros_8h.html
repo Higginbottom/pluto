@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -91,16 +91,14 @@ Macros</h2></td></tr>
 <tr class="separator:a37cf9c7b0ebfa29ab7724244807e240b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8a49bfd77a2faefdf4461136a6b00564"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="macros_8h.html#a8a49bfd77a2faefdf4461136a6b00564">DSIGN</a>(x)&#160;&#160;&#160;( (x) &gt;= 0.0 ? (1.0) : (-1.0))</td></tr>
 <tr class="separator:a8a49bfd77a2faefdf4461136a6b00564"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a044637bc261e2ceb45b1174bd56635a5"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="macros_8h.html#a044637bc261e2ceb45b1174bd56635a5">MINMOD_LIMITER</a>(a,  b)&#160;&#160;&#160;((a)*(b) &gt; 0.0 ? (fabs(a) &lt; fabs(b) ? (a):(b)):0.0)</td></tr>
+<tr class="separator:a044637bc261e2ceb45b1174bd56635a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a00c035c360a268f5f7c08fd79439eaa9"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="macros_8h.html#a00c035c360a268f5f7c08fd79439eaa9">QUIT_PLUTO</a>(e_code)</td></tr>
 <tr class="separator:a00c035c360a268f5f7c08fd79439eaa9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a838c36dd66786512dbcbc26bef3876b8"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="macros_8h.html#a838c36dd66786512dbcbc26bef3876b8">EXPAND</a>(a,  b,  c)&#160;&#160;&#160;a b c</td></tr>
-<tr class="separator:a838c36dd66786512dbcbc26bef3876b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac3c82a72138bdfd56ab10a2c9383cd86"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="macros_8h.html#ac3c82a72138bdfd56ab10a2c9383cd86">SELECT</a>(a,  b,  c)&#160;&#160;&#160;c</td></tr>
-<tr class="separator:ac3c82a72138bdfd56ab10a2c9383cd86"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af23761e2cff4e0806411421eceba1ca9"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="macros_8h.html#af23761e2cff4e0806411421eceba1ca9">D_EXPAND</a>(a,  b,  c)&#160;&#160;&#160;a b c</td></tr>
-<tr class="separator:af23761e2cff4e0806411421eceba1ca9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a76b4875a6444ae851ced045ef3c05b66"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="macros_8h.html#a76b4875a6444ae851ced045ef3c05b66">D_SELECT</a>(a,  b,  c)&#160;&#160;&#160;c</td></tr>
-<tr class="separator:a76b4875a6444ae851ced045ef3c05b66"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab23060275139d5b65c0a35668a977300"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="macros_8h.html#ab23060275139d5b65c0a35668a977300">DIM_EXPAND</a>(a,  b,  c)&#160;&#160;&#160;a b c</td></tr>
+<tr class="separator:ab23060275139d5b65c0a35668a977300"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afaf5fd9f9965833ce1220860805f567e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="macros_8h.html#afaf5fd9f9965833ce1220860805f567e">DIM_SELECT</a>(a,  b,  c)&#160;&#160;&#160;c</td></tr>
+<tr class="separator:afaf5fd9f9965833ce1220860805f567e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr><td colspan="2"><div class="groupHeader">Spatial loop macros.</div></td></tr>
 <tr><td colspan="2"><div class="groupText"><p>The following macros provide a compact way to perform 1D or multi-D loops in selected regions of the (local) computational domain. The <code>*BEG_LOOP</code> and <code>*END_LOOP</code> macros are used to loop in the leftmost or rightmost boundary ghost zones in the corresponding direction <code>I</code>, <code>J</code> or <code>K</code>. The <code>*DOM_LOOP</code> macros are used to loop inside the computational domain (boundaries excluded) while the <code>*TOT_LOOP</code> macros are used to loop across the entire domain (inside+boundary). </p>
 </div></td></tr>
@@ -168,51 +166,51 @@ Macros</h2></td></tr>
 <tr><td colspan="2"><div class="groupText"><p>The following set of macros provide a compact way to perform two-point, undivided finite difference operations in a specified direction. Differences can be either <code>forward</code> or <code>central</code>. For instance, <code>FDIFF_X2(Q,k,j,i)</code> will compute a forward difference of <code>Q</code> in the <code>y</code> direction, <code></code>(Q[j+1]-Q[j]), while <code>CDIFF_X3(Q,k,j,i)</code> will compute a central different approximation of <code>Q</code> in the <code>z</code> direction: <code></code>(Q[k+1] - Q[k-1])/2. </p>
 </div></td></tr>
 <tr class="memitem:a9b74576ad9cf28be9d8cfb83e5a8d379"><td class="memItemLeft" align="right" valign="top"><a id="a9b74576ad9cf28be9d8cfb83e5a8d379"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>FDIFF_X1</b>(Q,  k,  j,  i)&#160;&#160;&#160;(Q[k][j][i+1] - Q[k][j][i])</td></tr>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>FDIFF_X1</b>(Q,  k,  j,  i)&#160;&#160;&#160;(0.0)</td></tr>
 <tr class="separator:a9b74576ad9cf28be9d8cfb83e5a8d379"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a28823d196eee5215de42ba341afd6f83"><td class="memItemLeft" align="right" valign="top"><a id="a28823d196eee5215de42ba341afd6f83"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>CDIFF_X1</b>(Q,  k,  j,  i)&#160;&#160;&#160;(0.5*(Q[k][j][i+1] - Q[k][j][i-1]))</td></tr>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>CDIFF_X1</b>(Q,  k,  j,  i)&#160;&#160;&#160;(0.0)</td></tr>
 <tr class="separator:a28823d196eee5215de42ba341afd6f83"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acab145b0732bc211eb6a7bd31c22f6cf"><td class="memItemLeft" align="right" valign="top"><a id="acab145b0732bc211eb6a7bd31c22f6cf"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>FDIFF_X2</b>(Q,  k,  j,  i)&#160;&#160;&#160;(Q[k][j+1][i] - Q[k][j][i])</td></tr>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>FDIFF_X2</b>(Q,  k,  j,  i)&#160;&#160;&#160;(0.0)</td></tr>
 <tr class="separator:acab145b0732bc211eb6a7bd31c22f6cf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a75676ae0bd5af33357d26eedca9c65bb"><td class="memItemLeft" align="right" valign="top"><a id="a75676ae0bd5af33357d26eedca9c65bb"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>CDIFF_X2</b>(Q,  k,  j,  i)&#160;&#160;&#160;(0.5*(Q[k][j+1][i] - Q[k][j-1][i]))</td></tr>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>CDIFF_X2</b>(Q,  k,  j,  i)&#160;&#160;&#160;(0.0)</td></tr>
 <tr class="separator:a75676ae0bd5af33357d26eedca9c65bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a830417ccb94dc97b9d8a96964392db1e"><td class="memItemLeft" align="right" valign="top"><a id="a830417ccb94dc97b9d8a96964392db1e"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>FDIFF_X3</b>(Q,  k,  j,  i)&#160;&#160;&#160;(Q[k+1][j][i] - Q[k][j][i])</td></tr>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>FDIFF_X3</b>(Q,  k,  j,  i)&#160;&#160;&#160;(0.0)</td></tr>
 <tr class="separator:a830417ccb94dc97b9d8a96964392db1e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4225f36ff72930f68c671bda8a623c38"><td class="memItemLeft" align="right" valign="top"><a id="a4225f36ff72930f68c671bda8a623c38"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>CDIFF_X3</b>(Q,  k,  j,  i)&#160;&#160;&#160;(0.5*(Q[k+1][j][i] - Q[k-1][j][i]))</td></tr>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>CDIFF_X3</b>(Q,  k,  j,  i)&#160;&#160;&#160;(0.0)</td></tr>
 <tr class="separator:a4225f36ff72930f68c671bda8a623c38"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr><td colspan="2"><div class="groupHeader">Spatial averages macros.</div></td></tr>
 <tr><td colspan="2"><div class="groupText"><p>The following set of macros provide a compact way to perform multi-D averages from cell centered values to interfaces. For instance,  AVERAGE_X(q,k,j,i) will simply take the arithmetic average betwen q(i) and q(i+1) at the i+1/2 interface. Likewise, AVERAGE_YZ(q,k,j,i) will produce an average at the j+1/2 and k+1/2 edge. </p>
 </div></td></tr>
 <tr class="memitem:af8b7074d4561d7fdbfe179f2f1f5265c"><td class="memItemLeft" align="right" valign="top"><a id="af8b7074d4561d7fdbfe179f2f1f5265c"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>AVERAGE_X</b>(q,  k,  j,  i)&#160;&#160;&#160;(0.5*(q[k][j][i] + q[k][j][i+1]))</td></tr>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>AVERAGE_X</b>(q,  k,  j,  i)&#160;&#160;&#160;(q[k][j][i])</td></tr>
 <tr class="separator:af8b7074d4561d7fdbfe179f2f1f5265c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7f7a12f3d6a437f1664238383478d865"><td class="memItemLeft" align="right" valign="top"><a id="a7f7a12f3d6a437f1664238383478d865"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>AVERAGE_Y</b>(q,  k,  j,  i)&#160;&#160;&#160;(0.5*(q[k][j][i] + q[k][j+1][i]))</td></tr>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>AVERAGE_Y</b>(q,  k,  j,  i)&#160;&#160;&#160;(q[k][0][i])</td></tr>
 <tr class="separator:a7f7a12f3d6a437f1664238383478d865"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a813a6524dbc0c378d6fc6dd4282d0cda"><td class="memItemLeft" align="right" valign="top"><a id="a813a6524dbc0c378d6fc6dd4282d0cda"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>AVERAGE_Z</b>(q,  k,  j,  i)&#160;&#160;&#160;(0.5*(q[k][j][i] + q[k+1][j][i]))</td></tr>
-<tr class="separator:a813a6524dbc0c378d6fc6dd4282d0cda"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a23c7dcbf8ff8be19db674b11375c7c55"><td class="memItemLeft" align="right" valign="top"><a id="a23c7dcbf8ff8be19db674b11375c7c55"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>AVERAGE_XY</b>(q,  k,  j,  i)</td></tr>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>AVERAGE_XY</b>(q,  k,  j,  i)&#160;&#160;&#160;AVERAGE_X(q,k,0,i)</td></tr>
 <tr class="separator:a23c7dcbf8ff8be19db674b11375c7c55"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a813a6524dbc0c378d6fc6dd4282d0cda"><td class="memItemLeft" align="right" valign="top"><a id="a813a6524dbc0c378d6fc6dd4282d0cda"></a>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>AVERAGE_Z</b>(q,  k,  j,  i)&#160;&#160;&#160;(q[0][j][i])</td></tr>
+<tr class="separator:a813a6524dbc0c378d6fc6dd4282d0cda"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3cb5f13b5fdd78210981c7f98c70ad69"><td class="memItemLeft" align="right" valign="top"><a id="a3cb5f13b5fdd78210981c7f98c70ad69"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>AVERAGE_XZ</b>(q,  k,  j,  i)</td></tr>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>AVERAGE_XZ</b>(q,  k,  j,  i)&#160;&#160;&#160;AVERAGE_X(q,0,j,i)</td></tr>
 <tr class="separator:a3cb5f13b5fdd78210981c7f98c70ad69"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2acd0bc06bb75f461be87184fb7de453"><td class="memItemLeft" align="right" valign="top"><a id="a2acd0bc06bb75f461be87184fb7de453"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>AVERAGE_YZ</b>(q,  k,  j,  i)</td></tr>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>AVERAGE_YZ</b>(q,  k,  j,  i)&#160;&#160;&#160;AVERAGE_Y(q,0,j,i)</td></tr>
 <tr class="separator:a2acd0bc06bb75f461be87184fb7de453"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a189d96848646d17ab0560bb5af8efd01"><td class="memItemLeft" align="right" valign="top"><a id="a189d96848646d17ab0560bb5af8efd01"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>AVERAGE_XYZ</b>(q,  k,  j,  i)</td></tr>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>AVERAGE_XYZ</b>(q,  k,  j,  i)&#160;&#160;&#160;AVERAGE_XY(q,0,j,i)</td></tr>
 <tr class="separator:a189d96848646d17ab0560bb5af8efd01"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'ph'+'.un'+'it'+'o.i'+'t'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@p<span style="display: none;">.nosp@m.</span>h.uni<span style="display: none;">.nosp@m.</span>to.i<span style="display: none;">.nosp@m.</span>t</a>) </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>June 15, 2017 </dd></dl>
+<div class="textblock"><dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'to'+'.in'+'fn'+'.it'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@t<span style="display: none;">.nosp@m.</span>o.inf<span style="display: none;">.nosp@m.</span>n.it</a>) </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>Sep 17, 2020 </dd></dl>
 </div><h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="a37cf9c7b0ebfa29ab7724244807e240b"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a37cf9c7b0ebfa29ab7724244807e240b">&#9670;&nbsp;</a></span>ABS_MIN</h2>
@@ -284,14 +282,14 @@ Macros</h2></td></tr>
 
 </div>
 </div>
-<a id="af23761e2cff4e0806411421eceba1ca9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af23761e2cff4e0806411421eceba1ca9">&#9670;&nbsp;</a></span>D_EXPAND</h2>
+<a id="ab23060275139d5b65c0a35668a977300"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab23060275139d5b65c0a35668a977300">&#9670;&nbsp;</a></span>DIM_EXPAND</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define D_EXPAND</td>
+          <td class="memname">#define DIM_EXPAND</td>
           <td>(</td>
           <td class="paramtype">&#160;</td>
           <td class="paramname">a, </td>
@@ -315,18 +313,18 @@ Macros</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Similar to the <a class="el" href="macros_8h.html#a838c36dd66786512dbcbc26bef3876b8">EXPAND()</a> macro but the expansion depends on DIMENSIONS. </p>
+<p>Allows to write dimension-ndependent expressions involving vectors by evaluating as many arguments as the number of DIMENSIONS. The result is that only the first argument will be compiled in 1D, the first two arguments in 2D and all of them in 3D. As an example: </p><div class="fragment"><div class="line"><a class="code" href="macros_8h.html#ab23060275139d5b65c0a35668a977300">DIM_EXPAND</a>(v[VX1] =  1.0;  ,</div><div class="line">           v[VX2] =  5.0;  , </div><div class="line">           v[VX3] = -4.0; )</div></div><!-- fragment --><p> becomes </p><div class="fragment"><div class="line">v[VX1] = 1.0;   </div></div><!-- fragment --><p> when <code>DIMENSIONS</code> is equal to 1 or </p><div class="fragment"><div class="line">v[VX1] = 1.0;  </div><div class="line">v[VX2] = 5.0;</div></div><!-- fragment --><p> when <code>DIMENSIONS</code> is equal to 2 or </p><div class="fragment"><div class="line">v[VX1] =  1.0;  </div><div class="line">v[VX2] =  5.0;</div><div class="line">v[VX3] = -4.0;</div></div><!-- fragment --><p> when <code>DIMENSIONS</code> is equal to 3. </p>
 
 </div>
 </div>
-<a id="a76b4875a6444ae851ced045ef3c05b66"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a76b4875a6444ae851ced045ef3c05b66">&#9670;&nbsp;</a></span>D_SELECT</h2>
+<a id="afaf5fd9f9965833ce1220860805f567e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afaf5fd9f9965833ce1220860805f567e">&#9670;&nbsp;</a></span>DIM_SELECT</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define D_SELECT</td>
+          <td class="memname">#define DIM_SELECT</td>
           <td>(</td>
           <td class="paramtype">&#160;</td>
           <td class="paramname">a, </td>
@@ -370,41 +368,6 @@ Macros</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <p>Return the sign of x. </p>
-
-</div>
-</div>
-<a id="a838c36dd66786512dbcbc26bef3876b8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a838c36dd66786512dbcbc26bef3876b8">&#9670;&nbsp;</a></span>EXPAND</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define EXPAND</td>
-          <td>(</td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname">a, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname">b, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname">c&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td>&#160;&#160;&#160;a b c</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Allows to write component-independent expressions involving vectors by evaluating as many arguments as the value of COMPONENTS. The result is that only the first argument will be compiled in 1D, the first two arguments in 2D and all of them in 3D. As an example: </p><div class="fragment"><div class="line"><a class="code" href="macros_8h.html#a838c36dd66786512dbcbc26bef3876b8">EXPAND</a>( v[VX1] =  1.0;  ,</div><div class="line">        v[VX2] =  5.0;  , </div><div class="line">        v[VX3] = -4.0; )</div></div><!-- fragment --><p> becomes </p><div class="fragment"><div class="line">v[VX1] = 1.0;   </div></div><!-- fragment --><p> when <code>COMPONENTS</code> is equal to 1 or </p><div class="fragment"><div class="line">v[VX1] = 1.0;  </div><div class="line">v[VX2] = 5.0;</div></div><!-- fragment --><p> when <code>COMPONENTS</code> is equal to 2 or </p><div class="fragment"><div class="line">v[VX1] =  1.0;  </div><div class="line">v[VX2] =  5.0;</div><div class="line">v[VX3] = -4.0;</div></div><!-- fragment --><p> when <code>COMPONENTS</code> is equal to 3. </p>
 
 </div>
 </div>
@@ -514,6 +477,35 @@ Macros</h2></td></tr>
 
 </div>
 </div>
+<a id="a044637bc261e2ceb45b1174bd56635a5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a044637bc261e2ceb45b1174bd56635a5">&#9670;&nbsp;</a></span>MINMOD_LIMITER</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define MINMOD_LIMITER</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">a, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">b&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td>&#160;&#160;&#160;((a)*(b) &gt; 0.0 ? (fabs(a) &lt; fabs(b) ? (a):(b)):0.0)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Quick limiting macros (more general ones are found in <a class="el" href="plm__coeffs_8h.html" title="Reconstruction coefficients header file. ">States/plm_coeffs.h</a>) </p>
+
+</div>
+</div>
 <a id="a00c035c360a268f5f7c08fd79439eaa9"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a00c035c360a268f5f7c08fd79439eaa9">&#9670;&nbsp;</a></span>QUIT_PLUTO</h2>
 
@@ -529,49 +521,15 @@ Macros</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<b>Value:</b><div class="fragment"><div class="line">{print (<span class="stringliteral">&quot;! abort\n&quot;</span>); MPI_Abort(MPI_COMM_WORLD, e_code); \</div><div class="line">         MPI_Finalize(); exit(e_code);}</div></div><!-- fragment --><p>Exit macro. For Chombo it is defined elsewhere. </p>
-
-</div>
-</div>
-<a id="ac3c82a72138bdfd56ab10a2c9383cd86"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac3c82a72138bdfd56ab10a2c9383cd86">&#9670;&nbsp;</a></span>SELECT</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define SELECT</td>
-          <td>(</td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname">a, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname">b, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname">c&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td>&#160;&#160;&#160;c</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Expand only the 1st, 2nd or 3rd argument based on the value of COMPONENTS. </p>
+<b>Value:</b><div class="fragment"><div class="line">{<a class="code" href="output__log_8c.html#af2286d17acbdf8db18e55cc6ff688282">printLog</a> (<span class="stringliteral">&quot;! Abort\n&quot;</span>);            \</div><div class="line">           LogFileFlush();                    \</div><div class="line">           MPI_Abort(MPI_COMM_WORLD, e_code); \</div><div class="line">           MPI_Finalize();                    \</div><div class="line">           exit(e_code);}</div><div class="ttc" id="output__log_8c_html_af2286d17acbdf8db18e55cc6ff688282"><div class="ttname"><a href="output__log_8c.html#af2286d17acbdf8db18e55cc6ff688282">printLog</a></div><div class="ttdeci">void printLog(const char *fmt,...)</div><div class="ttdef"><b>Definition:</b> output_log.c:254</div></div>
+</div><!-- fragment --><p>Exit macro. For Chombo it is defined elsewhere. </p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:50 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:57 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

@@ -100,8 +100,8 @@
   Normal, tangent and bitangent indices are set in the
   SetVectorIndices() function.
 
- \author A. Mignone (mignone@ph.unito.it)
- \date   April 14, 2017
+ \author A. Mignone (mignone@to.infn.it)
+ \date   June 2, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -126,9 +126,6 @@ void Flux (const State *state, int beg, int end)
   double Bmag2, cB, *cCR;
 #if HALL_MHD
   double *J, vH[3], Eh[3], Bsq, ne, vHB;
-  #if COMPONENTS != 3
-    #error Hall_MHD requires COMPONENTS to be 3
-  #endif
 #endif
 
 /* --------------------------------------------------------
@@ -136,21 +133,9 @@ void Flux (const State *state, int beg, int end)
    -------------------------------------------------------- */
 
   int nDIR, tDIR, bDIR;
-  double *Fcr, qg, st, sb;
-  if (g_dir == IDIR){
-    st = -1.0;
-    sb = +1.0;
-    
-  }else if (g_dir == JDIR){
-    st = +1.0;
-    sb = -1.0;
+  double *Fcr, qg;
 
-  }else if (g_dir == KDIR){
-    st = -1.0;
-    sb = +1.0;
-  }
   nDIR = VXn-VX1; tDIR = VXt-VX1; bDIR = VXb-VX1;
-
 
 /* --------------------------------------------------------
    1. Compute MHD flux
@@ -162,14 +147,14 @@ void Flux (const State *state, int beg, int end)
     u  = state->u[i];
     fx = state->flux[i];
 
-    Bmag2 = EXPAND(v[BX1]*v[BX1] , + v[BX2]*v[BX2], + v[BX3]*v[BX3]);
+    Bmag2 = v[BX1]*v[BX1] + v[BX2]*v[BX2] + v[BX3]*v[BX3];
 
     #if HAVE_ENERGY
     ptot  = v[PRS] + 0.5*Bmag2;
     #elif EOS == ISOTHERMAL
     ptot  = state->a2[i]*v[RHO] + 0.5*Bmag2;
     #else
-    print ("! Flux(): not defined for this EoS\n");
+    printLog ("! Flux(): not defined for this EoS\n");
     QUIT_PLUTO(1);
     #endif
 
@@ -177,36 +162,36 @@ void Flux (const State *state, int beg, int end)
      1a. Compute ideal MHD fluxes
      ------------------------------------------------------ */
 
-    vB    = EXPAND(v[VX1]*v[BX1] , + v[VX2]*v[BX2], + v[VX3]*v[BX3]);
+    vB    = v[VX1]*v[BX1] + v[VX2]*v[BX2] + v[VX3]*v[BX3];
 
     fx[RHO] = u[MXn];
-    EXPAND(fx[MX1] = v[VXn]*u[MX1] - v[BXn]*v[BX1];  ,
-           fx[MX2] = v[VXn]*u[MX2] - v[BXn]*v[BX2];  ,
-           fx[MX3] = v[VXn]*u[MX3] - v[BXn]*v[BX3]; ) 
+    fx[MX1] = v[VXn]*u[MX1] - v[BXn]*v[BX1];
+    fx[MX2] = v[VXn]*u[MX2] - v[BXn]*v[BX2];
+    fx[MX3] = v[VXn]*u[MX3] - v[BXn]*v[BX3];
 
-    EXPAND(fx[BXn] = 0.0;                             ,
-           fx[BXt] = v[VXn]*v[BXt] - v[BXn]*v[VXt];   ,
-           fx[BXb] = v[VXn]*v[BXb] - v[BXn]*v[VXb]; )
+    fx[BXn] = 0.0;
+    fx[BXt] = v[VXn]*v[BXt] - v[BXn]*v[VXt];
+    fx[BXb] = v[VXn]*v[BXb] - v[BXn]*v[VXb];
     #if HAVE_ENERGY
     fx[ENG] = (u[ENG] + ptot)*v[VXn] - v[BXn]*vB;
     #endif
 
   /* ------------------------------------------------------
      1b. Add background field
+         Note, ptot = p + (B1)^2/2 + B1.B0
      ------------------------------------------------------ */
 
     #if BACKGROUND_FIELD == YES
     Bbck  = state->Bbck[i] - BX1;
-    B0B1  = EXPAND(Bbck[BX1]*v[BX1], + Bbck[BX2]*v[BX2], + Bbck[BX3]*v[BX3]);
+    B0B1  = Bbck[BX1]*v[BX1] + Bbck[BX2]*v[BX2] + Bbck[BX3]*v[BX3];
     ptot += B0B1;
 
-    EXPAND(fx[MX1] -= Bbck[BXn]*v[BX1] + v[BXn]*Bbck[BX1];  ,
-           fx[MX2] -= Bbck[BXn]*v[BX2] + v[BXn]*Bbck[BX2];  ,
-           fx[MX3] -= Bbck[BXn]*v[BX3] + v[BXn]*Bbck[BX3];)
+    fx[MX1] -= Bbck[BXn]*v[BX1] + v[BXn]*Bbck[BX1];
+    fx[MX2] -= Bbck[BXn]*v[BX2] + v[BXn]*Bbck[BX2];
+    fx[MX3] -= Bbck[BXn]*v[BX3] + v[BXn]*Bbck[BX3];
 
-    EXPAND(                                                 ,
-           fx[BXt] += v[VXn]*Bbck[BXt] - Bbck[BXn]*v[VXt];  ,
-           fx[BXb] += v[VXn]*Bbck[BXb] - Bbck[BXn]*v[VXb]; )
+    fx[BXt] += v[VXn]*Bbck[BXt] - Bbck[BXn]*v[VXt];
+    fx[BXb] += v[VXn]*Bbck[BXb] - Bbck[BXn]*v[VXb];
     #if HAVE_ENERGY
     fx[ENG] += B0B1*v[VXn] - Bbck[BXn]*vB;
     #endif
@@ -234,12 +219,12 @@ void Flux (const State *state, int beg, int end)
     Eh[JDIR] = -(vH[KDIR]*v[BX1] - vH[IDIR]*v[BX3]);
     Eh[KDIR] = -(vH[IDIR]*v[BX2] - vH[JDIR]*v[BX1]);
       
-    fx[BXt] += st*Eh[bDIR];
-    fx[BXb] += sb*Eh[tDIR];
+    fx[BXt] -= Eh[bDIR];
+    fx[BXb] += Eh[tDIR];
 
     #if HAVE_ENERGY
-    vHB = EXPAND(vH[IDIR]*v[BX1], + vH[JDIR]*v[BX2], + vH[KDIR]*v[BX3]);
-    Bsq = EXPAND(v[BX1]*v[BX1], + v[BX2]*v[BX2], + v[BX3]*v[BX3]);
+    vHB = vH[IDIR]*v[BX1] + vH[JDIR]*v[BX2] + vH[KDIR]*v[BX3];
+    Bsq = v[BX1]*v[BX1] + v[BX2]*v[BX2] + v[BX3]*v[BX3];
     fx[ENG] += vH[nDIR]*Bsq - vHB*v[BXn]; 
     #endif
     #endif  /* HALL_MHD */

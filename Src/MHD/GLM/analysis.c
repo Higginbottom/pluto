@@ -24,7 +24,7 @@
     tot[n] += dB;
     max     = MAX(dB, max);
   }
-  D_EXPAND(
+  DIM_EXPAND(
     tot[n] /= (double)grid->np_int_glob[IDIR];  ,
     tot[n] /= (double)grid->np_int_glob[JDIR];  ,
     tot[n] /= (double)grid->np_int_glob[KDIR];

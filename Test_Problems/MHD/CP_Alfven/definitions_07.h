@@ -1,14 +1,12 @@
 #define  PHYSICS                        MHD
 #define  DIMENSIONS                     3
-#define  COMPONENTS                     3
 #define  GEOMETRY                       CARTESIAN
 #define  BODY_FORCE                     NO
-#define  FORCED_TURB                    NO
 #define  COOLING                        NO
 #define  RECONSTRUCTION                 WENOZ_FD
 #define  TIME_STEPPING                  RK3
-#define  DIMENSIONAL_SPLITTING          NO
 #define  NTRACER                        0
+#define  PARTICLES                      NO
 #define  USER_DEF_PARAMETERS            4
 
 /* -- physics dependent declarations -- */
@@ -33,5 +31,6 @@
 
 /* [Beg] user-defined constants (do not change this line) */
 
+#define  CHECK_EIGENVECTORS             YES
 
 /* [End] user-defined constants (do not change this line) */

@@ -32,8 +32,8 @@
   \image html hd_flow_past_cylinder.01.jpg "Density map for configuration #01"
   \image html hd_flow_past_cylinder.04.jpg "Entropy distribution for configuration #04 using 3 levels of refinement."
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   Aug 18, 2014
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Feb 25, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -53,7 +53,8 @@ void Init (double *v, double x1, double x2, double x3)
   v[TRC] = 0.0;
 
   v[VX1] =  U*(1.0 - 1.0/(x1*x1))*cos(x2);
-  v[VX2] = -U*(1.0 + 1.0/(x1*x1))*sin(x2); 
+  v[VX2] = -U*(1.0 + 1.0/(x1*x1))*sin(x2);
+  v[VX3] = 0.0;
 }
 
 /* ********************************************************************* */
@@ -104,6 +105,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
         d->Vc[PRS][k][j][i] =  d->Vc[PRS][k][j][2*IBEG - i - 1];
         d->Vc[VX1][k][j][i] = -d->Vc[VX1][k][j][2*IBEG - i - 1];
         d->Vc[VX2][k][j][i] = -d->Vc[VX2][k][j][2*IBEG - i - 1];
+        d->Vc[VX3][k][j][i] = 0.0;
       }
     }else if (box->vpos == X1FACE){
       BOX_LOOP(box,k,j,i){  }
@@ -129,11 +131,13 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
           d->Vc[PRS][k][j][i] = 1.0/g_gamma;
           d->Vc[VX1][k][j][i] =  Mach*c;
           d->Vc[VX2][k][j][i] = -Mach*s;
+          d->Vc[VX3][k][j][i] = 0.0;
         }else{
           d->Vc[RHO][k][j][i] = d->Vc[RHO][k][j][IEND];
           d->Vc[PRS][k][j][i] = d->Vc[PRS][k][j][IEND];
           d->Vc[VX1][k][j][i] = d->Vc[VX1][k][j][IEND];
           d->Vc[VX2][k][j][i] = d->Vc[VX2][k][j][IEND];
+          d->Vc[VX3][k][j][i] = 0.0;
         }          
         
       }

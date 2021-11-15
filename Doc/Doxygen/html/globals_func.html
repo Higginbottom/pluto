@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -62,9 +62,18 @@ $(function() {
 &#160;
 
 <h3><a id="index_a"></a>- a -</h3><ul>
+<li>AddRadSource1()
+: <a class="el" href="radiation_8h.html#abbf6ffa1649f85dec60f9e47eea7060d">radiation.h</a>
+</li>
+<li>AddRadSource2()
+: <a class="el" href="radiation_8h.html#a6129d52ce217df3eb3cbeca148ee2c41">radiation.h</a>
+</li>
 <li>AdvanceStep()
-: <a class="el" href="ctu__step_8c.html#aaae1e3096f455d4005b59f894b2d14c7">ctu_step.c</a>
-, <a class="el" href="rk__step_8c.html#a4810ea5e477c6269136d7ffb115bc98b">rk_step.c</a>
+: <a class="el" href="rk__step__imex__ct__explicit_8c.html#a4810ea5e477c6269136d7ffb115bc98b">rk_step_imex_ct_explicit.c</a>
+, <a class="el" href="rk__step__failsafe_8c.html#afd7ca6b5c78453a494aa7b213a2f2804">rk_step_failsafe.c</a>
+, <a class="el" href="v00_2rk__step__imex_8c.html#afd7ca6b5c78453a494aa7b213a2f2804">rk_step_imex.c</a>
+, <a class="el" href="ctu__step_8c.html#a777eae92b891ab436026cc38c99d07e1">ctu_step.c</a>
+, <a class="el" href="rk__step_8c.html#afd7ca6b5c78453a494aa7b213a2f2804">rk_step.c</a>
 </li>
 <li>AdvectFlux()
 : <a class="el" href="adv__flux_8c.html#a62caf64ee8804cb7ebf091768a797b53">adv_flux.c</a>
@@ -95,8 +104,8 @@ $(function() {
 : <a class="el" href="al__decomp___8c.html#ae9f5188ae7f21ca9a45ce16cb1cb81c1">al_decomp_.c</a>
 </li>
 <li>AL_Decompose()
-: <a class="el" href="al__proto_8h.html#a049a024934332072c522ac64568facd1">al_proto.h</a>
-, <a class="el" href="al__decompose_8c.html#ad37fda7c501dc5743707cdc31fd6aa62">al_decompose.c</a>
+: <a class="el" href="al__decompose_8c.html#ad37fda7c501dc5743707cdc31fd6aa62">al_decompose.c</a>
+, <a class="el" href="al__proto_8h.html#a049a024934332072c522ac64568facd1">al_proto.h</a>
 </li>
 <li>AL_Exchange()
 : <a class="el" href="al__exchange_8c.html#a517147b4403c1aa07f6f577e71d28f0f">al_exchange.c</a>
@@ -115,8 +124,8 @@ $(function() {
 , <a class="el" href="al__proto_8h.html#a124c92a9e396bce3aff8ed3c023e0956">al_proto.h</a>
 </li>
 <li>AL_File_open()
-: <a class="el" href="al__io_8c.html#a5c3bfa8247ee5f46647e83af7ad4eacd">al_io.c</a>
-, <a class="el" href="al__proto_8h.html#a2e9435c856e350d10543c00254178e63">al_proto.h</a>
+: <a class="el" href="al__proto_8h.html#a2e9435c856e350d10543c00254178e63">al_proto.h</a>
+, <a class="el" href="al__io_8c.html#a5c3bfa8247ee5f46647e83af7ad4eacd">al_io.c</a>
 </li>
 <li>AL_Finalize()
 : <a class="el" href="al__finalize_8c.html#ad6c52e61e831b7a48a2b649c05999656">al_finalize.c</a>
@@ -181,8 +190,8 @@ $(function() {
 , <a class="el" href="al__sz__get_8c.html#a9aabd2a22a6a5c149bcb8c17ddf2fd67">al_sz_get.c</a>
 </li>
 <li>AL_Get_periodic_dim()
-: <a class="el" href="al__proto_8h.html#a3223664ea1c35aa571749a05058b35c8">al_proto.h</a>
-, <a class="el" href="al__sz__get_8c.html#ad8f20c311bf3cd8ee1a652a8f28f2c53">al_sz_get.c</a>
+: <a class="el" href="al__sz__get_8c.html#ad8f20c311bf3cd8ee1a652a8f28f2c53">al_sz_get.c</a>
+, <a class="el" href="al__proto_8h.html#a3223664ea1c35aa571749a05058b35c8">al_proto.h</a>
 </li>
 <li>AL_Get_rank()
 : <a class="el" href="al__sz__get_8c.html#a700b8fa1c35d94755f4f4156fe49b867">al_sz_get.c</a>
@@ -226,8 +235,8 @@ $(function() {
 , <a class="el" href="al__proto_8h.html#a1acd14953a1651b60bb546e21a3a7799">al_proto.h</a>
 </li>
 <li>AL_Read_array()
-: <a class="el" href="al__proto_8h.html#a578ed97e3a3818a5159b2e707d8230ac">al_proto.h</a>
-, <a class="el" href="al__io_8c.html#ae5cee50e67a5315b46684be8f93958dd">al_io.c</a>
+: <a class="el" href="al__io_8c.html#ae5cee50e67a5315b46684be8f93958dd">al_io.c</a>
+, <a class="el" href="al__proto_8h.html#a578ed97e3a3818a5159b2e707d8230ac">al_proto.h</a>
 </li>
 <li>AL_Set_comm()
 : <a class="el" href="al__proto_8h.html#ab7c8414300399efed67be2033eee5173">al_proto.h</a>
@@ -246,8 +255,8 @@ $(function() {
 , <a class="el" href="al__sz__set_8c.html#a9fde67ae38cfc0749e12cd21c18184c9">al_sz_set.c</a>
 </li>
 <li>AL_Set_local_dim()
-: <a class="el" href="al__sz__set_8c.html#ac8af878714da288a263c775ddff1cb65">al_sz_set.c</a>
-, <a class="el" href="al__proto_8h.html#a52e883e71c269da5aea63411ef59cb3e">al_proto.h</a>
+: <a class="el" href="al__proto_8h.html#a52e883e71c269da5aea63411ef59cb3e">al_proto.h</a>
+, <a class="el" href="al__sz__set_8c.html#ac8af878714da288a263c775ddff1cb65">al_sz_set.c</a>
 </li>
 <li>AL_Set_parallel_dim()
 : <a class="el" href="al__proto_8h.html#a03c5e31907a71343116802439e1f8ed1">al_proto.h</a>
@@ -262,8 +271,8 @@ $(function() {
 , <a class="el" href="al__proto_8h.html#a06bb98e7dfece7e83be1bcf239a6838a">al_proto.h</a>
 </li>
 <li>AL_Set_type()
-: <a class="el" href="al__proto_8h.html#ad918afdd700a6f524b418ccddd2d3947">al_proto.h</a>
-, <a class="el" href="al__sz__set_8c.html#a6e18a6420f30069f982ffb5a115855fc">al_sz_set.c</a>
+: <a class="el" href="al__sz__set_8c.html#a6e18a6420f30069f982ffb5a115855fc">al_sz_set.c</a>
+, <a class="el" href="al__proto_8h.html#ad918afdd700a6f524b418ccddd2d3947">al_proto.h</a>
 </li>
 <li>AL_Sort_()
 : <a class="el" href="al__proto_8h.html#a01aeaee661f24abf85ab519db8dfbc2d">al_proto.h</a>
@@ -274,12 +283,12 @@ $(function() {
 , <a class="el" href="al__sz__free_8c.html#a286d11863b9e2c8dd40c778ffe112a38">al_sz_free.c</a>
 </li>
 <li>AL_Sz_init()
-: <a class="el" href="al__proto_8h.html#a859681f4e5375a0e59036625bf045474">al_proto.h</a>
-, <a class="el" href="al__sz__init_8c.html#aadec04e3db40747cfe07f9b4e7a6afa7">al_sz_init.c</a>
+: <a class="el" href="al__sz__init_8c.html#aadec04e3db40747cfe07f9b4e7a6afa7">al_sz_init.c</a>
+, <a class="el" href="al__proto_8h.html#a859681f4e5375a0e59036625bf045474">al_proto.h</a>
 </li>
 <li>AL_Type_create_subarray()
-: <a class="el" href="al__subarray___8c.html#a8284a37b3fce2edb1ac1f75d177453f4">al_subarray_.c</a>
-, <a class="el" href="al__proto_8h.html#ad68208b36eaf34ea9a7cb65791a43188">al_proto.h</a>
+: <a class="el" href="al__proto_8h.html#ad68208b36eaf34ea9a7cb65791a43188">al_proto.h</a>
+, <a class="el" href="al__subarray___8c.html#a8284a37b3fce2edb1ac1f75d177453f4">al_subarray_.c</a>
 </li>
 <li>AL_Valid_ptr()
 : <a class="el" href="al__proto_8h.html#ac8a3a57ddd70cd76d7bbb7e3432017d2">al_proto.h</a>
@@ -294,11 +303,11 @@ $(function() {
 , <a class="el" href="al__proto_8h.html#a4649241a36bc97276a2e0314b852f2a3">al_proto.h</a>
 </li>
 <li>AL_Write_array_end()
-: <a class="el" href="al__write__array__async_8c.html#ad502025e3a7e3d9436803786bb71641f">al_write_array_async.c</a>
-, <a class="el" href="al__proto_8h.html#a1824b850319548ef7bc3d198c037db34">al_proto.h</a>
+: <a class="el" href="al__proto_8h.html#a1824b850319548ef7bc3d198c037db34">al_proto.h</a>
+, <a class="el" href="al__write__array__async_8c.html#ad502025e3a7e3d9436803786bb71641f">al_write_array_async.c</a>
 </li>
 <li>Analysis()
-: <a class="el" href="init_8c.html#a840827a6d99dee4807a5efbf3c4542e3">init.c</a>
+: <a class="el" href="_templates_2init_8c.html#a840827a6d99dee4807a5efbf3c4542e3">init.c</a>
 </li>
 <li>ApplyLorentzBoost()
 : <a class="el" href="particles__lp__spectra_8c.html#a4006c89a7b8a2ff3fe262b1d94296af5">particles_lp_spectra.c</a>
@@ -320,7 +329,7 @@ $(function() {
 : <a class="el" href="arrays_8c.html#a365ed5a8be5fc4db41390962359a0f48">arrays.c</a>
 </li>
 <li>ArrayBox()
-: <a class="el" href="arrays_8c.html#ac4ed28b81a2a6b27082a487a1c617614">arrays.c</a>
+: <a class="el" href="arrays_8c.html#a0713e7fdf80dc6fc9cf9748ba4876adb">arrays.c</a>
 </li>
 <li>ArrayBoxMap()
 : <a class="el" href="arrays_8c.html#a0f9d9ef51e88d06b8aafb7682655d6c3">arrays.c</a>
@@ -332,7 +341,7 @@ $(function() {
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:51 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:25:22 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

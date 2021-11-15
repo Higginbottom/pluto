@@ -1,19 +1,30 @@
+/* ///////////////////////////////////////////////////////////////////// */
+/*!
+  \file
+  \brief Compute time-centered interface states using characteristic 
+         tracing.
+
+  Provide 1st order flat reconstruction inside each zone.
+  Here vL and vR are left and right sweeps with respect 
+  to the cell interface, while vm and vp refer to the cell 
+  center, that is:
+ 
+                    VL-> <-VR
+       |--------*--------|--------*--------|
+        <-am   (i)   ap->       (i+1)
+     
+         
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Feb 05, 2021
+*/
+/* ///////////////////////////////////////////////////////////////////// */
+
 #include "pluto.h"
 
 /* ************************************************************* */
 void States (const Sweep *sweep, int beg, int end, Grid *grid)
 /* 
  *  PURPOSE
- *    
- *    provide 1st order flat reconstruction inside each 
- *    cell. 
- *    Here vL and vR are left and right sweeps with respect 
- *    to the cell interface, while vm and vp refer to the cell 
- *    center, that is:
- *
- *                    VL-> <-VR
- *      |--------*--------|--------*--------|
- *       <-am   (i)   ap->       (i+1)
  *    
  *
  **************************************************************** */
@@ -29,9 +40,9 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
   double **up = stateL->u;
   double **um = stateR->u-1;
 
-#if TIME_STEPPING != EULER
-  #error FLAT Reconstruction must be used with EULER integration only
-#endif
+  #if (INTERNAL_BOUNDARY == YES) && (INTERNAL_BOUNDARY_REFLECT == YES)
+  FluidInterfaceBoundary(sweep, beg, end);
+  #endif
   
   for (i = beg; i <= end; i++) {
     NVAR_LOOP(nv) vm[i][nv] = vp[i][nv] = v[i][nv];
@@ -41,11 +52,14 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
       Assign face-centered magnetic field
     -------------------------------------------  */
 
-  #ifdef STAGGERED_MHD
-   for (i = beg; i <= end-1; i++) {
-     stateL->v[i][BXn] = stateR->v[i][BXn] = sweep->bn[i];
-   }
-  #endif
+#ifdef STAGGERED_MHD
+  for (i = beg; i <= end-1; i++) {
+    stateL->v[i][BXn] = stateR->v[i][BXn] = sweep->Bn[i];
+    #if PHYSICS == ResRMHD
+    stateL->v[i][EXn] = stateR->v[i][EXn] = sweep->En[i];
+    #endif
+  }
+#endif
 
 /* -------------------------------------------
     compute sweeps in conservative variables

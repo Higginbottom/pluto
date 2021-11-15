@@ -37,7 +37,12 @@ void Init (double *us, double x1, double x2, double x3)
   #endif
   us[VX1] = 0.0;
   us[VX2] = 1.0/sqrt(R);
-
+  
+  #ifdef FARGO
+  us[VX2]     = 0.0;
+  us[FARGO_W] = 1.0/sqrt(R);
+  #endif  
+  
   arg = - (x*x + y*y)/(h*h);
 
   dvx = -y*kp*exp(arg);
@@ -45,10 +50,15 @@ void Init (double *us, double x1, double x2, double x3)
 
   us[VX1] +=  dvx*c + dvy*s;
   us[VX2] += -dvx*s + dvy*c;
-
+  us[VX3]  =  0.0;
+    
   #if ROTATING_FRAME
-   g_OmegaZ  = 1.0;
-   us[VX2]  -= g_OmegaZ*R;
+  g_OmegaZ  = 1.0;
+  #ifdef FARGO
+  us[FARGO_W] -= g_OmegaZ*R;
+  #else
+  us[VX2]  -= g_OmegaZ*R;
+  #endif  
   #endif
 
   #if NTRACER == 1

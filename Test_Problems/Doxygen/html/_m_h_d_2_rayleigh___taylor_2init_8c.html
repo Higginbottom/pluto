@@ -22,6 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO Test Problems
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -79,13 +80,13 @@ Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Sets the initial condition for a Rayleigh-Taylor instability problem in 2 or 3 dimensions. The initial condition consists of an interface separating two fluids with different densities in hydrostatic balance: </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ \rho(y) = \left\{\begin{array}{ll} 1 &amp; \quad{\rm for} \quad y \le 0 \\ \noalign{\medskip} \eta &amp; \quad{\rm for} \quad y &gt; 0 \end{array}\right. \,,\qquad p = p_0 + \rho y g \]" src="form_159.png"/>
+<img class="formulaDsp" alt="\[ \rho(y) = \left\{\begin{array}{ll} 1 &amp; \quad{\rm for} \quad y \le 0 \\ \noalign{\medskip} \eta &amp; \quad{\rm for} \quad y &gt; 0 \end{array}\right. \,,\qquad p = p_0 + \rho y g \]" src="form_142.png"/>
 </p>
-<p> where <img class="formulaInl" alt="$ \eta $" src="form_160.png"/> is the density of the fluid on top, <code>g</code> is the (constant) gravity pointing in the negative <code>y</code> direction. The value of the pressure at the interface (<code>p0</code>) is chosen in such a way that the sound speed in the light fluid is 1. Likewise, density is normalized to the value in the light fluid. The horizontal extent of the computational domain defines the unit length: <code>Lx=1</code>.</p>
+<p> where <img class="formulaInl" alt="$ \eta $" src="form_143.png"/> is the density of the fluid on top, <code>g</code> is the (constant) gravity pointing in the negative <code>y</code> direction. The value of the pressure at the interface (<code>p0</code>) is chosen in such a way that the sound speed in the light fluid is 1. Likewise, density is normalized to the value in the light fluid. The horizontal extent of the computational domain defines the unit length: <code>Lx=1</code>.</p>
 <p>For magnetized setups, the magnetic field is purely horizontal: </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ \vec{B} = \chi B_c\hvec{i} \,,\qquad B_c \equiv \sqrt{(\rho_{\rm hi} - \rho_{\rm lo})L|g|}\quad \to\quad \sqrt{(\eta - 1.0)|g|} \]" src="form_161.png"/>
+<img class="formulaDsp" alt="\[ \vec{B} = \chi B_c\hvec{i} \,,\qquad B_c \equiv \sqrt{(\rho_{\rm hi} - \rho_{\rm lo})L|g|}\quad \to\quad \sqrt{(\eta - 1.0)|g|} \]" src="form_144.png"/>
 </p>
-<p> where <code>Bc</code> is the critical magnetic field above which perturbations parallel to the magnetic field are suppressed (see Boyd &amp; Sanderson, page 99) while the value of <img class="formulaInl" alt="$\chi$" src="form_162.png"/> is user-supplied (note that a factor <img class="formulaInl" alt="$ 1/\sqrt{4\pi} $" src="form_163.png"/> needs to be incorporated when initializing <code>B</code> in code units).</p>
+<p> where <code>Bc</code> is the critical magnetic field above which perturbations parallel to the magnetic field are suppressed (see Boyd &amp; Sanderson, page 99) while the value of <img class="formulaInl" alt="$\chi$" src="form_145.png"/> is user-supplied (note that a factor <img class="formulaInl" alt="$ 1/\sqrt{4\pi} $" src="form_146.png"/> needs to be incorporated when initializing <code>B</code> in code units).</p>
 <p>The system is destabilized by perturbing the vertical velocity in proximity of the interface using a single mode (in 2D) or a Gaussian perturbation (in 3D). Aleternatively, a random perturbation can be used by setting <code>USE_RANDOM_PERTURBATION</code> to <code>YES</code> in your <code>definitions.h</code>. The runtime parameters that are read from <code>pluto.ini</code> are</p><ul>
 <li><code>g_inputParam[ETA]</code>: sets the density of the upper fluid;</li>
 <li><code>g_inputParam[GRAV]</code>: sets gravity (must be &lt; 0);</li>
@@ -156,14 +157,14 @@ Density plot at the end of configuration #01</div></div>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Assign initial condition by looping over the computational domain. Called after the usual <a class="el" href="_particles_2_c_r_2_gyration_2init_8c.html#a8488b38b779097d732c203983f9bb9bf">Init()</a> function to assign initial conditions on primitive variables. Value assigned here will overwrite those prescribed during <a class="el" href="_particles_2_c_r_2_gyration_2init_8c.html#a8488b38b779097d732c203983f9bb9bf">Init()</a>. </p>
+<p>Assign initial condition by looping over the computational domain. Called after the usual <a class="el" href="_particles_2_dust_2_r_v___drift_2init_8c.html#a8488b38b779097d732c203983f9bb9bf">Init()</a> function to assign initial conditions on primitive variables. Value assigned here will overwrite those prescribed during <a class="el" href="_particles_2_dust_2_r_v___drift_2init_8c.html#a8488b38b779097d732c203983f9bb9bf">Init()</a>. </p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Jun 15 2018 22:46:22 for PLUTO Test Problems by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:25:25 for PLUTO Test Problems by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

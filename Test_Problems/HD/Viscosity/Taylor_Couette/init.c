@@ -44,22 +44,27 @@ void Init (double *v, double x1, double x2, double x3)
  *
  *********************************************************************** */
 {
+  #if GEOMETRY == CYLINDRICAL
+  double R = x1, z = x2;
+  #elif GEOMETRY == POLAR
+  double R = x1, z = x3;
+  #endif
   double rmin = g_domBeg[IDIR];
   double rmax = g_domEnd[IDIR];
   double eta = rmin/rmax;
   double lambda = (rmax-rmin); 
   double A = -g_inputParam[OMEGA]*eta*eta/(1.0 - eta*eta);
   double B =  g_inputParam[OMEGA]*rmin*rmin/(1.0 - eta*eta);
-  double SPER = sin(2.*CONST_PI*x2/lambda);
-  double CPER = cos(2.*CONST_PI*x2/lambda);
+  double SPER = sin(2.*CONST_PI*z/lambda);
+  double CPER = cos(2.*CONST_PI*z/lambda);
   
   v[RHO] = 1.0; 
-  v[PRS] = 10.+ 0.5*(A*A*x1*x1 +4.*A*B*log(x1) - B*B/x1/x1) 
-           + 0.01*0.5*(A*A*x1*x1 +4.*A*B*log(x1) - B*B/x1/x1)*CPER; 
-  v[VX1] = 0.01*(A*x1 + B/x1)*CPER;
-  v[VX2] = 0.01*(A*x1 + B/x1)*SPER;
-  v[VX3] = A*x1 + B/x1 + 0.01*(A*x1 + B/x1)*CPER;
-  v[TRC] = 1.0;
+  v[PRS] = 10.0 + 0.5*(A*A*R*R +4.*A*B*log(R) - B*B/R/R) 
+                + 0.01*0.5*(A*A*R*R + 4.*A*B*log(R) - B*B/R/R)*CPER; 
+  v[iVR]   = 0.01*(A*R + B/R)*CPER;
+  v[iVZ]   = 0.01*(A*R + B/R)*SPER;
+  v[iVPHI] = A*R + B/R + 0.01*(A*R + B/R)*CPER;
+  v[TRC]   = 1.0;
 }
 
 /* ********************************************************************* */
@@ -106,21 +111,21 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
 
   if (side == X1_BEG){  /* -- X1_BEG boundary / Cylinder @ R = R_INT -- */
     X1_BEG_LOOP(k,j,i){
-      d->Vc[RHO][k][j][i] =   d->Vc[RHO][k][j][2*IBEG - i - 1];
-      d->Vc[PRS][k][j][i] =   d->Vc[PRS][k][j][2*IBEG - i - 1];
-      d->Vc[VX1][k][j][i] = - d->Vc[VX1][k][j][2*IBEG - i - 1];
-      d->Vc[VX2][k][j][i] =   d->Vc[VX2][k][j][2*IBEG - i - 1];
-      d->Vc[VX3][k][j][i] =   g_inputParam[OMEGA]*x1[i];	    	    
+      d->Vc[RHO][k][j][i]   =   d->Vc[RHO][k][j][2*IBEG - i - 1];
+      d->Vc[PRS][k][j][i]   =   d->Vc[PRS][k][j][2*IBEG - i - 1];
+      d->Vc[iVR][k][j][i]   = - d->Vc[iVR][k][j][2*IBEG - i - 1];
+      d->Vc[iVZ][k][j][i]   =   d->Vc[iVZ][k][j][2*IBEG - i - 1];
+      d->Vc[iVPHI][k][j][i] =   g_inputParam[OMEGA]*x1[i];	    	    
     }
   }
 
   if (side == X1_END){  /* -- X1_END boundary / Cylinder @ R = R_EXT -- */
     X1_END_LOOP(k,j,i){
-      d->Vc[RHO][k][j][i] =   d->Vc[RHO][k][j][2*IEND - i + 1];
-      d->Vc[PRS][k][j][i] =   d->Vc[PRS][k][j][2*IEND - i + 1];
-      d->Vc[VX1][k][j][i] = - d->Vc[VX1][k][j][2*IEND - i + 1];
-      d->Vc[VX2][k][j][i] =   d->Vc[VX2][k][j][2*IEND - i + 1];
-      d->Vc[VX3][k][j][i] =   0.0;	  	    
+      d->Vc[RHO][k][j][i]   =   d->Vc[RHO][k][j][2*IEND - i + 1];
+      d->Vc[PRS][k][j][i]   =   d->Vc[PRS][k][j][2*IEND - i + 1];
+      d->Vc[iVR][k][j][i]   = - d->Vc[iVR][k][j][2*IEND - i + 1];
+      d->Vc[iVZ][k][j][i]   =   d->Vc[iVZ][k][j][2*IEND - i + 1];
+      d->Vc[iVPHI][k][j][i] =   0.0;	  	    
     }
   }
 }

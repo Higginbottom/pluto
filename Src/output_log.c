@@ -1,6 +1,23 @@
+/* ///////////////////////////////////////////////////////////////////// */
+/*! 
+  \file  
+  \brief Output log file driver.
+
+  The integration log file is divided into a "pre-step"
+  and a "post-step" output.
+
+  \authors A. Mignone(mignone@to.infn.it)\n
+           B. Vaidya
+
+  \date    Jul 28, 2020
+*/
+/* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 #include <sys/stat.h>
 #include <sys/types.h>
+
+static FILE *g_flog;
+static char log_file_name[512];
 
 static void Particles_Log (Data *, timeStep *, Grid *);
 
@@ -30,18 +47,18 @@ void OutputLogPost(Data *data, timeStep *Dts, Runtime *ini, Grid *grid)
   }
   
   #if (PARABOLIC_FLUX & SUPER_TIME_STEPPING)
-/*  print ("%s [Nsts = %d]\n",indent,Dts->Nsts); */
+/*  printLog ("%s [Nsts = %d]\n",indent,Dts->Nsts); */
   print (", Nsts = %d",Dts->Nsts);
   #endif
   #if (PARABOLIC_FLUX & RK_LEGENDRE)
-/*  print ("%s [Nrkl = %d]\n",indent,Dts->Nrkl); */
+/*  printLog ("%s [Nrkl = %d]\n",indent,Dts->Nrkl); */
   print (", Nrkl = %d",Dts->Nrkl);
   #endif
-  #if (PHYSICS == RMHD) && (RESISTIVITY == IMEX)
+  #if PHYSICS == ResRMHD
   print (", Nimex = %d",g_maxIMEXIter);
   #endif
   print ("]\n");
-  #ifdef PARTICLES
+  #if (PARTICLES != NO)
   Particles_Log (data, Dts, grid);
   #endif
 }
@@ -53,29 +70,46 @@ void Particles_Log (Data *data, timeStep *Dts, Grid *grid)
  *
  *********************************************************************** */
 {
-#ifdef PARTICLES
+#if (PARTICLES != NO)
   int n;
   long int np_glob;
   particleNode *CurNode;
   Particle *pp;
 
   CurNode = data->PHead;
+  #if PARTICLES == PARTICLES_CR
+  double u2, gamma, c2 = PARTICLES_CR_C*PARTICLES_CR_C;
+  #endif
   double kin, kin_glob;
   #if PARTICLES_LP_SPECTRA == YES
-   double sEmin, sEmin_glob, sEmax, sEmax_glob;
-   sEmin  = 0.0;
-   sEmax  = 0.0;
+  double sEmin, sEmin_glob, sEmax, sEmax_glob;
+  sEmin  = 0.0;
+  sEmax  = 0.0;
   #endif
 
   kin = 0.0;
   while(CurNode != NULL){
-    pp   = &(CurNode->p);
-    kin += 0.5*(EXPAND(  pp->speed[IDIR]*pp->speed[IDIR],  
-                       + pp->speed[JDIR]*pp->speed[JDIR],
-                       + pp->speed[KDIR]*pp->speed[KDIR]));
+    pp    = &(CurNode->p);
+    #if PARTICLES == PARTICLES_CR
+
+    #if PARTICLES_CR_GC == NO
+    u2    = DOT_PRODUCT(pp->speed, pp->speed);
+    gamma = sqrt(1.0 + u2/c2);
+    kin  += u2/(gamma + 1.0);
+    #else
+    gamma = pp->speed[JDIR];
+    kin   += c2*(gamma - 1.);
+    #endif  /* PARTICLES_CR_GC == NO */
+
+    #else  /* Any other particle type */
+
+    kin  += 0.5*DOT_PRODUCT(pp->speed, pp->speed);
+
+    #endif /* PARTICLES == PARTICLES_CR */
+
     #if PARTICLES_LP_SPECTRA == YES
     sEmin  += pp->eng[0];
-    sEmax  += pp->eng[PARTICLES_LP_NEBINS-1];
+    sEmax  += pp->eng[PARTICLES_LP_NEBINS];
     #endif
 
     CurNode = CurNode->next;
@@ -98,24 +132,25 @@ void Particles_Log (Data *data, timeStep *Dts, Grid *grid)
   kin    /= p_nparticles + 1.e-6;  /* Avoid division by zero when
                                       there're no particles */
    #if PARTICLES_LP_SPECTRA == YES
-   sEmin  /= p_nparticles + 1.0e-6;
-   sEmax  /= p_nparticles + 1.0e-6;
+   sEmin  /= p_nparticles + 1.e-6;
+   sEmax  /= p_nparticles + 1.e-6;
    #endif
 #endif
 
-/* -- print both local and global number of particles -- */
+/* -- printLog both local and global number of particles -- */
   print ("%s [Nparticles/tot: %ld / %ld; Nsub = %d; <Ek> = %10.4e]\n",
            IndentString(), p_nparticles, np_glob, Dts->Nsub_particles, kin);
+#if PARTICLES_CR_GC
+  if (data->particles_GC_InvalidCount != 0) {
+    print ("! Warning: GC conditions were not met by %d particles.\n",
+             data->particles_GC_InvalidCount);
+  }
+#endif
 
 #if PARTICLES_LP_SPECTRA == YES
   print ("%s [<SpecE_min> = %10.4e, <SpecE_max> = %10.4e]\n",
           IndentString(), sEmin, sEmax);
 #endif
-/* -- print just global number of particles --  */
-
-//  print ("%s [Nparticles (tot) = %ld; Nsub = %d; <Ek> = %10.4e]\n",
-//             IndentString(), np_glob, Dts->Nsub_particles, kin);
-
 #endif
 }
 
@@ -123,17 +158,41 @@ void Particles_Log (Data *data, timeStep *Dts, Grid *grid)
     The next set of functions provides basic functionalities to
      
      - set the log file
-     - formatted output to the log file through the print() and print()
+     - formatted output to the log file through the printLog() and printLog()
        functions
    ///////////////////////////////////////////////////////////////////// */
 
-static char log_file_name[512];
 
 /* ********************************************************************* */
-int SetLogFile(char *log_dir, Cmd_Line *cmd)
+void LogFileClose(void)
 /*!
- * Set log file name in parallel mode.
- * Each processor has its own log file "pluto.prank.log" 
+ * Close a previously opened log file
+ *                           
+ *********************************************************************** */
+{
+#ifdef PARALLEL
+  if (g_flog != NULL) fclose(g_flog);
+#endif
+}
+
+/* ********************************************************************* */
+void LogFileFlush(void)
+/*!
+ * Flushes the output buffer of a log file stream.
+ *
+ *********************************************************************** */
+{
+#ifdef PARALLEL
+  if (g_flog != NULL) fflush (g_flog);
+#endif
+}
+
+/* ********************************************************************* */
+void LogFileOpen(char *log_dir, char *mode)
+/*!
+ * Open log file name in parallel mode.
+ * Each processor has its own log file "pluto.prank.log", unless the
+ * MULTIPLE_LOG_FILES flag has been set to FALSE.
  *
  * \param [in] output_dir  the name of the output directory
  * \param [in] cmd         pointer to cmd line option structure.
@@ -141,34 +200,23 @@ int SetLogFile(char *log_dir, Cmd_Line *cmd)
  *********************************************************************** */
 {
 #ifdef PARALLEL
-  FILE *fl;
 
-  //if (LOG_FILE_FOLDER ) {
-  //  mkdir("Log_Files",0777);
-  //}
- 
   sprintf (log_file_name, "%s/pluto.%d.log",log_dir,prank);
 
-  if (cmd->restart == NO && cmd->h5restart == NO){
-    fl = fopen(log_file_name,"w");
-  }else{
-    fl = fopen(log_file_name,"aw");
-  } 
+  #if MULTIPLE_LOG_FILES == NO
+  if (prank != 0) return;
+  #endif
+
+  g_flog = fopen(log_file_name, mode);
 
   /* -- check that we have a valid directory name -- */
 
-  if (fl == NULL){
+  if (g_flog == NULL){
     printf ("! SetLogFile(): %s cannot be written.\n",log_file_name);
     printf ("  Using current directory instead.\n");
     sprintf (log_file_name, "./pluto.%d.log",prank);
-    if (cmd->restart == NO && cmd->h5restart == NO){
-      fl = fopen(log_file_name,"w");
-    }else{
-      fl = fopen(log_file_name,"aw");
-    } 
+    g_flog = fopen(log_file_name, mode);
   }
-  fprintf(fl,"\n");
-  fclose(fl);
 #endif
 }
 
@@ -179,17 +227,51 @@ void print (const char *fmt, ...)
  * Define print function for the static grid version
  * of PLUTO. The Chombo version is defined in Chombo/amrPLUTO.cpp
  *
+ * Note: when MULTIPLE_LOG_FILES == FALSE, only proc #0 can
+ *       execute this function.
+ *
  *********************************************************************** */
 {
-  FILE *fl;
+#if MULTIPLE_LOG_FILES == NO
+  if (prank != 0) return;
+#endif
 
   va_list args;
   va_start(args, fmt);
 
 #ifdef PARALLEL
-  fl = fopen(log_file_name,"a");
-  vfprintf(fl, fmt, args);
-  fclose (fl);
+  vfprintf(g_flog, fmt, args);
+#else
+  vprintf(fmt, args);
+#endif
+
+  va_end(args);
+}
+#endif
+
+#ifndef CHOMBO
+/* ********************************************************************* */
+void printLog (const char *fmt, ...)
+/*!
+ * Define printLog function for the static grid version
+ * of PLUTO [All processors will write]
+ *
+ *********************************************************************** */
+{
+  va_list args;
+  va_start(args, fmt);
+
+#ifdef PARALLEL
+
+  /* --------------------------------------------
+      File may not be opened if
+      MULTIPLE_LOG_FILES is set to NO.
+     -------------------------------------------- */
+
+  #if MULTIPLE_LOG_FILES == NO
+  if (g_flog == NULL)  g_flog = fopen(log_file_name, "a");
+  #endif
+  vfprintf(g_flog, fmt, args);
 #else
   vprintf(fmt, args);
 #endif
@@ -215,4 +297,3 @@ char *IndentString()
 
   return str;
 }
-

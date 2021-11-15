@@ -30,7 +30,8 @@ void Particles_Init(Data *d, Grid *grid)
   int i,j,k, np, dir;
   int np_glob = RuntimeGet()->Nparticles_glob;
   int np_cell = RuntimeGet()->Nparticles_cell;
-  double xbeg[3], xend[3];
+  double xbeg[3], xend[3], dV;
+  double gamma, c2 = PARTICLES_CR_C*PARTICLES_CR_C;
   Particle p;
 
 /* ------------------------------------------------------------------
@@ -45,14 +46,28 @@ void Particles_Init(Data *d, Grid *grid)
       xbeg[JDIR] = grid->xl[JDIR][j]; xend[JDIR] = grid->xr[JDIR][j];
       xbeg[KDIR] = grid->xl[KDIR][k]; xend[KDIR] = grid->xr[KDIR][k];
 
+      dV = grid->dV[k][j][i];
+
   /* -- Loop on particles -- */
   
       for (np = 0; np < np_cell; np++){
         Particles_LoadUniform(np, np_cell, xbeg, xend, p.coord);
+
+      /* -- Compute particle 3-vel -- */
+
         p.speed[IDIR] = g_inputParam[VPX1];
         p.speed[JDIR] = g_inputParam[VPX2];
         p.speed[KDIR] = 0.0;
-        p.rho         = 1.e-2*g_inputParam[RHO_GAS]/np_cell;
+
+      /* -- Assign particle 4-vel -- */
+
+        gamma = DOT_PRODUCT(p.speed, p.speed);
+        gamma = 1.0/sqrt(1.0 - gamma/c2);
+        p.speed[IDIR] *= gamma;
+        p.speed[JDIR] *= gamma;
+        p.speed[KDIR] *= gamma;
+
+        p.mass        = (1.e-2*g_inputParam[RHO_GAS]/np_cell)*dV;
         p.color       = 0.0;
         Particles_Insert (&p, d, PARTICLES_CREATE, grid);
         count++;

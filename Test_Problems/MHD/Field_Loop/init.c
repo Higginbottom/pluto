@@ -135,6 +135,37 @@ void Analysis (const Data *d, Grid *grid)
  *
  *********************************************************************** */
 {
+  int i,j,k;
+  double ***Bx = d->Vc[BX1];
+  double ***By = d->Vc[BX2];
+  double ***Bz = d->Vc[BX3];
+  double Lx = g_domEnd[IDIR] - g_domBeg[IDIR];
+  double Ly = g_domEnd[JDIR] - g_domBeg[JDIR];
+  double Lz = g_domEnd[KDIR] - g_domBeg[KDIR];
+  double *dx = grid->dx[IDIR];
+  double *dy = grid->dx[JDIR];
+  double *dz = grid->dx[KDIR];
+  double pm, pm_glob, dV;
+  FILE *fp;
+
+  pm = 0.0;
+  DOM_LOOP(k,j,i){
+    dV  = DIM_EXPAND(dx[i]*dx[i], + dy[j]*dy[j], + dz[k]*dz[k]); 
+    pm += (Bx[k][j][i]*Bx[k][j][i] + By[k][j][i]*By[k][j][i])*dV;    
+  }
+
+  #ifdef PARALLEL
+  MPI_Allreduce (&pm, &pm_glob, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  pm = pm_glob;
+  #endif
+  pm /= DIM_EXPAND(Lx, *Ly, *Lz);
+
+  if (g_stepNumber == 0) fp = fopen("field_loop.dat","w");
+  else                   fp = fopen("field_loop.dat","aw");
+
+  fprintf (fp, "%12.6e  %12.6e\n", g_time, pm);
+
+  fclose(fp);
 
 }
 

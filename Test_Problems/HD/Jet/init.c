@@ -32,8 +32,8 @@
     adopts the tabulated version.
 
   \image html hd_jet.jpg "Pressure (left) and density (right) maps for configuration #01 at t=15" 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   March 2, 2017
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Feb 25, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -49,12 +49,13 @@ void Init (double *v, double x1, double x2, double x3)
   v[RHO] = g_inputParam[ETA];
   v[VX1] = 0.0;
   v[VX2] = 0.0;
+  v[VX3] = 0.0;
 
   #if EOS == IDEAL
-   g_gamma = 5.0/3.0;
-   v[PRS]  = 1.0/g_gamma;
+  g_gamma = 5.0/3.0;
+  v[PRS]  = 1.0/g_gamma;
   #elif EOS == PVTE_LAW
-   v[PRS] = Pressure(v,Ta);
+  v[PRS] = Pressure(v,Ta);
   #endif
 
 }
@@ -105,34 +106,50 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
 
   vj[RHO] = 1.0;
   #if EOS == IDEAL
-   vj[PRS] = 1.0/g_gamma;         /* -- Pressure-matched jet -- */
-   vj[VX2] = g_inputParam[MACH];  /* -- Sound speed is one in this case -- */
+  vj[PRS] = 1.0/g_gamma;         /* -- Pressure-matched jet -- */
+  vj[VX2] = g_inputParam[MACH];  /* -- Sound speed is one in this case -- */
   #elif EOS == PVTE_LAW
-   Tj      = g_inputParam[TJET];
-   vj[PRS] = Pressure(vj,Tj);
-   cs      = sqrt(vj[PRS]/vj[RHO]); /* -- For simplicity, isothermal cs is used -- */
-   vj[VX2] = g_inputParam[MACH]*cs;
+  Tj      = g_inputParam[TJET];
+  vj[PRS] = Pressure(vj,Tj);
+  cs      = sqrt(vj[PRS]/vj[RHO]); /* -- For simplicity, isothermal cs is used -- */
+  vj[VX2] = g_inputParam[MACH]*cs;
   #endif
+  
 
+#if GEOMETRY == CYLINDRICAL
   if (side == X2_BEG){     /* -- select the boundary side -- */
     BOX_LOOP(box,k,j,i){   /* -- Loop over boundary zones -- */
       if (x1[i] <= 1.0){   /* -- set jet values for r <= 1 -- */
         d->Vc[RHO][k][j][i] = vj[RHO];
         d->Vc[VX1][k][j][i] = 0.0;
         d->Vc[VX2][k][j][i] = vj[VX2];
+        d->Vc[VX3][k][j][i] = 0.0;
         d->Vc[PRS][k][j][i] = vj[PRS]; 
       }else{                /* -- reflective boundary for r > 1 --*/
-        VAR_LOOP(nv) d->Vc[nv][k][j][i] = d->Vc[nv][k][2*JBEG-j-1][i];
+        NVAR_LOOP(nv) d->Vc[nv][k][j][i] = d->Vc[nv][k][2*JBEG-j-1][i];
         d->Vc[VX2][k][j][i] *= -1.0;
-/*
-        d->Vc[RHO][k][j][i] =  d->Vc[RHO][k][2*JBEG - j - 1][i];
-        d->Vc[VX1][k][j][i] =  d->Vc[VX1][k][2*JBEG - j - 1][i];
-        d->Vc[VX2][k][j][i] = -d->Vc[VX2][k][2*JBEG - j - 1][i];
-        d->Vc[PRS][k][j][i] =  d->Vc[PRS][k][2*JBEG - j - 1][i];
-*/
       }
     }
   }
+#endif
+
+#if GEOMETRY == POLAR
+  vj[VX3] = vj[VX2];
+  if (side == X3_BEG){     /* -- select the boundary side -- */
+    BOX_LOOP(box,k,j,i){   /* -- Loop over boundary zones -- */
+      if (x1[i] <= 1.0){   /* -- set jet values for r <= 1 -- */
+        d->Vc[RHO][k][j][i] = vj[RHO];
+        d->Vc[VX1][k][j][i] = 0.0;
+        d->Vc[VX2][k][j][i] = 0.0;
+        d->Vc[VX3][k][j][i] = vj[VX3];
+        d->Vc[PRS][k][j][i] = vj[PRS]; 
+      }else{                /* -- reflective boundary for r > 1 --*/
+        NVAR_LOOP(nv) d->Vc[nv][k][j][i] = d->Vc[nv][2*KBEG-k-1][j][i];
+        d->Vc[VX3][k][j][i] *= -1.0;
+      }
+    }
+  }
+#endif
 }
 
 #if (BODY_FORCE & VECTOR)

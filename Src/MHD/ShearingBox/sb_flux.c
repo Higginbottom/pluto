@@ -29,11 +29,11 @@
    - "??" \n
      Mignone et al, in preparation
 
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \authors A. Mignone (mignone@to.infn.it)\n
            G. Muscianisi (g.musicanisi@cineca.it)\n
            G. Bodo (bodo@oato.inaf.it)
            
-  \date   Nov 13, 2015
+  \date   July 08, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -66,7 +66,7 @@ void SB_SaveFluxes (Sweep *sweep, Grid *grid)
  *********************************************************************** */
 {
   int nv;
-
+  
 #if SB_SYMMETRIZE_HYDRO == NO
   return;
 #endif
@@ -83,9 +83,7 @@ void SB_SaveFluxes (Sweep *sweep, Grid *grid)
   if (g_dir == IDIR && grid->lbound[IDIR] != 0){
     sweep->flux[IBEG - 1][MX1] += sweep->press[IBEG - 1];
     sweep->press[IBEG - 1]      = 0.0;  
-    for (nv = 0; nv <= NVLAST; nv++){
-      FluxL[nv][g_k][g_j] = sweep->flux[IBEG - 1][nv];
-    } 
+    NVAR_LOOP(nv) FluxL[nv][g_k][g_j] = sweep->flux[IBEG - 1][nv];
   }
 
 /* ---------------------------------------------------- 
@@ -95,9 +93,7 @@ void SB_SaveFluxes (Sweep *sweep, Grid *grid)
   if (g_dir == IDIR && grid->rbound[IDIR] != 0){
     sweep->flux[IEND][MX1] += sweep->press[IEND];    
     sweep->press[IEND]      = 0.0;  
-    for (nv = 0; nv <= NVLAST; nv++){
-      FluxR[nv][g_k][g_j] = sweep->flux[IEND][nv];
-    }
+    NVAR_LOOP(nv) FluxR[nv][g_k][g_j] = sweep->flux[IEND][nv];
   }
 }
 
@@ -152,7 +148,7 @@ t = g_time;
    ----------------------------------------------------------------------- */
 
   #ifdef PARALLEL
-   ExchangeX (FluxL[0][0], FluxR[0][0], NVAR*NX2_TOT*NX3_TOT, grid);
+  ExchangeX (FluxL[0][0], FluxR[0][0], NVAR*NX2_TOT*NX3_TOT, grid);
   #endif
 
 /* --------------------------------------------------------------------- */
@@ -185,7 +181,7 @@ t = g_time;
 
   /* -- copy FluxR on temporary storage and shift -- */
 
-    for (nv = 0; nv <= NVLAST; nv++) {
+    NVAR_LOOP(nv){
       BOX_LOOP((&box), k, j, i) Ftmp[nv][k][j][i] = FluxR[nv][k][j];
       SB_SetBoundaryVar(Ftmp[nv], &box, X1_BEG, t, grid);
     }
@@ -193,7 +189,7 @@ t = g_time;
   /* -- symmetrize fluxes -- */
   
     for (k = KBEG; k <= KEND; k++){
-      for (nv = 0; nv <= NVLAST; nv++){
+      NVAR_LOOP(nv){
       for (j = JBEG; j <= JEND; j++){
         fL[nv][j] = swL*FluxL[nv][k][j] + swR*Ftmp[nv][k][j][0];
       }}
@@ -201,17 +197,23 @@ t = g_time;
         #if HAVE_ENERGY
         fL[ENG][j] += swR*sb_vy*(fL[MX2][j] + 0.5*sb_vy*fL[RHO][j]);
         #endif
+        #if PHYSICS == MHD
         #ifdef GLM_MHD
         fL[BX2][j] -= swR*sb_vy*fL[PSI_GLM][j]/glm_ch/glm_ch;
 /*         fL[BX2][j] -= 0.5*sb_vy*FluxL[PSI_GLM][k][j]/glm_ch/glm_ch; */
         #endif
+        #if SB_SYMMETRIZE_EZ == FALSE
+        fL[BX2][j] = FluxL[BX2][k][j] = 0.0;
+        #endif
+        #endif
+        
         fL[MX2][j] += swR*sb_vy*fL[RHO][j];
         
       /* -- update solution vector -- */
 
-        for (nv = 0; nv <= NVLAST; nv++){
-          U[k][j][IBEG][nv] += dtdx*(fL[nv][j] - FluxL[nv][k][j]); 
-        } 
+        NVAR_LOOP(nv){
+          U[k][j][IBEG][nv] += dtdx*(fL[nv][j] - FluxL[nv][k][j]);
+        }  
       }
     }
   }   
@@ -227,7 +229,7 @@ t = g_time;
 
   /* -- copy FluxL on temporary storage and shift -- */
 
-    for (nv = 0; nv <= NVLAST; nv++) {
+    NVAR_LOOP(nv){
       BOX_LOOP((&box), k, j, i) Ftmp[nv][k][j][i] = FluxL[nv][k][j];
       SB_SetBoundaryVar(Ftmp[nv], &box, X1_END, t, grid);
     }
@@ -235,7 +237,7 @@ t = g_time;
   /* -- symmetrize fluxes -- */
   
     for (k = KBEG; k <= KEND; k++){
-      for (nv = 0; nv <= NVLAST; nv++){
+      NVAR_LOOP(nv){
       for (j = JBEG; j <= JEND; j++){
         fR[nv][j] = swL*Ftmp[nv][k][j][0] + swR*FluxR[nv][k][j];
       }}
@@ -243,15 +245,21 @@ t = g_time;
         #if HAVE_ENERGY
         fR[ENG][j] += swL*sb_vy*(-fR[MX2][j] + 0.5*sb_vy*fR[RHO][j]);
         #endif
+        
+        #if PHYSICS == MHD
         #ifdef GLM_MHD
         fR[BX2][j] += swL*sb_vy*fR[PSI_GLM][j]/glm_ch/glm_ch;
 /*         fR[BX2][j] += 0.5*sb_vy*FluxR[PSI_GLM][k][j]/glm_ch/glm_ch; */
         #endif
+        #if SB_SYMMETRIZE_EZ == FALSE
+        fR[BX2][j] = FluxR[BX2][k][j] = 0.0;
+        #endif
+        #endif
+        
         fR[MX2][j] -= swL*sb_vy*fR[RHO][j];
-
-        for (nv = 0; nv <= NVLAST; nv++){
-          U[k][j][IEND][nv] -= dtdx*(fR[nv][j] - FluxR[nv][k][j]); 
-        }
+        NVAR_LOOP(nv) {
+          U[k][j][IEND][nv] -= dtdx*(fR[nv][j] - FluxR[nv][k][j]);
+        }  
       }
     }  
   }
@@ -315,10 +323,10 @@ void SB_CorrectEMF (EMF *emf, Data_Arr V0, Grid *grid)
   static double **BxR0, **BxR, ***dBxR_lim, *dBxR, ***eyR, ***ezR;
   static double ***etmp, ***dBtmp;
 
-  #if    (SB_SYMMETRIZE_EY == NO) && (SB_SYMMETRIZE_EZ == NO) \
-      && (SB_FORCE_EMF_PERIODS == NO)
-   return;
-  #endif
+#if    (SB_SYMMETRIZE_EY == NO) && (SB_SYMMETRIZE_EZ == NO) \
+    && (SB_FORCE_EMF_PERIODS == NO)
+  return;
+#endif
 
   if (ezL == NULL){
     eyL  = ARRAY_3D(NX3_TOT, NX2_TOT, 1, double);
@@ -360,47 +368,47 @@ void SB_CorrectEMF (EMF *emf, Data_Arr V0, Grid *grid)
     } 
   }
 
-  #ifdef CTU
-   if (grid->lbound[IDIR] != 0){
-     KTOT_LOOP(k) JTOT_LOOP(j) BxL[k][j] = BxL0[k][j] = V0[BX1s][k][j][IBEG - 1]; 
-   }
-   if (grid->rbound[IDIR] != 0){
-     KTOT_LOOP(k) JTOT_LOOP(j) BxR[k][j] = BxR0[k][j] = V0[BX1s][k][j][IEND];
-   } 
-  #elif TIME_STEPPING == RK2
-   if (g_intStage == 2) {
-     tB = g_time + 0.5*g_dt;
-     dt = 0.5*g_dt;
-     if (grid->lbound[IDIR] != 0) KTOT_LOOP(k) JTOT_LOOP(j) {
-       BxL[k][j] = 0.5*(BxL0[k][j] + V0[BX1s][k][j][IBEG - 1]);
-     }
-     if (grid->rbound[IDIR] != 0) KTOT_LOOP(k) JTOT_LOOP(j) {
-       BxR[k][j] = 0.5*(BxR0[k][j] + V0[BX1s][k][j][IEND]);
-     }
-   } 
-  #elif TIME_STEPPING == RK3
-   if (g_intStage == 2) {
-     tB = g_time + 0.25*g_dt;
-     tE = g_time + 0.5*g_dt;
-     dt = 0.25*g_dt;
-     if (grid->lbound[IDIR] != 0) KTOT_LOOP(k) JTOT_LOOP(j) {
-       BxL[k][j] = 0.75*BxL0[k][j] + 0.25*V0[BX1s][k][j][IBEG - 1];
-     }
-     if (grid->rbound[IDIR] != 0) KTOT_LOOP(k) JTOT_LOOP(j) {
-       BxR[k][j] = 0.75*BxR0[k][j] + 0.25*V0[BX1s][k][j][IEND];
-     }
-   }else if (g_intStage == 3) {
-     tB = g_time + g_dt/3.0;
-     tE = g_time + g_dt;
-     dt = g_dt/1.5;
-     if (grid->lbound[IDIR] != 0) KTOT_LOOP(k) JTOT_LOOP(j) {
-       BxL[k][j] = (BxL0[k][j] + 2.0*V0[BX1s][k][j][IBEG - 1])/3.0;
-     }
-     if (grid->rbound[IDIR] != 0) KTOT_LOOP(k) JTOT_LOOP(j) {
-       BxR[k][j] = (BxR0[k][j] + 2.0*V0[BX1s][k][j][IEND])/3.0;
-     }
-   } 
-  #endif
+#ifdef CTU
+  if (grid->lbound[IDIR] != 0){
+    KTOT_LOOP(k) JTOT_LOOP(j) BxL[k][j] = BxL0[k][j] = V0[BX1s][k][j][IBEG - 1]; 
+  }
+  if (grid->rbound[IDIR] != 0){
+    KTOT_LOOP(k) JTOT_LOOP(j) BxR[k][j] = BxR0[k][j] = V0[BX1s][k][j][IEND];
+  } 
+#elif TIME_STEPPING == RK2
+  if (g_intStage == 2) {
+    tB = g_time + 0.5*g_dt;
+    dt = 0.5*g_dt;
+    if (grid->lbound[IDIR] != 0) KTOT_LOOP(k) JTOT_LOOP(j) {
+      BxL[k][j] = 0.5*(BxL0[k][j] + V0[BX1s][k][j][IBEG - 1]);
+    }
+    if (grid->rbound[IDIR] != 0) KTOT_LOOP(k) JTOT_LOOP(j) {
+      BxR[k][j] = 0.5*(BxR0[k][j] + V0[BX1s][k][j][IEND]);
+    }
+  } 
+#elif TIME_STEPPING == RK3
+  if (g_intStage == 2) {
+    tB = g_time + 0.25*g_dt;
+    tE = g_time + 0.5*g_dt;
+    dt = 0.25*g_dt;
+    if (grid->lbound[IDIR] != 0) KTOT_LOOP(k) JTOT_LOOP(j) {
+      BxL[k][j] = 0.75*BxL0[k][j] + 0.25*V0[BX1s][k][j][IBEG - 1];
+    }
+    if (grid->rbound[IDIR] != 0) KTOT_LOOP(k) JTOT_LOOP(j) {
+      BxR[k][j] = 0.75*BxR0[k][j] + 0.25*V0[BX1s][k][j][IEND];
+    }
+  }else if (g_intStage == 3) {
+    tB = g_time + g_dt/3.0;
+    tE = g_time + g_dt;
+    dt = g_dt/1.5;
+    if (grid->lbound[IDIR] != 0) KTOT_LOOP(k) JTOT_LOOP(j) {
+      BxL[k][j] = (BxL0[k][j] + 2.0*V0[BX1s][k][j][IBEG - 1])/3.0;
+    }
+    if (grid->rbound[IDIR] != 0) KTOT_LOOP(k) JTOT_LOOP(j) {
+      BxR[k][j] = (BxR0[k][j] + 2.0*V0[BX1s][k][j][IEND])/3.0;
+    }
+  } 
+#endif
 
   dtdy   = dt/grid->dx[JDIR][JBEG];
   nghost = grid->nghost[IDIR];
@@ -412,17 +420,19 @@ void SB_CorrectEMF (EMF *emf, Data_Arr V0, Grid *grid)
   /* -- Store Ey, Ez, Bx on the left and compute slopes -- */
 
     KTOT_LOOP(k) JTOT_LOOP(j){
-      D_EXPAND(                                         ,
-               ezL[k][j][0] = emf->ez[k][j][IBEG - 1];  ,
-               eyL[k][j][0] = emf->ey[k][j][IBEG - 1];)
+      DIM_EXPAND(                                           ,
+               ezL[k][j][0] = emf->Ex3e[k][j][IBEG - 1];  ,
+               eyL[k][j][0] = emf->Ex2e[k][j][IBEG - 1];)
     }
 
+    #if INCLUDE_JDIR
     for (k = KBEG; k <= KEND; k++){
       for (j = 1; j <= JEND + nghost; j++) dBxL[j] = BxL[k][j] - BxL[k][j-1]; 
       for (j = JBEG-1; j <= JEND+1; j++){
-        dBxL_lim[k][j][0] = VAN_LEER(dBxL[j+1], dBxL[j]);
+        dBxL_lim[k][j][0] = VANLEER_LIMITER(dBxL[j+1], dBxL[j]);
       }
     }
+    #endif
   }
 
 /* -- compute Bx slopes on right side -- */
@@ -432,29 +442,31 @@ void SB_CorrectEMF (EMF *emf, Data_Arr V0, Grid *grid)
   /* -- Store Ey, Ez, Bx on the right and compute slopes -- */
 
     KTOT_LOOP(k) JTOT_LOOP(j){
-      D_EXPAND(                                      ,
-               ezR[k][j][0] = emf->ez[k][j][IEND];   ,
-               eyR[k][j][0] = emf->ey[k][j][IEND]; )
+      DIM_EXPAND(                                        ,
+               ezR[k][j][0] = emf->Ex3e[k][j][IEND];   ,
+               eyR[k][j][0] = emf->Ex2e[k][j][IEND]; )
     }
 
+    #if INCLUDE_JDIR
     for (k = KBEG; k <= KEND; k++){
       for (j = 1; j <= JEND + nghost; j++) dBxR[j] = BxR[k][j] - BxR[k][j-1];
       for (j = JBEG-1; j <= JEND+1; j++){
-        dBxR_lim[k][j][0] = VAN_LEER(dBxR[j+1], dBxR[j]);
+        dBxR_lim[k][j][0] = VANLEER_LIMITER(dBxR[j+1], dBxR[j]);
       }
     }
+    #endif
   }
 
 /* ---------------------------------------------------------------------
             exchange data between processors
    --------------------------------------------------------------------- */
 
-  #ifdef PARALLEL
-   D_EXPAND(                                                                   ,
-            ExchangeX (ezL[0][0], ezR[0][0], NX3_TOT*NX2_TOT, grid); 
-            ExchangeX (dBxL_lim[0][0], dBxR_lim[0][0], NX3_TOT*NX2_TOT, grid); ,
-            ExchangeX (eyL[0][0], eyR[0][0], NX3_TOT*NX2_TOT, grid); )
-  #endif
+#ifdef PARALLEL
+  DIM_EXPAND(                                                                   ,
+           ExchangeX (ezL[0][0], ezR[0][0], NX3_TOT*NX2_TOT, grid); 
+           ExchangeX (dBxL_lim[0][0], dBxR_lim[0][0], NX3_TOT*NX2_TOT, grid); ,
+           ExchangeX (eyL[0][0], eyR[0][0], NX3_TOT*NX2_TOT, grid); )
+#endif
 
 /* ----------------------------------------------------------------
     Symmetrize Ey and Ez on the left.
@@ -472,14 +484,14 @@ void SB_CorrectEMF (EMF *emf, Data_Arr V0, Grid *grid)
 
    /* -- Interpolate eyR --> eyLR -- */
 
-     BOX_LOOP((&box), k, j, i) etmp[k][j][i] = eyR[k][j][i];
-     SB_SetBoundaryVar(etmp, &box, X1_BEG, tE, grid);
-     for (k = KBEG - 1; k <= KEND; k++){
-       for (j = JBEG; j <= JEND; j++) {
-         emf->ey[k][j][IBEG - 1] = swL*eyL[k][j][0] + swR*etmp[k][j][0];
-       }
-     }
-    #endif
+    BOX_LOOP((&box), k, j, i) etmp[k][j][i] = eyR[k][j][i];
+    SB_SetBoundaryVar(etmp, &box, X1_BEG, tE, grid);
+    for (k = KBEG - 1; k <= KEND; k++){
+      for (j = JBEG; j <= JEND; j++) {
+        emf->Ex2e[k][j][IBEG - 1] = swL*eyL[k][j][0] + swR*etmp[k][j][0];
+      }
+    }
+    #endif  /* SB_SYMMETRIZE_EY == YES */
 
 /* --------------------------------------------------------------------- */
 /*! \note 
@@ -489,27 +501,27 @@ void SB_CorrectEMF (EMF *emf, Data_Arr V0, Grid *grid)
     a periodic function).                                                */
 /* --------------------------------------------------------------------- */
 
-    #if SB_SYMMETRIZE_EZ == YES
+    #if (SB_SYMMETRIZE_EZ == YES) && INCLUDE_JDIR 
 
     /* -- interpolate dbxR_lim, ezR --> dbxLR_lim, ezLR -- */
 
-     BOX_LOOP((&box), k, j, i) {
-       dBtmp[k][j][i] = dBxR_lim[k][j][i];
-        etmp[k][j][i] =      ezR[k][j][i];
-     }
-     SB_SetBoundaryVar(dBtmp, &box, X1_BEG, tB, grid);
-     SB_SetBoundaryVar( etmp, &box, X1_BEG, tE, grid);
-     for (k = KBEG; k <= KEND; k++){ 
-       for (j = JBEG - 1; j <= JEND + 1; j++){
-         dBxL[j] = 0.5*(dBxL_lim[k][j][0] + dBtmp[k][j][0]);
-       }
-       for (j = JBEG - 1; j <= JEND; j++){
-         fE = w*(BxL[k][j] + 0.5*dBxL[j]*(1.0 - w*dtdy));
-         emf->ez[k][j][IBEG-1] = 0.5*(ezL[k][j][0] + etmp[k][j][0] + fE);
-       }
-     }
-    #endif
-  }
+    BOX_LOOP((&box), k, j, i) {
+      dBtmp[k][j][i] = dBxR_lim[k][j][i];
+       etmp[k][j][i] =      ezR[k][j][i];
+    }
+    SB_SetBoundaryVar(dBtmp, &box, X1_BEG, tB, grid);
+    SB_SetBoundaryVar( etmp, &box, X1_BEG, tE, grid);
+    for (k = KBEG; k <= KEND; k++){ 
+      for (j = JBEG - 1; j <= JEND + 1; j++){
+        dBxL[j] = 0.5*(dBxL_lim[k][j][0] + dBtmp[k][j][0]);
+      }
+      for (j = JBEG - 1; j <= JEND; j++){
+        fE = w*(BxL[k][j] + 0.5*dBxL[j]*(1.0 - w*dtdy));
+        emf->Ex3e[k][j][IBEG-1] = 0.5*(ezL[k][j][0] + etmp[k][j][0] + fE);
+      }
+    }
+    #endif  /* (SB_SYMMETRIZE_EZ == YES) && INCLUDE_JDIR  */
+  }  /* end if (grid->lbound[IDIR] != 0) */
 
 /* ------------------------------------------------------
          Symmetrize Ey, and Ez on the right
@@ -522,85 +534,85 @@ void SB_CorrectEMF (EMF *emf, Data_Arr V0, Grid *grid)
     box.kbeg = 0; box.kend = NX3_TOT-1;
 
     #if SB_SYMMETRIZE_EY == YES
-     SB_SetBoundaryVar(eyL, &box, X1_END, tE, grid);
-     for (k = KBEG - 1; k <= KEND; k++){
-       for (j = JBEG; j <= JEND; j++) {
-         emf->ey[k][j][IEND] = swL*eyL[k][j][0] + swR*eyR[k][j][0];
-       }
-     } 
+    SB_SetBoundaryVar(eyL, &box, X1_END, tE, grid);
+    for (k = KBEG - 1; k <= KEND; k++){
+      for (j = JBEG; j <= JEND; j++) {
+        emf->Ex2e[k][j][IEND] = swL*eyL[k][j][0] + swR*eyR[k][j][0];
+      }
+    } 
     #endif
 
-    #if SB_SYMMETRIZE_EZ == YES
-     SB_SetBoundaryVar(dBxL_lim, &box, X1_END, tB, grid);
-     SB_SetBoundaryVar(     ezL, &box, X1_END, tE, grid);
+    #if (SB_SYMMETRIZE_EZ == YES) && INCLUDE_JDIR 
+    SB_SetBoundaryVar(dBxL_lim, &box, X1_END, tB, grid);
+    SB_SetBoundaryVar(     ezL, &box, X1_END, tE, grid);
 
-     for (k = KBEG; k <= KEND; k++){ 
-       for (j = JBEG - 1; j <= JEND + 1; j++){
-         dBxR[j] = 0.5*(dBxL_lim[k][j][0] + dBxR_lim[k][j][0]);
-       }
-       for (j = JBEG - 1; j <= JEND; j++){
-         fE = w*(BxR[k][j + 1] - 0.5*dBxR[j + 1]*(1.0 - w*dtdy));
-         emf->ez[k][j][IEND] = 0.5*(ezR[k][j][0] + ezL[k][j][0] - fE);
-       }
-     }
+    for (k = KBEG; k <= KEND; k++){ 
+      for (j = JBEG - 1; j <= JEND + 1; j++){
+        dBxR[j] = 0.5*(dBxL_lim[k][j][0] + dBxR_lim[k][j][0]);
+      }
+      for (j = JBEG - 1; j <= JEND; j++){
+        fE = w*(BxR[k][j + 1] - 0.5*dBxR[j + 1]*(1.0 - w*dtdy));
+        emf->Ex3e[k][j][IEND] = 0.5*(ezR[k][j][0] + ezL[k][j][0] - fE);
+      }
+    }
     #endif
-  }
+  }  /* end grid->rbound[IDIR] != 0 */
 
 /* --------------------------------------------------
                 Force Periodicity 
    -------------------------------------------------- */
 
-  #if DIMENSIONS == 3 && SB_FORCE_EMF_PERIODS == YES
-               
+#if (INCLUDE_KDIR) && (SB_FORCE_EMF_PERIODS == YES)
+
   /* -- Ex at Z faces: force periodicty  -- */
-                                                                     
-   #ifdef PARALLEL
-    MPI_Barrier (MPI_COMM_WORLD);
-    AL_Exchange_dim (emf->ex[0][0], dimz, SZ);
-    MPI_Barrier (MPI_COMM_WORLD);
-   #else
-    for (j = JBEG - 1; j <= JEND; j++){
-    for (i = IBEG    ; i <= IEND; i++){
-      esym = 0.5*(emf->ex[KBEG - 1][j][i] + emf->ex[KEND][j][i]);
-      emf->ex[KBEG - 1][j][i] = esym;
-      emf->ex[KEND    ][j][i] = esym;
-    }}
-   #endif
+
+  #ifdef PARALLEL
+  MPI_Barrier (MPI_COMM_WORLD);
+  AL_Exchange_dim (emf->ex[0][0], dimz, SZ);
+  MPI_Barrier (MPI_COMM_WORLD);
+  #else
+  for (j = JBEG - 1; j <= JEND; j++){
+  for (i = IBEG    ; i <= IEND; i++){
+    esym = 0.5*(emf->ex[KBEG - 1][j][i] + emf->ex[KEND][j][i]);
+    emf->Ex1e[KBEG - 1][j][i] = esym;
+    emf->Ex1e[KEND    ][j][i] = esym;
+  }}
+  #endif
 
    /*  Ex at Y faces: force periodicity  */
 
-   for (k = KBEG - 1; k <= KEND; k++){
-   for (i = IBEG    ; i <= IEND; i++){
-     esym = 0.5*(emf->ex[k][JBEG - 1][i] + emf->ex[k][JEND][i]);
-     emf->ex[k][JBEG - 1][i] = esym;
-     emf->ex[k][JEND    ][i] = esym;
-   }}
+  for (k = KBEG - 1; k <= KEND; k++){
+  for (i = IBEG    ; i <= IEND; i++){
+    esym = 0.5*(emf->ex[k][JBEG - 1][i] + emf->ex[k][JEND][i]);
+    emf->Ex1e[k][JBEG - 1][i] = esym;
+    emf->Ex1e[k][JEND    ][i] = esym;
+  }}
      
    /*  Ey at Z faces: force periodicity   */
 
-   #ifdef PARALLEL
-    MPI_Barrier (MPI_COMM_WORLD);
-    AL_Exchange_dim (emf->ey[0][0], dimz, SZ);
-    MPI_Barrier (MPI_COMM_WORLD);
-   #else
-    for (j = JBEG    ; j <= JEND; j++){
-    for (i = IBEG - 1; i <= IEND; i++){
-      esym = 0.5*(emf->ey[KBEG - 1][j][i] + emf->ey[KEND][j][i]);
-      emf->ey[KBEG - 1][j][i] = esym;
-      emf->ey[KEND    ][j][i] = esym;
-    }}
-   #endif
+  #ifdef PARALLEL
+  MPI_Barrier (MPI_COMM_WORLD);
+  AL_Exchange_dim (emf->ey[0][0], dimz, SZ);
+  MPI_Barrier (MPI_COMM_WORLD);
+  #else
+  for (j = JBEG    ; j <= JEND; j++){
+  for (i = IBEG - 1; i <= IEND; i++){
+    esym = 0.5*(emf->ey[KBEG - 1][j][i] + emf->ey[KEND][j][i]);
+    emf->Ex2e[KBEG - 1][j][i] = esym;
+    emf->Ex2[KEND    ][j][i] = esym;
+  }}
+  #endif
 
    /*  Ez at Y faces: force periodicity   */
  
-   for (k = KBEG    ; k <= KEND; k++){
-   for (i = IBEG - 1; i <= IEND; i++){
-     esym = 0.5*(ez[k][JBEG - 1][i] + ez[k][JEND][i]);
-     ez[k][JBEG - 1][i] = esym;
-     ez[k][JEND    ][i] = esym;
-   }}
- 
-  #endif 
+  for (k = KBEG    ; k <= KEND; k++){
+  for (i = IBEG - 1; i <= IEND; i++){
+    esym = 0.5*(ez[k][JBEG - 1][i] + ez[k][JEND][i]);
+    emf->Ex3e[k][JBEG - 1][i] = esym;
+    emf->Ex3e[k][JEND    ][i] = esym;
+  }}
+
+#endif  /* (INCLUDE_KDIR) && (SB_FORCE_EMF_PERIODS == YES) */
 }
 #endif
 

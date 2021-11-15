@@ -30,7 +30,7 @@
 
   \b References
 
-  \date  March 31, 2018
+  \date  August 06, 2018
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -40,6 +40,13 @@
 void Particles_Deposit(particleNode *PHead, void (*Func)(Particle *, double *),
                        Data_Arr Q, int nelem, Grid *grid)
 /*!
+ *
+ * \param [in]  PHead   pointer to particle Node
+ * \param [in]  Func()  pointe to function containing the quantity to
+ *                      be deposited on the grid
+ * \param [out] Q       The 4D data array on which func is deposited
+ * \param [in]  nelem   the number of elements
+ * \param [in]  Grid    Pointer to a grid structure
  *
  *********************************************************************** */
 {
@@ -56,11 +63,11 @@ void Particles_Deposit(particleNode *PHead, void (*Func)(Particle *, double *),
    -------------------------------------------------------- */
 
   if (w == NULL) {
-    w  = ArrayBox (-1, 1, -1, 1, -1, 1);
+    w  = ARRAY_BOX (-1, 1, -1, 1, -1, 1, double);
   }
 
   if (nelem > NELEM_MAX){
-    print ("! Particles_Deposit: exceeded max number of elements (%d)\n",
+    printLog ("! Particles_Deposit: exceeded max number of elements (%d)\n",
            NELEM_MAX);
     QUIT_PLUTO(1);
   }
@@ -90,9 +97,9 @@ void Particles_Deposit(particleNode *PHead, void (*Func)(Particle *, double *),
     k = p->cell[KDIR];
 
     for (n = 0; n < nelem; n++){
-      for (k1 = -KOFFSET; k1 <= KOFFSET; k1++){
-      for (j1 = -JOFFSET; j1 <= JOFFSET; j1++){
-      for (i1 = -IOFFSET; i1 <= IOFFSET; i1++){
+      for (k1 = -INCLUDE_KDIR; k1 <= INCLUDE_KDIR; k1++){
+      for (j1 = -INCLUDE_JDIR; j1 <= INCLUDE_JDIR; j1++){
+      for (i1 = -INCLUDE_IDIR; i1 <= INCLUDE_IDIR; i1++){
         Q[n][k+k1][j+j1][i+i1] += qd[n]*w[k1][j1][i1];
       }}}
     }
@@ -137,9 +144,9 @@ void Particles_Deposit(particleNode *PHead, void (*Func)(Particle *, double *),
 
     for (n = 0; n < nelem; n++){
       qd[n] /= max_qd[n];
-      for (k1 = -KOFFSET; k1 <= KOFFSET; k1++){
-      for (j1 = -JOFFSET; j1 <= JOFFSET; j1++){
-      for (i1 = -IOFFSET; i1 <= IOFFSET; i1++){
+      for (k1 = -INCLUDE_KDIR; k1 <= INCLUDE_KDIR; k1++){
+      for (j1 = -INCLUDE_JDIR; j1 <= INCLUDE_JDIR; j1++){
+      for (i1 = -INCLUDE_IDIR; i1 <= INCLUDE_IDIR; i1++){
         wq = (long)(C*qd[n]*w[k1][j1][i1]);
         Q[n][k+k1][j+j1][i+i1] += wq;
       }}}
@@ -228,7 +235,7 @@ void Particles_DepositBoundaryExchange(Data_Arr Q, int nelem, Grid *grid)
   MPI_Status status;
   
   for (n = 0; n < nelem; n++){
-    for (dir = 0; dir < DIMENSIONS; dir++){
+    DIM_LOOP(dir){
 
       procR = neigh[dir][1]; /* Rank of processor to the right */
       procL = neigh[dir][0]; /* Rank of processor to the left */
@@ -258,7 +265,7 @@ void Particles_DepositBoundaryExchange(Data_Arr Q, int nelem, Grid *grid)
       BOX_LOOP(&boxR, k,j,i) snd_bufR[countR++] = Q[n][k][j][i];
 /*
 if (countL != countR){
-  print ("! err, countL = %d != countR = %d\n", countL, countR);
+  printLog ("! err, countL = %d != countR = %d\n", countL, countR);
   QUIT_PLUTO(1);
 }
 */
@@ -316,7 +323,7 @@ if (countL != countR){
   
 #else
 
-  #if DIMENSIONS >= 1
+  #if INCLUDE_IDIR
   if (   (grid->lbound[IDIR] == PERIODIC && grid->rbound[IDIR] == PERIODIC)
       || (grid->lbound[IDIR] == SHEARING && grid->rbound[IDIR] == SHEARING)){
     for (n = 0; n < nelem; n++){
@@ -329,7 +336,7 @@ if (countL != countR){
   }
   #endif
 
-  #if DIMENSIONS >= 2
+  #if INCLUDE_JDIR
   if (grid->lbound[JDIR] == PERIODIC && grid->rbound[JDIR] == PERIODIC){
     for (n = 0; n < nelem; n++){
       X2_BEG_LOOP(k,j,i) Q[n][k][j+NX2][i] += Q[n][k][j][i];
@@ -341,7 +348,7 @@ if (countL != countR){
   }
   #endif
 
-  #if DIMENSIONS == 3
+  #if INCLUDE_KDIR
   if (grid->lbound[KDIR] == PERIODIC && grid->rbound[KDIR] == PERIODIC){
     for (n = 0; n < nelem; n++){
       X3_BEG_LOOP(k,j,i) Q[n][k+NX3][j][i] += Q[n][k][j][i];
@@ -363,10 +370,6 @@ void Particles_Density(Particle *p, double *qd)
  *  on the grid.
  *********************************************************************** */
 {
-#if PARTICLES_TYPE == DUST
-  qd[0] = p->rho;
-#elif PARTICLES_TYPE == COSMIC_RAYS
-  qd[0] = p->rho;
-#endif
+  qd[0] = 1.0;
 }
 

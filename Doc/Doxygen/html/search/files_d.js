@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['quartic_2ec',['quartic.c',['../quartic_8c.html',1,'']]]
+  ['output_5flog_2ec',['output_log.c',['../output__log_8c.html',1,'']]]
 ];

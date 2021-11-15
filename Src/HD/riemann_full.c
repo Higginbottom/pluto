@@ -68,7 +68,7 @@ void TWO_SHOCK (const Sweep *sweep, real *cmax, Grid *grid)
 
       if (fabs(dp) < 1.e-7*pstar) break;
       if (k == (MAX_ITER-5)){
-        print ("! Too many iterations in Rieman\n");
+        printLog ("! Too many iterations in Rieman\n");
         Show(sweep->vL,i);
         Show(sweep->vR,i);
 
@@ -158,13 +158,11 @@ void TWO_SHOCK (const Sweep *sweep, real *cmax, Grid *grid)
     }   
 
     if (ustar > 0.0) {
-      EXPAND(                     ,
-             vs[i][VXt] = vL[VXt];  ,
-             vs[i][VXb] = vL[VXb];)
+      vs[i][VXt] = vL[VXt];
+      vs[i][VXb] = vL[VXb];
     }else{
-      EXPAND(                     ,
-             vs[i][VXt] = vR[VXt];  ,
-             vs[i][VXb] = vR[VXb];)
+      vs[i][VXt] = vR[VXt];
+      vs[i][VXb] = vR[VXb];
     }
       
   }

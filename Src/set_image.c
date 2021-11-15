@@ -47,7 +47,7 @@ Image *GetImage (char *var_name)
 
   while (strcmp(image[++indx].basename, var_name)) {
     if (image[indx].colormap == NULL) { /* if colormap is NULL, image does not exist! */
-      print ("! Error: var '%s' is not associated with a valid image\n"); 
+      printLog ("! Error: var '%s' is not associated with a valid image\n"); 
       QUIT_PLUTO(1);
     }
   }

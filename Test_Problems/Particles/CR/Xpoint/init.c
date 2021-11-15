@@ -3,13 +3,26 @@
   \file  
   \brief X-point test particle acceleration.
 
-  Test-particle acceleration near an X-type magnetic reconnection region.
-  (see sect. 4.6 of Mignone et al. 2018).
+  Test-particle acceleration near an X-type magnetic
+  reconnection region (see sect. 4.6 of Mignone et al. 2018).
 
+  Configurations #1, #2 correspond, respectively, to the cases
+  without and with guide field.
+  They follow the normalization indicated in the
+  paper (vA = 1 = C/100, t = 1/Omega_L).
+ 
+  Configurations #3, #4 replicate #1 and #2 with the resistive
+  RMHD module and are re-normalized so that C = 1, t = 1/Omega_L.
 
-  \author G. Mattia, 
-          A. Mignone (mignone@ph.unito.it)
-  \date   May 13, 2018
+  \author A. Mignone (mignone@to.infn.it),
+          G. Mattia
+
+  \b References
+    - "MAGNETOHYDRODYNAMIC-PARTICLE-IN-CELL METHOD FOR COUPLING COSMIC RAYS 
+       WITH A THERMAL PLASMA: APPLICATION TO NON-RELATIVISTIC SHOCKS"\n
+       Bai et al., ApJ (2015) 809, 55
+
+  \date   June 13, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -21,19 +34,13 @@ void Init (double *v, double x, double y, double z)
  *
  *********************************************************************** */
 {
-  double alpha = g_inputParam[ALPHA];
-  double beta  = g_inputParam[BETA];
-  double E[3], B[3];
-  double coor[3] = {x,y,z};
-
-  Particles_CR_EMFields(coor, E, B);
+  double alpha = 4.0/(g_domEnd[JDIR] - g_domBeg[JDIR]);
+  double beta  = 4.0/(g_domEnd[IDIR] - g_domBeg[IDIR]);
+  double Bz = g_inputParam[BMAG_Z];
+  double Ez = g_inputParam[EMAG_Z];
+  double B0 = PARTICLES_CR_C/100.0;
 
   v[RHO] = 1.0;
-
-  v[BX1] = B[IDIR];
-  v[BX2] = B[JDIR];
-  v[BX3] = 0.0;
-
   v[PRS] = 1.0;
 
   v[VX1] = 0.0;
@@ -43,6 +50,27 @@ void Init (double *v, double x, double y, double z)
   v[AX1] = 0.0;
   v[AX2] = 0.0;
   v[AX3] = alpha*y*y/2.0 - beta*x*x/2.0;
+
+/* -- Mori et al 1998 -- */
+
+  v[BX1] = B0*alpha*y;
+  v[BX2] = B0*beta*x;
+  v[BX3] = B0*Bz;
+  
+  v[EX1] = 0.0;   
+  v[EX2] = 0.0;
+  v[EX3] = B0*B0*Ez; /* If c != 1, the electric field is actually cE */
+
+/* -- Zharkova 2011 (page 386-387, exepct for a minus sign) -- */  
+/*
+  v[BX1] = tanh(-alpha*y);
+  v[BX2] = beta*x;
+  v[BX3] = Bz;
+
+  v[EX1] = 0.0;
+  v[EX2] = 0.0;
+  v[EX3] = Ez;
+*/
 
   g_smallPressure = 1.e-5;
 }
@@ -114,49 +142,3 @@ double BodyForcePotential(double x1, double x2, double x3)
 }
 #endif
 
-/* ********************************************************************* */
-void Particles_CR_EMFields(double *coor, double *E, double *B)
-/*
- * Compute Electromagnetic fields as a function of the coordinate.
- *********************************************************************** */
-{
-  double alpha = g_inputParam[ALPHA];
-  double beta  = g_inputParam[BETA];
-
-  double Bz = g_inputParam[BMAG_Z];
-  double Ez = g_inputParam[EMAG_Z];
-
-  double x = coor[IDIR];
-  double y = coor[JDIR];
-  
-/* -- Experiments -- */
-/*
-  B[IDIR] = 1.0;
-  B[JDIR] = 0.0;
-  B[KDIR] = 0.0;
-
-  E[IDIR] = 0.0;
-  E[JDIR] = 0.0;
-  E[KDIR] = 0.3*sin(x*y);
-*/
-/* -- Mori et al 1998 -- */
-
-  B[IDIR] = alpha*y;
-  B[JDIR] = beta*x;
-  B[KDIR] = Bz;
-  
-  E[IDIR] = 0.0;
-  E[JDIR] = 0.0;
-  E[KDIR] = Ez;
-  
-/* -- Zharkova 2011 (page 386-387, exepct for a minus sign) -- */  
-/*
-  B[IDIR] = tanh(-alpha*y);
-  B[JDIR] = beta*x;
-  B[KDIR] = Bz;
-
-  E[IDIR] = 0.0;
-  E[JDIR] = 0.0;
-  E[KDIR] = Ez;
-*/
-}

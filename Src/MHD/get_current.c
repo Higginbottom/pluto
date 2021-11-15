@@ -76,9 +76,9 @@
 
   \attention Do NOT use this function to compute terms like (curl V)^2 !!
 
-  \authors A. Mignone (mignone@ph.unito.it)
+  \authors A. Mignone (mignone@to.infn.it)
            
-  \date    Sep 07, 2017
+  \date    July 10, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -87,7 +87,7 @@
 void GetCurrent (const Data *d, Grid *grid)
 /*!
  *
- * Compute the current inside \c d->J.
+ * Compute the current (at cell edges) inside \c d->J.
  *
  * \param [in,out]  d       pointer to the PLUTO data structure
  * \param [in]      grid    pointer to an array of Grid structures
@@ -122,12 +122,13 @@ void GetCurrent (const Data *d, Grid *grid)
    ---------------------------------------------------------------- */
 
 #if (defined STAGGERED_MHD)
-  D_EXPAND(Bx1 = d->Vs[BX1s];  , 
+  Bx1 = d->Vc[BX1];
+  Bx2 = d->Vc[BX2];
+  Bx3 = d->Vc[BX3];
+
+  DIM_EXPAND(Bx1 = d->Vs[BX1s];  , 
            Bx2 = d->Vs[BX2s];  ,
            Bx3 = d->Vs[BX3s];)
-  #if DIMENSIONS == 2 && COMPONENTS == 3
-  Bx3 = d->Vc[BX3];
-  #endif
 #else
   if (first_call){
     Bx1 = ARRAY_3D(NX3_MAX,NX2_MAX,NX1_MAX,double);
@@ -139,25 +140,21 @@ void GetCurrent (const Data *d, Grid *grid)
 
   for (k = 0; k < NX3_TOT; k++){
   for (j = 0; j < NX2_TOT; j++){
-  for (i = 0; i < NX1_TOT-IOFFSET; i++){
+  for (i = 0; i < NX1_TOT-INCLUDE_IDIR; i++){
     Bx1[k][j][i] = AVERAGE_X(d->Vc[BX1],k,j,i);
   }}}
 
-  #if COMPONENTS >= 2
   for (k = 0; k < NX3_TOT; k++){
-  for (j = 0; j < NX2_TOT-JOFFSET; j++){
+  for (j = 0; j < NX2_TOT-INCLUDE_JDIR; j++){
   for (i = 0; i < NX1_TOT; i++){
     Bx2[k][j][i] = AVERAGE_Y(d->Vc[BX2],k,j,i);
   }}}
-  #endif
 
-  #if COMPONENTS == 3
-  for (k = 0; k < NX3_TOT-KOFFSET; k++){
+  for (k = 0; k < NX3_TOT-INCLUDE_KDIR; k++){
   for (j = 0; j < NX2_TOT; j++){
   for (i = 0; i < NX1_TOT; i++){ 
     Bx3[k][j][i] = AVERAGE_Z(d->Vc[BX3],k,j,i);
   }}}
-  #endif
 
 #endif
 
@@ -179,80 +176,73 @@ void GetCurrent (const Data *d, Grid *grid)
     a12Bx2 = Bx2;  
     a23Bx3 = Bx3;
     a13Bx3 = Bx3;
-    #if GEOMETRY == CYLINDRICAL && COMPONENTS == 3
+    #if GEOMETRY == CYLINDRICAL
     a13Bx3 = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, double);
-    #elif GEOMETRY == POLAR && COMPONENTS >=  2
+    #elif GEOMETRY == POLAR
     a12Bx2 = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, double);
     #elif GEOMETRY == SPHERICAL
-    EXPAND(                                                    ;   ,
-           a12Bx2 = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, double);   ,
-           a13Bx3 = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, double);
-           a23Bx3 = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, double);)
+    a12Bx2 = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, double); 
+    a13Bx3 = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, double);
+    a23Bx3 = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, double);
     #endif
   }
 
-/* --------------------------------------------------------------
+/* --------------------------------------------------------
    3. Construct goemetrical coefficients and arrays
-   -------------------------------------------------------------- */
+   -------------------------------------------------------- */
 
 #if GEOMETRY == CYLINDRICAL
   r   = grid->x[IDIR]; rp  = grid->xr[IDIR];
-  #if COMPONENTS == 3
   TOT_LOOP(k,j,i) a13Bx3[k][j][i] = Bx3[k][j][i]*fabs(r[i]);
-  #endif
 #elif GEOMETRY == POLAR
   r   = grid->x[IDIR]; rp  = grid->xr[IDIR];
-  #if COMPONENTS >= 2
-  TOT_LOOP(k,j,i) a12Bx2[k][j][i] = Bx2[k][j][i]*r[i];
-  #endif
+  TOT_LOOP(k,j,i) a12Bx2[k][j][i] = Bx2[k][j][i]*fabs(r[i]);
 #elif GEOMETRY == SPHERICAL
   r   = grid->x[IDIR]; rp  = grid->xr[IDIR];
   th  = grid->x[JDIR]; thp = grid->xr[JDIR];
   TOT_LOOP(k,j,i) {
-    EXPAND(                                   ;        ,
-           a12Bx2[k][j][i] = Bx2[k][j][i]*r[i];        ,
-           a13Bx3[k][j][i] = Bx3[k][j][i]*r[i];
-           a23Bx3[k][j][i] = Bx3[k][j][i]*fabs(sin(th[j]));  )
+    a12Bx2[k][j][i] = Bx2[k][j][i]*r[i];
+    a13Bx3[k][j][i] = Bx3[k][j][i]*r[i];
+    a23Bx3[k][j][i] = Bx3[k][j][i]*fabs(sin(th[j]));
   }
 #endif
 
-/* -------------------------------------------------------------
-   4a. Compute the three components of currents at cell edges,
-       so that the different components of J have different
-       spatial locations:
+/* --------------------------------------------------------
+   4a. Compute the three components of currents at cell
+       edges, so that the different components of J have
+       different spatial locations:
 
        Jx  at  (i    , j+1/2, k+1/2)
        Jy  at  (i+1/2, j    , k+1/2)
        Jz  at  (i+1/2, j+1/2, k    )
-   -------------------------------------------------------------- */
+   -------------------------------------------------------- */
 
-  for (k = 0; k < NX3_TOT-KOFFSET; k++){
-  for (j = 0; j < NX2_TOT-JOFFSET; j++){
-  for (i = 0; i < NX1_TOT-IOFFSET; i++){
+  d21 = d23 = d32 = d31 = 0.0;
+  for (k = 0; k < NX3_TOT-INCLUDE_KDIR; k++){
+  for (j = 0; j < NX2_TOT-INCLUDE_JDIR; j++){
+  for (i = 0; i < NX1_TOT-INCLUDE_IDIR; i++){
 
-    D_EXPAND(d12 = d13 = 1.0/dx1[i];  ,
-             d21 = d23 = 1.0/dx2[j];  ,
-             d31 = d32 = 1.0/dx3[k];)
+    DIM_EXPAND(d12 = d13 = 1.0/dx1[i];  ,
+               d21 = d23 = 1.0/dx2[j];  ,
+               d31 = d32 = 1.0/dx3[k];)
 
     #if GEOMETRY == CYLINDRICAL
     d32 = d31 = 0.0;
     d13 = 2.0/(fabs(r[i+1])*r[i+1] - fabs(r[i])*r[i]);  /* = 1.0/(rp*dr) */
     #elif GEOMETRY == POLAR
-    d23 /= r[i];
-    d21 /= rp[i];
-    d12  = 2.0/(fabs(r[i+1])*r[i+1] - fabs(r[i])*r[i]);  /* = 1.0/(rp*dr) */
+    DIM_EXPAND(d12  = 2.0/(fabs(r[i+1])*r[i+1] - fabs(r[i])*r[i]); ,  /* = 1.0/(rp*dr) */
+             d23 /= r[i];  d21 /= rp[i];                         ,
+                                       ; )
     #elif GEOMETRY == SPHERICAL
     s  = fabs(sin(th[j]));
     sp = 0.5*(fabs(sin(th[j])) + fabs(sin(th[j+1]))); 
-    D_EXPAND(d12 /= rp[i];   d13 /= rp[i];     ,
+    DIM_EXPAND(d12 /= rp[i];   d13 /= rp[i];     ,
              d21 /= rp[i];   d23 /= r[i]*sp;   ,
              d32 /= r[i]*sp; d31 /= rp[i]*s;)
     #endif
 
-    #if COMPONENTS == 3
     Jx1[k][j][i] = FDIFF_X2(a23Bx3,k,j,i)*d23 - FDIFF_X3(   Bx2,k,j,i)*d32;
     Jx2[k][j][i] = FDIFF_X3(   Bx1,k,j,i)*d31 - FDIFF_X1(a13Bx3,k,j,i)*d13;
-    #endif
     Jx3[k][j][i] = FDIFF_X1(a12Bx2,k,j,i)*d12 - FDIFF_X2(Bx1,k,j,i)*d21;
   }}}
 

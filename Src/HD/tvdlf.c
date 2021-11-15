@@ -28,7 +28,7 @@
        Diminishing Numerical Schemes for Hydrodynamics and Magnetohydrodynamics 
        Problems", Toth and Odstrcil, JCP (1996), 128,82
        
-  \authors A. Mignone (mignone@ph.unito.it)
+  \authors A. Mignone (mignone@to.infn.it)
   \date    Feb 13, 2018
 */
 /* ///////////////////////////////////////////////////////////////////// */
@@ -62,6 +62,17 @@ void LF_Solver (const Sweep *sweep, int beg, int end,
   static double *cRL_min, *cRL_max;
   double *vR, *vL, *uR, *uL;
   
+#if TIME_STEPPING == CHARACTERISTIC_TRACING
+{
+  static int first_call = 1;
+  if (first_call){
+    print ("! LF_Solver(): employment of this solver with ");
+    print ("CHARACTERISTIC_TRACING may degrade order of accuracy to 1.\n");
+    first_call = 0;
+  }
+}
+#endif
+
   if (vRL == NULL){
     vRL = ARRAY_2D(NMAX_POINT, NFLX, double);
     cRL_min = ARRAY_1D(NMAX_POINT, double);
@@ -87,7 +98,7 @@ void LF_Solver (const Sweep *sweep, int beg, int end,
    ------------------------------------------------------------------- */
 
   for (i = beg; i <= end; i++){
-    VAR_LOOP(nv) vRL[i][nv] = 0.5*(stateL->v[i][nv] + stateR->v[i][nv]);
+    NVAR_LOOP(nv) vRL[i][nv] = 0.5*(stateL->v[i][nv] + stateR->v[i][nv]);
     vRL[i][VXn] = 0.5*(fabs(stateL->v[i][VXn]) + fabs(stateR->v[i][VXn]));
   }
 

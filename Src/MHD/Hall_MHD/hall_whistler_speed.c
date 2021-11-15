@@ -11,14 +11,14 @@
   where \f$\Delta l\f$ is the grid spacing.
 
   \authors E. Striani (edoardo.striani@iaps.inaf.it) \n
-           A. Mignone (mignone@ph.unito.it) \n
+           A. Mignone (mignone@to.infn.it) \n
            B. Vaidya  (bhargav.vaidya@unito.it) 
 
   \b References
      - "Thanatology in Protoplanetary Discs"
        Lesur, Kunz \& Fromang, A&A (2014) 
 
-  \date   May 10, 2017
+  \date   July 2, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -61,7 +61,7 @@ void HallMHD_WhistlerSpeed (const State *p, int beg, int end, Grid *grid)
       dl   = dx1[i];
       v    = p->v[i];
       ne   = HallMHD_ne(v);
-      Bsq  = EXPAND(v[BX1]*v[BX1], + v[BX2]*v[BX2], + v[BX3]*v[BX3]);
+      Bsq  = v[BX1]*v[BX1] + v[BX2]*v[BX2] + v[BX3]*v[BX3];
       B    = sqrt(Bsq);
       cA2  = Bsq/v[RHO];  /* Alfven velocity */
       B_ne = B/ne;
@@ -78,7 +78,7 @@ void HallMHD_WhistlerSpeed (const State *p, int beg, int end, Grid *grid)
       #endif
       v    = p->v[j];
       ne   = HallMHD_ne(v);
-      Bsq  = EXPAND(v[BX1]*v[BX1], + v[BX2]*v[BX2], + v[BX3]*v[BX3]);
+      Bsq  = v[BX1]*v[BX1] + v[BX2]*v[BX2] + v[BX3]*v[BX3];
       B    = sqrt(Bsq);
       cA2  = Bsq/v[RHO];  /* Alfven velocity */
       B_ne = B/ne;
@@ -94,7 +94,7 @@ void HallMHD_WhistlerSpeed (const State *p, int beg, int end, Grid *grid)
       #endif
       v    = p->v[k];
       ne   = HallMHD_ne(v);
-      Bsq  = EXPAND(v[BX1]*v[BX1], + v[BX2]*v[BX2], + v[BX3]*v[BX3]);
+      Bsq  = v[BX1]*v[BX1] + v[BX2]*v[BX2] + v[BX3]*v[BX3];
       B    = sqrt(Bsq);
       cA2  = Bsq/v[RHO];  /* Alfven velocity */
       B_ne = B/ne;
@@ -102,12 +102,4 @@ void HallMHD_WhistlerSpeed (const State *p, int beg, int end, Grid *grid)
       p->cw[k] = fabs(hallterm) + sqrt(hallterm*hallterm + cA2); 
     }
   }
-
-
-
-for (i = beg; i <= end; i++) {
-//  print ("dir = %d, i = %d, cw = %12.6e\n",g_dir,i,p->cw[i]);
-}
-
-
 }

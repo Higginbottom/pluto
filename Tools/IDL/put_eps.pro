@@ -10,7 +10,8 @@
 ;  SYNTAX:    put_eps, data, x, y, pos
 ;             [,xtitle=xtitle][,ytitle=ytitle][,title=title][,charsize=charsize]
 ;             [,dmax = dmax][,dmin = dmin][,/vbar][,/hbar][,color=color]
-;             [,cbwidth=cbwidth][,cbcharsize=cbcharsize][,cbformat=cbformat]
+;             [,cbwidth=cbwidth][,cbcharsize=cbcharsize][cbdiv=cbdiv]
+;             [,cbformat=cbformat][,cbposition=cbposition]
 ;             [,/noxticks][,/noyticks][,xrange=xrange][,yrange=yrange]
 ;
 ;             where data is a two-dimensional array, x and y
@@ -68,7 +69,7 @@
 ;
 ;     cbposition = lower left position of the colorbar
 ;
-;  LAST MODIFIED:  Oct 31, 2017 by A. Mignone (mignone@ph.unito.it)
+;  LAST MODIFIED:  Dec 12, 2018 by A. Mignone (mignone@ph.unito.it)
 ;
 ;-
 
@@ -178,7 +179,7 @@ ENDIF
 q = BYTSCL(q,max=dmax, min=dmin)
 TV, q, pos(0), pos(1), xsize = imsize_x, ysize = imsize_y, /normal
 TVLCT,r,g,b,/GET; -- get current colortable
-loadct,0  ; -- load black & white
+LOADCT, /SIL, 0  ; -- load black & white
 CONTOUR, q, xx, yy, color = color, $
          xstyle = 1, ystyle = 1,$
          xtitle = xtitle, ytitle = ytitle, title=title,$

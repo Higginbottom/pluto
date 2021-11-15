@@ -73,7 +73,7 @@ void SoundSpeed2 (const State *p, int beg, int end,
 
 
 /* *************************************************************** */
-void Enthalpy (real **uprim, real *h, int beg, int end)
+void Enthalpy (double **uprim, double *h, int beg, int end)
 /*
  *
  *
@@ -94,7 +94,7 @@ void Enthalpy (real **uprim, real *h, int beg, int end)
   #endif
 }
 /* *************************************************************** */
-void ENTROPY (real **v, real *s, int is, int ie)
+void ENTROPY (double **v, double *s, int is, int ie)
 /*
  *
  *

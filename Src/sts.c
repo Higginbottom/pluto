@@ -35,9 +35,9 @@
      - Alexiades, V., Amiez, A., \& Gremaud E.-A. 1996, 
        Com. Num. Meth. Eng., 12, 31
 
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \authors A. Mignone (mignone@to.infn.it)\n
            T. Matsakos
-  \date    May 15, 2017
+  \date    July 1, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -64,6 +64,7 @@ void STS (const Data *d, double dt, timeStep *Dts, Grid *grid)
  *********************************************************************** */
 {
   int    i, j, k, nv, n, m;
+  int    dimensions = INCLUDE_IDIR + INCLUDE_JDIR + INCLUDE_KDIR;
   double N, ts[STS_MAX_STEPS];
   double dt_par, tau, tsave, invDt_par;
   static Data_Arr rhs;
@@ -88,6 +89,7 @@ void STS (const Data *d, double dt, timeStep *Dts, Grid *grid)
 
   m = 0;
   n = STS_MAX_STEPS;
+  
   while (m < n){
 
     g_intStage = m + 1;
@@ -108,7 +110,7 @@ void STS (const Data *d, double dt, timeStep *Dts, Grid *grid)
      ----------------------------------------------------------- */
 
     if (m == 0){
-      Dts->invDt_par = invDt_par/(double)DIMENSIONS;  
+      Dts->invDt_par = invDt_par/(double)dimensions;  
       #ifdef PARALLEL
       MPI_Allreduce (&Dts->invDt_par, &tau, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
       Dts->invDt_par = tau;
@@ -127,7 +129,7 @@ void STS (const Data *d, double dt, timeStep *Dts, Grid *grid)
 
       Dts->Nsts = n;
       if (n > STS_MAX_STEPS){
-        print ("! STS: the number of substeps (%d) is > %d\n",n, STS_MAX_STEPS); 
+        printLog ("! STS: the number of substeps (%d) is > %d\n",n, STS_MAX_STEPS); 
         QUIT_PLUTO(1);
       }
 
@@ -152,14 +154,14 @@ void STS (const Data *d, double dt, timeStep *Dts, Grid *grid)
      
     DOM_LOOP (k,j,i){
       #if VISCOSITY == SUPER_TIME_STEPPING
-      EXPAND(d->Uc[k][j][i][MX1] += tau*rhs[k][j][i][MX1];  ,
-             d->Uc[k][j][i][MX2] += tau*rhs[k][j][i][MX2];  ,
-             d->Uc[k][j][i][MX3] += tau*rhs[k][j][i][MX3];)
+      d->Uc[k][j][i][MX1] += tau*rhs[k][j][i][MX1];
+      d->Uc[k][j][i][MX2] += tau*rhs[k][j][i][MX2];
+      d->Uc[k][j][i][MX3] += tau*rhs[k][j][i][MX3];
       #endif
       #if (RESISTIVITY == SUPER_TIME_STEPPING)
-      EXPAND(d->Uc[k][j][i][BX1] += tau*rhs[k][j][i][BX1];  ,
-             d->Uc[k][j][i][BX2] += tau*rhs[k][j][i][BX2];  ,
-             d->Uc[k][j][i][BX3] += tau*rhs[k][j][i][BX3];)
+      d->Uc[k][j][i][BX1] += tau*rhs[k][j][i][BX1];
+      d->Uc[k][j][i][BX2] += tau*rhs[k][j][i][BX2];
+      d->Uc[k][j][i][BX3] += tau*rhs[k][j][i][BX3];
       #endif
       #if HAVE_ENERGY
        #if (THERMAL_CONDUCTION == SUPER_TIME_STEPPING) || \
@@ -177,7 +179,7 @@ void STS (const Data *d, double dt, timeStep *Dts, Grid *grid)
     #if (defined STAGGERED_MHD) && (RESISTIVITY == SUPER_TIME_STEPPING)
     CT_ResistiveEMF(d, 0, grid);
     CT_Update  (d, d->Vs, tau, grid);
-    CT_AverageMagneticField (d->Vs, d->Uc, grid);
+    CT_AverageStaggeredFields (d->Vs, d->Uc, &box, grid);
     #endif
 
   /* ------------------------------------------------------
@@ -255,7 +257,7 @@ double STS_FindRoot(double dt_exp, double dT)
     if (fabs(dN) < 1.e-5) return N;
   }
 
-  print ("! STS_FindRoot: too many iterations\n");
+  printLog ("! STS_FindRoot: too many iterations\n");
   QUIT_PLUTO(1);
   return -1.0;
 }

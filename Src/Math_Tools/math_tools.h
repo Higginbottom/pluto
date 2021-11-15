@@ -17,7 +17,7 @@
   
 
   \authors A. Mignone (mignone@ph.unito.it)
-  \date    Oct 4, 2016
+  \date    Sept 12, 2018
 */
 /* ///////////////////////////////////////////////////////////////////// */
 
@@ -106,7 +106,7 @@ void     RandomSeed (long int, long int);
 double   RandomNumber (double, double);
 double   GaussianRandomNumber(double, double);
 double   PowerLawRandomNumber(double, double, double);
-unsigned int SeedGenerator(void);
+unsigned int SeedGenerator(long);
 #if PRNG == PRNG_ECUYER
 double   NR_ran2(long int *);
 #elif PRNG == PRNG_MT

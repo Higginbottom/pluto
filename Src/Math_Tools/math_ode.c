@@ -4,7 +4,7 @@
   \brief Ordinary differential equation solvers.
 
   \author A. Mignone (mignone@ph.unito.it)
-  \date   June 20, 2014
+  \date   Sep 12, 2018
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -14,6 +14,8 @@
    --------------------------------------------------------------------- */
    
 #define ODE_NVAR_MAX 256
+static int RK2Solve (double *, int, double, double, 
+                     void (*rhs)(double, double *, double *));
 static int RK4Solve (double *, int, double, double, 
                      void (*rhs)(double, double *, double *));
 static int CK45Solve (double *, int, double, double *, 
@@ -41,7 +43,8 @@ void ODE_Solve(double *y0, int nvar, double xbeg, double xend,
  * \param [in] rhs     a pointer to a function of the form rhs(x,*y,*f)
  *                     giving the right hand side \f$f(x,y)\f$ of the ODE. 
  * \param [in] method  an integer specifying the integration algorithm.
- *                     Possible choices are ODE_RK4 (fixed step size, 4th 
+ *                     Possible choices are ODE_RK2 (fixed step size, 2nd order
+ *                     Runge-Kutta), ODE_RK4 (fixed step size, 4th 
  *                     order Runge-Kutta), ODE_CK45 (adaptive step size,
  *                     5th order Cash-Karp algorithm).
  *                                        
@@ -65,7 +68,13 @@ void ODE_Solve(double *y0, int nvar, double xbeg, double xend,
       RK4Solve(y0, nvar, x0, dx, rhs);
       x0 += dx;
 
+    }else if (method == ODE_RK2){
+
+      RK2Solve(y0, nvar, x0, dx, rhs);
+      x0 += dx;
+
     }else if (method == ODE_CK45){
+
       int    err, k=0;
       double dx0;
 
@@ -82,21 +91,47 @@ void ODE_Solve(double *y0, int nvar, double xbeg, double xend,
           break;
         }
         if (fabs(dx/dx0) < 1.e-4) {
-          print ("! ODE_Solve: step size too small \n");
+          printLog ("! ODE_Solve(): step size too small \n");
           QUIT_PLUTO(1);
         }
         if (k > 16384){
-          print ("! ODE_Solve: too many steps\n");
-          print ("! xbeg = %f, xend = %f\n",xbeg, xend);
+          printLog ("! ODE_Solve(): too many steps\n");
+          printLog ("               xbeg = %f, xend = %f\n",xbeg, xend);
           QUIT_PLUTO(1);
         }
       }
           
     }else{
-      print ("! ODE_Solve: integration method unknown\n");
+      printLog ("! ODE_Solve: integration method unknown\n");
       QUIT_PLUTO(1);
     }
   }
+}
+
+/* ********************************************************************* */
+int RK2Solve (double *y0, int nvar, double x0, 
+              double dx, void (*rhs)(double, double *, double *))
+/*
+ *
+ *
+ *********************************************************************** */
+{
+  int    nv;
+  double y1[ODE_NVAR_MAX];
+  double k1[ODE_NVAR_MAX], k2[ODE_NVAR_MAX];
+
+/* -- step 1 -- */
+
+  rhs (x0, y0, k1);
+  for (nv = 0; nv < nvar; nv++) y1[nv] = y0[nv] + 0.5*dx*k1[nv];
+
+/* -- step 2 -- */
+
+  rhs (x0 + 0.5*dx, y1, k2);
+  for (nv = 0; nv < nvar; nv++)
+    y0[nv] += dx*k2[nv];
+
+  return (0);
 }
 
 /* ********************************************************************* */

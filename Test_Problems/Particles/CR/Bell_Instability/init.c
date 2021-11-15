@@ -8,8 +8,8 @@
   The configuration is then rotated around the y- and z-axis in a way similar
   to Mignone, Tzeferacos \& Bodo, JCP (2010).
   The initial phase is computed as \f$ \phi = k_0x_0 = \vec{k}\cdot\vec{x} \f$
-  (which is invariant under rotations),  where \f$ \vec{k} \f$ and \f$ \vec{x} \f$
-  are the wavevector and coordinate
+  (which is invariant under rotations),  where
+  \f$ \vec{k} \f$ and \f$ \vec{x} \f$ are the wavevector and coordinate
   vector in the rotated system, while \f$ k_0 \f$ and \f$ x_0 \f$ are
   the original (unrotated) 1D vectors.
 
@@ -40,18 +40,26 @@
    3  |           3       |        3/2         |     3/2
   </CENTER>
 
-  \author A. Mignone (mignone@ph.unito.it)
+  The 6 configurations come in pairs (serial/parallel) and test the
+  instability for eps = 0.1 in 1D (Conf. #1/#2), in 2D (Conf. #3/#4)
+  and 3D (Conf. #5/#6).
+  
+  
+  \author A. Mignone (mignone@to.infn.it)
 
-  \date   March 20, 2018
+  \date   June 10, 2019
   
   \b References: \n
-   - [MVBM18] "A PARTICLE MODULE FOR THE PLUTO CODE: I - AN IMPLEMENTATION OF
+   - [MVBM18]"A PARTICLE MODULE FOR THE PLUTO CODE: I - AN IMPLEMENTATION OF
                THE MHD-PIC EQUATIONS", Mignone etal.ApJS (2018)  [ Sec. 4.4 ]
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
+#include "rotate.h"
 
-void VectorRotate(double *v, int s);
+#ifndef LINEAR_SETUP
+  #define LINEAR_SETUP TRUE
+#endif
 
 /* ********************************************************************* */
 void Init (double *v, double x, double y, double z)
@@ -60,37 +68,65 @@ void Init (double *v, double x, double y, double z)
  *********************************************************************** */
 {
   static int first_call = 1;
-  double xvec[3] = {x, y, z};
-  double kvec[3];
+  double xvec[3], kvec[3];
   double Lx = g_domEnd[IDIR] - g_domBeg[IDIR];
   double Ly = g_domEnd[JDIR] - g_domBeg[JDIR];
   double Lz = g_domEnd[KDIR] - g_domBeg[KDIR];
-  double theta   = asin(g_inputParam[EPSILON]);
-  double k0, kx, ky=0.0, kz=0.0, phi;
+
+  double kx  = 2.0*CONST_PI/Lx*(DIMENSIONS >= 1);
+  double ky  = 2.0*CONST_PI/Ly*(DIMENSIONS >= 2);
+  double kz  = 2.0*CONST_PI/Lz*(DIMENSIONS >= 3);
+  double phi = DIM_EXPAND(kx*x, + ky*y, + kz*z);
+
+  double B0      = 1.0;
   double Bperp   = g_inputParam[BPERP_AMPL];
+  double theta   = asin(g_inputParam[EPSILON]);
 
-  if (first_call){
-    srand48(prank);
-  }
+  int jshift_y = 1;
+  int jshift_x = round(-jshift_y*ky/kx);
+  int kshift_z = 1;
+  int kshift_x = round(-kshift_z*kz/kx);
 
-/* -- Set wave vectorys and phase -- */
-
-  D_EXPAND(kx = 2.0*CONST_PI/Lx;  ,
-           ky = 2.0*CONST_PI/Ly;  ,
-           kz = 2.0*CONST_PI/Lz;)
-//kz = 0.0;
-  if (fabs(Lx-1.0) < 1.e-9) ky = kz = 0.0; /** Special Case */
-
-  phi = kx*x + ky*y + kz*z;
-  k0  = sqrt(kx*kx + ky*ky + kz*kz);
-
-/* -- Assign scalar quantities -- */
+  if (first_call) RotateSet(jshift_x, jshift_y, kshift_x, kshift_z);
+  
+/* ------------------------------------
+   1. Define 1D initial condition
+   ------------------------------------ */
 
   v[RHO] = 1.0;
+#if HAVE_ENERGY
   v[PRS] = 1.0;
+#endif
 
 #if LINEAR_SETUP == TRUE
-  if (first_call){
+  v[VX1] =  0.0;
+  v[VX2] =  Bperp*sin(phi - theta);
+  v[VX3] = -Bperp*cos(phi - theta);
+
+  v[BX1] = B0;
+  v[BX2] = Bperp*cos(phi);
+  v[BX3] = Bperp*sin(phi);
+
+/* ----------------------------------------------
+   2. Rotate vectors
+   ---------------------------------------------- */
+
+  RotateVector (v + VX1, -1);
+  RotateVector (v + BX1, -1);
+
+  kvec[0] = kx; kvec[1] = ky; kvec[2] = kz;
+  xvec[0] =  x; xvec[1] =  y; xvec[2] =  z;
+  RotateVector(kvec,1);
+  RotateVector(xvec,1);
+
+  v[AX1] = 0.0;
+  v[AX2] = -Bperp*cos(xvec[0]*kvec[0])/kvec[0];
+  v[AX3] = -Bperp*sin(xvec[0]*kvec[0])/kvec[0] + B0*xvec[1];
+
+  RotateVector(v+AX1,-1);
+
+  if (first_call*0){
+    double k0  = sqrt(kx*kx + ky*ky + kz*kz);
     print ("  ---------------------------------------------\n");
     print ("  normal   = [%f, %f, %f]\n",kx/k0,ky/k0,kz/k0);
     print ("  k0/(2pi) = %f\n",k0/(2.0*CONST_PI));
@@ -98,49 +134,24 @@ void Init (double *v, double x, double y, double z)
     print ("  ---------------------------------------------\n");
   }
 
-/* --  Assign vector components in 1D, then rotate -- */
-
-  v[VX1] =  0.0;
-  v[VX2] =  Bperp*sin(phi - theta);
-  v[VX3] = -Bperp*cos(phi - theta);
-  VectorRotate(v+VX1, 1);
-
-  v[BX1] = 1.0;
-  v[BX2] = Bperp*cos(phi);
-  v[BX3] = Bperp*sin(phi);
-  VectorRotate(v+BX1, 1);
-
-/* -- Vector potential is best assigned in 1D system using 1D coordinates -- */
-
-  xvec[IDIR] = x; kvec[IDIR] = kx; 
-  xvec[JDIR] = y; kvec[JDIR] = ky;
-  xvec[KDIR] = z; kvec[KDIR] = kz;
-  VectorRotate(xvec,-1);  /* Apply inverse rotation */
-  VectorRotate(kvec,-1);  /* Apply inverse rotation */
-
-  v[AX1] = 0.0;
-  v[AX2] = -Bperp*cos(xvec[0]*kvec[0])/kvec[0];
-  v[AX3] = -Bperp*sin(xvec[0]*kvec[0])/kvec[0] + xvec[1];
-  VectorRotate(v+AX1, 1);
-
 #else
-  v[RHO] = 1.0;
-  #if HAVE_ENERGY
-   v[PRS] = 1.0;
-  #endif
 
-  lambda = (g_domEnd[IDIR]-g_domBeg[IDIR])/5.0;
-  k      = 2.0*CONST_PI/lambda;
-
+  if (first_call){ 
+    RandomSeed (prank,0);
+    first_call = 0;
+  }          
   v[VX1] = Bperp*RandomNumber(-1,1);
   v[VX2] = Bperp*RandomNumber(-1,1);
   v[VX3] = Bperp*RandomNumber(-1,1);
-
-  v[TRC] = 0.0;
-
+ 
   v[BX1] = 1.0;
   v[BX2] = 0.0;
   v[BX3] = 0.0;
+
+  v[AX1] = 0.0;
+  v[AX2] = 0.0;
+  v[AX3] = y*v[BX1];
+
 #endif
 
   first_call = 0;
@@ -191,7 +202,7 @@ void Analysis (const Data *d, Grid *grid)
     v[1] = d->Vc[BX2][k][j][i];
     v[2] = d->Vc[BX3][k][j][i];
 
-    VectorRotate(v,-1);
+    RotateVector(v,1);
 
     scrh = 0.5*(v[1]*v[1] + v[2]*v[2]);
     Emag_perp_ave += scrh*dvol;
@@ -318,6 +329,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   int   i, j, k, nv;
   double  *x1, *x2, *x3;
 
+return; 
   x1 = grid->x[IDIR];
   x2 = grid->x[JDIR];
   x3 = grid->x[KDIR];
@@ -336,13 +348,14 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
         d->Vc[RHO][k][j][i] = sqrt(Bm2)/vAmax;
       }
     }
-
+    #if HAVE_ENERGY
     g_smallPressure = 1.e-3;
     DOM_LOOP(k,j,i){
       if (d->Vc[PRS][k][j][i] < g_smallPressure) {
         d->Vc[PRS][k][j][i] = g_smallPressure;
       }
     }
+    #endif
   }
 }
 
@@ -383,60 +396,3 @@ double BodyForcePotential(double x1, double x2, double x3)
 }
 #endif
 
-/* ********************************************************************* */
-void VectorRotate(double *v, int s)
-/*!
- *  Rotate a vector <v[0], v[1], v[2]> based on the domain aspect ratio.
- *  s =  1 use normal rotation
- *  s = -1 use inverse rotation
- *
- *********************************************************************** */
-{
-  double vx, vy, vz;
-  double Lx = g_domEnd[IDIR] - g_domBeg[IDIR];
-  double Ly = g_domEnd[JDIR] - g_domBeg[JDIR];
-  double Lz = g_domEnd[KDIR] - g_domBeg[KDIR];
-  double ta = 0.0, tb  = 0.0, sa, sb, ca, cb, tg, cg, sg;
-  double k0, kx, ky, kz, phi;
-
-/* -- Compute tangent, sin() and cos() of alpha and beta -- */
-
-  D_EXPAND(           ,
-           ta = Lx/Ly;,
-           tb = Lx/Lz;)
-
-  if (fabs(Lx-1.0) < 1.e-9) ta = tb = 0.0; /** Special case */
-
-//tb = 0.0;
-
-  ca = 1.0/sqrt(ta*ta + 1.0);
-  cb = 1.0/sqrt(tb*tb + 1.0);
-  sa = ta*ca;
-  sb = tb*cb;
-
-  tg = tb*ca;
-  cg = 1.0/sqrt(tg*tg + 1.0);
-  sg = cg*tg;
-
-/* -- Save initial components -- */
-
-  vx = v[0]; 
-  vy = v[1];
-  vz = v[2];
-
-/* -- Rotate -- */
-
-  if (s == 1){
-    v[0] = vx*ca*cg - vy*sa - vz*ca*sg;
-    v[1] = vx*sa*cg + vy*ca - vz*sa*sg;
-    v[2] = vx*sg            + vz*cg;
-  }else if (s == -1){
-    v[0] =  vx*ca*cg + vy*sa*cg + vz*sg;
-    v[1] = -vx*sa    + vy*ca;
-    v[2] = -vx*ca*sg - vy*sa*sg + vz*cg;
-  }else{
-    print ("! VectorRotate(): invalid value of s = %d\n", s);
-    QUIT_PLUTO(1);
-  }
-
-}

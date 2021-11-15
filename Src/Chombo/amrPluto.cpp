@@ -54,7 +54,7 @@ extern "C" {
 
 // amrPluto is a function (as opposed to inline in main()) to get
 // around MPI scoping problems
-void amrPluto(int, char *av[], char *, Cmd_Line *);
+void amrPluto(int, char *av[], char *, cmdLine *);
 
 /* ********************************************************************* */
 int main(int a_argc, char* a_argv[])
@@ -88,7 +88,7 @@ int main(int a_argc, char* a_argv[])
 #endif
 
   char ini_file[128];
-  Cmd_Line cmd_line;
+  cmdLine cmd_line;
 
   sprintf (ini_file,"pluto.ini");  // default
   ParseCmdLineArgs(a_argc, a_argv, ini_file, &cmd_line);
@@ -109,7 +109,7 @@ int main(int a_argc, char* a_argv[])
 }
 
 /* ********************************************************************* */
-void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
+void amrPluto(int argc, char *argv[], char *ini_file, cmdLine *cmd_line)
 /*
  *
  *
@@ -145,8 +145,10 @@ void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
     grid.lbound[idim]  = runtime.left_bound[idim];
     grid.rbound[idim]  = runtime.right_bound[idim];
   }
-  SetGrid (&runtime, &grid);
-  
+  int procs[3] = {1,1,1};
+  SetGrid (&runtime, procs, &grid);
+//  SetGrid (&runtime, &grid);
+
   // VERBOSITY
   
   // This determines the amount of diagnositic output generated
@@ -186,9 +188,9 @@ void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
   // Set the resolution of the coarsest level
   vector<int> numCells(SpaceDim);
 
-  D_EXPAND(numCells[0] = runtime.patch_npoint[IDIR][1]; ,
-           numCells[1] = runtime.patch_npoint[JDIR][1]; ,
-           numCells[2] = runtime.patch_npoint[KDIR][1];)
+  DIM_EXPAND(numCells[0] = runtime.patch_npoint[IDIR][1]; ,
+             numCells[1] = runtime.patch_npoint[JDIR][1]; ,
+             numCells[2] = runtime.patch_npoint[KDIR][1];)
 
   CH_assert(D_TERM(   (numCells[0] > 0),
                    && (numCells[1] > 0),
@@ -224,7 +226,7 @@ void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
   pout() << "> AMR: " << endl << endl;
   pout() << "  Number of levels:      " << maxLevel << endl;
   pout() << "  Equivalent Resolution: " << grid.np_int[IDIR]*totLevels;
-  D_EXPAND(                                                  , 
+  DIM_EXPAND(                                                  , 
            pout() << " x " << grid.np_int[JDIR]*totLevels;   ,
            pout() << " x " << grid.np_int[KDIR]*totLevels;)
   pout() << endl;
@@ -264,12 +266,6 @@ void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
   int nstop = 999999;  // Stop after this number of steps
   if (cmd_line->maxsteps > 0) nstop = cmd_line->maxsteps;
 
-  // [Solver]
-
-  Riemann_Solver *Solver;  // SOLVER
-  std::string riem = runtime.solv_type;
-  Solver = SetSolver(riem.c_str());
- 
   Real fixedDt = -1; // Determine if a fixed or variable time step will be used
 
   // [Boundary] 
@@ -386,7 +382,6 @@ void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
 
   // Set up the patch integrator
   patchPluto->setBoundary(runtime.left_bound, runtime.right_bound);
-  patchPluto->setRiemann(Solver);
 
   // Set up the AMRLevel... factory
   AMRLevelPlutoFactory amrGodFact;
@@ -496,7 +491,6 @@ void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
 /* ******************************************************************* */
 void print (const char *fmt, ...)
 /* 
- * 
  * General purpose print function used by PLUTO-Chombo.
  * The corresponding static grid version is given in tools.c
  *
@@ -507,6 +501,36 @@ void print (const char *fmt, ...)
   va_start (args, fmt);
   vsprintf (buffer,fmt, args);
   pout() << buffer;
+}
+
+/* ******************************************************************* */
+void printLog (const char *fmt, ...)
+/* 
+ * General purpose print function used by PLUTO-Chombo.
+ * The corresponding static grid version is given in tools.c
+ *
+ ********************************************************************* */
+{
+  char buffer[256];
+  va_list args;
+  va_start (args, fmt);
+  vsprintf (buffer,fmt, args);
+  pout() << buffer;
+}
+
+/* ******************************************************************* */
+void error (const char *fmt, ...)
+/* 
+ * General purpose print function used by PLUTO-Chombo.
+ * The corresponding static grid version is given in tools.c
+ *
+ ********************************************************************* */
+{
+  char buffer[256];
+  va_list args;
+  va_start (args, fmt);
+  vsprintf (buffer,fmt, args);
+  pout() << buffer << endl;
 }
 
 #undef NOPT

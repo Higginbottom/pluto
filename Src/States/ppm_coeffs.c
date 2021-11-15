@@ -71,8 +71,8 @@ void PPM_CoefficientsSet(Grid *grid)
    -------------------------------------------------------- */
   
   if (s_Wp3D == NULL){
-    s_Wp3D = ArrayBox(0, DIMENSIONS-1, 0, NMAX_POINT-1, -2, 2);
-    s_Wm3D = ArrayBox(0, DIMENSIONS-1, 0, NMAX_POINT-1, -2, 2);
+    s_Wp3D = ARRAY_BOX(0, DIMENSIONS-1, 0, NMAX_POINT-1, -2, 2, double);
+    s_Wm3D = ARRAY_BOX(0, DIMENSIONS-1, 0, NMAX_POINT-1, -2, 2, double);
     s_hp3D = ARRAY_2D(DIMENSIONS, NMAX_POINT, double);
     s_hm3D = ARRAY_2D(DIMENSIONS, NMAX_POINT, double);
   }

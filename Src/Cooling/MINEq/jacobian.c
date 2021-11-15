@@ -39,7 +39,8 @@ void Jacobian (double *v, double *rhs, double **dfdy)
   int    k, l, nv, n;
   double   dmu_dX[NIONS], N, mu;
   double   T, dLdX, dCdX, dRdX, eps, scrh;
-  double   vp[NVAR], vm[NVAR], rhs_m[NVAR], rhs_p[NVAR];
+  double   vp[NVAR_COOLING], vm[NVAR_COOLING];
+  double   rhs_m[NVAR_COOLING], rhs_p[NVAR_COOLING];
   double   dfdp[NIONS];
   double   *L, *La, *Lb, *Lc;
   double   *C, *Ca, *Cb, *Cc;
@@ -147,7 +148,7 @@ void Jacobian (double *v, double *rhs, double **dfdy)
 
   eps = 1.e-4;
   
-  for (nv = 0; nv < NVAR; nv++){
+  for (nv = 0; nv < NVAR_COOLING; nv++){
     vm[nv] = vp[nv] = v[nv];
   }
   vp[PRS] = v[PRS]*(1.0 + eps);

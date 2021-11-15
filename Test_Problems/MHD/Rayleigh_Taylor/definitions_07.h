@@ -1,14 +1,12 @@
 #define  PHYSICS                        MHD
 #define  DIMENSIONS                     2
-#define  COMPONENTS                     2
 #define  GEOMETRY                       CARTESIAN
 #define  BODY_FORCE                     POTENTIAL
-#define  FORCED_TURB                    NO
 #define  COOLING                        NO
 #define  RECONSTRUCTION                 PARABOLIC
 #define  TIME_STEPPING                  RK3
-#define  DIMENSIONAL_SPLITTING          NO
 #define  NTRACER                        0
+#define  PARTICLES                      NO
 #define  USER_DEF_PARAMETERS            3
 
 /* -- physics dependent declarations -- */
@@ -32,8 +30,9 @@
 
 /* [Beg] user-defined constants (do not change this line) */
 
-#define  LIMITER                        MC_LIM
 #define  ASSIGN_VECTOR_POTENTIAL        YES
+#define  CT_EMF_AVERAGE                 UCT_HLL
+#define  LIMITER                        MC_LIM
 #define  USE_RANDOM_PERTURBATION        NO
 
 /* [End] user-defined constants (do not change this line) */

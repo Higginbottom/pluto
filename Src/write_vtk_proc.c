@@ -14,8 +14,8 @@
 
   http://www.vtk.org/VTK/img/file-formats.pdf
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   June 27, 2017
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Aug 20, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -41,9 +41,9 @@ void WriteVTKProcFile (double ***U, int nx1, int nx2, int nx3, char *filename)
    0. Allocate memory
    -------------------------------------------------------- */
 
-  xnode = ARRAY_1D(nx1 + IOFFSET, float);
-  ynode = ARRAY_1D(nx2 + JOFFSET, float);
-  znode = ARRAY_1D(nx3 + KOFFSET, float);
+  xnode = ARRAY_1D(nx1 + INCLUDE_IDIR, float);
+  ynode = ARRAY_1D(nx2 + INCLUDE_JDIR, float);
+  znode = ARRAY_1D(nx3 + INCLUDE_KDIR, float);
   
 /* --------------------------------------------------------
    1. Open file for writing
@@ -60,23 +60,23 @@ void WriteVTKProcFile (double ***U, int nx1, int nx2, int nx3, char *filename)
   sprintf(header+strlen(header),"BINARY\n");
   sprintf(header+strlen(header),"DATASET %s\n","RECTILINEAR_GRID");
 
-  fprintf (fvtk,header);
+  fprintf (fvtk,"%s", header);
 
   sprintf(header,"DIMENSIONS %d %d %d\n",
-                  nx1 + IOFFSET, nx2 + JOFFSET, nx3 + KOFFSET);
-  fprintf (fvtk,header);
+                  nx1 + INCLUDE_IDIR, nx2 + INCLUDE_JDIR, nx3 + INCLUDE_KDIR);
+  fprintf (fvtk,"%s", header);
   
-  for (i = 0; i < nx1 + IOFFSET; i++){
+  for (i = 0; i < nx1 + INCLUDE_IDIR; i++){
     x1 = i;
     if (IsLittleEndian()) SWAP_VAR(x1);
     xnode[i] = x1;
   }
-  for (j = 0; j < nx2 + JOFFSET; j++){
+  for (j = 0; j < nx2 + INCLUDE_JDIR; j++){
     x2 = j;
     if (IsLittleEndian()) SWAP_VAR(x2);
     ynode[j] = x2;
   }
-  for (k = 0; k < nx3 + KOFFSET; k++){
+  for (k = 0; k < nx3 + INCLUDE_KDIR; k++){
     x3 = k;
     if (IsLittleEndian()) SWAP_VAR(x3);
       #if DIMENSIONS == 2
@@ -88,22 +88,22 @@ void WriteVTKProcFile (double ***U, int nx1, int nx2, int nx3, char *filename)
 
 /* -- Write rectilinear grid information -- */
 
-  sprintf(header,"X_COORDINATES %d float\n", nx1 + IOFFSET);
-  fprintf (fvtk,header);
-  fwrite(xnode, sizeof(float), nx1 + IOFFSET, fvtk);
+  sprintf(header,"X_COORDINATES %d float\n", nx1 + INCLUDE_IDIR);
+  fprintf (fvtk,"%s", header);
+  fwrite(xnode, sizeof(float), nx1 + INCLUDE_IDIR, fvtk);
 
-  sprintf(header,"\nY_COORDINATES %d float\n", nx2 + JOFFSET);
-  fprintf (fvtk,header);
-  fwrite(ynode, sizeof(float), nx2 + JOFFSET, fvtk);
+  sprintf(header,"\nY_COORDINATES %d float\n", nx2 + INCLUDE_JDIR);
+  fprintf (fvtk,"%s", header);
+  fwrite(ynode, sizeof(float), nx2 + INCLUDE_JDIR, fvtk);
 
-  sprintf(header,"\nZ_COORDINATES %d float\n", nx3 + KOFFSET);
-  fprintf (fvtk,header);
-  fwrite(znode, sizeof(float), nx3 + KOFFSET, fvtk);
+  sprintf(header,"\nZ_COORDINATES %d float\n", nx3 + INCLUDE_KDIR);
+  fprintf (fvtk,"%s", header);
+  fwrite(znode, sizeof(float), nx3 + INCLUDE_KDIR, fvtk);
 
 /* -- Dataset attributes -- */
 
   sprintf (header,"\nCELL_DATA %d\n", nx1*nx2*nx3);
-  fprintf (fvtk,header);
+  fprintf (fvtk,"%s",header);
   
 /* --------------------------------------------------------
    3. Write data

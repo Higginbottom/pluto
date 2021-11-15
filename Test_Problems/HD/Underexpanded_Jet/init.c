@@ -79,8 +79,8 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
 {
   int     i, j, k;
   double  *R;
-  real    pjet, dnjet, vjet;
-  real    scrh;
+  double  pjet, dnjet, vjet;
+  double  scrh;
 
   scrh = 1.0/(g_gamma - 1.0);
 
@@ -89,10 +89,9 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   dnjet = g_inputParam[DN_RATIO]*pow(2.0/(g_gamma + 1.0),scrh);
   vjet  = sqrt(g_gamma*pjet/dnjet);
 
+#if GEOMETRY == CYLINDRICAL
   if (side == X2_BEG){
-
-    X2_BEG_LOOP(k,j,i){
-
+    BOX_LOOP(box,k,j,i){
       if (R[i] <= 1.) {
         d->Vc[RHO][k][j][i] = dnjet;
         d->Vc[VX1][k][j][i] = 0.;
@@ -106,5 +105,24 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
       }
     }
   } 
+#elif GEOMETRY == POLAR
+  if (side == X3_BEG){
+    BOX_LOOP(box,k,j,i){
+      if (R[i] <= 1.) {
+        d->Vc[RHO][k][j][i] = dnjet;
+        d->Vc[VX1][k][j][i] = 0.;
+        d->Vc[VX2][k][j][i] = 0.;
+        d->Vc[VX3][k][j][i] = vjet;
+        d->Vc[PRS][k][j][i] = pjet;
+      } else {
+        d->Vc[RHO][k][j][i] =  d->Vc[RHO][2*KBEG - k - 1][j][i];
+        d->Vc[VX1][k][j][i] =  d->Vc[VX1][2*KBEG - k - 1][j][i];
+        d->Vc[VX2][k][j][i] = -d->Vc[VX2][2*KBEG - k - 1][j][i];
+        d->Vc[VX3][k][j][i] = -d->Vc[VX3][2*KBEG - k - 1][j][i];
+        d->Vc[PRS][k][j][i] =  d->Vc[PRS][2*KBEG - k - 1][j][i];
+      }
+    }
+  }
+#endif
 }
 

@@ -22,6 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO Test Problems
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -79,24 +80,24 @@ Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>In this setup - see also Section 5.3 of Mignone et al., ApJS (2012) 198:7 - we reproduce a 2D Harris current sheet with magnetic field profile given by </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ B_x(y) = B_0 \tanh(y/l) \]" src="form_164.png"/>
+<img class="formulaDsp" alt="\[ B_x(y) = B_0 \tanh(y/l) \]" src="form_147.png"/>
 </p>
 <p> where <code>l</code> is the half thickness of the layer. The density profile is given by </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ \rho(y) = \rho_0 \cosh^{-2}(y/l) + \rho_{\infty} \]" src="form_165.png"/>
+<img class="formulaDsp" alt="\[ \rho(y) = \rho_0 \cosh^{-2}(y/l) + \rho_{\infty} \]" src="form_148.png"/>
 </p>
-<p> We use <img class="formulaInl" alt="$ \rho_0=1 $" src="form_166.png"/> and <img class="formulaInl" alt="$ \rho_{\infty} = 0.2 $" src="form_167.png"/>, following the guidelines of Birn et al., 2001, while <code>l</code> is user supplied. <br />
-In order to achieve equilibrium with the magnetic pressure, the thermal pressure is chosen to be <img class="formulaInl" alt="$ p = c_s^2 \rho $" src="form_168.png"/>, where <img class="formulaInl" alt="$ c_s^2 = \frac{B_0^2}{2\rho_0} $" src="form_169.png"/>. The initial equilibrium is pertubed by an additional magnetic field defined as </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ \begin{array}{lcl} B_x(x,y) &amp;=&amp; \DS -\Psi_0\frac{\pi}{L_y}\cos\left(\frac{2\pi x}{L_x}\right) \sin\left(\frac{\pi y}{L_y}\right), \\ \noalign{\medskip} B_y(x,y) &amp;=&amp; \DS +\Psi_0 \frac{2\pi}{L_x}\sin\left(\frac{2\pi x}{L_x}\right) \cos\left(\frac{\pi y}{L_y}\right). \end{array} \]" src="form_170.png"/>
+<p> We use <img class="formulaInl" alt="$ \rho_0=1 $" src="form_149.png"/> and <img class="formulaInl" alt="$ \rho_{\infty} = 0.2 $" src="form_150.png"/>, following the guidelines of Birn et al., 2001, while <code>l</code> is user supplied. <br />
+In order to achieve equilibrium with the magnetic pressure, the thermal pressure is chosen to be <img class="formulaInl" alt="$ p = c_s^2 \rho $" src="form_151.png"/>, where <img class="formulaInl" alt="$ c_s^2 = \frac{B_0^2}{2\rho_0} $" src="form_152.png"/>. The initial equilibrium is pertubed by an additional magnetic field defined as </p><p class="formulaDsp">
+<img class="formulaDsp" alt="\[ \begin{array}{lcl} B_x(x,y) &amp;=&amp; \DS -\Psi_0\frac{\pi}{L_y}\cos\left(\frac{2\pi x}{L_x}\right) \sin\left(\frac{\pi y}{L_y}\right), \\ \noalign{\medskip} B_y(x,y) &amp;=&amp; \DS +\Psi_0 \frac{2\pi}{L_x}\sin\left(\frac{2\pi x}{L_x}\right) \cos\left(\frac{\pi y}{L_y}\right). \end{array} \]" src="form_153.png"/>
 </p>
-<p>The Lundquist number <img class="formulaInl" alt="$ S $" src="form_171.png"/> of a plasma is defined as </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ S = \frac{v_A L}{\eta} \]" src="form_172.png"/>
+<p>The Lundquist number <img class="formulaInl" alt="$ S $" src="form_154.png"/> of a plasma is defined as </p><p class="formulaDsp">
+<img class="formulaDsp" alt="\[ S = \frac{v_A L}{\eta} \]" src="form_155.png"/>
 </p>
-<p> where <img class="formulaInl" alt="$ v_A $" src="form_173.png"/> is the Alfvén velocity, <img class="formulaInl" alt="$ v_A = \DS \frac{B}{\sqrt{\rho}}$" src="form_174.png"/>, <img class="formulaInl" alt="$ L $" src="form_175.png"/> is a typical lenght scale, and <img class="formulaInl" alt="$ \eta $" src="form_160.png"/> the plasma resistivity. The reconnection rate <img class="formulaInl" alt="$\mathcal{E} = \DS \frac{v_{in}}{v_{out}}$" src="form_176.png"/>, with <img class="formulaInl" alt="$ v_{in} $" src="form_177.png"/> and <img class="formulaInl" alt="$ v_{out}$" src="form_178.png"/> the plasma inflow and outflow velocities, follows the Sweet-Parker scaling law <img class="formulaInl" alt="$\mathcal{E} \sim \frac{\delta}{L} \sim \frac{1}{\sqrt{S}}$" src="form_179.png"/>. In this example several values of the resitivity <img class="formulaInl" alt="$ \eta $" src="form_160.png"/>, that correspond to different values of the Lundquist number <img class="formulaInl" alt="$ S $" src="form_171.png"/>, are provided. The reconnection rate, calculated as the ratio <img class="formulaInl" alt="$ \frac{\delta}{L} $" src="form_180.png"/> (see Mignone et al., 2012) verifies the Sweet-Parker scaling in the range <img class="formulaInl" alt="$ \eta = 10^{-2} - 10^{-4} $" src="form_181.png"/> (see the first figure below).</p>
+<p> where <img class="formulaInl" alt="$ v_A $" src="form_156.png"/> is the Alfvén velocity, <img class="formulaInl" alt="$ v_A = \DS \frac{B}{\sqrt{\rho}}$" src="form_157.png"/>, <img class="formulaInl" alt="$ L $" src="form_158.png"/> is a typical lenght scale, and <img class="formulaInl" alt="$ \eta $" src="form_143.png"/> the plasma resistivity. The reconnection rate <img class="formulaInl" alt="$\mathcal{E} = \DS \frac{v_{in}}{v_{out}}$" src="form_159.png"/>, with <img class="formulaInl" alt="$ v_{in} $" src="form_160.png"/> and <img class="formulaInl" alt="$ v_{out}$" src="form_161.png"/> the plasma inflow and outflow velocities, follows the Sweet-Parker scaling law <img class="formulaInl" alt="$\mathcal{E} \sim \frac{\delta}{L} \sim \frac{1}{\sqrt{S}}$" src="form_162.png"/>. In this example several values of the resitivity <img class="formulaInl" alt="$ \eta $" src="form_143.png"/>, that correspond to different values of the Lundquist number <img class="formulaInl" alt="$ S $" src="form_154.png"/>, are provided. The reconnection rate, calculated as the ratio <img class="formulaInl" alt="$ \frac{\delta}{L} $" src="form_163.png"/> (see Mignone et al., 2012) verifies the Sweet-Parker scaling in the range <img class="formulaInl" alt="$ \eta = 10^{-2} - 10^{-4} $" src="form_164.png"/> (see the first figure below).</p>
 <p>The input parameters (read from <code>pluto.ini</code>) for this test problem are:</p>
 <ul>
-<li><code> g_inputParam[ETA]</code>: sets the value of resistivity <img class="formulaInl" alt="$ \eta $" src="form_160.png"/>;</li>
+<li><code> g_inputParam[ETA]</code>: sets the value of resistivity <img class="formulaInl" alt="$ \eta $" src="form_143.png"/>;</li>
 <li><code> g_inputParam[WIDTH]</code>: sets the layer width <code>l</code>;</li>
-<li><code> g_inputParam[PSI0]</code>: sets the amplitude of perturbation <img class="formulaInl" alt="$\Psi_0$" src="form_182.png"/>.</li>
+<li><code> g_inputParam[PSI0]</code>: sets the amplitude of perturbation <img class="formulaInl" alt="$\Psi_0$" src="form_165.png"/>.</li>
 </ul>
 <dl class="section note"><dt>Note</dt><dd><ul>
 <li>Configuration #02 employs a small width (l -&gt; 0, current-sheet) large resistivity (test passes only with the new implementation of the resistive-CT module in PLUTO 4.1. Crash with PLUTO 4.0).</li>
@@ -146,14 +147,14 @@ Density map and magnetic field lines for eta = 2.e-3 at t = 137.</div></div>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Assign initial condition by looping over the computational domain. Called after the usual <a class="el" href="_particles_2_c_r_2_gyration_2init_8c.html#a8488b38b779097d732c203983f9bb9bf">Init()</a> function to assign initial conditions on primitive variables. Value assigned here will overwrite those prescribed during <a class="el" href="_particles_2_c_r_2_gyration_2init_8c.html#a8488b38b779097d732c203983f9bb9bf">Init()</a>. </p>
+<p>Assign initial condition by looping over the computational domain. Called after the usual <a class="el" href="_particles_2_dust_2_r_v___drift_2init_8c.html#a8488b38b779097d732c203983f9bb9bf">Init()</a> function to assign initial conditions on primitive variables. Value assigned here will overwrite those prescribed during <a class="el" href="_particles_2_dust_2_r_v___drift_2init_8c.html#a8488b38b779097d732c203983f9bb9bf">Init()</a>. </p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Jun 15 2018 22:46:22 for PLUTO Test Problems by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:25:25 for PLUTO Test Problems by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

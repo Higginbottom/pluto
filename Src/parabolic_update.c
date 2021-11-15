@@ -1,29 +1,27 @@
 /* ///////////////////////////////////////////////////////////////////// */
 /*! 
   \file  
-  \brief Update solution array with parabolic (diffusion) terms.
+  \brief Compute right hand side from parabolic (diffusion) terms.
 
-  The ParabolicUpdate() function updates a solution array of conservative
+  The ParabolicUpdate() function computes the right hand side of conservative
   variables using contributions coming from diffusion operators only.
   It is called by EXPLICIT methods only immediately after the hyerbolic
-  flux contributions have been added to \c U. 
+  rhs has been computed. 
   Note that this is \e not an operator split formalism since contributions
-  are added to the base time level:
+  are added as the same time level:
   \f[
-    \begin{array}{llcll}
-      (1)\quad & \vec{U}^{n} &\to& \vec{U}^*     & = \vec{U}^n
-                              - \Delta t\nabla\cdot\vec{F}_h^n
+    \begin{array}{llc}
+      (1)\quad & \vec{R}^{n} &  =  - \Delta t\nabla\cdot\vec{F}_h^n
       \\ \noalign{\medskip}
-      (2)\quad & \vec{U}^{*} &\to& \vec{U}^{n+1} & = \vec{U}^*
-                                + \Delta t\nabla\cdot\vec{F}_p^n
+      (2)\quad & \vec{R}^{n} & +=  + \Delta t\nabla\cdot\vec{F}_p^n
     \end{array}
   \f]
   Step (2) is the one performed by ParabolicUpdate().
   By convention, parabolic fluxes are written with the plus sign
   when they are on the right hand side.
 
-  The ParabolicRHS() function computes the right hand side, in 
-  divergence form, of the parabolic (diffusion) operators only:
+  The ParabolicRHS() function does the actual computation of the right hand
+  side, in divergence form, of the parabolic (diffusion) operators only:
   \f[
     \pd{U}{t} = \nabla\cdot\Big(D\nabla U\Big) + S
   \f]  
@@ -87,8 +85,8 @@
   is taken over the local processor grid.
   
        
-  \date    May 13, 2018
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \date    July 10, 2019
+  \authors A. Mignone (mignone@to.infn.it)\n
            B. Vaidya
            Z. Ahmane
 */
@@ -108,38 +106,26 @@ enum PARABOLIC_OPERATORS{
 };
 
 /* ********************************************************************* */
-void ParabolicUpdate(const Data *d, Data_Arr UU, RBox *domBox, double **aflux,
+void ParabolicUpdate(const Data *d, Data_Arr dU, RBox *domBox, double **aflux,
                      double dt, timeStep *Dts, Grid *grid)
 /*!
- * Take one step in updating the conservative vector \c UU:
- * \f[
- *      U^1 = U^0 + \Delta t R(V^0)
- * \f]
- * where \f$ U^0 =\f$ \c UU is a conservative array while
- * \f$ V^0 = \f$ \c d->Vc is the array of primitive variabels.
- * Note that \c d->Vc and \c UU may not necessarily be the map of each
- * other.
  * It is called only by explicit schemes.
  *
- *
- * \note When the entropy switch is enabled, we actually do not compute the
- *       right hand side of the entropy equation but, instead, we recover
- *       entropy variation from total energy:
- *       \f[ \begin{array}{lcl}
- *             E^*     &=& E(S^*)  \\ \noalign{\medskip}
- *             E^{n+1} &=& E^* + \Delta t (\nabla\cdot\vec{F}_{E,p}) \\ \noalign{\medskip}
- *             S^{n+1} &=& S(E^{n+1})
- *           \end{array}             
+ * \note When the entropy switch is enabled, the right hand side is comuted
+ *       as a combination of energy, momentum and magnetic feld rhs: 
+ *       \f[
+ *          \Delta\sigma = \Delta t\frac{\Gamma-1}{\rho^{\Gamma-1}}
+ *                         \left[\Delta E - \vec{v}\cdot\Delta\vec{m}
+ *                                        - \vec{B}\cdot\Delta{\vec{B}}
+ *                                        \right]
  *       \f]
- *       where \f$S^*\f$ is the value of entropy after the hyperbolic update, 
- *       \f$ \vec{F}_{E,p} \f$ is the energy diffusion flux and starred
- *       quantities are coming from the previous step.
- *
+ *       where \f$\sigma = p/\rho^{\Gamma-1}\f$ is the conserved entropy.
+ *       
  * \param [in]     d        Pointer to the PLUTO data structure.
  *                          When set to \c NULL, the right hand side is not
  *                          recomputed, and the most recent computed value
  *                          of rhs[] is employed (useful for CTU algorithms).
- * \param [in,out] UU       Array of conservative variables to be updated
+ * \param [in,out] dU       Array of conservative rhs to be updated
  * \param [in]     domBox   A pointer to an RBox structure defining
  *                          the zones of the domain to be updated
  * \param [in,out] aflux    A 2D pointer to store fluxes (needed by Chombo)
@@ -150,12 +136,8 @@ void ParabolicUpdate(const Data *d, Data_Arr UU, RBox *domBox, double **aflux,
 {
   int    i,j,k,nv;
   int    beg_dir, end_dir;
-  static unsigned char ***flag; 
-  double invDt_par, Ehyp, Es, rho, p, *u;
-  double Emag = 0.0, Ekin;
-#if EOS == IDEAL
-  double g1 = g_gamma - 1.0;
-#endif
+  static uint16_t ***flag; 
+  double invDt_par, *u;
   static double ****rhs;
   
 /* --------------------------------------------------------
@@ -174,10 +156,10 @@ void ParabolicUpdate(const Data *d, Data_Arr UU, RBox *domBox, double **aflux,
     invDt_par = ParabolicRHS(d, rhs, domBox, aflux, EXPLICIT,  1.0, grid);
 
     if (g_intStage == 1){
-      #if (defined CTU) || (DIMENSIONAL_SPLITTING == YES)  
+      #ifdef  CTU
       Dts->invDt_par = MAX(Dts->invDt_par, invDt_par);
       #else
-      invDt_par /= (double) DIMENSIONS;
+      invDt_par /= (double) (INCLUDE_IDIR + INCLUDE_JDIR + INCLUDE_KDIR);
       Dts->invDt_par = MAX(Dts->invDt_par, invDt_par);
       #endif
     }
@@ -191,30 +173,15 @@ void ParabolicUpdate(const Data *d, Data_Arr UU, RBox *domBox, double **aflux,
 
   BOX_LOOP(domBox, k,j,i){
 
-  /* -- Entropy switch: recompute energy from entropy --  */
-    #if ENTROPY_SWITCH && (EOS == IDEAL)
-    if (flag[k][j][i] & FLAG_ENTROPY){
-      u    = UU[k][j][i];
-      rho  = u[RHO];      
-      p    = u[ENTR]*pow(rho,g1);
-
-      Ekin = 0.5*(EXPAND(u[MX1]*u[MX1], + u[MX2]*u[MX2], + u[MX3]*u[MX3]))/u[RHO];
-      #if PHYSICS == MHD
-      Emag = 0.5*(EXPAND(u[BX1]*u[BX1], + u[BX2]*u[BX2], + u[BX3]*u[BX3]));
-      #endif
-      u[ENG] = p/g1 + Ekin + Emag;
-    }
-    #endif
-
     #if VISCOSITY == EXPLICIT
-    EXPAND(UU[k][j][i][MX1] += dt*rhs[k][j][i][MX1];  ,
-           UU[k][j][i][MX2] += dt*rhs[k][j][i][MX2];  ,
-           UU[k][j][i][MX3] += dt*rhs[k][j][i][MX3];)
+    dU[k][j][i][MX1] += dt*rhs[k][j][i][MX1];
+    dU[k][j][i][MX2] += dt*rhs[k][j][i][MX2];
+    dU[k][j][i][MX3] += dt*rhs[k][j][i][MX3];
     #endif
     #if (AMBIPOLAR_DIFFUSION == EXPLICIT) || (RESISTIVITY == EXPLICIT)
-    EXPAND(UU[k][j][i][BX1] += dt*rhs[k][j][i][BX1];  ,
-           UU[k][j][i][BX2] += dt*rhs[k][j][i][BX2];  ,
-           UU[k][j][i][BX3] += dt*rhs[k][j][i][BX3];)
+    dU[k][j][i][BX1] += dt*rhs[k][j][i][BX1];
+    dU[k][j][i][BX2] += dt*rhs[k][j][i][BX2];
+    dU[k][j][i][BX3] += dt*rhs[k][j][i][BX3];
     #endif
     
     #if HAVE_ENERGY
@@ -223,7 +190,7 @@ void ParabolicUpdate(const Data *d, Data_Arr UU, RBox *domBox, double **aflux,
         (THERMAL_CONDUCTION == EXPLICIT)  || \
         (VISCOSITY          == EXPLICIT) 
 
-    UU[k][j][i][ENG] += dt*rhs[k][j][i][ENG];
+    dU[k][j][i][ENG] += dt*rhs[k][j][i][ENG];
 
     #endif
     #endif
@@ -231,12 +198,23 @@ void ParabolicUpdate(const Data *d, Data_Arr UU, RBox *domBox, double **aflux,
   /* -- Entropy switch: recompute entropy from energy --  */
     #if ENTROPY_SWITCH && (EOS == IDEAL)
     if (flag[k][j][i] & FLAG_ENTROPY){
-      Ekin = 0.5*(EXPAND(u[MX1]*u[MX1], + u[MX2]*u[MX2], + u[MX3]*u[MX3]))/u[RHO];
+      double g1 = g_gamma - 1.0;
+      double *R  = rhs[k][j][i];
+      double rho = d->Vc[RHO][k][j][i];
+      double vx1 = d->Vc[VX1][k][j][i];
+      double vx2 = d->Vc[VX2][k][j][i];
+      double vx3 = d->Vc[VX3][k][j][i];
+      double vRm = vx1*R[MX1] + vx2*R[MX2] + vx3*R[MX3];
       #if PHYSICS == MHD
-      Emag = 0.5*(EXPAND(u[BX1]*u[BX1], + u[BX2]*u[BX2], + u[BX3]*u[BX3]));
+      double Bx1 = d->Vc[BX1][k][j][i];
+      double Bx2 = d->Vc[BX2][k][j][i];
+      double Bx3 = d->Vc[BX3][k][j][i];
+      double BRB = Bx1*R[BX1] + Bx2*R[BX2] + Bx3*R[BX3];
+      #else
+      double BRB = 0.0;
       #endif
-      p = g1*(u[ENG] - Ekin - Emag); 
-      u[ENTR] = p/pow(rho,g1);
+      
+      dU[k][j][i][ENTR] += dt*g1*pow(rho, -g1)*(R[ENG] - vRm - BRB);
     }
     #endif
   } /* End BOX_LOOP() */
@@ -275,7 +253,7 @@ double ParabolicRHS (const Data *d, Data_Arr dU, RBox *domBox, double **aflux,
       We use C_dt[AMB_DIFF_OP] for ambipolar diffusion, 
              C_dt[RES_OP+IDIR/JDIR/KDIR] for resistivity (eta_x/y/z),
              C_dt[TC_OP] for thermal conduction, etc...
-/* -------------------------------------------------------- */
+   -------------------------------------------------------- */
 
   if (dcoeff == NULL) {
     dcoeff  = ARRAY_1D(NMAX_POINT, double);
@@ -304,10 +282,6 @@ double ParabolicRHS (const Data *d, Data_Arr dU, RBox *domBox, double **aflux,
     if (C_dtp[nv] != NULL) TOT_LOOP(k,j,i) C_dtp[nv][k][j][i] = 0.0;
   }
 
-#if DIMENSIONAL_SPLITTING == YES
-  TOT_LOOP(k,j,i)  NVAR_LOOP(nv) dU[k][j][i][nv] = 0.0;
-#endif
-
 /* --------------------------------------------------------
    1. Select which operator(s) should be included during
       this call.
@@ -320,15 +294,9 @@ double ParabolicRHS (const Data *d, Data_Arr dU, RBox *domBox, double **aflux,
   include[TC_OP]       = (THERMAL_CONDUCTION  == timeStepping);
   include[VISC_OP]     = (VISCOSITY           == timeStepping);
 
-  if (timeStepping == EXPLICIT && DIMENSIONAL_SPLITTING == YES){
-    includeDir[IDIR] = (g_dir == IDIR);
-    includeDir[JDIR] = (g_dir == JDIR);
-    includeDir[KDIR] = (g_dir == KDIR);
-  }else{
-    includeDir[IDIR] = 1;
-    includeDir[JDIR] = (DIMENSIONS >= 2);
-    includeDir[KDIR] = (DIMENSIONS == 3);
-  }
+  includeDir[IDIR] = INCLUDE_IDIR;
+  includeDir[JDIR] = INCLUDE_JDIR;
+  includeDir[KDIR] = INCLUDE_KDIR;
 
   i = j = k = 0;
 
@@ -365,7 +333,7 @@ double ParabolicRHS (const Data *d, Data_Arr dU, RBox *domBox, double **aflux,
 
       #ifdef SHEARINGBOX
       /* With the shearingbox, diffusion terms are computed normally using
-         grid and boudnary values as they are and no symmetrization is
+         grid and boundary values as they are and no symmetrization is
          implemented at present. */
       #endif
 
@@ -383,21 +351,21 @@ double ParabolicRHS (const Data *d, Data_Arr dU, RBox *domBox, double **aflux,
           IBOX_LOOP (domBox, i){  
             double inv_dl2 = inv_dl[i]*inv_dl[i];
 
-            EXPAND(C_dtp[RES_OP+0][k][j][i] += 0.5*( dcoeff_res[0][i-1]
-                                                   + dcoeff_res[0][i])*inv_dl2;  ,
-                   C_dtp[RES_OP+1][k][j][i] += 0.5*( dcoeff_res[1][i-1]
-                                                   + dcoeff_res[1][i])*inv_dl2;  ,
-                   C_dtp[RES_OP+2][k][j][i] += 0.5*(  dcoeff_res[2][i-1]
-                                                    + dcoeff_res[2][i])*inv_dl2;)
+            C_dtp[RES_OP+0][k][j][i] += 0.5*( dcoeff_res[0][i-1]
+                                            + dcoeff_res[0][i])*inv_dl2;
+            C_dtp[RES_OP+1][k][j][i] += 0.5*( dcoeff_res[1][i-1]
+                                            + dcoeff_res[1][i])*inv_dl2;
+            C_dtp[RES_OP+2][k][j][i] += 0.5*(  dcoeff_res[2][i-1]
+                                             + dcoeff_res[2][i])*inv_dl2;
 
-            EXPAND(invDt_par     = dcoeff_res[0][i]*inv_dl2;
-                   max_invDt_par = MAX(max_invDt_par, invDt_par);         , 
+            invDt_par     = dcoeff_res[0][i]*inv_dl2;
+            max_invDt_par = MAX(max_invDt_par, invDt_par);
 
-                   invDt_par     = dcoeff_res[1][i]*inv_dl2;
-                   max_invDt_par = MAX(max_invDt_par, invDt_par);         , 
+            invDt_par     = dcoeff_res[1][i]*inv_dl2;
+            max_invDt_par = MAX(max_invDt_par, invDt_par);
 
-                   invDt_par     = dcoeff_res[2][i]*inv_dl2;
-                   max_invDt_par = MAX(max_invDt_par, invDt_par);)
+            invDt_par     = dcoeff_res[2][i]*inv_dl2;
+            max_invDt_par = MAX(max_invDt_par, invDt_par);
 
           }  
         }  
@@ -461,21 +429,21 @@ double ParabolicRHS (const Data *d, Data_Arr dU, RBox *domBox, double **aflux,
           JBOX_LOOP (domBox, j){  
             double inv_dl2 = inv_dl[j]*inv_dl[j];
 
-            EXPAND(C_dtp[RES_OP+0][k][j][i] += 0.5*( dcoeff_res[0][j-1]
-                                                  + dcoeff_res[0][j])*inv_dl2;  ,
-                   C_dtp[RES_OP+1][k][j][i] += 0.5*( dcoeff_res[1][j-1]
-                                                  + dcoeff_res[1][j])*inv_dl2;  ,
-                   C_dtp[RES_OP+2][k][j][i] += 0.5*(  dcoeff_res[2][j-1]
-                                                   + dcoeff_res[2][j])*inv_dl2;)
+            C_dtp[RES_OP+0][k][j][i] += 0.5*( dcoeff_res[0][j-1]
+                                            + dcoeff_res[0][j])*inv_dl2;
+            C_dtp[RES_OP+1][k][j][i] += 0.5*( dcoeff_res[1][j-1]
+                                            + dcoeff_res[1][j])*inv_dl2;
+            C_dtp[RES_OP+2][k][j][i] += 0.5*(  dcoeff_res[2][j-1]
+                                             + dcoeff_res[2][j])*inv_dl2;
 
-            EXPAND(invDt_par     = dcoeff_res[0][j]*inv_dl2;
-                   max_invDt_par = MAX(max_invDt_par, invDt_par);         , 
+            invDt_par     = dcoeff_res[0][j]*inv_dl2;
+            max_invDt_par = MAX(max_invDt_par, invDt_par);
 
-                   invDt_par     = dcoeff_res[1][j]*inv_dl2;
-                   max_invDt_par = MAX(max_invDt_par, invDt_par);         , 
+            invDt_par     = dcoeff_res[1][j]*inv_dl2;
+            max_invDt_par = MAX(max_invDt_par, invDt_par);
 
-                   invDt_par     = dcoeff_res[2][j]*inv_dl2;
-                   max_invDt_par = MAX(max_invDt_par, invDt_par);)
+            invDt_par     = dcoeff_res[2][j]*inv_dl2;
+            max_invDt_par = MAX(max_invDt_par, invDt_par);
 
           }  
         }  
@@ -539,21 +507,21 @@ double ParabolicRHS (const Data *d, Data_Arr dU, RBox *domBox, double **aflux,
           KBOX_LOOP (domBox, k){  
             double inv_dl2 = inv_dl[k]*inv_dl[k];
 
-            EXPAND(C_dtp[RES_OP+0][k][j][i] += 0.5*( dcoeff_res[0][k-1]
-                                                  + dcoeff_res[0][k])*inv_dl2;  ,
-                   C_dtp[RES_OP+1][k][j][i] += 0.5*( dcoeff_res[1][k-1]
-                                                  + dcoeff_res[1][k])*inv_dl2;  ,
-                   C_dtp[RES_OP+2][k][j][i] += 0.5*(  dcoeff_res[2][k-1]
-                                                   + dcoeff_res[2][k])*inv_dl2;)
+            C_dtp[RES_OP+0][k][j][i] += 0.5*( dcoeff_res[0][k-1]
+                                            + dcoeff_res[0][k])*inv_dl2;
+            C_dtp[RES_OP+1][k][j][i] += 0.5*( dcoeff_res[1][k-1]
+                                            + dcoeff_res[1][k])*inv_dl2;
+            C_dtp[RES_OP+2][k][j][i] += 0.5*(  dcoeff_res[2][k-1]
+                                             + dcoeff_res[2][k])*inv_dl2;
 
-            EXPAND(invDt_par     = dcoeff_res[0][k]*inv_dl2;
-                   max_invDt_par = MAX(max_invDt_par, invDt_par);     , 
+            invDt_par     = dcoeff_res[0][k]*inv_dl2;
+            max_invDt_par = MAX(max_invDt_par, invDt_par);
 
-                   invDt_par     = dcoeff_res[1][k]*inv_dl2;
-                   max_invDt_par = MAX(max_invDt_par, invDt_par);     , 
+            invDt_par     = dcoeff_res[1][k]*inv_dl2;
+            max_invDt_par = MAX(max_invDt_par, invDt_par);
 
-                   invDt_par     = dcoeff_res[2][k]*inv_dl2;
-                   max_invDt_par = MAX(max_invDt_par, invDt_par);)
+            invDt_par     = dcoeff_res[2][k]*inv_dl2;
+            max_invDt_par = MAX(max_invDt_par, invDt_par);
           }  
         }  
       }
@@ -600,7 +568,7 @@ double ParabolicRHS (const Data *d, Data_Arr dU, RBox *domBox, double **aflux,
    -------------------------------------------------------- */
 
   if (timeStepping == EXPLICIT){
-    #if (defined CTU) || DIMENSIONAL_SPLITTING == YES
+    #ifdef CTU
     return max_invDt_par;
     #endif
   }
@@ -615,9 +583,9 @@ double ParabolicRHS (const Data *d, Data_Arr dU, RBox *domBox, double **aflux,
 
     #if RESISTIVITY
     if (include[RES_OP]){
-      EXPAND(scrh = MAX(scrh, C_dtp[RES_OP+0][k][j][i]);   ,  
-             scrh = MAX(scrh, C_dtp[RES_OP+1][k][j][i]);   ,
-             scrh = MAX(scrh, C_dtp[RES_OP+2][k][j][i]);)
+      scrh = MAX(scrh, C_dtp[RES_OP+0][k][j][i]);
+      scrh = MAX(scrh, C_dtp[RES_OP+1][k][j][i]);
+      scrh = MAX(scrh, C_dtp[RES_OP+2][k][j][i]);
     }
     #endif
 

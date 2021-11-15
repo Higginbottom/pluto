@@ -173,8 +173,8 @@ int LocateIndex(double *yarr, int beg, int end, double y)
    
   if ( (ascnd  && (y < yarr[beg] || y > yarr[end])) ||
        (!ascnd && (y > yarr[beg] || y < yarr[end]))){
-/*    print ("! LocatIndex: element outside range ");
-    print ("(%12.6e not in [%12.6e, %12.6e]\n",y,yarr[beg],yarr[end]);*/
+/*    printLog ("! LocatIndex: element outside range ");
+    printLog ("(%12.6e not in [%12.6e, %12.6e]\n",y,yarr[beg],yarr[end]);*/
     return -1;
   }
   
@@ -240,12 +240,12 @@ int InverseLookupTable2D (Table2D *tab, double y, double f, double *x)
 
   lny = log10(y);
   if (lny < tab->lnymin){
-    print ("! InverseLookupTable2D: lny outside range: %12.6e < %12.6e\n",
+    printLog ("! InverseLookupTable2D: lny outside range: %12.6e < %12.6e\n",
             lny, tab->lnymin);
     return -2;
   }
   if (lny > tab->lnymax){
-    print ("! InverseLookupTable2D: lny outside range: %12.6e > %12.6e\n",
+    printLog ("! InverseLookupTable2D: lny outside range: %12.6e > %12.6e\n",
             lny, tab->lnymax);
     return 2;
   }
@@ -309,7 +309,7 @@ int InverseLookupTable2D (Table2D *tab, double y, double f, double *x)
       xn -= dxn;
       if (fabs(dxn) < 1.e-11) break;
       if (k == kmax){
-        printf ("! InverseLookupTable2D(): too many iterations in Newton-cubic\n");
+        printLog ("! InverseLookupTable2D(): too many iterations in Newton-cubic\n");
         QUIT_PLUTO(1); 
       }
     }
@@ -331,9 +331,9 @@ int InverseLookupTable2D (Table2D *tab, double y, double f, double *x)
 */
     if (xn < 0.0 || xn > 1.0) {
       PlotCubic(a,b,c,d);        
-      print ("! InverseLookupTable2D(): no root in [0,1]; i,j = %d,%d\n",i,j);
-      print ("! xn = %8.3e\n",xn);
-      print ("! Cubic tabulated in 'cubic.dat'\n");
+      printLog ("! InverseLookupTable2D(): no root in [0,1]; i,j = %d,%d\n",i,j);
+      printLog ("! xn = %8.3e\n",xn);
+      printLog ("! Cubic tabulated in 'cubic.dat'\n");
       QUIT_PLUTO(1);
     }
 
@@ -399,13 +399,13 @@ int InverseLookupTable2D (Table2D *tab, double y, double f, double *x)
 
     if (xn < 0.0 || xn > 1.0) {
       PlotCubic(a,b,c,d);        
-      print ("! InverseLookupTable2D(): no root in [0,1]; i,j = %d,%d\n",i,j);
-      print ("! xn = %8.3e\n",xn);
-      print ("! R  = %8.3e; Q = %8.3e\n",R,Q);
-      print ("! R^2 - Q^3 = %8.3e\n",R*R-Q*Q*Q);
-      print ("! |R/Q|/sqrt(Q) = %8.3e\n",fabs(R/Q)/sqrt(fabs(Q)));
-      print ("! a = %8.3e; b = %8.3e; c = %8.3e; d = %8.3e\n",a,b,c,d);
-      print ("! Cubic tabulated in 'cubic.dat'\n");
+      printLog ("! InverseLookupTable2D(): no root in [0,1]; i,j = %d,%d\n",i,j);
+      printLog ("! xn = %8.3e\n",xn);
+      printLog ("! R  = %8.3e; Q = %8.3e\n",R,Q);
+      printLog ("! R^2 - Q^3 = %8.3e\n",R*R-Q*Q*Q);
+      printLog ("! |R/Q|/sqrt(Q) = %8.3e\n",fabs(R/Q)/sqrt(fabs(Q)));
+      printLog ("! a = %8.3e; b = %8.3e; c = %8.3e; d = %8.3e\n",a,b,c,d);
+      printLog ("! Cubic tabulated in 'cubic.dat'\n");
       QUIT_PLUTO(1);
     }
 #endif
@@ -465,7 +465,7 @@ int Table2DInterpolate(Table2D *tab, double x, double y, double *f)
 
   if (lnx < tab->lnxmin){
     WARNING(
-      print ("! Table2DInterpolate: lnx outside range %12.6e < %12.6e\n",
+      printLog ("! Table2DInterpolate: lnx outside range %12.6e < %12.6e\n",
               lnx, tab->lnxmin);
     )
     return -1;
@@ -473,7 +473,7 @@ int Table2DInterpolate(Table2D *tab, double x, double y, double *f)
    
   if (lnx > tab->lnxmax){
     WARNING(
-      print ("! Table2DInterpolate: lnx outside range: %12.6e > %12.6e\n",
+      printLog ("! Table2DInterpolate: lnx outside range: %12.6e > %12.6e\n",
               lnx, tab->lnxmax);
     )
     return 1;
@@ -481,7 +481,7 @@ int Table2DInterpolate(Table2D *tab, double x, double y, double *f)
 
   if (lny < tab->lnymin){
     WARNING(
-      print ("! Table2DInterpolate: lny outside range: %12.6e < %12.6e\n",
+      printLog ("! Table2DInterpolate: lny outside range: %12.6e < %12.6e\n",
               lny, tab->lnymin);
     )
     return -2;
@@ -489,7 +489,7 @@ int Table2DInterpolate(Table2D *tab, double x, double y, double *f)
 
   if (lny > tab->lnymax){
     WARNING(
-      print ("! Table2DInterpolate: lny outside range: %12.6e > %12.6e\n",
+      printLog ("! Table2DInterpolate: lny outside range: %12.6e > %12.6e\n",
               lny, tab->lnymax);
     )
     return 2;
@@ -518,7 +518,7 @@ int Table2DInterpolate(Table2D *tab, double x, double y, double *f)
     s2 = tab->d[j+1][i] + xn*(tab->c[j+1][i] + xn*(tab->b[j+1][i] + xn*tab->a[j+1][i]));
     *f = s1*(1.0 - yn) + s2*yn;
   }else{
-    print ("! Table2DInterpolate(): table interpolation not corretly defined\n");
+    printLog ("! Table2DInterpolate(): table interpolation not corretly defined\n");
     QUIT_PLUTO(1);
   }
   return 0;  /* success */

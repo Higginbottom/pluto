@@ -27,9 +27,9 @@
     - "A simple and accurate Riemann solver for isothermal MHD",
        Mignone, JCP (2007) 225, 1427.
        
-  \authors A. Mignone (mignone@ph.unito.it)
+  \authors A. Mignone (mignone@to.infn.it)
            C. Zanni   (zanni@oato.inaf.it)
-  \date   April 16, 2017
+  \date    Dec 03, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
@@ -56,7 +56,7 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
  *********************************************************************** */
 {
   int    nv, i;
-  int    revert_to_hllc;
+  int    switch_to_hllc;
 
   const State   *stateL = &(sweep->stateL);
   const State   *stateR = &(sweep->stateR);
@@ -73,7 +73,7 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
   double *ptL = stateL->prs,  *ptR = stateR->prs;
 #if BACKGROUND_FIELD == YES
   double B0n, B0t, B0b;
-  #ifdef PARTICLES
+  #if PARTICLES
     #error "Particles and Background field no compatible"
   #endif
 #endif
@@ -84,6 +84,7 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
 #endif
 
 #if BACKGROUND_FIELD == YES
+  /* -- Background field compute in stateL->bck = stateR->bck */
   GetBackgroundField (stateL, beg, end, FACE_CENTER, grid);
 #endif
 
@@ -102,27 +103,27 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
   Flux (stateR, beg, end);
   
 /* --------------------------------------------------------
-   2. get max and min signal velocities
+   2. Get max and min signal velocities
    -------------------------------------------------------- */
              
   SL = sweep->SL; SR = sweep->SR;
   HLL_Speed (stateL, stateR, SL, SR, beg, end);
 
 /* --------------------------------------------------------
-   3. Sweep along assigned direction
+   3. Compute HLLD flux
    -------------------------------------------------------- */
 
   for (i = beg; i <= end; i++) {
     
     #if BACKGROUND_FIELD == YES
-    EXPAND (B0n = stateL->Bbck[i][BXn-BX1];  ,
-            B0t = stateL->Bbck[i][BXt-BX1];  ,
-            B0b = stateL->Bbck[i][BXb-BX1];)
+    B0n = stateL->Bbck[i][BXn-BX1];
+    B0t = stateL->Bbck[i][BXt-BX1];
+    B0b = stateL->Bbck[i][BXb-BX1];
     #endif
 
-  /* ------------------------------------------------------
+  /* --------------------------------------------
      3a. Get max propagation speed for dt comp.
-     ------------------------------------------------------ */
+     -------------------------------------------- */
 
     scrh  = MAX(fabs(SL[i]), fabs(SR[i]));
     cmax[i] = scrh;
@@ -130,26 +131,56 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
     vL = stateL->v[i]; uL = stateL->u[i];
     vR = stateR->v[i]; uR = stateR->u[i];
 
-  /* ------------------------------------------------------
+    scrh = 1.0/(SR[i] - SL[i]);
+    Bx1  = Bx = (SR[i]*vR[BXn] - SL[i]*vL[BXn])*scrh; 
+    #if BACKGROUND_FIELD == YES
+    Bx += B0n;   /* Bx will be now the (normal) total field */
+    #endif
+    sBx  = (Bx > 0.0 ? 1.0 : -1.0);
+    
+    duL  = SL[i] - vL[VXn];
+    duR  = SR[i] - vR[VXn];
+    
+    scrh = 1.0/(duR*uR[RHO] - duL*uL[RHO]);
+    SM   = (duR*uR[MXn] - duL*uL[MXn] - ptR[i] + ptL[i])*scrh;
+    
+    pts  = duR*uR[RHO]*ptL[i] - duL*uL[RHO]*ptR[i] + 
+           vL[RHO]*vR[RHO]*duR*duL*(vR[VXn]- vL[VXn]);
+    pts *= scrh;
+    
+    usL[RHO] = uL[RHO]*duL/(SL[i] - SM);
+    usR[RHO] = uR[RHO]*duR/(SR[i] - SM);
+    
+    sqrL = sqrt(usL[RHO]);
+    sqrR = sqrt(usR[RHO]);
+    
+    S1L = SM - fabs(Bx)/sqrL;
+    S1R = SM + fabs(Bx)/sqrR;
+    
+    sweep->SaL[i] = S1L;
+    sweep->SaR[i] = S1R;
+    sweep->Sc[i]  = SM;
+
+  /* --------------------------------------------
      3b. Compute Flux if SL > 0 or SR < 0
-     ------------------------------------------------------ */
+     -------------------------------------------- */
 
     if (SL[i] >= 0.0){                     /*  ----  Region L  ---- */
 
-      for (nv = NFLX; nv--; ) sweep->flux[i][nv] = fL[i][nv];
+      NFLX_LOOP(nv) sweep->flux[i][nv] = fL[i][nv];
       sweep->press[i] = ptL[i];
 
     }else if (SR[i] <= 0.0) {              /*  ----  Region R  ---- */
 
-      for (nv = NFLX; nv--; ) sweep->flux[i][nv] = fR[i][nv];
+      NFLX_LOOP(nv) sweep->flux[i][nv] = fR[i][nv];
       sweep->press[i] = ptR[i];
- 
+
     } else {
 
       #if SHOCK_FLATTENING == MULTID
       if ((sweep->flag[i] & FLAG_HLL) || (sweep->flag[i+1] & FLAG_HLL)){
         scrh = 1.0/(SR[i] - SL[i]);
-        for (nv = NFLX; nv--; ){
+        NFLX_LOOP(nv) {
           sweep->flux[i][nv]  = SR[i]*SL[i]*(uR[nv] - uL[nv])
                              +  SR[i]*fL[i][nv] - SL[i]*fR[i][nv];
           sweep->flux[i][nv] *= scrh;
@@ -159,36 +190,41 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
       }
       #endif
 
-    /* ----------------------------------------------------
+    /* ------------------------------------------
        3c. Compute U*(L), U^*(R)
-       ---------------------------------------------------- */
+       ------------------------------------------ */
 
-      scrh = 1.0/(SR[i] - SL[i]);
-      Bx1  = Bx = (SR[i]*vR[BXn] - SL[i]*vL[BXn])*scrh; 
-      #if BACKGROUND_FIELD == YES
-      Bx += B0n;   /* Bx will be now the (normal) total field */
-      #endif
-      sBx  = (Bx > 0.0 ? 1.0 : -1.0);
+//      scrh = 1.0/(SR[i] - SL[i]);
+//      Bx1  = Bx = (SR[i]*vR[BXn] - SL[i]*vL[BXn])*scrh; 
+//      #if BACKGROUND_FIELD == YES
+//      Bx += B0n;   /* Bx will be now the (normal) total field */
+//      #endif
+//      sBx  = (Bx > 0.0 ? 1.0 : -1.0);
+//
+//      duL  = SL[i] - vL[VXn];
+//      duR  = SR[i] - vR[VXn];
+//
+//      scrh = 1.0/(duR*uR[RHO] - duL*uL[RHO]);
+//      SM   = (duR*uR[MXn] - duL*uL[MXn] - ptR[i] + ptL[i])*scrh;
+//
+//      pts  = duR*uR[RHO]*ptL[i] - duL*uL[RHO]*ptR[i] + 
+//             vL[RHO]*vR[RHO]*duR*duL*(vR[VXn]- vL[VXn]);
+//      pts *= scrh;
+//
+//      usL[RHO] = uL[RHO]*duL/(SL[i] - SM);
+//      usR[RHO] = uR[RHO]*duR/(SR[i] - SM);
+//
+//      sqrL = sqrt(usL[RHO]);
+//      sqrR = sqrt(usR[RHO]);
+//
+//      S1L = SM - fabs(Bx)/sqrL;
+//      S1R = SM + fabs(Bx)/sqrR;
+//
+//sweep->SaL[i] = S1L;
+//sweep->SaR[i] = S1R;
+//sweep->Sc[i]  = SM;
 
-      duL  = SL[i] - vL[VXn];
-      duR  = SR[i] - vR[VXn];
-
-      scrh = 1.0/(duR*uR[RHO] - duL*uL[RHO]);
-      SM   = (duR*uR[MXn] - duL*uL[MXn] - ptR[i] + ptL[i])*scrh;
-
-      pts  = duR*uR[RHO]*ptL[i] - duL*uL[RHO]*ptR[i] + 
-             vL[RHO]*vR[RHO]*duR*duL*(vR[VXn]- vL[VXn]);
-      pts *= scrh;
-
-      usL[RHO] = uL[RHO]*duL/(SL[i] - SM);
-      usR[RHO] = uR[RHO]*duR/(SR[i] - SM);
-
-      sqrL = sqrt(usL[RHO]);
-      sqrR = sqrt(usR[RHO]);
-
-      S1L = SM - fabs(Bx)/sqrL;
-      S1R = SM + fabs(Bx)/sqrR;
-
+      
     /* -----------------------------------------------------------------
        3d When S1L -> SL or S1R -> SR a degeneracy occurs. 
         Although Miyoshi & Kusano say that no jump exists, we don't
@@ -201,22 +237,22 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
         re-definition of By* and Bz* in terms of By(HLL), Bz(HLL).
        ----------------------------------------------------------------- */
 
-      revert_to_hllc = 0;
+      switch_to_hllc = 0;
 
-      if ( (S1L - SL[i]) <  1.e-4*(SM - SL[i]) ) revert_to_hllc = 1;
-      if ( (S1R - SR[i]) > -1.e-4*(SR[i] - SM) ) revert_to_hllc = 1;
+      if ( (S1L - SL[i]) <  1.e-4*(SM - SL[i]) ) switch_to_hllc = 1;
+      if ( (S1R - SR[i]) > -1.e-4*(SR[i] - SM) ) switch_to_hllc = 1;
 
-      if (revert_to_hllc){
+      if (switch_to_hllc){
 
         scrh = 1.0/(SR[i] - SL[i]);
-        for (nv = NFLX; nv--; ){  
+        NFLX_LOOP(nv) {  
           Uhll[nv]  = SR[i]*uR[nv] - SL[i]*uL[nv] + fL[i][nv] - fR[i][nv];
           Uhll[nv] *= scrh;
         }
-/* WHERE'S THE PRESSURE ?!?!?!? */
-        EXPAND(usL[BXn] = usR[BXn] = Uhll[BXn];   ,
-               usL[BXt] = usR[BXt] = Uhll[BXt];   ,
-               usL[BXb] = usR[BXb] = Uhll[BXb];)
+
+        usL[BXn] = usR[BXn] = Bx1;
+        usL[BXt] = usR[BXt] = Uhll[BXt];
+        usL[BXb] = usR[BXb] = Uhll[BXb];
  
         S1L = S1R = SM; /* region ** should never be computed since */ 
                         /* fluxes are given in terms of UL* and UR* */
@@ -224,30 +260,30 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
       }else{
 
     /* ----------------------------------------------------
-       3e. Compute states in the * regions
+       3e. Compute states in the * regions.
+           With bck field splitting, the intermediate
+           magnetic fields always contain the deviation B1.
        ---------------------------------------------------- */
 
         scrhL = (uL[RHO]*duL*duL - Bx*Bx)/(uL[RHO]*duL*(SL[i] - SM) - Bx*Bx);
         scrhR = (uR[RHO]*duR*duR - Bx*Bx)/(uR[RHO]*duR*(SR[i] - SM) - Bx*Bx);
  
-        EXPAND(usL[BXn]  = Bx1;            ,
-               usL[BXt]  = uL[BXt]*scrhL;  ,
-               usL[BXb]  = uL[BXb]*scrhL;)           
+        usL[BXn] = Bx1;
+        usL[BXt] = uL[BXt]*scrhL;
+        usL[BXb] = uL[BXb]*scrhL;
 
         #if BACKGROUND_FIELD == YES
-        EXPAND(                              ;  ,
-               usL[BXt]  += B0t*(scrhL - 1.0);  ,  /* Eq. [40] of         */
-               usL[BXb]  += B0b*(scrhL - 1.0);)    /* Miyoshi etal (2010) */
+        usL[BXt] += B0t*(scrhL - 1.0);    /* Eq. [40] of         */
+        usL[BXb] += B0b*(scrhL - 1.0);    /* Miyoshi etal (2010) */
         #endif
 
-        EXPAND(usR[BXn] = Bx1;            ,
-               usR[BXt] = uR[BXt]*scrhR;  ,   
-               usR[BXb] = uR[BXb]*scrhR;)     
+        usR[BXn] = Bx1;
+        usR[BXt] = uR[BXt]*scrhR;
+        usR[BXb] = uR[BXb]*scrhR;     
 
         #if BACKGROUND_FIELD == YES
-        EXPAND(                              ;  ,
-               usR[BXt]  += B0t*(scrhR - 1.0);  , /* Eq. [40] of         */
-               usR[BXb]  += B0b*(scrhR - 1.0);)   /* Miyoshi etal (2010) */
+        usR[BXt] += B0t*(scrhR - 1.0);   /* Eq. [40] of         */
+        usR[BXb] += B0b*(scrhR - 1.0);   /* Miyoshi etal (2010) */
         #endif
         
       }
@@ -255,52 +291,51 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
       scrhL = Bx/(uL[RHO]*duL);
       scrhR = Bx/(uR[RHO]*duR);
 
-      EXPAND(                                          ;  ,
-             vsL = vL[VXt] - scrhL*(usL[BXt] - uL[BXt]);
-             vsR = vR[VXt] - scrhR*(usR[BXt] - uR[BXt]);  ,
+      vsL = vL[VXt] - scrhL*(usL[BXt] - uL[BXt]);
+      vsR = vR[VXt] - scrhR*(usR[BXt] - uR[BXt]);
 
-             wsL = vL[VXb] - scrhL*(usL[BXb] - uL[BXb]);
-             wsR = vR[VXb] - scrhR*(usR[BXb] - uR[BXb]); )
+      wsL = vL[VXb] - scrhL*(usL[BXb] - uL[BXb]);
+      wsR = vR[VXb] - scrhR*(usR[BXb] - uR[BXb]); 
 
-      EXPAND(usL[MXn] = usL[RHO]*SM; 
-             usR[MXn] = usR[RHO]*SM;   ,
+      usL[MXn] = usL[RHO]*SM; 
+      usR[MXn] = usR[RHO]*SM;
     
-             usL[MXt] = usL[RHO]*vsL;
-             usR[MXt] = usR[RHO]*vsR;  ,
+      usL[MXt] = usL[RHO]*vsL;
+      usR[MXt] = usR[RHO]*vsR;
 
-             usL[MXb] = usL[RHO]*wsL;
-             usR[MXb] = usR[RHO]*wsR;)
+      usL[MXb] = usL[RHO]*wsL;
+      usR[MXb] = usR[RHO]*wsR;
 
     /* -- Energy -- */
 
-      scrhL  = EXPAND(vL[VXn]*Bx1, + vL[VXt]*uL[BXt], + vL[VXb]*uL[BXb]);
-      scrhL -= EXPAND(     SM*Bx1, +    vsL*usL[BXt], +    wsL*usL[BXb]);
+      scrhL     = vL[VXn]*Bx1 + vL[VXt]*uL[BXt] + vL[VXb]*uL[BXb];
+      scrhL    -= SM*Bx1      +    vsL*usL[BXt] + wsL*usL[BXb];
       usL[ENG]  = duL*uL[ENG] - ptL[i]*vL[VXn] + pts*SM + Bx*scrhL;
       usL[ENG] /= SL[i] - SM;
 
-      scrhR  = EXPAND(vR[VXn]*Bx1, + vR[VXt]*uR[BXt], + vR[VXb]*uR[BXb]);
-      scrhR -= EXPAND(     SM*Bx1, +    vsR*usR[BXt], +    wsR*usR[BXb]);
-      usR[ENG] = duR*uR[ENG] - ptR[i]*vR[VXn] + pts*SM + Bx*scrhR;
+      scrhR  = vR[VXn]*Bx1 + vR[VXt]*uR[BXt] + vR[VXb]*uR[BXb];
+      scrhR -= SM*Bx1      +    vsR*usR[BXt] +    wsR*usR[BXb];
+      usR[ENG]  = duR*uR[ENG] - ptR[i]*vR[VXn] + pts*SM + Bx*scrhR;
       usR[ENG] /= SR[i] - SM;
 
       #ifdef GLM_MHD
       usL[PSI_GLM] = usR[PSI_GLM] = vL[PSI_GLM];
       #endif
 
-  /* ------------------------------------------
+  /* --------------------------------------------
      3c. Compute flux when S1L > 0 or S1R < 0
-     ------------------------------------------ */
+     -------------------------------------------- */
 
       if (S1L >= 0.0){       /*  ----  Region L*  ---- */
 
-        for (nv = NFLX; nv--; ){
+        NFLX_LOOP(nv) {
           sweep->flux[i][nv] = fL[i][nv] + SL[i]*(usL[nv] - uL[nv]);
         }
         sweep->press[i] = ptL[i];
 
       }else if (S1R <= 0.0) {    /*  ----  Region R*  ---- */
-    
-        for (nv = NFLX; nv--; ){
+
+        NFLX_LOOP(nv) {
           sweep->flux[i][nv] = fR[i][nv] + SR[i]*(usR[nv] - uR[nv]);
         }
         sweep->press[i] = ptR[i];
@@ -308,46 +343,44 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
       } else {   /* -- This state exists only if B_x != 0 -- */
 
   /* ---------------------------
-           Compute U**
+     3d.     Compute U**
      --------------------------- */
 
         ussl[RHO] = usL[RHO];
         ussr[RHO] = usR[RHO];
         
-        EXPAND(                           ,
-       
-               vss  = sqrL*vsL + sqrR*vsR + (usR[BXt] - usL[BXt])*sBx;       
-               vss /= sqrL + sqrR;        ,
+        vss  = sqrL*vsL + sqrR*vsR + (usR[BXt] - usL[BXt])*sBx;       
+        vss /= sqrL + sqrR;  
             
-               wss  = sqrL*wsL + sqrR*wsR + (usR[BXb] - usL[BXb])*sBx;
-               wss /= sqrL + sqrR;)
+        wss  = sqrL*wsL + sqrR*wsR + (usR[BXb] - usL[BXb])*sBx;
+        wss /= sqrL + sqrR;
 
-        EXPAND(ussl[MXn] = ussl[RHO]*SM;
-               ussr[MXn] = ussr[RHO]*SM;    ,
+        ussl[MXn] = ussl[RHO]*SM;
+        ussr[MXn] = ussr[RHO]*SM;
      
-               ussl[MXt] = ussl[RHO]*vss;
-               ussr[MXt] = ussr[RHO]*vss;  ,
+        ussl[MXt] = ussl[RHO]*vss;
+        ussr[MXt] = ussr[RHO]*vss;
            
-               ussl[MXb] = ussl[RHO]*wss;
-               ussr[MXb] = ussr[RHO]*wss;)           
+        ussl[MXb] = ussl[RHO]*wss;
+        ussr[MXb] = ussr[RHO]*wss; 
     
-        EXPAND(ussl[BXn] = ussr[BXn] = Bx1;   ,
+        ussl[BXn] = ussr[BXn] = Bx1; 
 
-               ussl[BXt]  = sqrL*usR[BXt] + sqrR*usL[BXt] + sqrL*sqrR*(vsR - vsL)*sBx;
-               ussl[BXt] /= sqrL + sqrR;        
-               ussr[BXt]  = ussl[BXt];        ,
+        ussl[BXt]  = sqrL*usR[BXt] + sqrR*usL[BXt] + sqrL*sqrR*(vsR - vsL)*sBx;
+        ussl[BXt] /= sqrL + sqrR;  
+        ussr[BXt]  = ussl[BXt];    
            
-               ussl[BXb]  = sqrL*usR[BXb] + sqrR*usL[BXb] + sqrL*sqrR*(wsR - wsL)*sBx;
-               ussl[BXb] /= sqrL + sqrR;        
-               ussr[BXb]  = ussl[BXb];)
-          
+        ussl[BXb]  = sqrL*usR[BXb] + sqrR*usL[BXb] + sqrL*sqrR*(wsR - wsL)*sBx;
+        ussl[BXb] /= sqrL + sqrR;        
+        ussr[BXb]  = ussl[BXb];
+    
       /* -- Energy jump -- */
 
-        scrhL  = EXPAND(SM*Bx1, +  vsL*usL [BXt], +  wsL*usL [BXb]);
-        scrhL -= EXPAND(SM*Bx1, +  vss*ussl[BXt], +  wss*ussl[BXb]);
+        scrhL  = SM*Bx1 + vsL*usL [BXt] + wsL*usL [BXb];
+        scrhL -= SM*Bx1 + vss*ussl[BXt] + wss*ussl[BXb];
 
-        scrhR  = EXPAND(SM*Bx1, +  vsR*usR [BXt], +  wsR*usR [BXb]);
-        scrhR -= EXPAND(SM*Bx1, +  vss*ussr[BXt], +  wss*ussr[BXb]);
+        scrhR  = SM*Bx1 + vsR*usR [BXt] +  wsR*usR [BXb];
+        scrhR -= SM*Bx1 + vss*ussr[BXt] +  wss*ussr[BXb];
 
         ussl[ENG] = usL[ENG] - sqrL*scrhL*sBx;
         ussr[ENG] = usR[ENG] + sqrR*scrhR*sBx;
@@ -361,7 +394,7 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
        -------------------------------------- */
 
         #if VERIFY_CONSISTENCY_CONDITION == YES
-        for (nv = 0; nv < NFLX; nv++){
+        NFLX_LOOP(nv) {
           scrh = (S1L - SL[i])*usL[nv]  + (SM - S1L)*ussl[nv] +
                  (S1R - SM)*ussr[nv]    + (SR[i] - S1R)*usR[nv] -
                  (SR[i]*uR[nv] - SL[i]*uL[nv] + fL[i][nv] - fR[i][nv]);
@@ -372,11 +405,11 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
             double jump;
             double FsL, FsR, FssL, FssR;
 
-            print ("! HLLD_Solver(): Consistency condition violated\n");
-            print ("  nv = %d, dir = %d\n",nv,g_dir);
-            print ("  cons_cond = %12.6e\n",scrh);
-            print ("  |SR - SL| = %12.6e\n",fabs(SR-SL));
-            print ("  SL, S1L, SM, S1R, SR = %12.6e, %12.6e, %12.6e, %12.6e, %12.6e\n",
+            printLog ("! HLLD_Solver(): Consistency condition violated\n");
+            printLog ("  nv = %d, dir = %d\n",nv,g_dir);
+            printLog ("  cons_cond = %12.6e\n",scrh);
+            printLog ("  |SR - SL| = %12.6e\n",fabs(SR-SL));
+            printLog ("  SL, S1L, SM, S1R, SR = %12.6e, %12.6e, %12.6e, %12.6e, %12.6e\n",
                       SL[i], S1L, SM, S1R, SR[i]);     
             Show(stateL->u,i);
             Show(stateR->u,i);
@@ -390,19 +423,19 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
             FssR = FsR + S1R*(ussr[nv] - usR[nv]);
 
             jump =  (SL[i]*usL[nv] - FsL) - (SL[i]*uL[nv]  - fL[i][nv]);
-            print ("  Jump across L  = %12.6e\n",jump);
+            printLog ("  Jump across L  = %12.6e\n",jump);
 
             jump =   (S1L*ussl[nv] - FssL) - (S1L*usL[nv]  - FsL);
-            print ("  Jump across *L = %12.6e\n",jump);
+            printLog ("  Jump across *L = %12.6e\n",jump);
 
             jump =   (SM*ussr[nv] - FssR) - (SM*ussl[nv] - FssL);
-            print ("  Jump across c  = %12.6e\n",jump);
+            printLog ("  Jump across c  = %12.6e\n",jump);
 
             jump =   (S1R*ussr[nv] - FssR) - (S1R*usR[nv]  - FsR);
-            print ("  Jump across *R = %12.6e\n",jump);
+            printLog ("  Jump across *R = %12.6e\n",jump);
 
             jump =  (SR[i]*usR[nv] - FsR) - (SR[i]*uR[nv]  - fR[i][nv]);
-            print ("  Jump across R  = %12.6e\n",jump);
+            printLog ("  Jump across R  = %12.6e\n",jump);
 
             QUIT_PLUTO(1);
           }
@@ -410,13 +443,13 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
         #endif
 
         if (SM >= 0.0){           /*  ----  Region L**  ---- */
-          for (nv = NFLX; nv--; ){
+          NFLX_LOOP(nv) {
             sweep->flux[i][nv] = fL[i][nv] + S1L*(ussl[nv]  - usL[nv])
                                            + SL[i]*(usL[nv] - uL[nv]);
           }
           sweep->press[i] = ptL[i];
         }else{                   /*  ----  Region R**  ---- */
-          for (nv = NFLX; nv--; ){
+          NFLX_LOOP(nv) {
             sweep->flux[i][nv] = fR[i][nv] + S1R*(ussr[nv]  - usR[nv])
                                            + SR[i]*(usR[nv] - uR[nv]);
           }
@@ -426,27 +459,32 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
     }  /* end if (SL < 0, SR > 0) */
   } /* end for (i = beg, end) */
 
-/* ----------------------------------------------------------
-   4. Add CR flux contribution using simplified upwinding.
-   ---------------------------------------------------------- */
+/* --------------------------------------------------------
+   5. Add CR flux contribution using simplified
+      upwinding.
+   -------------------------------------------------------- */
 
-#ifdef PARTICLES
-  #if (PARTICLES_TYPE == COSMIC_RAYS) && (PARTICLES_CR_FEEDBACK == YES) 
+  #if (PARTICLES == PARTICLES_CR) && (PARTICLES_CR_FEEDBACK == YES) 
   Particles_CR_Flux (stateL, beg, end);
   Particles_CR_Flux (stateR, beg, end);
 
-  for (i = beg; i <= end; i++){
-    if (sweep->flux[i][RHO] > 0.0) {
-      for (nv = NFLX; nv--; ) sweep->flux[i][nv] += stateL->fluxCR[i][nv];
-    }else if (sweep->flux[i][RHO] < 0.0){
-      for (nv = NFLX; nv--; ) sweep->flux[i][nv] += stateR->fluxCR[i][nv];
-    }else{
-      for (nv = NFLX; nv--; ) {
-        sweep->flux[i][nv] += 0.5*(stateL->fluxCR[i][nv] + stateR->fluxCR[i][nv]);
-      }
+  for (i = beg; i <= end; i++) {
+    double aR = MAX(SR[i], 0.0);
+    double aL = MIN(SL[i], 0.0);
+
+    NFLX_LOOP(nv) {
+      sweep->flux[i][nv] += (aR*stateL->fluxCR[i][nv] -
+                             aL*stateR->fluxCR[i][nv])/(aR - aL);
     }
   }  
   #endif
+
+/* --------------------------------------------------------
+   4. Define point and diffusive fluxes for CT
+   -------------------------------------------------------- */
+  
+#if DIVB_CONTROL == CONSTRAINED_TRANSPORT 
+  CT_Flux (sweep, beg, end, grid);
 #endif
 
 }
@@ -469,7 +507,7 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
  *********************************************************************** */
 {
   int  nv, i;
-  int  revert_to_hll;
+  int  switch_to_hll;
 
   const State   *stateL = &(sweep->stateL);
   const State   *stateR = &(sweep->stateR);
@@ -495,7 +533,7 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
 #endif
 
 #if DIVB_CONTROL == EIGHT_WAVES
-  print ("! hlld Riemann solver does not work with Powell\n");
+  printLog ("! hlld Riemann solver does not work with Powell\n");
   QUIT_PLUTO(1);
 #endif
 
@@ -503,9 +541,9 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
   GLM_Solve (sweep, beg, end, grid);
 #endif
 
-/* ----------------------------------------------------
+/* --------------------------------------------------------
      compute sound speed & fluxes at zone interfaces
-   ---------------------------------------------------- */
+   -------------------------------------------------------- */
 
   SoundSpeed2 (stateL, beg, end, FACE_CENTER, grid);
   SoundSpeed2 (stateR, beg, end, FACE_CENTER, grid);
@@ -513,9 +551,9 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
   Flux (stateL, beg, end);
   Flux (stateR, beg, end);
 
-/* ----------------------------------------
+/* --------------------------------------------------------
       get max and min signal velocities
-   ---------------------------------------- */
+   -------------------------------------------------------- */
              
   SL = sweep->SL; SR = sweep->SR;
   HLL_Speed (stateL, stateR, SL, SR, beg, end);
@@ -523,9 +561,9 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
   for (i = beg; i <= end; i++) {
     
     #if BACKGROUND_FIELD == YES
-     EXPAND (B0n = stateL->Bbck[i][BXn-BX1];  ,
-             B0t = stateL->Bbck[i][BXt-BX1];  ,
-             B0b = stateL->Bbck[i][BXb-BX1];)
+    B0n = stateL->Bbck[i][BXn-BX1];
+    B0t = stateL->Bbck[i][BXt-BX1];
+    B0b = stateL->Bbck[i][BXb-BX1];
     #endif
 
   /* ----------------------------------------
@@ -538,57 +576,61 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
     vL = stateL->v[i]; uL = stateL->u[i];
     vR = stateR->v[i]; uR = stateR->u[i];
 
-/* ---------------------------------------------------------- 
-                COMPUTE FLUXES and STATES
-   ---------------------------------------------------------- */
+    scrh = 1.0/(SR[i] - SL[i]);
+    duL = SL[i] - vL[VXn];
+    duR = SR[i] - vR[VXn];
 
-    if (SL[i] >= 0.0){                     /*  ----  Region L  ---- */
+    Bx1 = Bx = (SR[i]*vR[BXn] - SL[i]*vL[BXn])*scrh; 
+    #if BACKGROUND_FIELD == YES
+    Bx += B0n;   /* total field */
+    #endif
 
-      for (nv = NFLX; nv--; ) sweep->flux[i][nv] = fL[i][nv];
-      sweep->press[i] = ptL[i];
-
-    }else if (SR[i] <= 0.0) {              /*  ----  Region R   ---- */
-
-      for (nv = NFLX; nv--; ) sweep->flux[i][nv] = fR[i][nv];
-      sweep->press[i] = ptR[i];
- 
-    } else {
-
-      scrh = 1.0/(SR[i] - SL[i]);
-      duL = SL[i] - vL[VXn];
-      duR = SR[i] - vR[VXn];
-
-      Bx1 = Bx = (SR[i]*vR[BXn] - SL[i]*vL[BXn])*scrh; 
-      #if BACKGROUND_FIELD == YES
-      Bx += B0n;   /* total field */
-      #endif
-
-      rho                = (uR[RHO]*duR - uL[RHO]*duL)*scrh;
-      sweep->flux[i][RHO] = (SL[i]*uR[RHO]*duR - SR[i]*uL[RHO]*duL)*scrh;
+    rho                 = (uR[RHO]*duR - uL[RHO]*duL)*scrh;
+    sweep->flux[i][RHO] = (SL[i]*uR[RHO]*duR - SR[i]*uL[RHO]*duL)*scrh;
            
   /* ---------------------------
           compute S*
      --------------------------- */
 
-      sqrho = sqrt(rho);
+    sqrho = sqrt(rho);
 
-      SM  = sweep->flux[i][RHO]/rho;
-      S1L = SM - fabs(Bx)/sqrho;
-      S1R = SM + fabs(Bx)/sqrho;
+    SM  = sweep->flux[i][RHO]/rho;
+    S1L = SM - fabs(Bx)/sqrho;
+    S1R = SM + fabs(Bx)/sqrho;
+
+    sweep->SaL[i] = S1L;
+    sweep->SaR[i] = S1R;
+    sweep->Sc[i]  = SM;
+    
+/* ---------------------------------------------------------- 
+                COMPUTE FLUXES and STATES
+   -------------------------------------------------------- */
+
+    if (SL[i] >= 0.0){                     /*  ----  Region L  ---- */
+
+      NFLX_LOOP(nv) sweep->flux[i][nv] = fL[i][nv];
+      sweep->press[i] = ptL[i];
+
+    }else if (SR[i] <= 0.0) {              /*  ----  Region R   ---- */
+
+      NFLX_LOOP(nv) sweep->flux[i][nv] = fR[i][nv];
+      sweep->press[i] = ptR[i];
+ 
+    } else {
 
     /* ---------------------------------------------
         Prevent degeneracies when S1L -> SL or 
         S1R -> SR. Revert to HLL if necessary.
        --------------------------------------------- */
 
-      revert_to_hll = 0;
+      switch_to_hll = 0;
 
-      if ( (S1L - SL[i]) <  1.e-4*(SR[i] - SL[i]) ) revert_to_hll = 1;
-      if ( (S1R - SR[i]) > -1.e-4*(SR[i] - SL[i]) ) revert_to_hll = 1;
+      if ( (S1L - SL[i]) <  1.e-4*(SR[i] - SL[i]) ) switch_to_hll = 1;
+      if ( (S1R - SR[i]) > -1.e-4*(SR[i] - SL[i]) ) switch_to_hll = 1;
 
-      if (revert_to_hll){
+      if (switch_to_hll){
         scrh = 1.0/(SR[i] - SL[i]);
-        for (nv = NFLX; nv--; ){
+        NFLX_LOOP(nv) {
           sweep->flux[i][nv] = SL[i]*SR[i]*(uR[nv] - uL[nv]) +
                                SR[i]*fL[i][nv] - SL[i]*fR[i][nv];
           sweep->flux[i][nv] *= scrh;
@@ -602,10 +644,10 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
 
       sweep->press[i] = (SR[i]*ptL[i] - SL[i]*ptR[i])*scrh;
       #ifdef GLM_MHD
-       sweep->flux[i][BXn]     = fL[i][BXn];
-       sweep->flux[i][PSI_GLM] = fL[i][PSI_GLM];
+      sweep->flux[i][BXn]     = fL[i][BXn];
+      sweep->flux[i][PSI_GLM] = fL[i][PSI_GLM];
       #else
-       sweep->flux[i][BXn] = SR[i]*SL[i]*(uR[BXn] - uL[BXn])*scrh;
+      sweep->flux[i][BXn] = SR[i]*SL[i]*(uR[BXn] - uL[BXn])*scrh;
       #endif
 
   /* ---------------------------
@@ -616,58 +658,48 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
       scrhR = 1.0/((SR[i] - S1L)*(SR[i] - S1R));
 
       #if BACKGROUND_FIELD == YES
-       EXPAND(                                                              ;  ,
-              usL[MXt] = rho*vL[VXt] - Bx*(uL[BXt]+B0t)*(SM - vL[VXn])*scrhL;
-              usR[MXt] = rho*vR[VXt] - Bx*(uR[BXt]+B0t)*(SM - vR[VXn])*scrhR;  ,  
+      usL[MXt] = rho*vL[VXt] - Bx*(uL[BXt]+B0t)*(SM - vL[VXn])*scrhL;
+      usR[MXt] = rho*vR[VXt] - Bx*(uR[BXt]+B0t)*(SM - vR[VXn])*scrhR;
 
-              usL[MXb] = rho*vL[VXb] - Bx*(uL[BXb]+B0b)*(SM - vL[VXn])*scrhL;
-              usR[MXb] = rho*vR[VXb] - Bx*(uR[BXb]+B0b)*(SM - vR[VXn])*scrhR;)
+      usL[MXb] = rho*vL[VXb] - Bx*(uL[BXb]+B0b)*(SM - vL[VXn])*scrhL;
+      usR[MXb] = rho*vR[VXb] - Bx*(uR[BXb]+B0b)*(SM - vR[VXn])*scrhR;
       #else
-       EXPAND(                                                        ;  ,
-              usL[MXt] = rho*vL[VXt] - Bx*uL[BXt]*(SM - vL[VXn])*scrhL;
-              usR[MXt] = rho*vR[VXt] - Bx*uR[BXt]*(SM - vR[VXn])*scrhR;  ,
+      usL[MXt] = rho*vL[VXt] - Bx*uL[BXt]*(SM - vL[VXn])*scrhL;
+      usR[MXt] = rho*vR[VXt] - Bx*uR[BXt]*(SM - vR[VXn])*scrhR; 
 
-              usL[MXb] = rho*vL[VXb] - Bx*uL[BXb]*(SM - vL[VXn])*scrhL;
-              usR[MXb] = rho*vR[VXb] - Bx*uR[BXb]*(SM - vR[VXn])*scrhR;)
+      usL[MXb] = rho*vL[VXb] - Bx*uL[BXb]*(SM - vL[VXn])*scrhL;
+      usR[MXb] = rho*vR[VXb] - Bx*uR[BXb]*(SM - vR[VXn])*scrhR;
       #endif
 
       #if BACKGROUND_FIELD == YES
-       EXPAND(                                                                ; ,
-              usL[BXt] = (uL[BXt]+B0t)/rho*(uL[RHO]*duL*duL - Bx*Bx)*scrhL-B0t;
-              usR[BXt] = (uR[BXt]+B0t)/rho*(uR[RHO]*duR*duR - Bx*Bx)*scrhR-B0t; ,
+      usL[BXt] = (uL[BXt]+B0t)/rho*(uL[RHO]*duL*duL - Bx*Bx)*scrhL-B0t;
+      usR[BXt] = (uR[BXt]+B0t)/rho*(uR[RHO]*duR*duR - Bx*Bx)*scrhR-B0t;
  
-              usL[BXb] = (uL[BXb]+B0b)/rho*(uL[RHO]*duL*duL - Bx*Bx)*scrhL-B0b;
-              usR[BXb] = (uR[BXb]+B0b)/rho*(uR[RHO]*duR*duR - Bx*Bx)*scrhR-B0b;)
+      usL[BXb] = (uL[BXb]+B0b)/rho*(uL[RHO]*duL*duL - Bx*Bx)*scrhL-B0b;
+      usR[BXb] = (uR[BXb]+B0b)/rho*(uR[RHO]*duR*duR - Bx*Bx)*scrhR-B0b;
       #else
-       EXPAND(                                                      ;  ,
-              usL[BXt] = uL[BXt]/rho*(uL[RHO]*duL*duL - Bx*Bx)*scrhL; 
-              usR[BXt] = uR[BXt]/rho*(uR[RHO]*duR*duR - Bx*Bx)*scrhR;  ,
+      usL[BXt] = uL[BXt]/rho*(uL[RHO]*duL*duL - Bx*Bx)*scrhL; 
+      usR[BXt] = uR[BXt]/rho*(uR[RHO]*duR*duR - Bx*Bx)*scrhR;
 
-              usL[BXb] = uL[BXb]/rho*(uL[RHO]*duL*duL - Bx*Bx)*scrhL;           
-              usR[BXb] = uR[BXb]/rho*(uR[RHO]*duR*duR - Bx*Bx)*scrhR;)           
+      usL[BXb] = uL[BXb]/rho*(uL[RHO]*duL*duL - Bx*Bx)*scrhL;
+      usR[BXb] = uR[BXb]/rho*(uR[RHO]*duR*duR - Bx*Bx)*scrhR;
       #endif
 
       if (S1L >= 0.0){       /*  ----  Region L*  ---- */
 
-        EXPAND(                                                    ;  ,
-          sweep->flux[i][MXt] = fL[i][MXt] + SL[i]*(usL[MXt] - uL[MXt]);  ,
-          sweep->flux[i][MXb] = fL[i][MXb] + SL[i]*(usL[MXb] - uL[MXb]);  
-        ) 
-        EXPAND(                                                    ;  ,
-          sweep->flux[i][BXt] = fL[i][BXt] + SL[i]*(usL[BXt] - uL[BXt]);  ,
-          sweep->flux[i][BXb] = fL[i][BXb] + SL[i]*(usL[BXb] - uL[BXb]);  
-        ) 
+        sweep->flux[i][MXt] = fL[i][MXt] + SL[i]*(usL[MXt] - uL[MXt]);  
+        sweep->flux[i][MXb] = fL[i][MXb] + SL[i]*(usL[MXb] - uL[MXb]);  
+
+        sweep->flux[i][BXt] = fL[i][BXt] + SL[i]*(usL[BXt] - uL[BXt]);  
+        sweep->flux[i][BXb] = fL[i][BXb] + SL[i]*(usL[BXb] - uL[BXb]);  
 
       }else if (S1R <= 0.0) {    /*  ----  Region R*  ---- */
     
-        EXPAND(                                                    ;  ,
-          sweep->flux[i][MXt] = fR[i][MXt] + SR[i]*(usR[MXt] - uR[MXt]);  ,
-          sweep->flux[i][MXb] = fR[i][MXb] + SR[i]*(usR[MXb] - uR[MXb]);  
-        ) 
-        EXPAND(                                                    ;  ,
-          sweep->flux[i][BXt] = fR[i][BXt] + SR[i]*(usR[BXt] - uR[BXt]);  ,
-          sweep->flux[i][BXb] = fR[i][BXb] + SR[i]*(usR[BXb] - uR[BXb]);  
-        ) 
+        sweep->flux[i][MXt] = fR[i][MXt] + SR[i]*(usR[MXt] - uR[MXt]); 
+        sweep->flux[i][MXb] = fR[i][MXb] + SR[i]*(usR[MXb] - uR[MXb]); 
+
+        sweep->flux[i][BXt] = fR[i][BXt] + SR[i]*(usR[BXt] - uR[BXt]);
+        sweep->flux[i][BXb] = fR[i][BXb] + SR[i]*(usR[BXb] - uR[BXb]);  
          
       } else {
                       
@@ -677,34 +709,24 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
 
         sBx = (Bx > 0.0 ? 1.0 : -1.0);
 
-        EXPAND(                                                  ;  ,
-               usc[MXt] = 0.5*(usR[MXt] + usL[MXt] 
-                               + (usR[BXt] - usL[BXt])*sBx*sqrho);  ,     
-               usc[MXb] = 0.5*(   usR[MXb] + usL[MXb] 
-                               + (usR[BXb] - usL[BXb])*sBx*sqrho);)
+        usc[MXt] = 0.5*(usR[MXt] + usL[MXt] + (usR[BXt] - usL[BXt])*sBx*sqrho);
+        usc[MXb] = 0.5*(usR[MXb] + usL[MXb] + (usR[BXb] - usL[BXb])*sBx*sqrho);
            
-        EXPAND(                                                  ;  ,
-               usc[BXt] = 0.5*(   usR[BXt] + usL[BXt]  
-                               + (usR[MXt] - usL[MXt])*sBx/sqrho);  ,
-               usc[BXb] = 0.5*(   usR[BXb] + usL[BXb] 
-                               + (usR[MXb] - usL[MXb])*sBx/sqrho);)
+        usc[BXt] = 0.5*(usR[BXt] + usL[BXt] + (usR[MXt] - usL[MXt])*sBx/sqrho);
+        usc[BXb] = 0.5*(usR[BXb] + usL[BXb] + (usR[MXb] - usL[MXb])*sBx/sqrho);
 
-        EXPAND(                                               ;  ,
-               sweep->flux[i][MXt] = usc[MXt]*SM - Bx*usc[BXt];  ,
-               sweep->flux[i][MXb] = usc[MXb]*SM - Bx*usc[BXb]; )
+        sweep->flux[i][MXt] = usc[MXt]*SM - Bx*usc[BXt];
+        sweep->flux[i][MXb] = usc[MXb]*SM - Bx*usc[BXb];
         #if BACKGROUND_FIELD == YES
-         EXPAND(                              ;  ,
-                sweep->flux[i][MXt] -= Bx1*B0t;  ,
-                sweep->flux[i][MXb] -= Bx1*B0b; )
+        sweep->flux[i][MXt] -= Bx1*B0t;
+        sweep->flux[i][MXb] -= Bx1*B0b;
         #endif
                
-        EXPAND(                                                   ;  ,
-               sweep->flux[i][BXt] = usc[BXt]*SM - Bx*usc[MXt]/rho;  ,
-               sweep->flux[i][BXb] = usc[BXb]*SM - Bx*usc[MXb]/rho;)
+        sweep->flux[i][BXt] = usc[BXt]*SM - Bx*usc[MXt]/rho;
+        sweep->flux[i][BXb] = usc[BXb]*SM - Bx*usc[MXb]/rho;
         #if BACKGROUND_FIELD == YES
-         EXPAND(                             ;  ,
-                sweep->flux[i][BXt] += B0t*SM;  ,
-                sweep->flux[i][BXb] += B0b*SM;)
+        sweep->flux[i][BXt] += B0t*SM;
+        sweep->flux[i][BXb] += B0b*SM;
         #endif
 
     /* --------------------------------------
@@ -712,29 +734,56 @@ void HLLD_Solver (const Sweep *sweep, int beg, int end,
        -------------------------------------- */
 
         #if VERIFY_CONSISTENCY_CONDITION == YES
-         for (nv = NFLX; nv--; ){          
-           if (nv == RHO || nv == MXn || nv == BXn) continue;
-           scrh = (S1L - SL[i])*usL[nv]  + (S1R - S1L)*usc[nv] +
-                  (SR[i] - S1R)*usR[nv] -
-                  SR[i]*uR[nv] + SL[i]*uL[nv] + fR[i][nv] - fL[i][nv];
+        NFLX_LOOP(nv) {
+          if (nv == RHO || nv == MXn || nv == BXn) continue;
+          scrh = (S1L - SL[i])*usL[nv]  + (S1R - S1L)*usc[nv] +
+                 (SR[i] - S1R)*usR[nv] -
+                 SR[i]*uR[nv] + SL[i]*uL[nv] + fR[i][nv] - fL[i][nv];
 
-           if (fabs(scrh) > 1.e-6){
-             printf (" ! Consistency condition violated, pt %d, nv %d, %12.6e \n", 
-                     i,nv,scrh);
-             printf (" scrhL = %12.6e   scrhR = %12.6e\n",scrhL, scrhR);
-             printf (" SL = %12.6e, S1L = %12.6e, S1R = %12.6e, SR = %12.6e\n",
-                     SL[i],S1L,S1R, SR[i]);
-             Show(sweep->vL,i);
-             Show(sweep->vR,i);
+          if (fabs(scrh) > 1.e-6){
+            printf (" ! Consistency condition violated, pt %d, nv %d, %12.6e \n", 
+                    i,nv,scrh);
+            printf (" scrhL = %12.6e   scrhR = %12.6e\n",scrhL, scrhR);
+            printf (" SL = %12.6e, S1L = %12.6e, S1R = %12.6e, SR = %12.6e\n",
+                    SL[i],S1L,S1R, SR[i]);
+            Show(sweep->vL,i);
+            Show(sweep->vR,i);
+            QUIT_PLUTO(1);
+          }
+        }
+        #endif	     
+      }  /* end loop (S1L > 0) */   
+    }  /* end loop (SL > 0) */
+  } /* end loop (i = beg, end) */
 
-             exit(1);
-           }
-         }
-        #endif	  
-                 
-      }
+/* --------------------------------------------------------
+   4. Define point and diffusive fluxes for CT
+   -------------------------------------------------------- */
+
+#if DIVB_CONTROL == CONSTRAINED_TRANSPORT 
+  CT_Flux (sweep, beg, end, grid);
+#endif
+
+/* --------------------------------------------------------
+   5. Add CR flux contribution using simplified upwinding.
+   -------------------------------------------------------- */
+
+  #if (PARTICLES == PARTICLES_CR) && (PARTICLES_CR_FEEDBACK == YES) 
+  Particles_CR_Flux (stateL, beg, end);
+  Particles_CR_Flux (stateR, beg, end);
+
+  for (i = beg; i <= end; i++) {
+    double aR = MAX(SR[i], 0.0);
+    double aL = MIN(SL[i], 0.0);
+
+    NFLX_LOOP(nv) {
+      sweep->flux[i][nv] += (aR*stateL->fluxCR[i][nv] -
+                             aL*stateR->fluxCR[i][nv])/(aR - aL);
     }
-  }
+  }  
+  #endif
+
+
 }
 #endif /* end #if on EOS  */
 
@@ -746,7 +795,7 @@ int HLLD_CheckFlux(double *uL, double pL, double *uR, double pR,
                     double cn, double ct, double cb, double lambda, char wname[])
 {
 #if HAVE_ENERGY
-  int nv, err = 0;
+  int    nv;
   double vn = uL[MXn]/uL[RHO];
   double vt = uL[MXt]/uL[RHO];
   double vb = uL[MXb]/uL[RHO];
@@ -757,10 +806,6 @@ int HLLD_CheckFlux(double *uL, double pL, double *uR, double pR,
   double FL[NVAR], FR[NVAR];
   double dU, dF, jump, norm;
 
-  if (COMPONENTS != 3){
-    print ("! HLLD_CheckFlux(): requires 3 components\n");
-    QUIT_PLUTO(1);
-  }  
   FL[RHO] = uL[RHO]*vn;
   FL[MXn] = uL[RHO]*vn*vn + pL - Bx*Bx;
   FL[MXt] = uL[RHO]*vt*vn - Bx*uL[BXt];
@@ -794,17 +839,17 @@ int HLLD_CheckFlux(double *uL, double pL, double *uR, double pR,
     norm = MAX(norm,1.0);
     jump = lambda*dU - dF;
     if (fabs(jump) > 1.e-6*norm){
-      print ("! HLLD_CheckFlux(): jump condition %d not satisifed, dir = %D\n",nv, g_dir);
-      print ("  Wave: %s = %12.6e\n",wname, lambda);
-      print ("  jump   = %12.6e, %12.6e\n",jump, norm);
-      print ("  dU, dF = %12.6e, %12.6e\n",dU, dF);
-      print ("uL:\n");
+      printLog ("! HLLD_CheckFlux(): jump condition %d not satisifed, dir = %D\n",nv, g_dir);
+      printLog ("  Wave: %s = %12.6e\n",wname, lambda);
+      printLog ("  jump   = %12.6e, %12.6e\n",jump, norm);
+      printLog ("  dU, dF = %12.6e, %12.6e\n",dU, dF);
+      printLog ("uL:\n");
       ShowVector(uL,NFLX); 
-      print ("uR:\n");
+      printLog ("uR:\n");
       ShowVector(uR,NFLX); 
-      print ("FL:\n");
+      printLog ("FL:\n");
       ShowVector(FL,NFLX); 
-      print ("FR:\n");
+      printLog ("FR:\n");
       ShowVector(FR,NFLX); 
       return nv; 
     }

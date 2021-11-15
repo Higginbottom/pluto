@@ -1,24 +1,29 @@
+/* ///////////////////////////////////////////////////////////////////// */
+/*!
+  \file
+  \brief Rusanov Lax-Friedrichs flux for RMHD Eqns
+
+  Solve riemann problem for the relativistic MHD equations 
+  using th Lax-Friedrichs Rusanov solver. 
+  
+  On input, it takes left and right primitive sweep vectors 
+  \c sweep->vL and \c sweep->vR at zone edge i+1/2;
+  On output, return flux and pressure vectors at the same interface 
+  \c i+1/2 (note that the \c i refers to \c i+1/2).
+  
+  Also during this step, compute maximum wave propagation speed (cmax) 
+  for  explicit time step computation.
+   
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    July 1, 2019
+*/
+/* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
 /* ********************************************************************* */
 void LF_Solver (const Sweep *sweep, int beg, int end, 
                 double *cmax, Grid *grid)
 /*!
- *
- * NAME
- *
- *   LF_SOLVER
- *
- *
- * PURPOSE
- *
- *   Solve riemann problem for the relativistic MHD equations 
- *   using th Lax-Friedrichs Rusanov solver. 
- * 
- * LAST_MODIFIED
- *
- *   Feb 15/2010 by Andrea Mignone  (mignone@ph.unito.it)
- *              
  *
  **************************************************************************** */
 {
@@ -39,17 +44,17 @@ void LF_Solver (const Sweep *sweep, int beg, int end,
     cmax_L  = ARRAY_1D(NMAX_POINT, double);
   }
 
-/* ----------------------------------------------------
-        redefine sweeps if GLM_MHD is used
-   ---------------------------------------------------- */
+/* --------------------------------------------------------
+   1. Apply GLM pre-solver
+   -------------------------------------------------------- */
 
 #ifdef GLM_MHD
   GLM_Solve (sweep, beg, end, grid);
 #endif
 
-/* ----------------------------------------------------
-     compute sound speed & fluxes at zone interfaces
-   ---------------------------------------------------- */
+/* --------------------------------------------------------
+   2. Compute sound speed & fluxes at zone interfaces
+   -------------------------------------------------------- */
 
   SoundSpeed2 (stateL, beg, end, FACE_CENTER, grid);
   SoundSpeed2 (stateR, beg, end, FACE_CENTER, grid);
@@ -57,12 +62,16 @@ void LF_Solver (const Sweep *sweep, int beg, int end,
   Flux (stateL, beg, end);
   Flux (stateR, beg, end);
 
-/* -------------------------------------------------------------------
-       compute Max and min eigenvalues for the left and right sweeps
-   ------------------------------------------------------------------- */
+/* --------------------------------------------------------
+   3. compute signal speeds 
+   -------------------------------------------------------- */
 
   MaxSignalSpeed (stateL, cmin_L, cmax_L, beg, end);
   MaxSignalSpeed (stateR, cmin_R, cmax_R, beg, end);
+
+/* --------------------------------------------------------
+   4. Compute Rusanov Lax-Friderichs flux
+   -------------------------------------------------------- */
 
   for (i = beg; i <= end; i++) {
 
@@ -79,18 +88,26 @@ void LF_Solver (const Sweep *sweep, int beg, int end,
     uL   = stateL->u[i];
     uR   = stateR->u[i];
     flux = sweep->flux[i];
-    for (nv = NFLX; nv--; ) {
+    NFLX_LOOP(nv) {
       flux[nv] = 0.5*(fL[i][nv] + fR[i][nv] - cmax[i]*(uR[nv] - uL[nv]));
     }
     sweep->press[i] = 0.5*(pL[i] + pR[i]);
   }
 
 /* --------------------------------------------------------
-              initialize source term
+   5. Define point and diffusive fluxes for CT
+   -------------------------------------------------------- */
+  
+#if DIVB_CONTROL == CONSTRAINED_TRANSPORT 
+  CT_Flux (sweep, beg, end, grid);
+#endif
+  
+/* --------------------------------------------------------
+   6. Initialize source term
    -------------------------------------------------------- */
  
-  #if DIVB_CONTROL == EIGHT_WAVES
-   POWELL_DIVB_SOURCE (sweep, beg, end, grid);
-  #endif
+#if DIVB_CONTROL == EIGHT_WAVES
+  POWELL_DIVB_SOURCE (sweep, beg, end, grid);
+#endif
 
 }

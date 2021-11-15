@@ -38,6 +38,11 @@
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
+#ifndef ROTATE
+  #define ROTATE -1
+#endif
+
+void Permute (double *v);
 /* ********************************************************************* */
 void Init (double *us, double x1, double x2, double x3)
 /*
@@ -62,7 +67,7 @@ void Init (double *us, double x1, double x2, double x3)
   us[AX2] = 0.0;
   us[AX3] = cos(y) + 0.5*cos(2.0*x);
 
- #if DIMENSIONS == 3
+ #if DIMENSIONS == 3 && ROTATE == -1
  {
    double c0 = 0.8;
    us[VX2] = - sin(z);
@@ -82,8 +87,64 @@ void Init (double *us, double x1, double x2, double x3)
   }
   #endif
 
+/* ----------------------------------------------
+   The rotate keyword is used to test invariance
+   under coordinate perumtations
+   ---------------------------------------------- */
+
+  #if ROTATE == 1
+  us[VX2] = - sin(z);
+  us[VX3] =   sin(y);
+  us[VX1] = 0.0;
+  us[BX2] = - sin(z);
+  us[BX3] =   sin(2.0*y);
+  us[BX1] = 0.0;
+  us[RHO] = 25./9.;
+  #if EOS != ISOTHERMAL && EOS != BAROTROPIC
+   us[PRS] = 5.0/3.0;
+  #endif
+  us[TRC] = (z>CONST_PI)*1.0;
+
+  us[AX2] = 0.0;
+  us[AX3] = 0.0;
+  us[AX1] = cos(z) + 0.5*cos(2.0*y);
+  #endif
+
+  #if ROTATE == 2
+  us[VX3] = - sin(x);
+  us[VX1] =   sin(z);
+  us[VX2] = 0.0;
+  us[BX3] = - sin(x);
+  us[BX1] =   sin(2.0*z);
+  us[BX2] = 0.0;
+  us[RHO] = 25./9.;
+  #if EOS != ISOTHERMAL && EOS != BAROTROPIC
+   us[PRS] = 5.0/3.0;
+  #endif
+  us[TRC] = (z>CONST_PI)*1.0;
+
+  us[AX3] = 0.0;
+  us[AX1] = 0.0;
+  us[AX2] = cos(x) + 0.5*cos(2.0*z);
+  #endif
 }
 
+void Permute (double *vec)
+{
+  int n, np;
+  double vs[3];
+
+  for (n = 0; n < 3; n++) vs[n] = vec[n];
+
+  for (n = 0; n < 3; n++) {
+    np = n+1;
+    if (np == 3) np = 0;
+    vec[n] = vs[np];
+  }
+ 
+
+
+}
 /* ********************************************************************* */
 void InitDomain (Data *d, Grid *grid)
 /*! 
@@ -96,8 +157,6 @@ void InitDomain (Data *d, Grid *grid)
  *********************************************************************** */
 {
 }
-
-
 
 /* ********************************************************************* */
 void Analysis (const Data *d, Grid *grid)

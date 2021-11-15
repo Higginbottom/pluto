@@ -103,6 +103,9 @@ public:
                            const int *rightbound);
 
   virtual void setRiemann(Riemann_Solver riem);
+  #if RADIATION
+  virtual void setRadRiemann(Riemann_Solver riem);
+  #endif
 
   virtual void setGrid(const Box&    a_box,
                        struct Grid_  *grid,
@@ -129,7 +132,7 @@ public:
                            FArrayBox&       a_Utmp,
                            const FArrayBox& a_dV,
                            FArrayBox&       a_split_tags,
-                           BaseFab<unsigned char>&   a_Flags,
+                           BaseFab<uint16_t>&   a_Flags,
                            FluxBox&         a_F,
                            timeStep        *Dts,
                            const Box&       a_box,
@@ -211,6 +214,10 @@ protected:
   // Riemann Solver
   Riemann_Solver *rsolver;
   bool m_isRiemannSet;
+  #if RADIATION
+  Riemann_Solver *rad_rsolver;
+  bool m_isRadRiemannSet;
+  #endif
 
 private:
   // Disallowed for all the usual reasons

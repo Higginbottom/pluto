@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -76,13 +76,13 @@ $(function() {
 </div><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a642a3840a6483c640c4d1021ff33baf1"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="initialize_8c.html#a642a3840a6483c640c4d1021ff33baf1">GetDecompMode</a> (Cmd_Line *cmd_line, int procs[])</td></tr>
-<tr class="separator:a642a3840a6483c640c4d1021ff33baf1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac4c4bc17d1088ae3837bee782bc1a4dc"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="initialize_8c.html#ac4c4bc17d1088ae3837bee782bc1a4dc">Initialize</a> (int argc, char *argv[], <a class="el" href="struct_data.html">Data</a> *data, <a class="el" href="struct_runtime.html">Runtime</a> *runtime, <a class="el" href="struct_grid.html">Grid</a> *grid, Cmd_Line *cmd_line)</td></tr>
-<tr class="separator:ac4c4bc17d1088ae3837bee782bc1a4dc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae66cb6e43c0b2993217cf9e0bd846740"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="initialize_8c.html#ae66cb6e43c0b2993217cf9e0bd846740">GetDecompMode</a> (cmdLine *cmd_line, int procs[])</td></tr>
+<tr class="separator:ae66cb6e43c0b2993217cf9e0bd846740"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a88581e046461e9bcd261cabbc43ab8e5"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="initialize_8c.html#a88581e046461e9bcd261cabbc43ab8e5">Initialize</a> (<a class="el" href="struct_data.html">Data</a> *data, <a class="el" href="struct_runtime.html">Runtime</a> *runtime, <a class="el" href="struct_grid.html">Grid</a> *grid, cmdLine *cmd_line)</td></tr>
+<tr class="separator:a88581e046461e9bcd261cabbc43ab8e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p><a class="el" href="initialize_8c.html#ac4c4bc17d1088ae3837bee782bc1a4dc">Initialize()</a> performs a number of initialization tasks before starting the main computation loop.<br />
+<div class="textblock"><p><a class="el" href="initialize_8c.html#a88581e046461e9bcd261cabbc43ab8e5">Initialize()</a> performs a number of initialization tasks before starting the main computation loop.<br />
 More precisely, it completes the following sequence of steps:</p>
 <ul>
 <li>parse command line options</li>
@@ -93,17 +93,17 @@ More precisely, it completes the following sequence of steps:</p>
 <li>initial conditions</li>
 <li>set output attributes</li>
 </ul>
-<p>The function <a class="el" href="initialize_8c.html#a642a3840a6483c640c4d1021ff33baf1">GetDecompMode()</a> sets the parallel domain decomposition mode which can be equal to</p>
+<p>The function <a class="el" href="initialize_8c.html#ae66cb6e43c0b2993217cf9e0bd846740">GetDecompMode()</a> sets the parallel domain decomposition mode which can be equal to</p>
 <ul>
 <li>AL_AUTO_DECOMP default;</li>
 <li>AL_USER_DECOMP if the -dec n1 [n2] [n3] command line argument has been given; In this case only, procs[] contains the number of processors in the three directions;</li>
 <li>AL_MPI_DECOMP [todo]</li>
 </ul>
-<dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'ph'+'.un'+'it'+'o.i'+'t'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@p<span style="display: none;">.nosp@m.</span>h.uni<span style="display: none;">.nosp@m.</span>to.i<span style="display: none;">.nosp@m.</span>t</a>) B. Vaidya </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>May 21, 2018 </dd></dl>
+<dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'to'+'.in'+'fn'+'.it'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@t<span style="display: none;">.nosp@m.</span>o.inf<span style="display: none;">.nosp@m.</span>n.it</a>) B. Vaidya </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>Dec 02 2020 </dd></dl>
 </div><h2 class="groupheader">Function Documentation</h2>
-<a id="a642a3840a6483c640c4d1021ff33baf1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a642a3840a6483c640c4d1021ff33baf1">&#9670;&nbsp;</a></span>GetDecompMode()</h2>
+<a id="ae66cb6e43c0b2993217cf9e0bd846740"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae66cb6e43c0b2993217cf9e0bd846740">&#9670;&nbsp;</a></span>GetDecompMode()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -114,7 +114,7 @@ More precisely, it completes the following sequence of steps:</p>
         <tr>
           <td class="memname">int GetDecompMode </td>
           <td>(</td>
-          <td class="paramtype">Cmd_Line *&#160;</td>
+          <td class="paramtype">cmdLine *&#160;</td>
           <td class="paramname"><em>cmd_line</em>, </td>
         </tr>
         <tr>
@@ -138,7 +138,7 @@ More precisely, it completes the following sequence of steps:</p>
 <p>Returns the parallel domain decomposition mode.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">cmd_line</td><td>pointer to the Cmd_Line structure </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">cmd_line</td><td>pointer to the cmdLine structure </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">procs</td><td>an array of integers giving the number of processors in each direction only if the -dec command line option has been given</td></tr>
   </table>
   </dd>
@@ -153,8 +153,8 @@ More precisely, it completes the following sequence of steps:</p>
 
 </div>
 </div>
-<a id="ac4c4bc17d1088ae3837bee782bc1a4dc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac4c4bc17d1088ae3837bee782bc1a4dc">&#9670;&nbsp;</a></span>Initialize()</h2>
+<a id="a88581e046461e9bcd261cabbc43ab8e5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a88581e046461e9bcd261cabbc43ab8e5">&#9670;&nbsp;</a></span>Initialize()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -162,18 +162,6 @@ More precisely, it completes the following sequence of steps:</p>
         <tr>
           <td class="memname">void Initialize </td>
           <td>(</td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>argc</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">char *&#160;</td>
-          <td class="paramname"><em>argv</em>[], </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
           <td class="paramtype"><a class="el" href="struct_data.html">Data</a> *&#160;</td>
           <td class="paramname"><em>data</em>, </td>
         </tr>
@@ -192,7 +180,7 @@ More precisely, it completes the following sequence of steps:</p>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">Cmd_Line *&#160;</td>
+          <td class="paramtype">cmdLine *&#160;</td>
           <td class="paramname"><em>cmd_line</em>&#160;</td>
         </tr>
         <tr>
@@ -210,7 +198,7 @@ More precisely, it completes the following sequence of steps:</p>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">data</td><td>a pointer to the main PLUTO data structure </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">runtime</td><td>a pointer to the <a class="el" href="struct_runtime.html">Runtime</a> structure </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">grid</td><td>pointer to an array of <a class="el" href="struct_grid.html">Grid</a> structures </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">cmd_line</td><td>pointer to the Cmd_Line structure</td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">cmd_line</td><td>pointer to the cmdLine structure</td></tr>
   </table>
   </dd>
 </dl>
@@ -221,7 +209,7 @@ More precisely, it completes the following sequence of steps:</p>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:50 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:57 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

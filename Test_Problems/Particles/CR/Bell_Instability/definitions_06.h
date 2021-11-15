@@ -1,14 +1,12 @@
 #define  PHYSICS                        MHD
 #define  DIMENSIONS                     3
-#define  COMPONENTS                     3
 #define  GEOMETRY                       CARTESIAN
 #define  BODY_FORCE                     NO
-#define  FORCED_TURB                    NO
 #define  COOLING                        NO
 #define  RECONSTRUCTION                 LINEAR
 #define  TIME_STEPPING                  HANCOCK
-#define  DIMENSIONAL_SPLITTING          NO
 #define  NTRACER                        0
+#define  PARTICLES                      PARTICLES_CR
 #define  USER_DEF_PARAMETERS            2
 
 /* -- physics dependent declarations -- */
@@ -31,17 +29,17 @@
 
 /* [Beg] user-defined constants (do not change this line) */
 
-#define  WARNING_MESSAGES               NO
-#define  INTERNAL_BOUNDARY              YES
+#define  ASSIGN_VECTOR_POTENTIAL        TRUE
+#define  CHECK_DIVB_CONDITION           TRUE
+#define  CT_EMF_AVERAGE                 CT_CONTACT
 #define  LIMITER                        MC_LIM
-#define  CT_EMF_AVERAGE                 ARITHMETIC
-#define  LINEAR_SETUP                   TRUE
-#define  PARTICLES_TYPE                 COSMIC_RAYS
-#define  PARTICLES_DEPOSIT              INTEGER
-#define  PARTICLES_CR_C                 1.e3
+#define  PARTICLES_CR_C                 1.e6
 #define  PARTICLES_CR_E_MC              (1.e-6*2.0*CONST_PI)
 #define  PARTICLES_CR_E_MC_GAS          1.e6
+#define  PARTICLES_CR_NSUB              4
+#define  PARTICLES_DEPOSIT              INTEGER
+#define  PRIMITIVE_HANCOCK              TRUE
 #define  VTK_TIME_INFO                  TRUE
-#define  SHOW_TIME_STEPS                FALSE
+#define  WARNING_MESSAGES               NO
 
 /* [End] user-defined constants (do not change this line) */

@@ -3,8 +3,9 @@
   \file
   \brief MHD blast wave.
 
-  The MHD blast wave problem has been specifically designed to show the scheme ability to handle strong shock waves propagating in highly magnetized 
-  environments.
+  The MHD blast wave problem has been specifically designed to show 
+  the scheme ability to handle strong shock waves propagating in 
+  highly magnetized environments.
   Depending on the strength of the magnetic field, it can become a rather 
   arduous test leading to unphysical densities or pressures if the
   divergence-free condition is not adequately controlled and the numerical 
@@ -57,15 +58,16 @@
    #03 |CYLINDRICAL| 2 |  RK2    |LINEAR   | CT |   NO      |[Z04] (*)
    #04 |CYLINDRICAL| 2 |  RK2    |LINEAR   | CT |   YES     |[Z04] (*)
    #05 |CARTESIAN  | 3 |  RK2    |LINEAR   | CT |   YES     |[Z04]
-   #06 |CARTESIAN  | 3 |  ChTr   |PARABOLIC| CT |   NO      |[GS08],[MT10] 
-   #07 |CARTESIAN  | 3 |  ChTr   |LINEAR   | CT |   NO      |[GS08],[MT10]
-   #08 |CARTESIAN  | 2 |  ChTr   |LINEAR   | GLM|   NO      |[MT10] (2D version)
-   #09 |CARTESIAN  | 3 |  ChTr   |LINEAR   | GLM|   NO      |[GS08],[MT10]
-   #10 |CARTESIAN  | 3 |  RK2    |LINEAR   | CT |   YES     |[Z04]
-   #11 |CARTESIAN  | 3 |  ChTr   |LINEAR   |EGLM|   NO      |[MT10] (**)
+   #06 |CARTESIAN  | 3 |  RK2    |LINEAR   | CT |   YES     |[Z04]
+   #07 |CARTESIAN  | 3 |  ChTr   |PARABOLIC| CT |   NO      |[GS08],[MT10] 
+   #08 |CARTESIAN  | 3 |  ChTr   |LINEAR   | CT |   NO      |[GS08],[MT10]
+   #09 |CARTESIAN  | 2 |  ChTr   |LINEAR   | GLM|   NO      |[MT10] (2D version)
+   #10 |CARTESIAN  | 3 |  ChTr   |LINEAR   | GLM|   NO      |[GS08],[MT10]
+   #11 |CARTESIAN  | 3 |  RK2    |LINEAR   | CT |   YES     |[Z04]
+   #12 |CARTESIAN  | 3 |  ChTr   |LINEAR   |EGLM|   NO      |[MT10] (**)
   </CENTER>
 
-  (*)  Setups are in different coordinates and with different orientation 
+  (*)  Setups are in different coordinates and with different orientations 
        of magnetic field using constrained-transport MHD.
   (**) second version in sec. 4.7
 
@@ -80,8 +82,8 @@
   \image html mhd_blast-prs.11.jpg "Pressure contour at the end of simulation (conf. #11)"
   \image html mhd_blast-pm.11.jpg "Magnetic pressure contours at the end of simulation (conf. #11)"
 
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    Sept 24, 2014
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    Aug 28, 2019
 
   \b References: \n
      - [BS99]: "A Staggered Mesh Algorithm using High Order ...",
@@ -109,7 +111,7 @@ void Init (double *us, double x1, double x2, double x3)
   double r, theta, phi, B0;
 
   g_gamma = g_inputParam[GAMMA];
-  r = D_EXPAND(x1*x1, + x2*x2, + x3*x3);
+  r = DIM_EXPAND(x1*x1, + x2*x2, + x3*x3);
   r = sqrt(r);
 
   us[RHO] = 1.0;
@@ -120,21 +122,24 @@ void Init (double *us, double x1, double x2, double x3)
   if (r <= g_inputParam[RADIUS]) us[PRS] = g_inputParam[P_IN];
   
   theta = g_inputParam[THETA]*CONST_PI/180.0;
-  phi   =   g_inputParam[PHI]*CONST_PI/180.0;
+  phi   = g_inputParam[PHI]*CONST_PI/180.0;
   B0    = g_inputParam[BMAG];
  
   us[BX1] = B0*sin(theta)*cos(phi);
   us[BX2] = B0*sin(theta)*sin(phi);
   us[BX3] = B0*cos(theta);
   
-  
   #if GEOMETRY == CARTESIAN
-   us[AX1] = 0.0;
-   us[AX2] =  us[BX3]*x1;
-   us[AX3] = -us[BX2]*x1 + us[BX1]*x2;
+  us[AX1] = 0.0;
+  us[AX2] =  us[BX3]*x1;
+  us[AX3] = -us[BX2]*x1 + us[BX1]*x2;
   #elif GEOMETRY == CYLINDRICAL
-   us[AX1] = us[AX2] = 0.0;
-   us[AX3] = 0.5*us[BX2]*x1;
+  us[AX1] = us[AX2] = 0.0;
+  us[AX3] = 0.5*us[BX2]*x1;
+  #elif GEOMETRY == POLAR
+  us[AX1] = 0.0;
+  us[AX2] = 0.5*us[BX3]*x1;
+  us[AX3] = 0.0;
   #endif
 
   #if BACKGROUND_FIELD == YES
@@ -195,9 +200,9 @@ void BackgroundField (double x1, double x2, double x3, double *B0)
     cphi  = cos(phi);
     first_call = 0;
   }
-  EXPAND(B0[IDIR] = g_inputParam[BMAG]*sth*cphi; , 
-         B0[JDIR] = g_inputParam[BMAG]*sth*sphi; , 
-         B0[KDIR] = g_inputParam[BMAG]*cth;)
+  B0[IDIR] = g_inputParam[BMAG]*sth*cphi;  
+  B0[JDIR] = g_inputParam[BMAG]*sth*sphi; 
+  B0[KDIR] = g_inputParam[BMAG]*cth;
 
 /*
   theta = g_inputParam[THETA]*CONST_PI/180.0;

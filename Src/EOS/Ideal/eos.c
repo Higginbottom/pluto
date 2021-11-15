@@ -7,7 +7,7 @@
   hydro/MHD, relativistic hydro/relativistic MHD.
                     
   \author A. Mignone (mignone@ph.unito.it)
-  \date   Oct 12, 2016
+  \date   Sep 30, 2018
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -29,9 +29,9 @@ void SoundSpeed2 (const State *p, int beg, int end, int pos, Grid *grid)
 {
   int  i;
 
-  #if PHYSICS == HD || PHYSICS == MHD
+  #if (PHYSICS == HD) || (PHYSICS == MHD)
   for (i = beg; i <= end; i++) p->a2[i] = g_gamma*p->v[i][PRS]/p->v[i][RHO];
-  #elif PHYSICS == RHD || PHYSICS == RMHD
+  #elif (PHYSICS == RHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
   double theta;
   Enthalpy(p->v, p->h, beg, end);
   for (i = beg; i <= end; i++) {
@@ -63,9 +63,9 @@ void Enthalpy (double **v, double *h, int beg, int end)
               Classical equations of state
    --------------------------------------------------------------- */
 
-  #if PHYSICS == HD || PHYSICS == MHD
+  #if (PHYSICS == HD) || (PHYSICS == MHD)
    for (i = beg; i <= end; i++) h[i] = gmmr*v[i][PRS]/v[i][RHO];
-  #elif PHYSICS == RHD || PHYSICS == RMHD
+  #elif (PHYSICS == RHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
    for (i = beg; i <= end; i++) {
      theta = v[i][PRS]/v[i][RHO];
      h[i] = 1.0 + gmmr*theta;
@@ -89,12 +89,12 @@ void Entropy (double **v, double *s, int beg, int end)
   int i;
   double rho, th;
 
-  #if PHYSICS == HD || PHYSICS == MHD
+  #if (PHYSICS == HD) || (PHYSICS == MHD)
    for (i = beg; i <= end; i++){
      rho  = v[i][RHO];
      s[i] = v[i][PRS]/pow(rho,g_gamma);
    }
-  #elif PHYSICS == RHD || PHYSICS == RMHD
+  #elif (PHYSICS == RHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
    for (i = beg; i <= end; i++) {
      rho = v[i][RHO];
      s[i] = v[i][PRS]/pow(rho,g_gamma);

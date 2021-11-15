@@ -23,5 +23,6 @@ var searchData=
   ['al_5fsz_5fset_2ec',['al_sz_set.c',['../al__sz__set_8c.html',1,'']]],
   ['al_5fszptr_5f_2ec',['al_szptr_.c',['../al__szptr___8c.html',1,'']]],
   ['al_5fwrite_5farray_5fasync_2ec',['al_write_array_async.c',['../al__write__array__async_8c.html',1,'']]],
+  ['array_5freconstruct_2ec',['array_reconstruct.c',['../array__reconstruct_8c.html',1,'']]],
   ['arrays_2ec',['arrays.c',['../arrays_8c.html',1,'']]]
 ];

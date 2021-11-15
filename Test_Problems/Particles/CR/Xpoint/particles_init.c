@@ -6,10 +6,10 @@
  Particles are initialized using both global and local (cell-by-cell)
  methods.
  Velocities are set to follow a Maxwellian distribution with
- <em> sigma = 0.1*UNIT_VELOCITY </em>.
+ <em> sigma = 0.1*c/100.0 </em>.
  
- \authors A. Mignone (mignone@ph.unito.it)\n
- \date    May 28, 2018
+ \authors A. Mignone (mignone@to.infn.it)\n
+ \date    June 13, 2019
  */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -26,50 +26,26 @@ void Particles_Init(Data *d, Grid *grid)
   int np_glob = RuntimeGet()->Nparticles_glob;
   int np_cell = RuntimeGet()->Nparticles_cell;
   double xbeg[3], xend[3], vp, mu, sigma;
+  double gamma, c2 = PARTICLES_CR_C*PARTICLES_CR_C;
   Particle p;
 
   mu    = 0.0;
-  sigma = 0.1*UNIT_VELOCITY;
+  sigma = 0.1;
 
 /* ------------------------------------------------------
-     Seed random number sequence with the same seed,
-     since all procs will loop thorugh all particles
-     ------------------------------------------------------ */
+   Seed random number sequence with the same seed,
+   since all procs will loop thorugh all particles
+   ------------------------------------------------------ */
+
   RandomSeed(0,1024*32768);
 
 /* ------------------------------------------------------
    1. GLobal initialization
    ------------------------------------------------------ */
 
-  if (np_glob > 0){
-  
-      double Lr = (g_domEnd[IDIR] - g_domBeg[IDIR])*4.0/5.0;
-
-  /* -- Place particles inside resistive region -- */
-
-    xbeg[IDIR] = -Lr; xend[IDIR] = Lr;
-    xbeg[JDIR] = -Lr; xend[JDIR] = Lr;
-    xbeg[KDIR] = -Lr; xend[KDIR] = Lr;
-
-    for (np = 0; np < np_glob; np++){
-
-    /* -- Spatial distribution -- */
- 
-      Particles_LoadUniform(np, np_glob, xbeg, xend, p.coord);
-
-      p.speed[IDIR] = GaussianRandomNumber(mu, sigma)/UNIT_VELOCITY;
-      p.speed[JDIR] = GaussianRandomNumber(mu, sigma)/UNIT_VELOCITY;
-      p.speed[KDIR] = GaussianRandomNumber(mu, sigma)/UNIT_VELOCITY;
-
-      vp = DOT_PRODUCT(p.speed,p.speed);
-      vp = sqrt(vp);
-      if (vp > PARTICLES_CR_C){
-        print ("! vp = %12.6e > C = %12.6e \n",vp, PARTICLES_CR_C);
-        QUIT_PLUTO(1);
-      }
-      p.color = 1.0; 
-      Particles_Insert (&p, d, PARTICLES_CREATE, grid);
-    }
+  if (np_glob > 0){  
+    print ("! Particles_Init(): use cell by cell initialization\n");
+    QUIT_PLUTO(1);
   }
 
 /* ------------------------------------------------------
@@ -88,9 +64,13 @@ void Particles_Init(Data *d, Grid *grid)
       for (np = 0; np < np_cell; np++){
         
         Particles_LoadUniform(np, np_cell, xbeg, xend, p.coord);
-        p.speed[IDIR] = GaussianRandomNumber(mu, sigma)/UNIT_VELOCITY;
-        p.speed[JDIR] = GaussianRandomNumber(mu, sigma)/UNIT_VELOCITY;
-        p.speed[KDIR] = GaussianRandomNumber(mu, sigma)/UNIT_VELOCITY;
+        p.speed[IDIR] = GaussianRandomNumber(mu, sigma);
+        p.speed[JDIR] = GaussianRandomNumber(mu, sigma);
+        p.speed[KDIR] = GaussianRandomNumber(mu, sigma);
+
+        p.speed[IDIR] *= PARTICLES_CR_C/100.0;
+        p.speed[JDIR] *= PARTICLES_CR_C/100.0;
+        p.speed[KDIR] *= PARTICLES_CR_C/100.0;
 
         vp = DOT_PRODUCT(p.speed,p.speed);
         vp = sqrt(vp);
@@ -98,6 +78,13 @@ void Particles_Init(Data *d, Grid *grid)
           print ("! vp = %12.6e > C = %12.6e \n",vp, PARTICLES_CR_C);
           QUIT_PLUTO(1);
         }
+
+        gamma = DOT_PRODUCT(p.speed, p.speed);
+        gamma = 1.0/sqrt(1.0 - gamma/c2);
+        p.speed[IDIR] *= gamma;
+        p.speed[JDIR] *= gamma;
+        p.speed[KDIR] *= gamma;
+ 
         p.color = 1.0; 
         Particles_Insert (&p, d, PARTICLES_CREATE, grid);
 

@@ -6,18 +6,18 @@
   Compute the one-dimensional right hand side for the viscous
   operator in the direction given by ::g_dir.
 
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \authors A. Mignone (mignone@to.infn.it)\n
 
- \b References
+  \b References
 
-  \date   May 13, 2018
+  \date   July 10, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
 /* ********************************************************************* */
 void ResistiveRHS (const Data *d, Data_Arr dU, double **dcoeff,
-                  double **aflux, double dt, int beg, int end, Grid *grid)
+                   double **aflux, double dt, int beg, int end, Grid *grid)
 /*!
  * \param [in]   d           pointer to PLUTO Data structure
  * \param [out]  dU          a 4D array containing conservative variables
@@ -38,17 +38,18 @@ void ResistiveRHS (const Data *d, Data_Arr dU, double **dcoeff,
   double A, dtdV, dtdl, q, rhs[NVAR];  
   static double **res_flx, **fxA;
   intList var_list;
+
   #if HAVE_ENERGY 
-  var_list.nvar = COMPONENTS+1;
-  EXPAND(var_list.indx[i=0] = BX1;  ,
-         var_list.indx[++i] = BX2;  ,
-         var_list.indx[++i] = BX3;)
+  var_list.nvar = 4;
+  var_list.indx[i=0] = BX1;
+  var_list.indx[++i] = BX2;
+  var_list.indx[++i] = BX3;
   var_list.indx[++i] = ENG;
   #else
-  var_list.nvar = COMPONENTS;
-  EXPAND(var_list.indx[i=0] = BX1;  ,
-         var_list.indx[++i] = BX2;  ,
-         var_list.indx[++i] = BX3;)
+  var_list.nvar = 3;
+  var_list.indx[i=0] = BX1;
+  var_list.indx[++i] = BX2;
+  var_list.indx[++i] = BX3;
   #endif
 
 /* --------------------------------------------------------
@@ -80,9 +81,9 @@ void ResistiveRHS (const Data *d, Data_Arr dU, double **dcoeff,
       FOR_EACH(nv, &var_list) fxA[i][nv] = A*res_flx[i][nv];
       #endif
       #if GEOMETRY == SPHERICAL
-      EXPAND(fxA[i][iBR]   = A*res_flx[i][iBR];         ,
-             fxA[i][iBTH]  = x1p[i]*res_flx[i][iBTH];   ,
-             fxA[i][iBPHI] = x1p[i]*res_flx[i][iBPHI];)
+      fxA[i][iBR]   = A*res_flx[i][iBR];
+      fxA[i][iBTH]  = x1p[i]*res_flx[i][iBTH];
+      fxA[i][iBPHI] = x1p[i]*res_flx[i][iBPHI];
       #if HAVE_ENERGY
       fxA[i][ENG] = A*res_flx[i][ENG];
       #endif
@@ -96,19 +97,18 @@ void ResistiveRHS (const Data *d, Data_Arr dU, double **dcoeff,
       dtdl = dt/dx1[i];
       #if GEOMETRY == SPHERICAL
       q = dtdl/x1[i];
-      EXPAND(rhs[iBR]   = 0.0;                                  ,
-             rhs[iBTH]  = q*(fxA[i][iBTH]  - fxA[i-1][iBTH]);   ,
-             rhs[iBPHI] = q*(fxA[i][iBPHI] - fxA[i-1][iBPHI]);)
+      rhs[iBR]   = 0.0;          
+      rhs[iBTH]  = q*(fxA[i][iBTH]  - fxA[i-1][iBTH]);
+      rhs[iBPHI] = q*(fxA[i][iBPHI] - fxA[i-1][iBPHI]);
       #if HAVE_ENERGY 
       rhs[ENG] = dtdV*(fxA[i][ENG] - fxA[i-1][ENG]);
       #endif
       #else
       FOR_EACH(nv, &var_list) rhs[nv] = dtdV*(fxA[i][nv] - fxA[i-1][nv]);
-      #if (GEOMETRY == POLAR || GEOMETRY == CYLINDRICAL) && (defined iBPHI)
+      #if (GEOMETRY == POLAR) || (GEOMETRY == CYLINDRICAL)
       rhs[iBPHI] = dtdl*(res_flx[i][iBPHI] - res_flx[i-1][iBPHI]);
       #endif
       #endif
-
       FOR_EACH(nv, &var_list) dU[k][j][i][nv] += rhs[nv];
     }
 
@@ -129,7 +129,7 @@ void ResistiveRHS (const Data *d, Data_Arr dU, double **dcoeff,
     for (j = beg; j <= end; j++){
       dtdV = dt/grid->dV[k][j][i];
       FOR_EACH(nv, &var_list) rhs[nv] = dtdV*(fxA[j][nv] - fxA[j-1][nv]);
-      #if (GEOMETRY == SPHERICAL) && (COMPONENTS == 3)
+      #if GEOMETRY == SPHERICAL
       dtdl = dt/dx2[j]*dx_dl[j][i];
       rhs[iBPHI] = dtdl*(res_flx[j][iBPHI] - res_flx[j-1][iBPHI]);
       #endif
@@ -157,9 +157,8 @@ void ResistiveRHS (const Data *d, Data_Arr dU, double **dcoeff,
     }
   }
 
-  
   #ifdef CHOMBO
-  StoreAMRFlux (res_flx, aflux,-1, BX1, BX1+COMPONENTS-1, beg-1, end,grid);
+  StoreAMRFlux (res_flx, aflux,-1, BX1, BX1+2, beg-1, end,grid);
   #if HAVE_ENERGY
   StoreAMRFlux (res_flx, aflux,-1, ENG, ENG, beg-1, end, grid);
   #endif

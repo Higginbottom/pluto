@@ -3,9 +3,32 @@
   \file 
   \brief Single CR particle gyration (and drift) test.
 
-  \author A. Mignone (mignone@ph.unito.it)
+  Test particle gyration in EM fields.
 
-  \date   Jan 10, 2017
+  The time steps for partciles and fluid scale as
+
+    dt_pa = Na*dx/vp        (if limited by translation)
+    dt_pg = 1/(Ng*Omega)     (if limited by gyration)
+    dt_f  = Ca*dx/lambda
+
+  where lambda = B/sqrt(rho)  (when p << 1), Omega = q*B/(m*c), Ng
+  and Na are some integers, Ca is the Courant number.
+ 
+  We set B = H*dx so the fluid time step is approximately the same
+  at any resolution:
+
+    dt_pa = Na*dx/vp
+    dt_pg = 1/(Ng*H*dx*q/mc)
+    dt_f  = Ca*sqrt(rho)/H
+
+  The ratio between particle and fluid time steps is:
+
+    dt_pa / dt_f = Na*dx*H/(vp*Ca*sqrt(rho))
+    dt_pg / dt_f = mc/(Ng*q*Ca*sqrt(rho)*dx)
+
+  \author A. Mignone (mignone@to.infn.it)
+
+  \date   March 04, 2021
 
   \b References: \n
    - "A PARTICLE MODULE FOR THE PLUTO CODE: I - AN IMPLEMENTATION OF THE
@@ -17,28 +40,6 @@
 /* ********************************************************************* */
 void Init (double *v, double x1, double x2, double x3)
 /*! 
- *  Test particle gyration in EM fields.
- *
- *  The time steps for partciles and fluid scale as
- *
- *    dt_pa = Na*dx/vp        (if limited by translation)
- *    dt_pg = 1/(Ng*Omega)     (if limited by gyration)
- *    dt_f  = Ca*dx/lambda
- *
- *  where lambda = B/sqrt(rho)  (when p << 1), Omega = q*B/(m*c), Ng
- *  and Na are some integers, Ca is the Courant number.
- * 
- *  We set B = H*dx so the fluid time step is approximately the same
- *  at any resolution:
- *
- *    dt_pa = Na*dx/vp
- *    dt_pg = 1/(Ng*H*dx*q/mc)
- *    dt_f  = Ca*sqrt(rho)/H
- *
- *  The ratio between particle and fluid time steps is:
- *
- *    dt_pa / dt_f = Na*dx*H/(vp*Ca*sqrt(rho))
- *    dt_pg / dt_f = mc/(Ng*q*Ca*sqrt(rho)*dx)
  *
  *********************************************************************** */
 {
@@ -81,8 +82,7 @@ void Analysis (const Data *d, Grid *grid)
  * - Apply a Lorentz boost, so that E' = 0  (v/c = E/B = vgx/c)
  * - Solve particle motion in the primed system
  *   o transform initial condition (x,v,t) -> (x,v,t)'
- *   o solve equations
- * - Transform back into original system.
+ *   o solve equations & write to disk
  *
  *********************************************************************** */
 {
@@ -121,7 +121,12 @@ void Analysis (const Data *d, Grid *grid)
     vx = p->speed[IDIR]; vy = p->speed[JDIR]; vz = p->speed[KDIR];
     t  = g_time;
 
-  /* -- Compute coordinates in co-moving frame -- */
+    gamma = sqrt(1.0 + DOT_PRODUCT(p->speed, p->speed)/c2);
+    vx /= gamma;
+    vy /= gamma;
+    vz /= gamma;
+
+  /* -- Compute coordinates and velocities in co-moving frame -- */
 
     x1 = gamma_g*(x - vg*t);
     y1 = y;

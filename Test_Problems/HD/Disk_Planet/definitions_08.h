@@ -1,18 +1,17 @@
 #define  PHYSICS                        HD
-#define  DIMENSIONS                     2
-#define  COMPONENTS                     2
+#define  DIMENSIONS                     3
 #define  GEOMETRY                       POLAR
 #define  BODY_FORCE                     POTENTIAL
-#define  FORCED_TURB                    NO
 #define  COOLING                        NO
 #define  RECONSTRUCTION                 LINEAR
 #define  TIME_STEPPING                  RK2
-#define  DIMENSIONAL_SPLITTING          NO
 #define  NTRACER                        0
+#define  PARTICLES                      NO
 #define  USER_DEF_PARAMETERS            4
 
 /* -- physics dependent declarations -- */
 
+#define  DUST_FLUID                     NO
 #define  EOS                            ISOTHERMAL
 #define  ENTROPY_SWITCH                 NO
 #define  THERMAL_CONDUCTION             NO
@@ -28,10 +27,11 @@
 
 /* [Beg] user-defined constants (do not change this line) */
 
+#define  FARGO_NSTEP_AVERAGE            100
+#define  FARGO_OUTPUT_VTOT              NO
 #define  LIMITER                        VANLEER_LIM
 #define  UNIT_LENGTH                    (5.2*CONST_au)
 #define  UNIT_DENSITY                   (CONST_Msun/(UNIT_LENGTH*UNIT_LENGTH*UNIT_LENGTH))
 #define  UNIT_VELOCITY                  (sqrt(CONST_G*g_inputParam[Mstar]*CONST_Msun/UNIT_LENGTH)/(2.*CONST_PI))
-#define  CHOMBO_REF_VAR                 RHO
 
 /* [End] user-defined constants (do not change this line) */

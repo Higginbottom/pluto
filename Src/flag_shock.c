@@ -61,7 +61,7 @@
        Balsara \& Spicer, JCP (1999) 148, 133
   
   \authors A. Mignone (mignone@ph.unito.it)
-  \date    March 1, 2017
+  \date    July 31, 2018
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
@@ -89,9 +89,9 @@ void FlagShock (const Data *d, Grid *grid)
   double dpx1, pt_min1, dvx1;
   double dpx2, pt_min2, dvx2;
   double dpx3, pt_min3, dvx3;
-  EXPAND(double ***vx1 = d->Vc[VX1];  ,
-         double ***vx2 = d->Vc[VX2];  ,
-         double ***vx3 = d->Vc[VX3];)
+  double ***vx1 = d->Vc[VX1];
+  double ***vx2 = d->Vc[VX2];
+  double ***vx3 = d->Vc[VX3];
 
   double *dx1 = grid->dx[IDIR];
   double *dx2 = grid->dx[JDIR];
@@ -103,15 +103,27 @@ void FlagShock (const Data *d, Grid *grid)
 
   static double ***pt;
 
-/* ----------------------------------------------------
-   0. Allocate memory
-   ---------------------------------------------------- */
+  #if RADIATION
+  static double ***er;
+  double ***fr1 = d->Vc[FR1];
+  double ***fr2 = d->Vc[FR2];
+  double ***fr3 = d->Vc[FR3];
+  #endif
 
-  if (pt == NULL) pt = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, double);
+/* --------------------------------------------------------
+   0. Allocate memory
+   -------------------------------------------------------- */
+
+  if (pt == NULL){
+    pt = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, double);
+    #if RADIATION
+    er = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, double);
+    #endif
+  }
     
 /* --------------------------------------------------------
-   1. Compute total pressure and flag, initially all zones
-      with ENTROPY_SWITCH.
+   1. Compute total pressure and flag, initially all
+      zones with ENTROPY_SWITCH.
    -------------------------------------------------------- */
 
   TOT_LOOP(k,j,i){  
@@ -126,76 +138,83 @@ void FlagShock (const Data *d, Grid *grid)
     #if (ENTROPY_SWITCH == SELECTIVE) || (ENTROPY_SWITCH == ALWAYS)
     d->flag[k][j][i] |= FLAG_ENTROPY;
     #endif
+
+    #if RADIATION
+    er[k][j][i] = d->Vc[ENR][k][j][i];
+    #endif
   }
  
-/* ----------------------------------------------
+/* --------------------------------------------------------
    2. Track zones lying in a shock
-   ---------------------------------------------- */
+   -------------------------------------------------------- */
 
-  for (k = KOFFSET; k < NX3_TOT-KOFFSET; k++){ 
-  for (j = JOFFSET; j < NX2_TOT-JOFFSET; j++){ 
-  for (i = IOFFSET; i < NX1_TOT-IOFFSET; i++){
+  for (k = INCLUDE_KDIR; k < NX3_TOT-INCLUDE_KDIR; k++){ 
+  for (j = INCLUDE_JDIR; j < NX2_TOT-INCLUDE_JDIR; j++){ 
+  for (i = INCLUDE_IDIR; i < NX1_TOT-INCLUDE_IDIR; i++){
 
-  /* -- Compute divergence of velocity -- */
+  /* -- 2a. Compute divergence of velocity -- */
      
     #if GEOMETRY == CARTESIAN
 
-    D_EXPAND(dvx1 = (vx1[k][j][i+1] - vx1[k][j][i-1])/dx1[i];   ,
-             dvx2 = (vx2[k][j+1][i] - vx2[k][j-1][i])/dx2[j];   ,
-             dvx3 = (vx3[k+1][j][i] - vx3[k-1][j][i])/dx3[k];)
+    DIM_EXPAND(dvx1 = (vx1[k][j][i+1] - vx1[k][j][i-1])/dx1[i];   ,
+               dvx2 = (vx2[k][j+1][i] - vx2[k][j-1][i])/dx2[j];   ,
+               dvx3 = (vx3[k+1][j][i] - vx3[k-1][j][i])/dx3[k];)
 
-    divv = D_EXPAND(dvx1, + dvx2, + dvx3);
+    divv = DIM_EXPAND(dvx1, + dvx2, + dvx3);
     #else 
     
-    D_EXPAND(dvx1 =   Ax1[k][j][i]*  (vx1[k][j][i+1] + vx1[k][j][i])
-                    - Ax1[k][j][i-1]*(vx1[k][j][i-1] + vx1[k][j][i]);  ,
+    DIM_EXPAND(dvx1 =   Ax1[k][j][i]*  (vx1[k][j][i+1] + vx1[k][j][i])
+                      - Ax1[k][j][i-1]*(vx1[k][j][i-1] + vx1[k][j][i]);  ,
 
-             dvx2 =   Ax2[k][j][i]*  (vx2[k][j+1][i] + vx2[k][j][i])
-                    - Ax2[k][j-1][i]*(vx2[k][j-1][i] + vx2[k][j][i]);  ,
+               dvx2 =   Ax2[k][j][i]*  (vx2[k][j+1][i] + vx2[k][j][i])
+                      - Ax2[k][j-1][i]*(vx2[k][j-1][i] + vx2[k][j][i]);  ,
 
-             dvx3 =   Ax3[k][j][i]*  (vx3[k+1][j][i] + vx3[k][j][i])
-                    - Ax3[k-1][j][i]*(vx3[k-1][j][i] + vx3[k][j][i]))
-
-/*
-double dvz1 = dvx2/grid->dV[k][j][i];
-double dvz2 = (vx2[k][j+1][i] - vx2[k][j-1][i])/dx2[j];
-if (fabs(dvz1-dvz2) > 1.e-10){
-  print ("!!\n");
-  QUIT_PLUTO(1);
-}
-*/
-    divv = (D_EXPAND(dvx1, + dvx2, + dvx3))/grid->dV[k][j][i];
+              dvx3 =    Ax3[k][j][i]*  (vx3[k+1][j][i] + vx3[k][j][i])
+                      - Ax3[k-1][j][i]*(vx3[k-1][j][i] + vx3[k][j][i]);)
+    divv = (DIM_EXPAND(dvx1, + dvx2, + dvx3))/grid->dV[k][j][i];
     #endif
-
  
     if (divv < 0.0){
     
-    /* -----------------------------------------------
-        Compute undivided difference of the total 
-        pressure and minimum value in neighbour zones
-       ----------------------------------------------- */
+    /* ----------------------------------------------------
+       2b. Compute undivided difference of the total 
+           pressure and minimum value in neighbour zones
+       ---------------------------------------------------- */
        
       pt_min = pt[k][j][i];
-      D_EXPAND(pt_min1 = MIN(pt[k][j][i+1], pt[k][j][i-1]); ,
-               pt_min2 = MIN(pt[k][j+1][i], pt[k][j-1][i]);  ,
-               pt_min3 = MIN(pt[k+1][j][i], pt[k-1][j][i]); )
+      DIM_EXPAND(pt_min1 = MIN(pt[k][j][i+1], pt[k][j][i-1]); ,
+                 pt_min2 = MIN(pt[k][j+1][i], pt[k][j-1][i]);  ,
+                 pt_min3 = MIN(pt[k+1][j][i], pt[k-1][j][i]); )
 
-      D_EXPAND(pt_min = MIN(pt_min, pt_min1);  ,
-               pt_min = MIN(pt_min, pt_min2);  ,
-               pt_min = MIN(pt_min, pt_min3);)
+      DIM_EXPAND(pt_min = MIN(pt_min, pt_min1);  ,
+                 pt_min = MIN(pt_min, pt_min2);  ,
+                 pt_min = MIN(pt_min, pt_min3);)
       
-      D_EXPAND(dpx1 = fabs(pt[k][j][i+1] - pt[k][j][i-1]);  ,  
-               dpx2 = fabs(pt[k][j+1][i] - pt[k][j-1][i]);  , 
-               dpx3 = fabs(pt[k+1][j][i] - pt[k-1][j][i]);)   
+      DIM_EXPAND(dpx1 = fabs(pt[k][j][i+1] - pt[k][j][i-1]);  ,  
+                 dpx2 = fabs(pt[k][j+1][i] - pt[k][j-1][i]);  , 
+                 dpx3 = fabs(pt[k+1][j][i] - pt[k-1][j][i]);)   
                 
-      gradp = D_EXPAND(dpx1, + dpx2, + dpx3);
+      gradp = DIM_EXPAND(dpx1, + dpx2, + dpx3);
 
+    /* ----------------------------------------------------
+       2c. Flag shocked zones and expand the buffer by
+           one zone to the left and to the right.
+           IMPORTANT: do not try to expand by more than
+           one zone or otherwise serial and parallel
+           computations will give different results.
+           If you really need to do so, thif function should
+           be restructured as:
+           DOM_LOOP(k,j,i) flag[][][] =..
+           MPI_Exchange(flag)
+           TOT_LOOP(k,j,i) expand buffer 
+       ---------------------------------------------------- */
+    
       #if SHOCK_FLATTENING == MULTID
       if (gradp > EPS_PSHOCK_FLATTEN*pt_min) {
         d->flag[k][j][i]   |= FLAG_HLL;
         
         d->flag[k][j][i]   |= FLAG_MINMOD;
-        D_EXPAND(
+        DIM_EXPAND(
           d->flag[k][j][i+1] |= FLAG_MINMOD;
           d->flag[k][j][i-1] |= FLAG_MINMOD;  ,
           d->flag[k][j-1][i] |= FLAG_MINMOD;  
@@ -205,16 +224,16 @@ if (fabs(dvz1-dvz2) > 1.e-10){
       }
       #endif
 
-    /* -----------------------------------------------------
-        When using entropy, we unflag those zones lying in 
-        a shock as well as one neighbour cells to the left
-        and to the right for each dimension.
-       ----------------------------------------------------- */
+    /* ----------------------------------------------------
+       2d. When using entropy, we unflag those zones lying
+           in a shock as well as one neighbour cells to the
+           left and to the right for each dimension.
+       ---------------------------------------------------- */
 
       #if ENTROPY_SWITCH == SELECTIVE
       if (gradp > EPS_PSHOCK_ENTROPY*pt_min) { /* -- unflag zone -- */
         d->flag[k][j][i] &= ~(FLAG_ENTROPY);
-        D_EXPAND(
+        DIM_EXPAND(
           d->flag[k][j][i-1] &= ~(FLAG_ENTROPY);
           d->flag[k][j][i+1] &= ~(FLAG_ENTROPY); ,
           d->flag[k][j+1][i] &= ~(FLAG_ENTROPY);
@@ -225,11 +244,73 @@ if (fabs(dvz1-dvz2) > 1.e-10){
       }
       #endif
     } /* end if (divV < 0) */
+
+#if RADIATION
+
+    #if GEOMETRY == CARTESIAN
+
+    DIM_EXPAND(dvx1 = (fr1[k][j][i+1] - fr1[k][j][i-1])/dx1[i];   ,
+             dvx2 = (fr2[k][j+1][i] - fr2[k][j-1][i])/dx2[j];   ,
+             dvx3 = (fr3[k+1][j][i] - fr3[k-1][j][i])/dx3[k];)
+
+    divv = DIM_EXPAND(dvx1, + dvx2, + dvx3);
+    #else 
+    
+    DIM_EXPAND(dvx1 =   Ax1[k][j][i]*  (fr1[k][j][i+1] + fr1[k][j][i])
+                    - Ax1[k][j][i-1]*(fr1[k][j][i-1] + fr1[k][j][i]);  ,
+
+             dvx2 =   Ax2[k][j][i]*  (fr2[k][j+1][i] + fr2[k][j][i])
+                    - Ax2[k][j-1][i]*(fr2[k][j-1][i] + fr2[k][j][i]);  ,
+
+             dvx3 =   Ax3[k][j][i]*  (fr3[k+1][j][i] + fr3[k][j][i])
+                    - Ax3[k-1][j][i]*(fr3[k-1][j][i] + fr3[k][j][i]))
+
+    divv = (DIM_EXPAND(dvx1, + dvx2, + dvx3))/grid->dV[k][j][i];
+    #endif
+
+    if (divv < 0.0){
+    //if (1){
+
+    /* -----------------------------------------------
+        Compute undivided difference of the radiation
+        energy density and minimum value in neighbour
+        zones
+       ----------------------------------------------- */
+       
+      pt_min = er[k][j][i];
+      DIM_EXPAND(pt_min1 = MIN(pt[k][j][i+1], pt[k][j][i-1]); ,
+                 pt_min2 = MIN(pt[k][j+1][i], pt[k][j-1][i]);  ,
+                 pt_min3 = MIN(pt[k+1][j][i], pt[k-1][j][i]); )
+
+      DIM_EXPAND(pt_min = MIN(pt_min, pt_min1);  ,
+                 pt_min = MIN(pt_min, pt_min2);  ,
+                 pt_min = MIN(pt_min, pt_min3);)
+      
+      DIM_EXPAND(dpx1 = fabs(pt[k][j][i+1] - pt[k][j][i-1]);  ,  
+                 dpx2 = fabs(pt[k][j+1][i] - pt[k][j-1][i]);  , 
+                 dpx3 = fabs(pt[k+1][j][i] - pt[k-1][j][i]);)   
+                
+      gradp = DIM_EXPAND(dpx1, + dpx2, + dpx3);
+
+      if (gradp > EPS_PSHOCK_FLATTEN*pt_min) {
+        d->flag[k][j][i]   |= FLAG_HLL;
+        
+        d->flag[k][j][i]   |= FLAG_MINMOD;
+        DIM_EXPAND(
+          d->flag[k][j][i+1] |= FLAG_MINMOD;
+          d->flag[k][j][i-1] |= FLAG_MINMOD;  ,
+          d->flag[k][j-1][i] |= FLAG_MINMOD;  
+          d->flag[k][j+1][i] |= FLAG_MINMOD;  ,
+          d->flag[k-1][j][i] |= FLAG_MINMOD;
+          d->flag[k+1][j][i] |= FLAG_MINMOD;)
+      }    
+    }/* end if (divF < 0) */
+    #endif
       
   }}}
 
 #ifdef PARALLEL
-  AL_Exchange (d->flag[0][0], SZ_char);
+  AL_Exchange (d->flag[0][0], SZ_uint16_t);
 #endif
 }
 

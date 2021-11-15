@@ -604,8 +604,8 @@ double fe_dr_c4 [3] = { 0.00, 0.00, 0.00};
 /* Charge transfer with H+   - above   */
 /* Charge transfer with He   - not relevant */
 
-  print("> MINeq: creating ionization coefficients tables...\n");
-  print("  * collisional ionization\n"); 
+  printLog("> MINeq: creating ionization coefficients tables...\n");
+  printLog("  * collisional ionization\n"); 
 
   if (coll_ion == NULL) coll_ion = ARRAY_2D(I_g_stepNumber, NIONS,double);
 
@@ -624,7 +624,7 @@ double fe_dr_c4 [3] = { 0.00, 0.00, 0.00};
     }
   }
 
-  print("  * radiative recombination\n"); 
+  printLog("  * radiative recombination\n"); 
   if (rad_rec == NULL) rad_rec = ARRAY_2D(I_g_stepNumber, NIONS,double);
   
   for (i = 0; i < I_g_stepNumber; i++ ) {
@@ -650,7 +650,7 @@ double fe_dr_c4 [3] = { 0.00, 0.00, 0.00};
 #endif
   }
 
-  print("  * dielectronic recombination\n"); 
+  printLog("  * dielectronic recombination\n"); 
   if (diel_rec == NULL) diel_rec = ARRAY_2D(I_g_stepNumber,NIONS,double);
   
   for (i = 0; i < I_g_stepNumber; i++ ) {
@@ -670,7 +670,7 @@ double fe_dr_c4 [3] = { 0.00, 0.00, 0.00};
 #endif
   }
 
-  print("  * charge transfer with H+\n");
+  printLog("  * charge transfer with H+\n");
   if (chtr_hp == NULL) chtr_hp = ARRAY_2D(I_g_stepNumber,NIONS,double);
   
   for (i = 0; i < I_g_stepNumber; i++ ) {
@@ -686,7 +686,7 @@ double fe_dr_c4 [3] = { 0.00, 0.00, 0.00};
     }
   }
 
-  print("  * charge transfer with H\n"); 
+  printLog("  * charge transfer with H\n"); 
   if (chtr_h == NULL) chtr_h = ARRAY_2D(I_g_stepNumber,NIONS,double);
   
   for (i = 0; i < I_g_stepNumber; i++ ) {
@@ -702,7 +702,7 @@ double fe_dr_c4 [3] = { 0.00, 0.00, 0.00};
     }
   }
 
-  print("  * charge transfer with He\n"); 
+  printLog("  * charge transfer with He\n"); 
   if (chtr_he == NULL) chtr_he = ARRAY_2D(I_g_stepNumber,NIONS,double);
   
   for (i = 0; i < I_g_stepNumber; i++ ) {
@@ -747,7 +747,7 @@ double fe_dr_c4 [3] = { 0.00, 0.00, 0.00};
   
   /* And now, for ions for which we only have the total electron-ion recombination coefficient:   */
 
-  print("  * total recombination coefficients\n");
+  printLog("  * total recombination coefficients\n");
   if (tot_recs == NULL) tot_recs = ARRAY_2D(I_g_stepNumber,NIONS,double);
   for (i = 0; i < I_g_stepNumber; i++ ) 
     for (nv = 0; nv < NIONS; nv++ ) tot_recs[i][nv] = 0.0;
@@ -832,7 +832,7 @@ continue;
       tbl[i][j][X_SI  +  S_IONS-1-NFLX] = 0.0;
     }      
   }
-  print("  * Done.\n");
+  printLog("  * Done.\n");
   return 0;
 }
 #undef ZERO_5X
@@ -912,6 +912,6 @@ int Create_Losses_Tables(double ***losstables, int *nT, int *nN)
     }
   }
   
-  print("> MINEq radiative losses tables generated and saved to memory.\n");
+  printLog("> MINEq radiative losses tables generated and saved to memory.\n");
   return(0);
 }

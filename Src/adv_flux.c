@@ -28,9 +28,9 @@
   The CMA can also be switched on for standard tracers (<tt> 
   #define USE_CMA  YES</tt>)
   
-  \author  A. Mignone (mignone@ph.unito.it)\n
+  \author  A. Mignone (mignone@to.infn.it)\n
            O. Tesileanu
-  \date    Feb 28, 2017
+  \date    April 02, 2019
 
   \b Reference\n
      "The consistent multi-fluid advection method"
@@ -59,7 +59,6 @@ void AdvectFlux (const Sweep *sweep, int beg, int end, Grid *grid)
   double *ts, *flux, *vL, *vR;
   double s, rho;
   double phi;
-  static double *sigma, **vi;
   
 /* -- compute scalar's fluxes -- */
 

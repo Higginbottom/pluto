@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -77,8 +77,8 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:adc8326519eadf344e2e56660ad4993f1"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="_h_d_2mod__defs_8h.html#adc8326519eadf344e2e56660ad4993f1">ConsToPrim</a> (double **, double **, int, int, unsigned char *)</td></tr>
-<tr class="separator:adc8326519eadf344e2e56660ad4993f1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7a5c5ab355232d7a87c6f1cf73590447"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="_h_d_2mod__defs_8h.html#a7a5c5ab355232d7a87c6f1cf73590447">ConsToPrim</a> (double **, double **, int, int, uint16_t *)</td></tr>
+<tr class="separator:a7a5c5ab355232d7a87c6f1cf73590447"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aca33f7cb69f7be2120f62015488d0393"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="_h_d_2mod__defs_8h.html#aca33f7cb69f7be2120f62015488d0393">Eigenvalues</a> (double **, double *, double **, int, int)</td></tr>
 <tr class="separator:aca33f7cb69f7be2120f62015488d0393"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a580a1aefbdab713f687716381afe48a2"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="_h_d_2mod__defs_8h.html#a580a1aefbdab713f687716381afe48a2">PrimEigenvectors</a> (const <a class="el" href="struct_state.html">State</a> *, int, int)</td></tr>
@@ -100,8 +100,8 @@ Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Contains variable names and prototypes for the HD module</p>
-<dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'ph'+'.un'+'it'+'o.i'+'t'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@p<span style="display: none;">.nosp@m.</span>h.uni<span style="display: none;">.nosp@m.</span>to.i<span style="display: none;">.nosp@m.</span>t</a>) </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>Oct 11, 2016 </dd></dl>
+<dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'to'+'.in'+'fn'+'.it'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@t<span style="display: none;">.nosp@m.</span>o.inf<span style="display: none;">.nosp@m.</span>n.it</a>) </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>Dec 2, 2020 </dd></dl>
 </div><h2 class="groupheader">Function Documentation</h2>
 <a id="a0989ea5390842f4f15a9f1bb7c1991b4"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0989ea5390842f4f15a9f1bb7c1991b4">&#9670;&nbsp;</a></span>ConsEigenvectors()</h2>
@@ -194,8 +194,8 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="adc8326519eadf344e2e56660ad4993f1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#adc8326519eadf344e2e56660ad4993f1">&#9670;&nbsp;</a></span>ConsToPrim()</h2>
+<a id="a7a5c5ab355232d7a87c6f1cf73590447"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7a5c5ab355232d7a87c6f1cf73590447">&#9670;&nbsp;</a></span>ConsToPrim()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -216,18 +216,18 @@ Functions</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>ibeg</em>, </td>
+          <td class="paramname"><em>beg</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>iend</em>, </td>
+          <td class="paramname"><em>end</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">unsigned char *&#160;</td>
+          <td class="paramtype">uint16_t *&#160;</td>
           <td class="paramname"><em>flag</em>&#160;</td>
         </tr>
         <tr>
@@ -248,11 +248,7 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Return 0 if conversion was successful in all zones in the range [ibeg,iend]. Return 1 if one or more zones could not be converted correctly and either pressure, density or energy took non-physical values.</dd></dl>
-<p>Convert a vector of conservative quantities to primitive values.</p>
-<pre class="fragment">             -----&gt; use entropy ----&gt; p = p(S)
-</pre><p> start with U { --&mdash;&gt; use energy --&mdash;&gt; p = p(E)</p>
-<p>if p is not physical fix it. </p>
+<dl class="section return"><dt>Returns</dt><dd>Return 0 if conversion was successful in all zones in the range [ibeg,iend]. Return 1 if one or more zones could not be converted correctly and either pressure, density or energy took non-physical values. </dd></dl>
 
 </div>
 </div>
@@ -543,6 +539,7 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
+<p>Return the rightmost (cmax) and leftmost (cmin) wave propagation speed in the Riemann fan</p>
 <p>Compute the maximum and minimum propagation speeds for the RHD equations.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -550,11 +547,10 @@ Functions</h2></td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">cmin</td><td>1-D array containing the leftmost characteristic </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">cmin</td><td>1-D array containing the rightmost characteristic </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">beg</td><td>starting index of computation </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">end</td><td>final index of computation</td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">end</td><td>final index of computation </td></tr>
   </table>
   </dd>
 </dl>
-<p>Return the rightmost (cmax) and leftmost (cmin) wave propagation speed in the Riemann fan </p>
 
 </div>
 </div>
@@ -684,19 +680,7 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Compute the matrix-vector multiplication <img class="formulaInl" alt="$ A(\mathbf{v})\cdot \Delta\mathbf{v} $" src="form_115.png"/> where A is the matrix of the quasi-linear form of the HD equations.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">w</td><td>vector of primitive variables; </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">dw</td><td>limited (linear) slopes; </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">cs2</td><td>local sound speed; </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">h</td><td>local enthalpy; </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">Adw</td><td>matrix-vector product. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>This function has no return value.</dd></dl>
-<p>Compute the matrix-vector multiplication <img class="formulaInl" alt="$ A(\mathbf{v})\cdot d\mathbf{v} $" src="form_175.png"/> where A is the matrix of the quasi-linear form of the MHD equations.</p>
+<p>Compute the matrix-vector multiplication <img class="formulaInl" alt="$ A(\mathbf{v})\cdot d\mathbf{v} $" src="form_170.png"/> where A is the matrix of the quasi-linear form of the MHD equations.</p>
 <p><b>References</b> </p>
 <ul>
 <li>"A solution adaptive upwind scheme for ideal MHD", Powell et al., JCP (1999) 154, 284</li>
@@ -713,7 +697,7 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>This function has no return value.</dd></dl>
-<p>Compute the matrix-vector multiplication <img class="formulaInl" alt="$ A(\mathbf{v})\cdot \Delta\mathbf{v} $" src="form_115.png"/> where <code>A</code> is the matrix of the quasi-linear form of the RHD equations.</p>
+<p>Compute the matrix-vector multiplication <img class="formulaInl" alt="$ A(\mathbf{v})\cdot \Delta\mathbf{v} $" src="form_255.png"/> where <code>A</code> is the matrix of the quasi-linear form of the RHD equations.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">w</td><td>vector of primitive variables; </td></tr>
@@ -726,8 +710,6 @@ Functions</h2></td></tr>
 </dl>
 <dl class="section note"><dt>Note</dt><dd></dd></dl>
 <dl class="section return"><dt>Returns</dt><dd>This function has no return value. </dd></dl>
-<dl class="section note"><dt>Note</dt><dd>In the 7-wave and 8-wave formulations we use the the same matrix being decomposed into right and left eigenvectors during the Characteristic Tracing step. Note, however, that it DOES NOT include two additional terms (-vy*dV[BX] for By, -vz*dv[BX] for Bz) that are needed in the <h2>7-wave form and are added using source terms. </h2>
-</dd></dl>
 
 </div>
 </div>
@@ -774,25 +756,6 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Compute source terms of the HD equations in primitive variables.</p>
-<ul>
-<li>Geometrical sources;</li>
-<li>Gravity;</li>
-<li>Fargo source terms.</li>
-</ul>
-<p>The rationale for choosing during which sweep a particular source term has to be incorporated should match the same criterion used during the conservative update. For instance, in polar or cylindrical coordinates, curvilinear source terms are included during the radial sweep only.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">gas</td><td>pointer to a <a class="el" href="struct_sweep.html">Sweep</a> structure </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">src</td><td>array of source terms </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">beg</td><td>initial index of computation </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">end</td><td>final index of computation </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">grid</td><td>pointer to <a class="el" href="struct_grid.html">Grid</a> structure</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>This function has no return value.</dd></dl>
-<dl class="section note"><dt>Note</dt><dd>This function does not work in spherical coordinates yet.</dd></dl>
 <p>Compute source terms of the MHD equations in primitive variables. These include:</p>
 <ul>
 <li>Geometrical sources;</li>
@@ -814,16 +777,16 @@ Functions</h2></td></tr>
 </dl>
 <dl class="section note"><dt>Note</dt><dd>This function does not work in spherical coordinates yet. For future implementations we annotate hereafter the induction equation in spherical coordinates:</dd></dl>
 <p class="formulaDsp">
-<img class="formulaDsp" alt="\[ \partial_tB_r + \frac{1}{r}\partial_\theta E_\phi - \frac{1}{r\sin\theta}\partial_\phi E_\theta = -E_\phi\cot\theta/r \]" src="form_176.png"/>
+<img class="formulaDsp" alt="\[ \partial_tB_r + \frac{1}{r}\partial_\theta E_\phi - \frac{1}{r\sin\theta}\partial_\phi E_\theta = -E_\phi\cot\theta/r \]" src="form_171.png"/>
 </p>
  <p class="formulaDsp">
-<img class="formulaDsp" alt="\[ \partial_t B_\theta + \frac{1}{r\sin\theta}\partial_\phi E_r - \partial_rE_\phi = E_\phi/r \]" src="form_177.png"/>
+<img class="formulaDsp" alt="\[ \partial_t B_\theta + \frac{1}{r\sin\theta}\partial_\phi E_r - \partial_rE_\phi = E_\phi/r \]" src="form_172.png"/>
 </p>
  <p class="formulaDsp">
-<img class="formulaDsp" alt="\[ \partial_t B_\phi + \partial_r E_\theta - \frac{1}{r}\partial_\theta E_r = - E_\theta/r\]" src="form_178.png"/>
+<img class="formulaDsp" alt="\[ \partial_t B_\phi + \partial_r E_\theta - \frac{1}{r}\partial_\theta E_r = - E_\theta/r\]" src="form_173.png"/>
 </p>
 <p>where </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ E_\phi = -(v \times B)_\phi = - (v_r B_\theta - v_\theta B_r) \,,\qquad E_\theta = -(v \times B)_\theta = - (v_\phi B_r - v_r B_\phi) \]" src="form_179.png"/>
+<img class="formulaDsp" alt="\[ E_\phi = -(v \times B)_\phi = - (v_r B_\theta - v_\theta B_r) \,,\qquad E_\theta = -(v \times B)_\theta = - (v_\phi B_r - v_r B_\phi) \]" src="form_174.png"/>
 </p>
 <p>Compute source terms of the RHD equations in primitive variables.</p>
 <ul>
@@ -908,7 +871,7 @@ Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:50 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:57 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

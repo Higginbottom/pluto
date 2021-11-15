@@ -6,9 +6,9 @@
   Contains contains basic definitions and declarations used by the
   FARGO-MHD module.
 
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \authors A. Mignone    (mignone@to.infn.it)\n
            G. Muscianisi (g.muscianisi@cineca.it)
-  \date    Sept 30, 2016
+  \date    Aug 21, 2019
   \todo   
 */
 /* ///////////////////////////////////////////////////////////////////// */
@@ -22,24 +22,19 @@
 /*! Set how often (in number of steps) the total azimuthal 
     velocity should be averaged.                           */
 #ifndef FARGO_NSTEP_AVERAGE
- #define FARGO_NSTEP_AVERAGE  10   /* Default is 10 */
+  #ifdef SHEARINGBOX
+    #define FARGO_NSTEP_AVERAGE  -1   /* Never average with ShearinBox model */
+  #else 
+    #define FARGO_NSTEP_AVERAGE  10   /* Default is 10 */
+  #endif  
 #endif
 
-/*! Average background velocity is computed by averaging the orbital 
-    velocity (YES) or by prescribing the velocity analytically exactly in 
-    the user-supplied function FARGO_SetVelocity  */
-#ifndef FARGO_AVERAGE_VELOCITY
- #ifndef SHEARINGBOX
-  #define FARGO_AVERAGE_VELOCITY  YES   /* Default is YES */
- #else                             
-  #define FARGO_AVERAGE_VELOCITY  NO    /* Default is NO */
- #endif
-#endif
-                                 
 /*! Used to write total/residual velocity */
 #ifndef FARGO_OUTPUT_VTOT
-  #define FARGO_OUTPUT_VTOT    YES
+  #define FARGO_OUTPUT_VTOT    NO
 #endif
+
+#define  FARGO_W  (NVAR+4)  /* 1,2,3 already taken by vec. potential */
 
 /* ----------------------------------------------------------------
     Note: when both FARGO and SHEARINGBOX modules are used, *ALL* 
@@ -70,12 +65,16 @@
 #define SDOM_LOOP(s) for ((s) = SBEG; (s) <= SEND; (s)++)
   
 #if GEOMETRY == SPHERICAL
- #define FARGO_ARRAY_INDEX(A,s,k,j,i)  A[s][j][i]
-/* #define FARGO_SELECT(w,k,j,i)  ((w)[j][i])  */
+  #define FARGO_ARRAY_INDEX(A,s,k,j,i)  A[s][j][i]
 #else
- #define FARGO_ARRAY_INDEX(A,s,k,j,i)  A[k][s][i]
-/* #define FARGO_SELECT(w,k,j,i)  ((w)[k][i])  */
+  #define FARGO_ARRAY_INDEX(A,s,k,j,i)  A[k][s][i]
 #endif 
+
+#if (GEOMETRY == CARTESIAN) || (GEOMETRY == POLAR)
+  #define FARGO_VELOCITY3D(w, i,j,k)  w[k][i]
+#elif GEOMETRY == SPHERICAL
+  #define FARGO_VELOCITY3D(w, i,j,k)  w[j][i]
+#endif
 
 /* ----------------------------------------------------------------- 
      Prevent compilation when Fargo and AMR are given simultaneously
@@ -85,16 +84,18 @@
  #error FARGO and AMR are not compatible
 #endif
  
-void     FARGO_AddVelocity(const Data *, Grid *);
-void     FARGO_CHECK (Data_Arr V, Data_Arr U);
-void     FARGO_ComputeVelocity(const Data *, Grid *);
-double **FARGO_GetVelocity(void);
-void     FARGO_SubtractVelocity(const Data *, Grid *);
+void     FARGO_AverageVelocity(const Data *, Grid *);
+void     FARGO_ComputeResidualVelocity(const Data *, double ***, Grid *);
+void     FARGO_ComputeTotalVelocity   (const Data *, double ***, Grid *);
+void     FARGO_Initialize(void);
+void     FARGO_RestartOld(const Data *, Grid *);
+void     FARGO_Restart(const Data *, char *, int, int, Grid *);
 void     FARGO_ShiftSolution(Data_Arr, Data_Arr, Grid *);
-#ifdef PARTICLES
+#if PARTICLES
 void     FARGO_ShiftParticles(Data *, Grid *, double);
 #endif
-double   FARGO_SetVelocity(double, double);
-void     FARGO_Source(Data_Arr, double, Grid *);
-int      FARGO_TotalVelocityIsSet(void);
+void     FARGO_Source(Data_Arr, Data_Arr, double, Grid *);
+double **FARGO_Velocity(void);
+void     FARGO_Write(const Data *, char *, int, Grid *);
+
 

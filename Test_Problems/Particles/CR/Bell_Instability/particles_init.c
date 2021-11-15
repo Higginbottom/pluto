@@ -3,10 +3,9 @@
  \file
  \brief Initialize particles for the Bell instability test-
  
- \authors A. Mignone (mignone@ph.unito.it)\n
-          B. Vaidya (bvaidya@unito.it)\n
+ \authors A. Mignone (mignone@to.infn.it)\n
  
- \date    March 20, 2018
+ \date    Aug 17, 2020
  
  \b References: \n
     - [MVBM18] "A PARTICLE MODULE FOR THE PLUTO CODE: I - AN IMPLEMENTATION OF
@@ -14,8 +13,12 @@
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
+#include "rotate.h"
 
-void VectorRotate(double *v, int s);
+#ifndef LINEAR_SETUP
+ #define LINEAR_SETUP TRUE
+#endif
+
 /* ********************************************************************* */
 void Particles_Init(Data *d, Grid *grid)
 /*!
@@ -30,6 +33,7 @@ void Particles_Init(Data *d, Grid *grid)
   int np_glob = RuntimeGet()->Nparticles_glob;
   int np_cell = RuntimeGet()->Nparticles_cell;
   double xbeg[3], xend[3], vbeg[3], vend[3];
+  double gamma, c2 = PARTICLES_CR_C*PARTICLES_CR_C;
   Particle p;
 
 /* --------------------------------------------------------------
@@ -64,13 +68,21 @@ void Particles_Init(Data *d, Grid *grid)
         p.speed[IDIR] = uCR;
         p.speed[JDIR] = 0.0;
         p.speed[KDIR] = 0.0;
-        p.rho         = rho_p;
-        p.color       = 0.0;
-        VectorRotate(p.speed, 1);
 
-#if PARTICLES_TYPE == COSMIC_RAYS || PARTICLES_TYPE == DUST
-//        Particles_LoadRandom(vbeg, vend, Particles_VelocityDistrib, p.speed);
-#endif
+      /* -- Assign four-velocity -- */
+
+        gamma = DOT_PRODUCT(p.speed, p.speed)/c2;
+        gamma = 1.0/sqrt(1.0 - gamma);
+        p.speed[IDIR] *= gamma;
+        p.speed[JDIR] *= gamma;
+        p.speed[KDIR] *= gamma;
+
+        p.mass        = rho_p*grid->dV[k][j][i];
+        p.color       = rho_p;
+        #if LINEAR_SETUP == TRUE
+        RotateVector(p.speed, -1);
+        #endif
+
         Particles_Insert (&p, d, PARTICLES_CREATE, grid);
       }
     }
@@ -90,6 +102,7 @@ void Particles_Init(Data *d, Grid *grid)
       print ("  most unstable lambda = %f  (k = %f)\n", lambda, 2.0*CONST_PI/lambda);
       print ("  R                    = %8.3e\n", R);
       print ("  Lambda               = %8.3e\n", R/g_inputParam[EPSILON]);
+      print ("  rho (CR)             = %8.3e\n", rho_p);
       print ("  ------------------------------------ \n");
     }
   }

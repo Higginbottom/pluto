@@ -7,9 +7,9 @@
   Tracing functions to verify that the L/R states at the half-step
   are physically admissible.
   
-  \authors A. Mignone (mignone@ph.unito.it)
+  \authors A. Mignone (mignone@to.infn.it)
 
-  \date   Sept 7, 2015
+  \date   June 27, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -47,8 +47,8 @@ void CheckPrimStates(double **vM, double **vP, double **v0,  int beg, int end)
 
 #if (PHYSICS == RHD) || (PHYSICS == RMHD)
     #if RECONSTRUCT_4VEL == NO
-    scrhm = EXPAND(am[VX1]*am[VX1], + am[VX2]*am[VX2], + am[VX3]*am[VX3]);
-    scrhp = EXPAND(ap[VX1]*ap[VX1], + ap[VX2]*ap[VX2], + ap[VX3]*ap[VX3]);
+    scrhm = am[VX1]*am[VX1] + am[VX2]*am[VX2] + am[VX3]*am[VX3];
+    scrhp = ap[VX1]*ap[VX1] + ap[VX2]*ap[VX2] + ap[VX3]*ap[VX3];
     switch_to_1st = switch_to_1st || (scrhm >= 1.0);
     switch_to_1st = switch_to_1st || (scrhp >= 1.0);
     #endif

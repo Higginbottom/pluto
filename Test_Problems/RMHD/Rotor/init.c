@@ -48,10 +48,7 @@
   The three dimensional version extends the current configuration to a
   spinning sphere and it is described in [MUB09].
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   Aug 6, 2015
-
-  \b Reference: 
+  \b References: 
      - [dZBL03] "An efficient shock-capturing central-type scheme for multidimensional
         relativistic flows"
         Del Zanna, Bucciantini, Londrillo, A&A (2003) 400, 397
@@ -60,6 +57,10 @@
         Mignone, Ugliano \& Bodo, MNRAS (2009) 393, 1141.
      - [Mig12] "The PLUTO Code for Adaptive Mesh Computations in Astrophysical Fluid Dynamics"
         Mignone et al., ApJS (2012) 198, 7 (see Sect. 6.3)
+
+  \author A. Mignone (mignone@to.infn.it)
+
+  \date   Aug 6, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -81,7 +82,7 @@ void Init (double *v, double x1, double x2, double x3)
 
   #if GEOMETRY == CARTESIAN
 
-   r = D_EXPAND(x1*x1, + x2*x2, + x3*x3);
+   r = DIM_EXPAND(x1*x1, + x2*x2, + x3*x3);
    r = sqrt(r);
 
    v[RHO] = 1.0;
@@ -90,6 +91,7 @@ void Init (double *v, double x1, double x2, double x3)
    v[PRS] = 1.0;
    v[BX1] = Bx;
    v[BX2] = 0.0;
+   v[BX3] = 0.0;
 
    if (r <= r0) {
      v[RHO] = 10.0;

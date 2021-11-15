@@ -34,7 +34,7 @@ void PatchPluto::saveFluxes (double **aflux, Grid *grid)
 
   RBox  fluxBox;
   double A;
-  double mdx_dim = D_EXPAND(1.0, *m_dx, *m_dx);
+  double mdx_dim = DIM_EXPAND(1.0, *m_dx, *m_dx);
   double ***Ax1 = grid->A[IDIR], *x1 = grid->x[IDIR];
   double ***Ax2 = grid->A[JDIR], *x2 = grid->x[JDIR];
   double ***Ax3 = grid->A[KDIR], *x3 = grid->x[KDIR];
@@ -68,10 +68,10 @@ void PatchPluto::saveFluxes (double **aflux, Grid *grid)
 
   /* -- Modify flux for angular momentum conservation -- */
 
-    #if GEOMETRY == POLAR && (COMPONENTS > 1) && (ENTROPY_SWITCH)
+    #if GEOMETRY == POLAR && (ENTROPY_SWITCH)
     indf = (iMPHI)*nzf*nyf*nxf + ind1;
     aflux[IDIR][indf] *= grid->xr[IDIR][i];
-    #elif (GEOMETRY == SPHERICAL) && (COMPONENTS == 3) && (ENTROPY_SWITCH)
+    #elif (GEOMETRY == SPHERICAL) && (ENTROPY_SWITCH)
     indf = (iMPHI)*nzf*nyf*nxf + ind1;
     aflux[IDIR][indf] *= grid->xr[IDIR][i]*sin(x2[j]);
     #endif
@@ -103,10 +103,10 @@ void PatchPluto::saveFluxes (double **aflux, Grid *grid)
 
   /* -- Modify flux for angular momentum conservation -- */
 
-    #if GEOMETRY == POLAR && (COMPONENTS > 1) && (ENTROPY_SWITCH)
+    #if GEOMETRY == POLAR && (ENTROPY_SWITCH)
     indf = (iMPHI)*nzf*nyf*nxf + ind1;
     aflux[JDIR][indf] *= x1[i];
-    #elif (GEOMETRY == SPHERICAL) && (COMPONENTS == 3) && (ENTROPY_SWITCH)
+    #elif (GEOMETRY == SPHERICAL) && (ENTROPY_SWITCH)
     indf = (iMPHI)*nzf*nyf*nxf + ind1;
     aflux[JDIR][indf] *= x1[i]*sin(grid->xr[JDIR][j]);
     #endif
@@ -135,10 +135,10 @@ void PatchPluto::saveFluxes (double **aflux, Grid *grid)
       indf = nv*nzf*nyf*nxf + ind1;
       aflux[KDIR][indf] *= A;
     }
-    #if GEOMETRY == POLAR && (COMPONENTS > 1) && (ENTROPY_SWITCH)
+    #if GEOMETRY == POLAR && (ENTROPY_SWITCH)
     indf = (iMPHI)*nzf*nyf*nxf + ind1;
     aflux[KDIR][indf] *= x1[i]*sin(x2[j]);
-    #elif (GEOMETRY == SPHERICAL) && (COMPONENTS == 3) && (ENTROPY_SWITCH)
+    #elif (GEOMETRY == SPHERICAL) && (ENTROPY_SWITCH)
     indf = (iMPHI)*nzf*nyf*nxf + ind1;
     aflux[KDIR][indf] *= x1[i]*sin(grid->xr[JDIR][j]);
     #endif
@@ -159,7 +159,7 @@ void PatchPluto::getPrimitiveVars (Data_Arr U, Data *d, Grid *grid)
   int   dir, err;
   int   nx, ny, nz;
   int   lft_side[3] = {0,0,0}, rgt_side[3]={0,0,0};
-  static unsigned char ***flagEntr;
+  static uint16_t ***flagEntr;
   RBox  tbox, box; 
 
   nx = grid->np_tot[IDIR];
@@ -191,13 +191,13 @@ void PatchPluto::getPrimitiveVars (Data_Arr U, Data *d, Grid *grid)
     conservative vector U is not yet defined.    
    ------------------------------------------------- */
 
-  D_EXPAND(if (lft_side[IDIR]) box.ibeg = IBEG;  ,
-           if (lft_side[JDIR]) box.jbeg = JBEG;  ,
-           if (lft_side[KDIR]) box.kbeg = KBEG;)
+  DIM_EXPAND(if (lft_side[IDIR]) box.ibeg = IBEG;  ,
+             if (lft_side[JDIR]) box.jbeg = JBEG;  ,
+             if (lft_side[KDIR]) box.kbeg = KBEG;)
 
-  D_EXPAND(if (rgt_side[IDIR]) box.iend = IEND;  ,
-           if (rgt_side[JDIR]) box.jend = JEND;  ,
-           if (rgt_side[KDIR]) box.kend = KEND;)
+  DIM_EXPAND(if (rgt_side[IDIR]) box.iend = IEND;  ,
+             if (rgt_side[JDIR]) box.jend = JEND;  ,
+             if (rgt_side[KDIR]) box.kend = KEND;)
 
 /* ----------------------------------------------------------
     Convert conservative variables into primitive variables.
@@ -212,7 +212,7 @@ void PatchPluto::getPrimitiveVars (Data_Arr U, Data *d, Grid *grid)
     || ENTROPY_SWITCH == ALWAYS    \
     || ENTROPY_SWITCH == CHOMBO_REGRID
   if (flagEntr == NULL) {
-    flagEntr = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, unsigned char);
+    flagEntr = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, uint16_t);
     for (k = 0; k < NX3_MAX; k++){
     for (j = 0; j < NX2_MAX; j++){
     for (i = 0; i < NX1_MAX; i++){
@@ -318,18 +318,18 @@ void PatchPluto::convertFArrayBox(FArrayBox&  U)
   int iend, jend, kend;
   int i,j,k, nv;
   double ***UU[NVAR];
-  static unsigned char *flag;
+  static uint16_t *flag;
   static double **u, **v;
   RBox box;
   
   if (u == NULL){
     u    = ARRAY_2D(NMAX_POINT, NVAR, double);
     v    = ARRAY_2D(NMAX_POINT, NVAR, double);
-    flag = ARRAY_1D(NMAX_POINT, unsigned char);
+    flag = ARRAY_1D(NMAX_POINT, uint16_t);
   }
 
   jbeg = jend = kbeg = kend = 0;
-  D_EXPAND(ibeg = U.loVect()[IDIR]; 
+  DIM_EXPAND(ibeg = U.loVect()[IDIR]; 
            iend = U.hiVect()[IDIR]; ,
            jbeg = U.loVect()[JDIR];   
            jend = U.hiVect()[JDIR]; ,
@@ -340,9 +340,9 @@ void PatchPluto::convertFArrayBox(FArrayBox&  U)
     UU[nv] = ArrayBoxMap(kbeg,kend,jbeg,jend,ibeg,iend,U.dataPtr(nv));
   }
 
-  box.ibeg = ibeg+IOFFSET; box.iend = iend-IOFFSET;
-  box.jbeg = jbeg+JOFFSET; box.jend = jend-JOFFSET;
-  box.kbeg = kbeg+KOFFSET; box.kend = kend-KOFFSET;
+  box.ibeg = ibeg+INCLUDE_IDIR; box.iend = iend-INCLUDE_IDIR;
+  box.jbeg = jbeg+INCLUDE_JDIR; box.jend = jend-INCLUDE_JDIR;
+  box.kbeg = kbeg+INCLUDE_KDIR; box.kend = kend-INCLUDE_KDIR;
 
 /* --------------------------------------------------------
     Conversion is done in the interior points only. 
@@ -350,13 +350,13 @@ void PatchPluto::convertFArrayBox(FArrayBox&  U)
     boundary zone in each direction.
    -------------------------------------------------------- */
 
-  for (k = kbeg + KOFFSET; k <= kend - KOFFSET; k++){
-  for (j = jbeg + JOFFSET; j <= jend - JOFFSET; j++){
-    for (i = ibeg + IOFFSET; i <= iend - IOFFSET; i++){
+  for (k = kbeg + INCLUDE_KDIR; k <= kend - INCLUDE_KDIR; k++){
+  for (j = jbeg + INCLUDE_JDIR; j <= jend - INCLUDE_JDIR; j++){
+    for (i = ibeg + INCLUDE_IDIR; i <= iend - INCLUDE_IDIR; i++){
       flag[i-ibeg] = 0;
       NVAR_LOOP(nv) u[i-ibeg][nv] = UU[nv][k][j][i];
     }
-    ConsToPrim (u, v, IOFFSET, iend-ibeg-IOFFSET, flag);
+    ConsToPrim (u, v, INCLUDE_IDIR, iend-ibeg-INCLUDE_IDIR, flag);
     for (i = ibeg; i <= iend; i++){
       NVAR_LOOP(nv) UU[nv][k][j][i] = v[i-ibeg][nv];
     }

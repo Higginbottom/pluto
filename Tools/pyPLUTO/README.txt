@@ -1,12 +1,10 @@
 NAME : pyPLUTO 
 
-TASK : Quick Tool for Visualization of PLUTO 4 data [Mignone 2007]
+TASK : Quick Tool for Visualization of PLUTO 4.4 data [Mignone 2007]
 
-AUTHOR : Bhargav Vaidya [University of Torino, Italy.]
+AUTHOR : Bhargav Vaidya [Indian Institute of Technology Indore]
 
-CONTRIBUTION : A. Strugarek (Dept. of Physics, University of Montreal)
-	       D. Stepanovs (MPI Astronomy, Heidelberg)
-
+	  
 DESCRIPTION:
 
 The code is completely written using the Python Language. 
@@ -26,14 +24,23 @@ on the surface plot.
 
 CHANGES from 4-1.0 to 4-2.0:
 
-1. The Data reader is made 10x faster using the array.fromstring module 
-replacing the previously used struct module.
+1. The files have now been modified to support Python version >3.6.
+The version for Python 2.7.x has now become obsolete will not be supported hence forth.
 
-2. The reader can also now read VTK data files generated using PLUTO code.
-Python/VTK wrapping library is NOT required for the same.
+2. The datareader now treats each of the reader and associated functionality as a different class, this results in slight 
+change of the syntax with regard to import of pload module. 
+Example : To read say data.0030.dbl, we have to do. 
 
-3. HDF5 Reader is also provided with this version which can analyse and visualize
-PLUTO-Chombo AMR data files.    
+import pyPLUTO.pload as pp
+D = pp.pload(30)
+
+instead of in the older version
+
+import pyPLUTO as pp
+D = pp.pload(30) 
+
+3. The Reader also has support to read particle files that are generated using the 
+newly developed Hybrid Eulerian Lagrangian Framework.
 
 MANUAL :
 

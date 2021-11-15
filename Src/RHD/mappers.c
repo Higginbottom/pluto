@@ -15,12 +15,15 @@
       if (FLAG_ENTROPY is TRUE)  --> p = p(S)
       else                       --> p = p(E)
   
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   June 25, 2015
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Nov 27, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
+#define  ENERGY_SOLVE   1
+#define  ENTROPY_SOLVE  2
+#define  PRESSURE_FIX   3
 /* ********************************************************************* */
 void PrimToCons  (double *uprim[], double *ucons[],
                  int ibeg, int iend)
@@ -51,18 +54,18 @@ void PrimToCons  (double *uprim[], double *ucons[],
     u = ucons[ii];
     v = uprim[ii];
 
-    g = EXPAND(v[VX1]*v[VX1], +v[VX2]*v[VX2], +v[VX3]*v[VX3]);
+    g = v[VX1]*v[VX1] + v[VX2]*v[VX2] + v[VX3]*v[VX3];
 
     if (g >= 1.0){
       WARNING( 
-        print ("! u^2 > 1 (%f) in PrimToCons\n", scrh);
+        printLog ("! u^2 > 1 (%f) in PrimToCons\n", scrh);
         Where (ii, NULL);
       )
 
       g = beta_fix/sqrt(g);
-      EXPAND(v[VX1] *= g;  ,
-             v[VX2] *= g;  ,
-             v[VX3] *= g;)
+      v[VX1] *= g;
+      v[VX2] *= g;
+      v[VX3] *= g;
 
       g = beta_fix*beta_fix;
     }
@@ -71,36 +74,27 @@ void PrimToCons  (double *uprim[], double *ucons[],
     g    = sqrt(g);
 
     u[RHO] = v[RHO]*g;
-    EXPAND(u[MX1] = scrh*v[VX1];  ,
-           u[MX2] = scrh*v[VX2];  ,
-           u[MX3] = scrh*v[VX3];)
+    u[MX1] = scrh*v[VX1];
+    u[MX2] = scrh*v[VX2];
+    u[MX3] = scrh*v[VX3];
 
     ucons[ii][ENG] = rhoh_g2 - v[PRS];
 
-#if NSCL > 0    
+    #if NSCL > 0    
     NSCL_LOOP(nv) u[nv] = v[nv]*u[RHO];
-#endif    
-
-    #if CHECK_CONSERVATIVE_VAR == YES
-     m2 = EXPAND(u[MX1]*u[MX1], + u[MX2]*u[MX2], + u[MX3]*u[MX3]);
-     g  = u[ENG] - sqrt(m2);
-     if (g <= 0.0){
-       printf ("! E - m < 0 in PrimToCons (%12.6e)\n",g);
-       QUIT_PLUTO(1);
-     }
-     g = u[RHO]/u[ENG] - sqrt(1.0 - m2/u[ENG]/u[ENG]);
-     if (g >=0){
-        print ("! g > 0.0 in PrimToCons(2) (%12.6e)\n",g);
-        Show(ucons,ii);
-        QUIT_PLUTO(1);
-     }
+    #endif
+    
+    #if RADIATION
+    u[ENR] = v[ENR];
+    u[FR1] = v[FR1];
+    u[FR2] = v[FR2];
+    u[FR3] = v[FR3];
     #endif
   }
 }
 
 /* ********************************************************************* */
-int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend, 
-                unsigned char *flag)
+int ConsToPrim (double **ucons, double **uprim, int beg, int end, uint16_t *flag)
 /*!
  * Convert from conservative to primitive variables.
  *
@@ -120,110 +114,116 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
  *
  *********************************************************************** */
 {
-  int    nv, i, err, ifail;
-  int    use_entropy, use_energy=1;
-  double  scrh, m, g;
+  int    nv, i, err;
+  int    ifail = 0;
+  char   sol;
   double *u, *v;
-  Map_param par;
 
-  ifail = 0;
-  for (i = ibeg; i <= iend; i++) {
+  for (i = beg; i <= end; i++) {
 
     u = ucons[i];
     v = uprim[i];
 
-  /* -----------------------------------------------------------
-      Define the input parameters of the parameter structure
-     ----------------------------------------------------------- */
+    sol = ENERGY_SOLVE;
+    #if ENTROPY_SWITCH
+    if (flag[i] & FLAG_ENTROPY) sol = ENTROPY_SOLVE;
+    #endif
 
-    par.D  = u[RHO];
-    par.E  = u[ENG];
-    par.m2 = EXPAND(u[MX1]*u[MX1], + u[MX2]*u[MX2], + u[MX3]*u[MX3]);
-
-  /* -------------------------------------------
-        Check density and energy positivity 
-     ------------------------------------------- */
+  /* --------------------------------------------
+     1. Check density and rad energy positivity 
+     -------------------------------------------- */
   
     if (u[RHO] < 0.0) {
-      print("! ConsToPrim: negative density (%8.2e), ", u[RHO]);
+      printLog("! ConsToPrim(): negative density (%8.2e), ", u[RHO]);
       Where (i, NULL);
       u[RHO]   = g_smallDensity;
       flag[i] |= FLAG_CONS2PRIM_FAIL;
+      flag[i] |= FLAG_NEGATIVE_DENSITY;
       ifail    = 1;
     }
-
-    if (u[ENG] < 0.0) {
+    
+    #if RADIATION
+    if (u[ENR] < 0.0) {
       WARNING(
-        print("! ConsToPrim: negative energy (%8.2e), ", u[ENG]);
+        print("! ConsToPrim(): negative radiation energy (%8.2e), ", u[ENR]);
         Where (i, NULL);
       )
-      u[ENG]   = sqrt(1.e-8 + par.m2 + u[RHO]*u[RHO]);
+      u[ENR]   = RADIATION_MIN_ERAD;
       flag[i] |= FLAG_CONS2PRIM_FAIL;
-      ifail    = 1;
+//      ifail    = 1;
     }
+    #endif
 
-  /* --------------------------------
-      recover pressure by inverting 
-      the energy or entropy equation.
-     -------------------------------- */
+  /* --------------------------------------------
+     4a. Obtain pressure by inverting 
+         the entropy equation.
+     -------------------------------------------- */
 
-#if ENTROPY_SWITCH
-    use_entropy = (flag[i] & FLAG_ENTROPY);
-    use_energy  = !use_entropy;
-    par.sigma_c = u[ENTR];
-    if (use_entropy) {
-      err = EntropySolve(&par);      
+    #if ENTROPY_SWITCH
+    if (sol == ENTROPY_SOLVE) {
+      err = RHD_EntropySolve(u, v);
       if (err) {
-        WARNING(Where (i, NULL);)
-        err = PressureFix(&par);
-        if (err){
+        WARNING(
+          printLog ("! ConsToPrim() <- RHD_EntropySolve() failed, ");
+          printLog ("err code = %d. Trying pressure fix... \n", err);
           Where(i,NULL);
-          QUIT_PLUTO(1);
-        }
-        flag[i] |= FLAG_CONS2PRIM_FAIL;
-        ifail    = 1;
+        )
+        sol = PRESSURE_FIX;
       }
-      u[ENG] = par.E;  /* Redefine energy */
-    } 
-#endif
+    }  /* end if entropy_solve */
+    #endif
  
-    if (use_energy){
-      err = EnergySolve(&par);
+  /* --------------------------------------------
+     4b. Obtain pressure by inverting 
+         the energy equation.
+     -------------------------------------------- */
+
+    if (sol == ENERGY_SOLVE){
+      err = RHD_EnergySolve(u, v);
       if (err){
-        WARNING(Where(i,NULL);)
-        err = PressureFix(&par);
-        if (err){
+        WARNING(
+          printLog ("! ConsToPrim(): RHD_EnergySolve() failed,");
+          printLog (" err code = %d; ", err);
           Where(i,NULL);
-          QUIT_PLUTO(1);
-        }
-        u[ENG]   = par.E;
-        flag[i] |= FLAG_CONS2PRIM_FAIL;
-        ifail    = 1;
+        )
+        sol = PRESSURE_FIX;
       }
-#if ENTROPY_SWITCH  
-      u[ENTR] = par.sigma_c;  /* Redefine entropy */
-#endif      
-    }
+    } /* end if energy_solve */
 
-  /*  ------------------------------------------
-              complete conversion 
-      ------------------------------------------ */
+  /* --------------------------------------------
+     4c. Apply pressure fix if necessary
+     -------------------------------------------- */
 
-    v[PRS] = par.prs;
-    scrh   = 1.0/(u[ENG] + v[PRS]);  /* = 1 / W */
+    if (sol == PRESSURE_FIX){
+      err = RHD_PressureFix(u, v);
+      if (err){
+        printLog ("! ConsToPrim() <- RHD_PressureFix() failed, ");
+        printLog ("err code = %d; \n", err);
+        Where(i,NULL);
+        ShowState (u,0);          
+        QUIT_PLUTO(1);  /* No more options  (!!) */
+      }
+      
+    /* -- Pressure has changed, redefine total energy & entropy -- */
+      
+      flag[i] |= FLAG_CONS2PRIM_FAIL;
+//      ifail    = 1;
+    } /* end if pressure_fix */
 
-    EXPAND(v[VX1] = u[MX1]*scrh; ,
-           v[VX2] = u[MX2]*scrh; ,
-           v[VX3] = u[MX3]*scrh;)
+  /* --------------------------------------------
+     5. Complete conversion 
+     -------------------------------------------- */
 
-    g = EXPAND(v[VX1]*v[VX1], + v[VX2]*v[VX2], + v[VX3]*v[VX3]);
-    g = 1.0/sqrt(1.0 - g);
-    v[RHO] = u[RHO]/g;
-
-#if NSCL > 0     
+    #if NSCL > 0     
     NSCL_LOOP(nv)  v[nv] = u[nv]/u[RHO];
-#endif
-
+    #endif
+    
+    #if RADIATION
+    v[ENR] = u[ENR];
+    v[FR1] = u[FR1];
+    v[FR2] = u[FR2];
+    v[FR3] = u[FR3];
+    #endif
   }
 
   return ifail;

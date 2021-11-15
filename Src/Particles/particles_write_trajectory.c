@@ -3,9 +3,9 @@
   \file  
   \brief Write trajectoy of a particle
   
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \authors A. Mignone (mignone@to.infn.it)\n
 
-  \date   Sep 23, 2016
+  \date   June 12, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -14,13 +14,13 @@
 void Particles_WriteTrajectory (Particle *p, char mode)
 /*!
  *  Write particle coordinates to an ASCII file, named
- *  "particle.<br>.<id>.dat" where <br> and <id> are the birth rank
- *  and id of the particle.
+ *  "particle.<id>.dat" where <id> is the particle id.
  *  The file used a multiple column format,
  *
- *  <t>  <x1>  <x2>  <x3>
+ *  <t>  <x1>  <x2>  <x3> <vx1>  <vx2>  <vx3>
  *
- * where <t> is the time column and the other contain coordinates.
+ * where <t> is the time column and the other contain coordinates 
+ * and velocities.
  *
  * \param [in]   p     A pointer to a particle structure
  * \param [in]   mode  Either "w" or "a" to write or append to the file.
@@ -29,12 +29,15 @@ void Particles_WriteTrajectory (Particle *p, char mode)
 {
   FILE *fp;
   char fname[64];
-
+  char *legend[7] = {"t", "x(t)", "y(t)", "z(t)", "vx(t)", "vy(t)", "vz(t)"};
+  
   sprintf (fname,"particle.%04d.dat",p->id);
-  if      (mode == 'w') fp = fopen (fname,"w");
-  else if (mode == 'a') fp = fopen (fname,"a");
+  if      (mode == 'w') {
+    fp = fopen (fname,"w");
+    PrintColumnLegend(legend, 7, fp);
+  } else if (mode == 'a') fp = fopen (fname,"a");
   else{
-    print ("! ParticlesWriteTrajectory: invalid mode\n");
+    printLog ("! ParticlesWriteTrajectory: invalid mode\n");
     QUIT_PLUTO(1);
   }
 

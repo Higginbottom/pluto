@@ -51,7 +51,7 @@ void SoundSpeed2 (const State *p, int beg, int end, int pos, Grid *grid)
 
   }
   #else
-   print ("! SoundSpeed2: not defined for this EoS\n");
+   printLog ("! SoundSpeed2: not defined for this EoS\n");
    QUIT_PLUTO(1);
   #endif
 }
@@ -69,7 +69,7 @@ void Enthalpy (double **v, double *h, int beg, int end)
  * \return  This function has no return value.
  *********************************************************************** */
 {
-  print ("! Enthalpy: enthalpy not defined in isothermal EOS\n");
+  printLog ("! Enthalpy: enthalpy not defined in isothermal EOS\n");
   QUIT_PLUTO(1);
 }
 
@@ -86,6 +86,6 @@ void Entropy (double **v, double *s, int beg, int end)
  * \return  This function has no return value.
  *********************************************************************** */
 {
-  print ("Entropy: entropy not defined for isothermal EOS\n");
+  printLog ("Entropy: entropy not defined for isothermal EOS\n");
   QUIT_PLUTO(1);
 }

@@ -97,7 +97,7 @@ print (">> Beg Distrib(). Particle #%d; i,j = %d,%d; rx,ry = %f, %f\n",
     fx  = Particles_dNdx(x, NULL);
     dx  = (Fx - rx*Nx)/fx;
     x  -= dx;
-  print ("  iter %d, x = %f, Nx = %f\n",k,x, Fx);
+  printLog ("  iter %d, x = %f, Nx = %f\n",k,x, Fx);
     if (fabs(dx) < tol*Lx || fabs(Fx-rx*Nx) < ftol) {
       break;
     }

@@ -1,8 +1,9 @@
 var searchData=
 [
-  ['s',['S',['../struct_map__param.html#a1f3afedeffb9d5e23fe337fc32161bc0',1,'Map_param::S()'],['../struct_grid.html#a4dba5891ecb188ed8dde1703eba71e26',1,'Grid::s()']]],
+  ['s',['s',['../struct_grid.html#a4dba5891ecb188ed8dde1703eba71e26',1,'Grid::s()'],['../struct_map__param.html#a1f3afedeffb9d5e23fe337fc32161bc0',1,'Map_param::S()']]],
   ['s2',['S2',['../struct_map__param.html#a2460f0b92b54bebe56b8a6ac1426fcd1',1,'Map_param']]],
   ['sb_5fvy',['sb_vy',['../sb__boundary_8c.html#aacd0f20e328a7fe932d112232a954d30',1,'sb_vy():&#160;sb_boundary.c'],['../shearingbox_8h.html#aacd0f20e328a7fe932d112232a954d30',1,'sb_vy():&#160;sb_boundary.c']]],
+  ['sc',['Sc',['../struct_sweep.html#a9d7264e203de39f8dfb372f1e52a8735',1,'Sweep']]],
   ['sigma_5fc',['sigma_c',['../struct_map__param.html#a309b0f331b88e050658299ba928e3bec',1,'Map_param']]],
   ['sl',['SL',['../struct_sweep.html#a4b8627bdad4c644227764e9afda5a8e0',1,'Sweep']]],
   ['solv_5ftype',['solv_type',['../struct_runtime.html#a157da06c0701255b236ce54ca6d6d8c1',1,'Runtime']]],

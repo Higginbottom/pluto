@@ -1,9 +1,5 @@
 #include "pluto.h"
 
-
-/* real sb_A = -0.75;
-real sb_vy, sb_Lx, sb_Ly; */
-
 double sb_Omega = 1.0;
 double sb_q    = 1.5;
 
@@ -22,9 +18,9 @@ void Init (double *us, double x1, double x2, double x3)
   int  zeroflux;	
 
   #ifndef SHEARINGBOX
-   print1 ("! ShearingBox module has not been included.\n");
-   print1 ("! Cannot continue.\n");
-   QUIT_PLUTO(1);
+  printLog ("! ShearingBox module has not been included.\n");
+  printLog ("! Cannot continue.\n");
+  QUIT_PLUTO(1);
   #endif
   
 	zeroflux = (int) g_inputParam[ZEROFLUX];
@@ -50,7 +46,7 @@ void Init (double *us, double x1, double x2, double x3)
    
   us[TRC] = 0.0;
 
-  #if PHYSICS == MHD || PHYSICS == RMHD
+  #if (PHYSICS == MHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
    b0     = sqrt(2.0/g_inputParam[BETA]);
    us[BX] = 0.;
    us[BY] = 0.;
@@ -233,7 +229,7 @@ void Analysis (const Data *d, Grid *grid)
 	}
 	MPI_Reduce(section2dxz[0], avg2dy[0], nptxz, MPI_FLOAT, MPI_SUM, 0, Ycomm);
 	if (myrank_y == 0) {
-		printf(" %i   %i\n",grid[KDIR].rank_coord, grid[IDIR].rank_coord);
+	 printf(" %i   %i\n",grid[KDIR].rank_coord, grid[IDIR].rank_coord);
 		/* sprintf (fname,"avgy.%05d.dat",nfile1);
 		ierr = MPI_File_open(XZcomm, fname, MPI_MODE_CREATE | MPI_MODE_RDWR | 
 							 MPI_MODE_UNIQUE_OPEN, MPI_INFO_NULL, &ifp);*/		
@@ -374,7 +370,7 @@ void Analysis (const Data *d, Grid *grid)
 									  (d->Vc[BX3][k][j][i] - avg[k1][aBZ]*T)*(d->Vc[BX3][k][j][i] - avg[k1][aBZ]*T));
 			
 		}
-		//	printf("%12.6e\n", av[k1][aFT]);	
+		// printf("%12.6e\n", av[k1][aFT]);	
 	}
 	
 #ifdef PARALLEL
@@ -414,12 +410,12 @@ void Analysis (const Data *d, Grid *grid)
 					sprintf (fname,"average.%05d.dat",nfile);
 					fp = fopen(fname,"r");
 					if (fp == NULL){
-						print1 ("! Analysis: could not find file number. Setting nfile=0\n");
+					 printLog ("! Analysis: could not find file number. Setting nfile=0\n");
 						nfile = 0;
 						break;
 					}
 					fread (&T, sizeof(double), 1, fp);
-					printf (">> Analysis: scanning %s: t = %12.6e\n", fname, T);
+				 printf (">> Analysis: scanning %s: t = %12.6e\n", fname, T);
 					if (T >= g_time) break;
 					fclose(fp);
 				}
@@ -427,7 +423,7 @@ void Analysis (const Data *d, Grid *grid)
 		}
 		
 		sprintf (fname,"average.%05d.dat",nfile);
-		printf (">> Analysis: writing file %s\n",fname);
+	 printf (">> Analysis: writing file %s\n",fname);
 		
 		fp = fopen(fname,"wb");
 		
@@ -466,10 +462,10 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
 {
   int   i, j, k, nv;
   int fixedT;	
-  real  *x1, *x2, *x3;
-  real ***q;
-  real Tkbeg, Tkend, T0, Tk1, Tks, dTdz, dpdz, alp;
-	real zb, dzb, Sigma, kcond;
+  double  *x1, *x2, *x3;
+  double ***q;
+  double Tkbeg, Tkend, T0, Tk1, Tks, dTdz, dpdz, alp;
+  double zb, dzb, Sigma, kcond;
 
 
 	fixedT = (int) g_inputParam[FIXEDT];

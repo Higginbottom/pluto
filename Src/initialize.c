@@ -25,18 +25,20 @@
                      of processors in the three directions;
   - AL_MPI_DECOMP   [todo]
 
-  \author A. Mignone (mignone@ph.unito.it)
+  \author A. Mignone (mignone@to.infn.it)
           B. Vaidya
-  \date   May 21, 2018
+  \date   Dec 02 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
-static int GetDecompMode (Cmd_Line *cmd_line, int procs[]);
+#ifdef PARALLEL
+static int GetDecompMode (cmdLine *cmd_line, int procs[]);
+#endif
+
 
 /* ********************************************************************* */
-void Initialize(int argc, char *argv[], Data *data, 
-                Runtime *runtime, Grid *grid, Cmd_Line *cmd_line)
+void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
 /*!
  * Initialize computational grid, domain decomposition and memory
  * allocation. Also, set initial conditions and output attributes.
@@ -47,7 +49,7 @@ void Initialize(int argc, char *argv[], Data *data,
  * \param [in,out] data       a pointer to the main PLUTO data structure
  * \param [in,out] runtime    a pointer to the Runtime structure
  * \param [in]      grid      pointer to an array of Grid structures
- * \param [in]     cmd_line   pointer to the Cmd_Line structure
+ * \param [in]     cmd_line   pointer to the cmdLine structure
  *
  * \return  This function has no return value.
  *********************************************************************** */
@@ -55,30 +57,29 @@ void Initialize(int argc, char *argv[], Data *data,
   int  nprocs, decomp_mode;
   int  i, j, k, idim, nv;
   int  nx, ny, nz, nghost, status;
-  int  gsize[DIMENSIONS], lsize[DIMENSIONS];
-  int  beg[DIMENSIONS], end[DIMENSIONS];
-  int  gbeg[DIMENSIONS], gend[DIMENSIONS];
-  int  lbeg[DIMENSIONS], lend[DIMENSIONS];
-  int  is_gbeg[DIMENSIONS], is_gend[DIMENSIONS];
-  int  ghosts[DIMENSIONS];
-  int  periods[DIMENSIONS];
-  int  pardim[DIMENSIONS], stagdim[DIMENSIONS];
-  int  procs[DIMENSIONS];
-  char ini_file[128];
+  int  gsize[3] = {1,1,1};
+  int  lsize[3] = {1,1,1};
+  int  beg[3] = {0,0,0};
+  int  end[3] = {0,0,0};
+  int  gbeg[3] = {0,0,0};
+  int  gend[3] = {0,0,0};
+  int  lbeg[3] = {0,0,0};
+  int  lend[3] = {0,0,0};
+  int  is_gbeg[3], is_gend[3];
+  int  ghosts[3] = {0,0,0};
+  int  periods[3] = {0,0,0};
+  int  pardim[3]  = {0,0,0};
+  int  stagdim[3] = {0,0,0};
+  int  procs[3]   = {1,1,1};
   double scrh, dxmin[3], dxming[3];
-  Output *output;
   #ifdef PARALLEL
-   MPI_Datatype rgb_type;
-   MPI_Datatype Float_Vect_type;
+  MPI_Datatype rgb_type;
+  MPI_Datatype Float_Vect_type;
   #endif
 
-/* -- set default input file name -- */
-
-  sprintf (ini_file,"pluto.ini");
-
-/* -- parse command line options -- */
-
-  ParseCmdLineArgs (argc, argv, ini_file, cmd_line);
+/* ----------------------------------------------
+   1. Parallel decomposition
+   ---------------------------------------------- */
 
 #ifdef PARALLEL
 
@@ -86,24 +87,26 @@ void Initialize(int argc, char *argv[], Data *data,
 
   MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
 
-/* -- read initialization file -- */
-
-  if (prank == 0) RuntimeSetup (runtime, cmd_line, ini_file);
-  MPI_Bcast (runtime,  sizeof (Runtime) , MPI_BYTE, 0, MPI_COMM_WORLD);
-
 /* -- get number of ghost zones and set periodic boundaries -- */
 
   nghost = GetNghost();
   MPI_Allreduce (&nghost, &idim, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
   nghost = idim;
    
-  for (idim = 0; idim < DIMENSIONS; idim++) {
+  for (idim = 0; idim < DIMENSIONS; idim++){
     gsize[idim]   = runtime->npoint[idim];
     ghosts[idim]  = nghost;
     periods[idim] =    (runtime->left_bound[idim] == PERIODIC ? 1:0)
                     || (runtime->left_bound[idim] == SHEARING ? 1:0);
     pardim[idim]  = cmd_line->parallel_dim[idim];
   }
+
+  #if !INCLUDE_JDIR
+  ghosts[JDIR] = 0;
+  #endif
+  #if !INCLUDE_KDIR
+  ghosts[KDIR] = 0;
+  #endif
 
 /* -- find parallel decomposition mode and number of processors -- */
 
@@ -147,6 +150,23 @@ void Initialize(int argc, char *argv[], Data *data,
   AL_Get_gbounds (SZ_float, gbeg, gend, ghosts, AL_C_INDEXES);
   AL_Is_boundary (SZ_float, is_gbeg, is_gend);
 
+/* ---- uint16_t distributed array descriptor ---- */
+
+  AL_Sz_init (MPI_COMM_WORLD, &SZ_uint16_t);
+  AL_Set_type (MPI_UINT16_T, 1, SZ_uint16_t);
+  AL_Set_dimensions (DIMENSIONS, SZ_uint16_t);
+  AL_Set_global_dim (gsize, SZ_uint16_t);
+  AL_Set_ghosts (ghosts, SZ_uint16_t);
+  AL_Set_periodic_dim (periods, SZ_uint16_t);
+  AL_Set_parallel_dim (pardim, SZ_uint16_t);
+
+  AL_Decompose (SZ_uint16_t, procs, decomp_mode);
+  AL_Get_local_dim (SZ_uint16_t, lsize);
+  AL_Get_bounds  (SZ_uint16_t, beg, end, ghosts, AL_C_INDEXES);
+  AL_Get_lbounds (SZ_uint16_t, lbeg, lend, ghosts, AL_C_INDEXES);
+  AL_Get_gbounds (SZ_uint16_t, gbeg, gend, ghosts, AL_C_INDEXES);
+  AL_Is_boundary (SZ_uint16_t, is_gbeg, is_gend);
+
 /* ---- char distributed array descriptor ---- */
 
   AL_Sz_init (MPI_COMM_WORLD, &SZ_char);
@@ -184,22 +204,7 @@ void Initialize(int argc, char *argv[], Data *data,
   AL_Get_gbounds (SZ_Float_Vect, gbeg, gend, ghosts, AL_C_INDEXES);
   AL_Is_boundary (SZ_Float_Vect, is_gbeg, is_gend);
 
-  for (idim = 0; idim < DIMENSIONS; idim++) {
-    grid->nghost[idim]      = nghost;
-    grid->np_tot[idim]      = lsize[idim] + 2*ghosts[idim];
-    grid->np_int[idim]      = lsize[idim];
-    grid->np_tot_glob[idim] = runtime->npoint[idim] + 2*ghosts[idim];
-    grid->np_int_glob[idim] = runtime->npoint[idim];
-    grid->beg[idim]         = beg[idim];
-    grid->end[idim]         = end[idim];
-    grid->gbeg[idim]        = gbeg[idim];
-    grid->gend[idim]        = gend[idim];
-    grid->lbeg[idim]        = lbeg[idim];
-    grid->lend[idim]        = lend[idim];
-    grid->lbound[idim] = runtime->left_bound[idim]*is_gbeg[idim];
-    grid->rbound[idim] = runtime->right_bound[idim]*is_gend[idim];
-    grid->nproc[idim]  = procs[idim];
-  }
+  SetGrid (runtime, procs, grid);
 
 /* -- Find total number of processors & decomposition mode -- */
 
@@ -209,12 +214,14 @@ void Initialize(int argc, char *argv[], Data *data,
 
 /* ---- x-staggered array descriptor (double) ---- */
 
-    #if DIMENSIONS >= 1
-    D_EXPAND(stagdim[IDIR] = AL_TRUE;  ,
-             stagdim[JDIR] = AL_FALSE; , 
-             stagdim[KDIR] = AL_FALSE;)
+    #if INCLUDE_IDIR
+    stagdim[IDIR] = AL_TRUE; 
+    stagdim[JDIR] = AL_FALSE;
+    stagdim[KDIR] = AL_FALSE;
 
-    DIM_LOOP(idim) gsize[idim] = runtime->npoint[idim];
+    for (idim = 0; idim < DIMENSIONS; idim++) {
+      gsize[idim] = runtime->npoint[idim];
+    }
     gsize[IDIR] += 1;
 
     #ifdef SHEARINGBOX
@@ -238,16 +245,19 @@ void Initialize(int argc, char *argv[], Data *data,
     AL_Is_boundary (SZ_stagx, is_gbeg, is_gend);
 
     #ifdef SHEARINGBOX
-     periods[IDIR] = 1;
+    periods[IDIR] = 1;
     #endif
-    #endif
+    #endif  /* INCLUDE_IDIR */
 
-    #if DIMENSIONS >= 2
-    D_EXPAND(stagdim[IDIR] = AL_FALSE;  ,
-             stagdim[JDIR] = AL_TRUE;   , 
-             stagdim[KDIR] = AL_FALSE;)
+    #if INCLUDE_JDIR
+    stagdim[IDIR] = AL_FALSE;
+    stagdim[JDIR] = AL_TRUE; 
+    stagdim[KDIR] = AL_FALSE;
 
-    DIM_LOOP(idim) gsize[idim] = runtime->npoint[idim];
+    for (idim = 0; idim < DIMENSIONS; idim++) {
+      gsize[idim] = runtime->npoint[idim];
+    }
+
     gsize[JDIR] += 1;
 
     AL_Sz_init (MPI_COMM_WORLD, &SZ_stagy);
@@ -265,14 +275,16 @@ void Initialize(int argc, char *argv[], Data *data,
     AL_Get_lbounds (SZ_stagy, lbeg, lend, ghosts, AL_C_INDEXES);
     AL_Get_gbounds (SZ_stagy, gbeg, gend, ghosts, AL_C_INDEXES);
     AL_Is_boundary (SZ_stagy, is_gbeg, is_gend);
-    #endif
+    #endif /* INCLUDE_JDIR */
 
-    #if DIMENSIONS == 3
-    D_EXPAND(stagdim[IDIR] = AL_FALSE;  ,
-             stagdim[JDIR] = AL_FALSE;  , 
-             stagdim[KDIR] = AL_TRUE;)
+    #if INCLUDE_KDIR
+    stagdim[IDIR] = AL_FALSE;
+    stagdim[JDIR] = AL_FALSE;
+    stagdim[KDIR] = AL_TRUE;
 
-    DIM_LOOP(idim) gsize[idim] = runtime->npoint[idim];
+    for (idim = 0; idim < DIMENSIONS; idim++) {
+      gsize[idim] = runtime->npoint[idim];
+    }
     gsize[KDIR] += 1;
 
     AL_Sz_init (MPI_COMM_WORLD, &SZ_stagz);
@@ -290,7 +302,7 @@ void Initialize(int argc, char *argv[], Data *data,
     AL_Get_lbounds (SZ_stagz, lbeg, lend, ghosts, AL_C_INDEXES);
     AL_Get_gbounds (SZ_stagz, gbeg, gend, ghosts, AL_C_INDEXES);
     AL_Is_boundary (SZ_stagz, is_gbeg, is_gend);
-    #endif
+    #endif /* INCLUDE_KDIR */
   #endif /* STAGGERED_MHD */
 
   /* -- find processors coordinates in a Cartesian topology -- */
@@ -314,42 +326,20 @@ void Initialize(int argc, char *argv[], Data *data,
 #else  /* if NOT PARALLEL */
 
 /* -----------------------------------------------------
-               Serial Initialization
+   2. Serial Initialization
    ----------------------------------------------------- */
 
-  RuntimeSetup (runtime, cmd_line, ini_file);
   nghost = GetNghost();
 
-  for (idim = 0; idim < DIMENSIONS; idim++) {
-    grid->nghost[idim]  = nghost;
-    grid->np_int[idim]  = grid->np_int_glob[idim] = runtime->npoint[idim];
-    grid->np_tot[idim]  = grid->np_tot_glob[idim] = runtime->npoint[idim] + 2*nghost;
-    grid->beg[idim]     = grid->gbeg[idim] = grid->lbeg[idim] = nghost;
-    grid->end[idim]     = grid->gend[idim] = grid->lend[idim] 
-                        = (grid->lbeg[idim] - 1) + grid->np_int[idim];
-    grid->lbound[idim]  = runtime->left_bound[idim];
-    grid->rbound[idim]  = runtime->right_bound[idim];
-    grid->nproc[idim]   = 1;
-  }
+  SetGrid (runtime, procs, grid);
   nprocs = 1;
 
 #endif
 
-  RuntimeSet (runtime);
+/* ----------------------------------------------
+   3. Grid Generation
+   ---------------------------------------------- */
 
-/* ----------------------------------------------------
-    Set output directory and log file
-   ---------------------------------------------------- */
-
-  SetLogFile  (runtime->log_dir, cmd_line);
-  ShowConfig  (argc, argv, ini_file);
-
-/* ---------------------------------------------------
-                Grid Generation
-   --------------------------------------------------- */
-
-  print ("\n> Generating grid...\n\n");
-  SetGrid (runtime, grid);
   Where (-1, grid);     /* -- store grid inside the "Where" 
                               function for subsequent calls -- */
   if (cmd_line->makegrid == YES) {
@@ -357,9 +347,9 @@ void Initialize(int argc, char *argv[], Data *data,
     QUIT_PLUTO(0);
   }
 
-/* ------------------------------------------------
-     Initialize global variables
-   ------------------------------------------------ */
+/* ----------------------------------------------
+   4. Initialize global variables
+   ---------------------------------------------- */
 
   g_dt             = runtime->first_dt;
   g_time           = 0.0;
@@ -367,6 +357,9 @@ void Initialize(int argc, char *argv[], Data *data,
   g_maxRiemannIter = 0;
   g_nprocs         = nprocs;
   g_usedMemory     = 0;
+  for (nv = 0; nv < USER_DEF_PARAMETERS; nv++) {
+    g_inputParam[nv] = runtime->aux[nv];
+  }
   
   IBEG = grid->lbeg[IDIR]; IEND = grid->lend[IDIR];
   JBEG = grid->lbeg[JDIR]; JEND = grid->lend[JDIR];
@@ -380,19 +373,15 @@ void Initialize(int argc, char *argv[], Data *data,
   NX2_TOT = grid->np_tot[JDIR];
   NX3_TOT = grid->np_tot[KDIR];
 
-/* ---------------------------------------
-     Get the maximum number of points 
-     among all directions
-   --------------------------------------- */
+/* ----------------------------------------------
+   5.  Get the maximum number of points and
+       minimum cell length among all direction.
+   ---------------------------------------------- */
 
   NMAX_POINT = MAX(NX1_TOT, NX2_TOT);
   NMAX_POINT = MAX(NMAX_POINT, NX3_TOT);
 
-/* --------------------------------------------------------------------
-     Find the minimum physical cell length for each direction
-   -------------------------------------------------------------------- */
-
-  for (idim = 0; idim < DIMENSIONS; idim++)  dxmin[idim] = 1.e30;
+  for (idim = 0; idim < 3; idim++) dxmin[idim] = 1.e30;
 
   for (i = IBEG; i <= IEND; i++) {
   for (j = JBEG; j <= JEND; j++) {
@@ -420,9 +409,10 @@ void Initialize(int argc, char *argv[], Data *data,
   grid->dl_min[JDIR] = dxmin[JDIR];
   grid->dl_min[KDIR] = dxmin[KDIR];
 
-/* --------------------------------------------------------------
-    Define geometrical coefficients for linear interpolation
-   -------------------------------------------------------------- */
+/* ----------------------------------------------
+   6a. Define geometrical coefficients for
+       linear / PPM reconstruction.
+   ---------------------------------------------- */
    
   PLM_CoefficientsSet (grid);   /* -- these may be needed by
                                       shock flattening algorithms */
@@ -430,47 +420,66 @@ void Initialize(int argc, char *argv[], Data *data,
   PPM_CoefficientsSet (grid);  
 #endif
 
-/* --------------------------------------------------------------
-    Copy user defined parameters into global array g_inputParam 
-   -------------------------------------------------------------- */
+/* ----------------------------------------------
+   6b. Compute chunk size for the RING_AVERAGE
+       technique.
+   ---------------------------------------------- */
 
-  for (nv = 0; nv < USER_DEF_PARAMETERS; nv++) g_inputParam[nv] = runtime->aux[nv];
+#if RING_AVERAGE > 1
+  #if GEOMETRY == POLAR
+  grid->ring_av_csize = ARRAY_1D(grid->np_tot[IDIR] , int);
+  #elif GEOMETRY == SPHERICAL
+  grid->ring_av_csize = ARRAY_1D(grid->np_tot[JDIR] , int);
+  #endif
+  RingAverageSize(grid);
+#endif
 
-/* ------------------------------------------------------------
-          Allocate memory for 3D data arrays
-   ------------------------------------------------------------ */
+/* ----------------------------------------------
+   7. Allocate memory for 3D data arrays
+   ---------------------------------------------- */
 
   print ("\n> Memory allocation\n");
   data->Vc = ARRAY_4D(NVAR, NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->Uc = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double); 
 
 #ifdef STAGGERED_MHD
-  data->Vs = ARRAY_1D(DIMENSIONS, double ***);
-  D_EXPAND(
-    data->Vs[BX1s] = ArrayBox( 0, NX3_TOT-1, 0, NX2_TOT-1,-1, NX1_TOT-1); ,
-    data->Vs[BX2s] = ArrayBox( 0, NX3_TOT-1,-1, NX2_TOT-1, 0, NX1_TOT-1); ,
-    data->Vs[BX3s] = ArrayBox(-1, NX3_TOT-1, 0, NX2_TOT-1, 0, NX1_TOT-1);
+  data->Vs = ARRAY_1D(6, double ***);
+  DIM_EXPAND(
+    data->Vs[BX1s] = ARRAY_BOX( 0, NX3_TOT-1, 0, NX2_TOT-1,-1, NX1_TOT-1, double); ,
+    data->Vs[BX2s] = ARRAY_BOX( 0, NX3_TOT-1,-1, NX2_TOT-1, 0, NX1_TOT-1, double); ,
+    data->Vs[BX3s] = ARRAY_BOX(-1, NX3_TOT-1, 0, NX2_TOT-1, 0, NX1_TOT-1, double);
   )
 
-  data->Ex1 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
-  data->Ex2 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
-  data->Ex3 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
-
+  #if (PHYSICS == ResRMHD) && (DIVE_CONTROL == CONSTRAINED_TRANSPORT)
+  DIM_EXPAND(
+    data->Vs[EX1s] = ARRAY_BOX( 0, NX3_TOT-1, 0, NX2_TOT-1,-1, NX1_TOT-1, double); ,
+    data->Vs[EX2s] = ARRAY_BOX( 0, NX3_TOT-1,-1, NX2_TOT-1, 0, NX1_TOT-1, double); ,
+    data->Vs[EX3s] = ARRAY_BOX(-1, NX3_TOT-1, 0, NX2_TOT-1, 0, NX1_TOT-1, double);
+  )
+  #endif
+  data->q = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  
   data->emf = malloc(sizeof(EMF));
   CT_Allocate (data->emf);
 #endif  
 
-/* ------------------------------------------------------------
-    Allocate memory for vector potential.
-   ------------------------------------------------------------ */
+#if PHYSICS == MHD || PHYSICS == RMHD || PHYSICS == ResRMHD
+  data->Ex1 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->Ex2 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->Ex3 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+#endif
 
-#if UPDATE_VECTOR_POTENTIAL == YES || ASSIGN_VECTOR_POTENTIAL == YES
+/* ----------------------------------------------
+   7a. Allocate memory for vector potential.
+   ---------------------------------------------- */
+
+#if (UPDATE_VECTOR_POTENTIAL == YES) || (ASSIGN_VECTOR_POTENTIAL == YES)
   data->Ax3 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);   
   data->Ax1 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);  
   data->Ax2 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);  
 #endif
 
-#if RESISTIVITY || HALL_MHD
+#if RESISTIVITY || HALL_MHD || (PHYSICS == ResRMHD)
   data->J = ARRAY_4D(3,NX3_TOT, NX2_TOT, NX1_TOT, double);
 #endif
 
@@ -482,26 +491,33 @@ void Initialize(int argc, char *argv[], Data *data,
   data->Ft = malloc(sizeof(ForcedTurb));
 #endif
 
-#ifdef PARTICLES
+#if PARTICLES != NO
   data->PHead = NULL;
   data->pstr  = NULL;
-  #if PARTICLES_TYPE == COSMIC_RAYS
-  data->Ecr = ARRAY_4D(3, NX3_TOT, NX2_TOT, NX1_TOT, double);
+  #if PARTICLES == PARTICLES_CR
   data->Fcr = ARRAY_4D(4, NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->Jcr = ARRAY_4D(3, NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->qcr = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
   #endif
-  #if PARTICLES_TYPE == DUST
-  data->Vdust = ARRAY_4D(3, NX3_TOT, NX2_TOT, NX1_TOT, double);
+  #if PARTICLES == PARTICLES_DUST
   data->Fdust = ARRAY_4D(3, NX3_TOT, NX2_TOT, NX1_TOT, double);
   #endif
 #endif
 
-  data->flag = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, unsigned char);
+  data->flag = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, uint16_t);
 
-/* ------------------------------------------------------------
-    Initialize tables needed for EOS 
-   ------------------------------------------------------------ */
+/* ----------------------------------------------
+   7b. Riemann solver pointer
+   ---------------------------------------------- */
+
+  data->fluidRiemannSolver = SetSolver (runtime->solv_type);
+  #if RADIATION
+  data->radiationRiemannSolver = Rad_SetSolver (runtime->rad_solv_type);
+  #endif
+
+/* ----------------------------------------------
+   8. Initialize tables needed for EOS 
+   ---------------------------------------------- */
   
 #if EOS == PVTE_LAW && NIONS == 0
   #if TV_ENERGY_TABLE == YES
@@ -512,69 +528,81 @@ void Initialize(int argc, char *argv[], Data *data,
   MakePV_TemperatureTable();
 #endif
 
-/* ------------------------------------------------------------
-    Assign initial conditions.
-    We also compute the average orbital velocity in case
-    output requires writing the residual.
-   ------------------------------------------------------------ */
+/* ----------------------------------------------
+   9. Assign initial cond. for fluid & particles.
+      We also compute the average orbital velocity
+      in case output requires writing the residual.
+   ---------------------------------------------- */
 
   Startup (data, grid);
-#ifdef PARTICLES
-  if (cmd_line->restart == NO) Particles_Set(data, grid); 
-#endif
-#ifdef FARGO
-  FARGO_ComputeVelocity(data, grid);
+
+#if (PARTICLES != NO)
+  if (cmd_line->prestart == NO) Particles_Set(data, grid); 
 #endif
 
-/* --------------------------------------------------------
-    Set output attributes (names, images, number of
-    outputs...)
-   -------------------------------------------------------- */
+/* ----------------------------------------------
+   10. Set output attributes (names, images,
+       number of outputs, etc.)
+   ---------------------------------------------- */
 
   SetOutput (data, runtime);
-#ifdef PARTICLES
+#if (PARTICLES != NO)
   Particles_SetOutput(data, runtime);
 #endif
   ChangeOutputVar();
 
-/* --------------------------------------------------------
-      print normalization units
-   -------------------------------------------------------- */
+/* ----------------------------------------------
+   11. Print normalization units
+   ---------------------------------------------- */
 
   ShowUnits();  
 
   print ("> Number of processors: %d\n",nprocs);
-  D_EXPAND(
-           print ("> Proc size:            %d",grid->np_int[IDIR]);  ,
-           print (" X %d", grid->np_int[JDIR]);                      ,
-           print (" X %d", grid->np_int[KDIR]);)
+  DIM_EXPAND(
+             print ("> Proc size:            %d",grid->np_int[IDIR]);  ,
+             print (" X %d", grid->np_int[JDIR]);                      ,
+             print (" X %d", grid->np_int[KDIR]);)
   print ("\n");
 #ifdef PARALLEL
   print ("> Parallel Directions: ");
-  D_EXPAND(if (pardim[IDIR]) print (" X1");  ,
-           if (pardim[JDIR]) print ("/X2");  ,
-           if (pardim[KDIR]) print ("/X3");)
+  DIM_EXPAND(if (pardim[IDIR]) print (" X1");  ,
+             if (pardim[JDIR]) print ("/X2");  ,
+             if (pardim[KDIR]) print ("/X3");)
   print ("\n");
 #endif
 
-/* --------------------------------------------------------
-   Enable writing of grid information to be read by
-   gnuplot. This is done for educational purposes only.
-   -------------------------------------------------------- */
+/* ----------------------------------------------
+   12. Enable writing of grid information to be
+       read by gnuplot.
+       This is done for educational purposes only.
+   ---------------------------------------------- */
 
-#if !(defined CHOMBO) && (defined GNUPLOT)
-  GnuplotSetting(grid);
+#if !(defined CHOMBO) && (defined GNUPLOT_HEADER)
+  GnuplotSetting(runtime, grid);
 #endif
+
+/*
+for (idim = 0; idim < DIMENSIONS; idim++){
+printLog ("Dim = %d\n",idim);
+for (i = 0; i <= grid->gend[idim] + GetNghost(); i++){
+  printLog ("%d   %12.6e   %12.6e  %12.6e\n",i, grid->xl_glob[idim][i],
+                                                grid->x_glob[idim][i],
+                                                grid->xr_glob[idim][i]);
+}
+}
+exit(1);
+*/
+
 
 }
 
 #ifdef PARALLEL
 /* ********************************************************************* */
-int GetDecompMode (Cmd_Line *cmd_line, int procs[])
+int GetDecompMode (cmdLine *cmd_line, int procs[])
 /*!
  * Returns the parallel domain decomposition mode.
  *
- * \param [in]  cmd_line  pointer to the Cmd_Line structure
+ * \param [in]  cmd_line  pointer to the cmdLine structure
  * \param [out] procs     an array of integers giving the number
  *                        of processors in each direction only if
  *                        the -dec command line option has been given
@@ -593,7 +621,7 @@ int GetDecompMode (Cmd_Line *cmd_line, int procs[])
   int  nprocs;
   long int npx = 1, npy = 1, npz = 1;
 
-  D_EXPAND(npx = cmd_line->nproc[IDIR];  ,
+  DIM_EXPAND(npx = cmd_line->nproc[IDIR];  ,
            npy = cmd_line->nproc[JDIR];  ,
            npz = cmd_line->nproc[KDIR];)
 

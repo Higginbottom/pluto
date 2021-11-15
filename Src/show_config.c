@@ -3,8 +3,8 @@
   \file  
   \brief Print useful information about the current computations.
 
-  \author  A. Mignone (mignone@ph.unito.it)
-  \date    Oct 04, 2017
+  \author  A. Mignone (mignone@to.infn.it)
+  \date    Nov 27, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -31,17 +31,17 @@ void ShowConfig (int argc, char *argv[], char *ini_file)
   FILE *fp;
   time_t time_now;
   char  str1[128], str2[128], str3[128], sline[512];
-  double *dbl_pnt;  /* For printing size of pointer to double */
-  int    *int_pnt;  /* For printing size of pointer to int */
+  double *dbl_pnt;  /* For printLoging size of pointer to double */
+  int    *int_pnt;  /* For printLoging size of pointer to int */
 
   CheckConfig();
 
   print ("\n");
-  print("   ___  __   __  ____________   \n");
-  print("  / _ \\/ /  / / / /_  __/ __ \\ \n");
-  print(" / ___/ /__/ /_/ / / / / /_/ /  \n");
-  print("/_/  /____/\\____/ /_/  \\____/   \n");
-  print("=============================    v. %s  \n", PLUTO_VERSION);
+  print ("   ___  __   __  ____________   \n");
+  print ("  / _ \\/ /  / / / /_  __/ __ \\ \n");
+  print (" / ___/ /__/ /_/ / / / / /_/ /  \n");
+  print ("/_/  /____/\\____/ /_/  \\____/   \n");
+  print ("=============================    v. %s  \n", PLUTO_VERSION);
   
   print ("\n> System:\n\n");
 
@@ -67,10 +67,10 @@ void ShowConfig (int argc, char *argv[], char *ini_file)
     print ("  sysconf.out file not found... \n\n");
   }
  
-
-  print ("  - Basic data type:\n");
+  print ("  - Basic data type size (Bytes):\n");
   print ("    o sizeof (char)     = %d\n", sizeof(char));
   print ("    o sizeof (uchar)    = %d\n", sizeof(unsigned char));
+  print ("    o sizeof (uint16_t) = %d\n", sizeof(uint16_t));
   print ("    o sizeof (short)    = %d\n", sizeof(short));
   print ("    o sizeof (ushort)   = %d\n", sizeof(unsigned short));
   print ("    o sizeof (int)      = %d\n", sizeof(int));
@@ -81,50 +81,44 @@ void ShowConfig (int argc, char *argv[], char *ini_file)
   print ("    o sizeof (*double)  = %d\n", sizeof(dbl_pnt));
   
 
-  print ("\n  - Structure data type:\n");
-  print ("    o sizeof (CMD_LINE)   = %d\n", sizeof(Cmd_Line));
+  print ("\n  - Structure data type (Bytes):\n");
+  print ("    o sizeof (cmdLine)    = %d\n", sizeof(cmdLine));
   print ("    o sizeof (Data)       = %d\n", sizeof(Data));
   print ("    o sizeof (Grid)       = %d\n", sizeof(Grid));
-  print ("    o sizeof (FLOAT_VECT) = %d\n", sizeof(Float_Vect));
-  print ("    o sizeof (IMAGE)      = %d\n", sizeof(Image));
-  print ("    o sizeof (OUTPUT)     = %d\n", sizeof(Output));
+  print ("    o sizeof (Float_Vect) = %d\n", sizeof(Float_Vect));
+  print ("    o sizeof (Image)      = %d\n", sizeof(Image));
+  print ("    o sizeof (Output)     = %d\n", sizeof(Output));
   print ("    o sizeof (RGB)        = %d\n", sizeof(RGB));
-  print ("    o sizeof (RUNTIME)    = %d\n", sizeof(Runtime));
-  print ("    o sizeof (RESTART)    = %d\n", sizeof(Restart));
-  print ("    o sizeof (TIME_STEP)  = %d\n", sizeof(timeStep));
-  print ("    o sizeof (RBOX)       = %d\n", sizeof(RBox));
+  print ("    o sizeof (Runtime)    = %d\n", sizeof(Runtime));
+  print ("    o sizeof (Restart)    = %d\n", sizeof(Restart));
+  print ("    o sizeof (timeStep)   = %d\n", sizeof(timeStep));
+  print ("    o sizeof (RBox)       = %d\n", sizeof(RBox));
   print ("    o sizeof (State)      = %d\n", sizeof(State));
   print ("    o sizeof (Sweep)      = %d\n", sizeof(Sweep));
-#ifdef PARTICLES
+#if (PARTICLES != NO)
   print ("    o sizeof (PARTICLE)   = %d\n", sizeof(Particle));
 #endif
 
   time(&time_now);
   print("\n> Local time:       %s\n",asctime(localtime(&time_now)));
       
-  if (COMPONENTS < DIMENSIONS) {
-    print ("Sorry, but the number of vector components can\n");
-    print ("not be less than the dimension number.\n");
-    print ("Please edit definitions.h and fix this.\n");
-    QUIT_PLUTO(1);
-  }
-
-/* -- print command line arguments -- */
+/* -- printLog command line arguments -- */
 
   print ("> Cmd line args:    ");
   for (n = 1; n < argc; n++) print ("%s ",argv[n]);
   print ("\n\n");
 
-/* -- print problem configuration -- */
+/* -- printLog problem configuration -- */
 
   print ("> Header configuration:\n\n");
 
   if (PHYSICS == ADVECTION) print ("  PHYSICS:          ADVECTION\n");
   if (PHYSICS == HD)        print ("  PHYSICS:          HD\n");
   if (PHYSICS == RHD)       print ("  PHYSICS:          RHD\n");
-  if (PHYSICS == MHD)       print ("  PHYSICS:          MHD [div.B: ");
-  if (PHYSICS == RMHD)      print ("  PHYSICS:          RMHD [div.B: ");
-#if PHYSICS == MHD || PHYSICS == RMHD
+  if (PHYSICS == MHD)       print ("  PHYSICS:          MHD    [div.B: ");
+  if (PHYSICS == RMHD)      print ("  PHYSICS:          RMHD   [div.B: ");
+  if (PHYSICS == ResRMHD)   print ("  PHYSICS:          ResMHD [div.B: ");
+#if (PHYSICS == MHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
   #if DIVB_CONTROL == NO
   print ("None]\n");
   #elif DIVB_CONTROL == EIGHT_WAVES
@@ -140,18 +134,25 @@ void ShowConfig (int argc, char *argv[], char *ini_file)
     print ("CT/");
     #if CT_EMF_AVERAGE == ARITHMETIC
     print ("Ar. average]\n");
-    #elif CT_EMF_AVERAGE == UCT_CONTACT
-    print ("UCT_CONTACT]\n");
+    #elif CT_EMF_AVERAGE == CT_CONTACT
+    print ("CT_CONTACT]\n");
     #elif CT_EMF_AVERAGE == UCT0
     print ("UCT0]\n");
     #elif CT_EMF_AVERAGE == UCT_HLL
     print ("UCT_HLL]\n");
+    #elif CT_EMF_AVERAGE == CT_FLUX
+    print ("CT_FLUX]\n");
+    #elif CT_EMF_AVERAGE == CT_MAXWELL
+    print ("CT_MAXWELL]\n");
+    #elif CT_EMF_AVERAGE == UCT_HLLD
+    print ("UCT_HLLD]\n");
+    #elif CT_EMF_AVERAGE == UCT_GFORCE
+    print ("UCT_GFORCE]\n");
     #endif
   #endif
 #endif
 
   print ("  DIMENSIONS:       %d\n", DIMENSIONS);
-  print ("  COMPONENTS:       %d\n", COMPONENTS);
 
   print ("  GEOMETRY:         ");
   if (GEOMETRY == CARTESIAN)    print ("Cartesian\n");
@@ -173,17 +174,18 @@ void ShowConfig (int argc, char *argv[], char *ini_file)
 #elif COOLING == SNEq
   print ("  COOLING:          SNEq\n");
 #elif COOLING == TABULATED
-  print ("  COOLING:          TABULATED\n");
+  print ("  COOLING:          Tabulated\n");
 #endif
 
   print ("  RECONSTRUCTION:   ");
 #ifndef FINITE_DIFFERENCE
-   if (RECONSTRUCTION == FLAT)          print ("Flat");
-   if (RECONSTRUCTION == LINEAR)        print ("Linear TVD");
-   if (RECONSTRUCTION == LINEAR_MULTID) print ("Linear_Multid");
-   if (RECONSTRUCTION == LimO3)         print ("LimO3");
-   if (RECONSTRUCTION == WENO3)         print ("WENO 3rd order");
-   if (RECONSTRUCTION == PARABOLIC)     print ("Parabolic");
+   if (RECONSTRUCTION == FLAT)        print ("Flat");
+   if (RECONSTRUCTION == LINEAR)      print ("Linear TVD");
+   if (RECONSTRUCTION == LimO3)       print ("LimO3");
+   if (RECONSTRUCTION == WENO3)       print ("WENO 3rd order");
+   if (RECONSTRUCTION == PARABOLIC)   print ("Parabolic");
+   if (RECONSTRUCTION == WENOZ)       print ("WENOZ (5-th order)");
+   if (RECONSTRUCTION == MP5)         print ("MP5");
  #ifdef CHAR_LIMITING
    if (CHAR_LIMITING == YES) print (" (Characteristic lim)\n");
    else                      print (" (Primitive lim)\n");
@@ -197,6 +199,17 @@ void ShowConfig (int argc, char *argv[], char *ini_file)
   if (RECONSTRUCTION == MP5_FD)       print ("MP5 (FD), 5th order\n");
 #endif
 
+  print ("  TIME STEPPING:    ");
+  if (TIME_STEPPING == EULER)            print ("Euler\n");
+  if (TIME_STEPPING == RK2)              print ("Runga-Kutta II\n");
+  if (TIME_STEPPING == RK3)              print ("Runga_Kutta III\n");
+  if (TIME_STEPPING == CHARACTERISTIC_TRACING)
+                                         print ("Characteristic Tracing\n");
+#if TIME_STEPPING == HANCOCK
+  if (PRIMITIVE_HANCOCK == YES) print ("Hancock [Primitive]\n");
+  else                          print ("Hancock [Conservative]\n");
+#endif
+
   print ("  TRACERS:          %d\n", NTRACER);
   print ("  VARIABLES:        %d\n", NVAR);
   print ("  ENTROPY_SWITCH:   %s\n",(ENTROPY_SWITCH != NO ? "ENABLED":"NO"));
@@ -205,8 +218,7 @@ void ShowConfig (int argc, char *argv[], char *ini_file)
 #endif
 
   print ("  LOADED MODULES:\n");
-  #if PHYSICS == MHD
-   #ifdef SHEARINGBOX
+ #ifdef SHEARINGBOX
     print ("\n  o [SHEARINGBOX]\n");
     print ("     - Order:             %d\n", SB_ORDER);
     print ("     - Sym Hydro Flux:    %s\n", 
@@ -217,15 +229,11 @@ void ShowConfig (int argc, char *argv[], char *ini_file)
              (SB_SYMMETRIZE_EZ == YES ? "YES":"NO"));
     print ("     - Force EMF periods: %s\n", 
              (SB_FORCE_EMF_PERIODS == YES ? "YES":"NO"));
-   #endif
   #endif
   #ifdef FARGO
-   print ("\n  o [FARGO]\n");
-   print ("     - Order:         %d\n", FARGO_ORDER);
-   print ("     - Average Speed: %s\n", 
-            (FARGO_AVERAGE_VELOCITY == YES ? "YES":"NO"));
-   print ("     - Av. Frequency: %d\n", FARGO_NSTEP_AVERAGE);
-
+  print ("\n  o [FARGO]\n");
+  print ("     - Order:         %d\n", FARGO_ORDER);
+  print ("     - Av. Frequency: %d\n", FARGO_NSTEP_AVERAGE);
   #endif
   print ("\n");
 
@@ -239,22 +247,6 @@ void ShowConfig (int argc, char *argv[], char *ini_file)
   else if (EOS == ISOTHERMAL)   print ("Isothermal\n");
   else if (EOS == TAUB)         print ("Taub - TM\n");
   else                          print ("None\n");
-
-  print ("  TIME STEPPING:    ");
-  if (TIME_STEPPING == EULER)            print ("Euler\n");
-  if (TIME_STEPPING == RK2)              print ("Runga-Kutta II\n");
-  if (TIME_STEPPING == RK3)              print ("Runga_Kutta III\n");
-  if (TIME_STEPPING == CHARACTERISTIC_TRACING)
-                                         print ("Characteristic Tracing\n");
-#if TIME_STEPPING == HANCOCK
-  if (PRIMITIVE_HANCOCK == YES) print ("Hancock [Primitive]\n");
-  else                          print ("Hancock [Conservative]\n");
-#endif
-
-  print ("  DIM. SPLITTING:   ");
-  if (DIMENSIONAL_SPLITTING == YES)  print ("Yes\n");
-  else                               print ("No\n");
-  
 
   #if PARABOLIC_FLUX != NO
    print ("  DIFFUSION TERMS:");
@@ -321,11 +313,11 @@ void ShowUnits ()
 
 #if COOLING != NO
   print ("> Cooling Module:    ");
-  if (COOLING == SNEq)  print (" SNEq\n");
-  if (COOLING == MINEq) print (" MINEq\n");
-  if (COOLING == TABULATED) print (" TABULATED\n");
-  if (COOLING == H2_COOL) print (" H2_COOL \n");
-  if (COOLING == KROME) print (" KROME \n");
+  if (COOLING == SNEq)      print (" SNEq\n");
+  if (COOLING == MINEq)     print (" MINEq\n");
+  if (COOLING == TABULATED) print (" Tabulated\n");
+  if (COOLING == H2_COOL)   print (" H2_COOL \n");
+  if (COOLING == KROME)     print (" KROME \n");
 #endif
 
   print ("> Normalization Units:\n\n");
@@ -357,38 +349,21 @@ void CheckConfig()
  *
  *********************************************************************** */
 {
-  #if DIMENSIONS == 3 
+#if DIMENSIONS == 3 
 
-   #if GEOMETRY  == CYLINDRICAL 
-    print ("\n! Cylindrical coordinates are only 2D.\n");
-    print ("! Use polar instead.\n");
-    QUIT_PLUTO(1);
-   #endif
-
-   #if GEOMETRY == SPHERICAL 
-    #if (TIME_STEPPING == HANCOCK) || (TIME_STEPPING == CHARACTERISTIC_TRACING)
-     print ("\n ! Spherical 3D only works with RK integrators\n");
-     QUIT_PLUTO(1);
-    #endif
-   #endif
-
+  #if GEOMETRY  == CYLINDRICAL 
+  print ("\n! Cylindrical coordinates are only 2D.\n");
+  print ("! Use polar instead.\n");
+  QUIT_PLUTO(1);
   #endif
 
+  #if GEOMETRY == SPHERICAL 
+  #if (TIME_STEPPING == HANCOCK) || (TIME_STEPPING == CHARACTERISTIC_TRACING)
+  print ("\n ! Spherical 3D only works with RK integrators\n");
+  QUIT_PLUTO(1);
+  #endif
+  #endif
 
-#if (defined STAGGERED_MHD) && (DIMENSIONAL_SPLITTING == YES)
-  print ("! CheckConfig(): CT requires dimensional unsplit scheme.\n");
-  QUIT_PLUTO(1); 
 #endif
-
-
-/*
-  #if GEOMETRY == SPHERICAL || GEOMETRY == POLAR
-   #if TIME_STEPPING != RK2 || TIME_STEPPING != RK3
-    print (" ! Spherical and Polar geometries work with RK integrators\");
-    QUIT_PLUTO(1);
-   #endif
-  #endif
-*/
-
    
 }

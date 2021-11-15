@@ -7,11 +7,11 @@
   etc...) and its actual name (e.g., "rho", "vx1", etc...).
   These names are used when writing the output file descriptor (.flt, .dbl,
   etc...) only if the variable has been enabled for writing
-  (output->dump_var[nv]Ê= YES/NO).
+  (output->dump_var[nv] = YES/NO).
 
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \authors A. Mignone (mignone@to.infn.it)\n
 
-  \date    Nov 14, 2017
+  \date    June 24, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -30,60 +30,73 @@ void SetDefaultVarNames(Output *output)
     these pertain to the physics module ONLY
    ---------------------------------------------- */
 
-  output->var_name[RHO] = "rho";
-  EXPAND(output->var_name[VX1] = "vx1";  ,
-         output->var_name[VX2] = "vx2";  ,
-         output->var_name[VX3] = "vx3";)
+  strcpy(output->var_name[RHO], "rho");
+  strcpy(output->var_name[VX1], "vx1"); 
+  strcpy(output->var_name[VX2], "vx2"); 
+  strcpy(output->var_name[VX3], "vx3");
   #if HAVE_ENERGY
-  output->var_name[PRS] = "prs";
+  strcpy(output->var_name[PRS], "prs");
   #endif
   
-  #if PHYSICS == MHD || PHYSICS == RMHD
-  EXPAND(output->var_name[BX1] = "Bx1";  ,
-         output->var_name[BX2] = "Bx2";  ,
-         output->var_name[BX3] = "Bx3";)
+  #if PHYSICS == MHD || PHYSICS == RMHD || PHYSICS == ResRMHD
+  strcpy(output->var_name[BX1], "Bx1"); 
+  strcpy(output->var_name[BX2], "Bx2"); 
+  strcpy(output->var_name[BX3], "Bx3");
   #endif
   
-  #if PHYSICS == RMHD && RESISTIVITY != NO
-  EXPAND(output->var_name[EX1] = "Ex1";  ,
-         output->var_name[EX2] = "Ex2";  ,
-         output->var_name[EX3] = "Ex3";)
-  output->var_name[CRG] = "qg";
+  #if PHYSICS == ResRMHD
+  strcpy(output->var_name[EX1], "Ex1");
+  strcpy(output->var_name[EX2], "Ex2");
+  strcpy(output->var_name[EX3], "Ex3");
+  #ifdef CRG
+  strcpy(output->var_name[CRG], "crg");
+  #endif
   #endif
 
   /* (staggered field names are set in SetOutput) */
 
-#ifdef GLM_MHD
-  output->var_name[PSI_GLM] = "psi_glm";
+  #ifdef GLM_MHD
+  strcpy(output->var_name[PSI_GLM], "psi_glm");
   #ifdef PHI_GLM
-  output->var_name[PHI_GLM] = "phi_glm";
+  strcpy(output->var_name[PHI_GLM], "phi_glm");
   #endif
-#endif
+  #endif
  
-/* ------------------------------------------------
+/* ----------------------------------------------
     Dust
-   ------------------------------------------------ */
+   ---------------------------------------------- */
 
 #if DUST_FLUID == YES
-  output->var_name[RHO_D] = "rho_d";
-  EXPAND(output->var_name[VX1_D] = "vx1_d";  ,
-         output->var_name[VX2_D] = "vx2_d";  ,
-         output->var_name[VX3_D] = "vx3_d";)
+  strcpy(output->var_name[RHO_D], "rho_d");
+  strcpy(output->var_name[VX1_D], "vx1_d");
+  strcpy(output->var_name[VX2_D], "vx2_d");
+  strcpy(output->var_name[VX3_D], "vx3_d");
+#endif
+    
+/* ----------------------------------------------
+    Radiation
+   ---------------------------------------------- */
+
+#if RADIATION
+  strcpy(output->var_name[ENR], "enr");
+  strcpy(output->var_name[FR1], "fr1");
+  strcpy(output->var_name[FR2], "fr2");
+  strcpy(output->var_name[FR3], "fr3");
 #endif
 
-/* ------------------------------------------------
+/* ----------------------------------------------
                    Tracers 
-   ------------------------------------------------ */
+   ---------------------------------------------- */
 
   NTRACER_LOOP(nv) sprintf (output->var_name[nv],"tr%d",nv - TRC + 1);
 
   #if ENTROPY_SWITCH
-   sprintf (output->var_name[ENTR],"entropy");
+  strcpy(output->var_name[ENTR], "entropy");
   #endif
 
-/* ------------------------------------------------
+/* ----------------------------------------------
                Cooling vars
-   ------------------------------------------------ */
+   ---------------------------------------------- */
 
 #if COOLING == MINEq
   {
@@ -95,21 +108,21 @@ void SetDefaultVarNames(Output *output)
                         S_EXPAND("X_SI","X_SII", "X_SIII", "X_SIV", "X_SV")
                        Fe_EXPAND("X_FeI", "X_FeII", "X_FeIII")};
 
-    NIONS_LOOP(nv) output->var_name[nv] = ion_name[nv-NFLX];  
+    NIONS_LOOP(nv) strcpy(output->var_name[nv], ion_name[nv-NFLX]);
   }
 #elif COOLING == SNEq
 
-   output->var_name[X_HI] = "X_HI";
+   strcpy(output->var_name[X_HI], "X_HI");
 
 #elif COOLING == H2_COOL
   {
     static char *molnames[] = {"X_HI", "X_H2", "X_HII"};
-    NIONS_LOOP(nv) output->var_name[nv] = molnames[nv-NFLX];
+    NIONS_LOOP(nv) strcpy(output->var_name[nv], molnames[nv-NFLX]);
   } 
 
 #elif COOLING == KROME
   /* kromenames are reaction network dependent and are defined in cooling.h */
-    NIONS_LOOP(nv) output->var_name[nv] = kromenames[nv-NFLX];
+    NIONS_LOOP(nv) strcpy(output->var_name[nv], kromenames[nv-NFLX]);
 #endif
 
 }

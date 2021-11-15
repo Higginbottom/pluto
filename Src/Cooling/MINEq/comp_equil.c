@@ -13,7 +13,7 @@ double CompEquil (double N, double T, double *v0)
 {
   int nlev, ind_start, i,j, k, nv, nrt;
   double d, n_el, n_el_old, sT;
-  double v[NVAR];
+  double v[NVAR_COOLING];
   static double **M;
   static double *rhs;
   static int *p;
@@ -28,7 +28,7 @@ double CompEquil (double N, double T, double *v0)
 
 /* -- Copy solution vector before any modification -- */
 
-  NVAR_LOOP(nv) v[nv] = v0[nv];  
+  for (nv = 0; nv < NVAR_COOLING; nv++) v[nv] = v0[nv];  
 
   sT = sqrt(T);
 /*   N  = find_N(rho);   -- Total number density -- */
@@ -123,7 +123,7 @@ double CompEquil (double N, double T, double *v0)
     v[X_HI] = CoolCoeffs.Rrate[0] / (CoolCoeffs.Crate[0] + CoolCoeffs.Rrate[0]);
      
     if (v[X_HI] > 1.0){
-      print ("\n!CompEquil: GR(H) = %12.6e\nDR(H) = %12.6e\n\n", 
+      printLog ("\n!CompEquil: GR(H) = %12.6e\nDR(H) = %12.6e\n\n", 
               CoolCoeffs.Rrate[0], CoolCoeffs.Crate[0]);
       QUIT_PLUTO(1);
     }
@@ -138,7 +138,7 @@ double CompEquil (double N, double T, double *v0)
     }
      
     if (n_el != n_el) {
-      print ("! CompEquil: error!! n_el NaN\n\n");
+      printLog ("! CompEquil: error!! n_el NaN\n\n");
       QUIT_PLUTO(1);
     }             
     nrt++;  /* increment the iteration counter  */

@@ -38,16 +38,18 @@
        of Roe Matrices for Systems of Conservation Laws",
        P. Cargo, G. Gallice, JCP (1997), 136, 446.
        
-  \authors A. Mignone (mignone@ph.unito.it)
+  \authors A. Mignone (mignone@to.infn.it)
            C. Zanni   (zanni@oato.inaf.it)
-  \date   April 16, 2017
+  \date    Oct 24, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
 
 #define sqrt_1_2  (0.70710678118654752440)
 #define HLL_HYBRIDIZATION    NO
-#define CHECK_ROE_MATRIX     NO
+#ifndef CHECK_ROE_MATRIX
+  #define CHECK_ROE_MATRIX     NO
+#endif  
 
 /* ********************************************************************* */
 void Roe_Solver (const Sweep *sweep, int beg, int end, 
@@ -88,18 +90,18 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
 
   double **bgf;
   #if BACKGROUND_FIELD == YES
-   double B0x, B0y, B0z, B1x, B1y, B1z;
+  double B0x, B0y, B0z, B1x, B1y, B1z;
   #endif      
   double Us[NFLX];
   double **fL = stateL->flux, **fR = stateR->flux;
   double *a2L = stateL->a2,   *a2R = stateR->a2;
   double  *pL = stateL->prs,   *pR = stateR->prs;
-
+  
   delta    = 1.e-6;
 
-/* -----------------------------------------------------------
-   2. Background field
-   ----------------------------------------------------------- */
+/* --------------------------------------------------------
+   0. Get background magnetic field
+   -------------------------------------------------------- */
 
 #if BACKGROUND_FIELD == YES
   GetBackgroundField (stateL, beg, end, FACE_CENTER, grid);
@@ -110,17 +112,17 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
   #endif
 #endif
 
-/* -----------------------------------------------------------
-   3. GLM pre-Rieman solver
-   ----------------------------------------------------------- */
+/* --------------------------------------------------------
+   1. GLM pre-Rieman solver
+   -------------------------------------------------------- */
    
 #ifdef GLM_MHD
   GLM_Solve (sweep, beg, end, grid);
 #endif
 
-/* ----------------------------------------------------
-   4. Compute sound speed & fluxes at zone interfaces
-   ---------------------------------------------------- */
+/* --------------------------------------------------------
+   2. Compute sound speed & fluxes at zone interfaces
+   -------------------------------------------------------- */
 
   SoundSpeed2 (stateL, beg, end, FACE_CENTER, grid);
   SoundSpeed2 (stateR, beg, end, FACE_CENTER, grid);
@@ -128,68 +130,63 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
   Flux (stateL, beg, end);
   Flux (stateR, beg, end);
 
-#if (defined PARTICLES22) && (PARTICLES_TYPE == COSMIC_RAYS)
-  print ("! Roe_Solver(): cannot be used with cosmic ray particles\n");
-  QUIT_PLUTO(1);
-#endif
-
   SL = sweep->SL; SR = sweep->SR;
 
 #if EOS == IDEAL
   g1 = g_gamma - 1.0;
 #endif
 
-/* -------------------------------------------------
-   5. Some eigenvectors components will always be 
-      zero so set Rc = 0 initially  
-   -------------------------------------------------- */
+/* --------------------------------------------------------
+   3. Some eigenvectors components will always
+      be zero. Set set Rc = 0 initially  
+   -------------------------------------------------------- */
      
   for (k = NFLX; k--;  ) {
   for (j = NFLX; j--;  ) {
     Rc[k][j] = 0.0;
   }}
 
-/* ---------------------------------------------------------------------
-   6. Begin main loop
-   --------------------------------------------------------------------- */
+/* --------------------------------------------------------
+   4. Begin main loop
+   -------------------------------------------------------- */
    
   for (i = beg; i <= end; i++) {
 
     vL = stateL->v[i]; uL = stateL->u[i];
     vR = stateR->v[i]; uR = stateR->u[i];
 
-  /* -----------------------------------------------------------
-     6a.  switch to HLL in proximity of strong shock 
-     ----------------------------------------------------------- */
+  /* ------------------------------------------------------
+     4a.  switch to HLL in proximity of strong shock 
+     ------------------------------------------------------ */
 
     #if SHOCK_FLATTENING == MULTID
-     if ((sweep->flag[i] & FLAG_HLL) || (sweep->flag[i+1] & FLAG_HLL)){
-       HLL_Speed (stateL, stateR, SL, SR, i, i);
+    if ((sweep->flag[i] & FLAG_HLL) || (sweep->flag[i+1] & FLAG_HLL)){
+      HLL_Speed (stateL, stateR, SL, SR, i, i);
 
-       scrh = MAX(fabs(SL[i]), fabs(SR[i]));
-       cmax[i] = scrh;
+      scrh = MAX(fabs(SL[i]), fabs(SR[i]));
+      cmax[i] = scrh;
 
-       if (SL[i] > 0.0) {
-         for (nv = NFLX; nv--; ) sweep->flux[i][nv] = fL[i][nv];
-         sweep->press[i] = pL[i];
-       } else if (SR[i] < 0.0) {
-         for (nv = NFLX; nv--; ) sweep->flux[i][nv] = fR[i][nv];
-         sweep->press[i] = pR[i];
-       }else{
-         scrh = 1.0/(SR[i] - SL[i]);
-         for (nv = NFLX; nv--; ){
-           sweep->flux[i][nv]  = SR[i]*SL[i]*(uR[nv] - uL[nv])
-                              +  SR[i]*fL[i][nv] - SL[i]*fR[i][nv];
-           sweep->flux[i][nv] *= scrh;
-         }
-         sweep->press[i] = (SR[i]*pL[i] - SL[i]*pR[i])*scrh;
-       }
-       continue;
-     }
+      if (SL[i] > 0.0) {
+        NFLX_LOOP(nv) sweep->flux[i][nv] = fL[i][nv];
+        sweep->press[i] = pL[i];
+      } else if (SR[i] < 0.0) {
+        NFLX_LOOP(nv) sweep->flux[i][nv] = fR[i][nv];
+        sweep->press[i] = pR[i];
+      }else{
+        scrh = 1.0/(SR[i] - SL[i]);
+        NFLX_LOOP(nv) {
+          sweep->flux[i][nv]  = SR[i]*SL[i]*(uR[nv] - uL[nv])
+                             +  SR[i]*fL[i][nv] - SL[i]*fR[i][nv];
+          sweep->flux[i][nv] *= scrh;
+        }
+        sweep->press[i] = (SR[i]*pL[i] - SL[i]*pR[i])*scrh;
+      }
+      continue;
+    }
     #endif
 
   /* ----------------------------------------------------------------
-     6b. Compute jumps in primitive and conservative variables.
+     4b. Compute jumps in primitive and conservative variables.
       
          Note on the velocity jump:
          Formally the jump in velocity should be written using
@@ -211,13 +208,13 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
          simplify(dV);
      ---------------------------------------------------------------- */
 
-    for (nv = 0; nv < NFLX; nv++) { 
+    NFLX_LOOP(nv) { 
       dV[nv] = vR[nv] - vL[nv];
       dU[nv] = uR[nv] - uL[nv];
     }
 
   /* ---------------------------------
-     6c. Compute Roe averages 
+     4c. Compute Roe averages 
      --------------------------------- */
 
     sqr_rho_L = sqrt(vL[RHO]);
@@ -225,89 +222,88 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
 
     sl = sqr_rho_L/(sqr_rho_L + sqr_rho_R);
     sr = sqr_rho_R/(sqr_rho_L + sqr_rho_R);
-
 /*      sl = sr = 0.5;    */
     
     rho = sr*vL[RHO] + sl*vR[RHO];
 
     sqrt_rho = sqrt(rho);
 
-    EXPAND (u = sl*vL[VXn] + sr*vR[VXn];  ,
-            v = sl*vL[VXt] + sr*vR[VXt];  ,
-            w = sl*vL[VXb] + sr*vR[VXb];)
+    u = sl*vL[VXn] + sr*vR[VXn];
+    v = sl*vL[VXt] + sr*vR[VXt];
+    w = sl*vL[VXb] + sr*vR[VXb];
 
-    EXPAND (Bx = sr*vL[BXn] + sl*vR[BXn];  ,
-            By = sr*vL[BXt] + sl*vR[BXt];  ,
-            Bz = sr*vL[BXb] + sl*vR[BXb];)
+    Bx = sr*vL[BXn] + sl*vR[BXn];
+    By = sr*vL[BXt] + sl*vR[BXt];
+    Bz = sr*vL[BXb] + sl*vR[BXb];
 
-   #if BACKGROUND_FIELD == YES
+    #if BACKGROUND_FIELD == YES
    /* -- Define field B0 and total B. B1 is the deviation -- */   
-    EXPAND (B0x = bgf[i][BXn-BX1]; B1x = sr*vL[BXn] + sl*vR[BXn]; Bx = B0x + B1x;  ,
-            B0y = bgf[i][BXt-BX1]; B1y = sr*vL[BXt] + sl*vR[BXt]; By = B0y + B1y;  ,
-            B0z = bgf[i][BXb-BX1]; B1z = sr*vL[BXb] + sl*vR[BXb]; Bz = B0z + B1z;)
-   #else
-    EXPAND (Bx = sr*vL[BXn] + sl*vR[BXn];  ,
-            By = sr*vL[BXt] + sl*vR[BXt];  ,
-            Bz = sr*vL[BXb] + sl*vR[BXb];)
-   #endif
+    B0x = bgf[i][BXn-BX1]; B1x = sr*vL[BXn] + sl*vR[BXn]; Bx = B0x + B1x;
+    B0y = bgf[i][BXt-BX1]; B1y = sr*vL[BXt] + sl*vR[BXt]; By = B0y + B1y;
+    B0z = bgf[i][BXb-BX1]; B1z = sr*vL[BXb] + sl*vR[BXb]; Bz = B0z + B1z;
+    #else
+    Bx = sr*vL[BXn] + sl*vR[BXn];
+    By = sr*vL[BXt] + sl*vR[BXt];
+    Bz = sr*vL[BXb] + sl*vR[BXb];
+    #endif
 
     sBx = (Bx >= 0.0 ? 1.0 : -1.0);
 
-    EXPAND(bx = Bx/sqrt_rho;  ,
-           by = By/sqrt_rho;  ,
-           bz = Bz/sqrt_rho; )
+    bx = Bx/sqrt_rho;
+    by = By/sqrt_rho;
+    bz = Bz/sqrt_rho;
     
-    bt2   = EXPAND(0.0  , + by*by, + bz*bz);
+    bt2   = by*by + bz*bz;
     b2    = bx*bx + bt2;
     Btmag = sqrt(bt2*rho);
 
-    X  = EXPAND(dV[BXn]*dV[BXn], + dV[BXt]*dV[BXt], + dV[BXb]*dV[BXb]);
+    X  = dV[BXn]*dV[BXn] + dV[BXt]*dV[BXt] + dV[BXb]*dV[BXb];
     X /= (sqr_rho_L + sqr_rho_R)*(sqr_rho_L + sqr_rho_R)*2.0;   
 
-    vdm = EXPAND(u*dU[MXn],  + v*dU[MXt],  + w*dU[MXb]);
+    vdm = u*dU[MXn] + v*dU[MXt] + w*dU[MXb];
     #if BACKGROUND_FIELD == YES /* BdB = B1.dB1 (deviation only) */
-     BdB = EXPAND(B1x*dU[BXn], + B1y*dU[BXt], + B1z*dU[BXb]); 
+    BdB = B1x*dU[BXn] + B1y*dU[BXt] + B1z*dU[BXb]; 
     #else
-     BdB = EXPAND(Bx*dU[BXn], + By*dU[BXt], + Bz*dU[BXb]);
+    BdB = Bx*dU[BXn] + By*dU[BXt] + Bz*dU[BXb];
     #endif
     
   /* ---------------------------------------
-     6d. Compute enthalpy and sound speed.
+     4d. Compute enthalpy and sound speed.
      --------------------------------------- */
 
     #if EOS == ISOTHERMAL 
-     a2 = 0.5*(a2L[i] + a2R[i]) + X;  /* in most cases a2L = a2R
+    a2 = 0.5*(a2L[i] + a2R[i]) + X;  /* in most cases a2L = a2R
                                          for isothermal MHD */
     #elif EOS == BAROTROPIC
-     print ("! Roe_Solver(): not implemented for barotropic EOS\n");
-     QUIT_PLUTO(1);
+    print ("! Roe_Solver(): not implemented for barotropic EOS\n");
+    QUIT_PLUTO(1);
     #elif EOS == IDEAL
-     vel2    = EXPAND(u*u, + v*v, + w*w);
-     dV[PRS] = g1*((0.5*vel2 - X)*dV[RHO] - vdm + dU[ENG] - BdB); 
+    vel2    = u*u + v*v + w*w;
+    dV[PRS] = g1*((0.5*vel2 - X)*dV[RHO] - vdm + dU[ENG] - BdB); 
      
-     HL   = (uL[ENG] + pL[i])/vL[RHO];
-     HR   = (uR[ENG] + pR[i])/vR[RHO];
-     H    = sl*HL + sr*HR;   /* total enthalpy */
+    HL   = (uL[ENG] + pL[i])/vL[RHO];
+    HR   = (uR[ENG] + pR[i])/vR[RHO];
+    H    = sl*HL + sr*HR;   /* total enthalpy */
 
-     #if BACKGROUND_FIELD == YES
-      scrh = EXPAND(B1x*Bx, + B1y*By, + B1z*Bz);
-      Hgas = H - scrh/rho;   /* gas enthalpy */
-     #else
-      Hgas = H - b2;         /* gas enthalpy */
-     #endif
+    #if BACKGROUND_FIELD == YES
+    scrh = B1x*Bx + B1y*By + B1z*Bz;
+    Hgas = H - scrh/rho;   /* gas enthalpy */
+    #else
+    Hgas = H - b2;         /* gas enthalpy */
+    #endif
 
-     a2 = (2.0 - g_gamma)*X + g1*(Hgas - 0.5*vel2);
-     if (a2 < 0.0) {
-      print ("! Roe_Solver(): a2 = %12.6e < 0.0 !! \n",a2);
-      a2 = sqrt(g_gamma*(vL[PRS] + vR[PRS])/(vL[RHO] + vR[RHO]));
-      Show(stateL->v,i);
-      Show(stateR->v,i);
-      QUIT_PLUTO(1);
-     }      
+    a2 = (2.0 - g_gamma)*X + g1*(Hgas - 0.5*vel2);
+    if (a2 < 0.0) {
+     printLog ("! Roe_Solver(): a2 = %12.6e < 0.0 !! \n",a2);
+     a2 = sqrt(g_gamma*(vL[PRS] + vR[PRS])/(vL[RHO] + vR[RHO]));
+     Show(stateL->v,i);
+     Show(stateR->v,i);
+     QUIT_PLUTO(1);
+    }      
     #endif /* EOS == IDEAL */
     
   /* ------------------------------------------------------------
-     6e. Compute fast and slow magnetosonic speeds.
+     4e. Compute fast and slow magnetosonic speeds.
 
       The following expression appearing in the definitions
       of the fast magnetosonic speed 
@@ -320,51 +316,43 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
       characteristic speeds.
      ------------------------------------------------------------ */
         
-    scrh = a2 - b2;
+    double dab2 = a2 - b2;
     ca2  = bx*bx;
-    scrh = scrh*scrh + 4.0*bt2*a2;    
-    scrh = sqrt(scrh);    
+    scrh = dab2*dab2 + 4.0*bt2*a2;    
+    double sqDelta = sqrt(scrh);
 
-    cf2 = 0.5*(a2 + b2 + scrh); 
+    cf2 = 0.5*(a2 + b2 + sqDelta); 
     cs2 = a2*ca2/cf2;   /* -- same as 0.5*(a2 + b2 - scrh) -- */
     
     cf = sqrt(cf2);
     cs = sqrt(cs2);
     ca = sqrt(ca2);
     a  = sqrt(a2); 
-    
+
     if (cf == cs) {
       alpha_f = 1.0;
       alpha_s = 0.0;
-    }else if (a <= cs) {
-      alpha_f = 0.0;
-      alpha_s = 1.0;
-    }else if (cf <= a){
-      alpha_f = 1.0;
-      alpha_s = 0.0;
+/*      print ("! Roe(): degenerate case\n ");   
+      QUIT_PLUTO(1);                          */
     }else{ 
-      scrh    = 1.0/(cf2 - cs2);
-      alpha_f = (a2  - cs2)*scrh;
-      alpha_s = (cf2 -  a2)*scrh;
+      alpha_f = 0.5*( dab2/sqDelta + 1.0);
+      alpha_s = 0.5*(-dab2/sqDelta + 1.0);
+
       alpha_f = MAX(0.0, alpha_f);
       alpha_s = MAX(0.0, alpha_s);
       alpha_f = sqrt(alpha_f);
       alpha_s = sqrt(alpha_s);
     }
 
-    if (Btmag > 1.e-9) {
-      SELECT(                     , 
-             beta_y = DSIGN(By);  ,
-             beta_y = By/Btmag; 
-             beta_z = Bz/Btmag;)
+    if (bt2 > 1.e-18*b2) {
+      beta_y = By/Btmag; 
+      beta_z = Bz/Btmag;
     } else {
-      SELECT(                       , 
-             beta_y = 1.0;          ,
-             beta_z = beta_y = sqrt_1_2;)
+      beta_z = beta_y = sqrt_1_2;
     }
 
   /* -------------------------------------------------------------------
-     6f. Compute non-zero entries of conservative eigenvectors (Rc), 
+     4f. Compute non-zero entries of conservative eigenvectors (Rc), 
          wave strength L*dU (=eta) for all 8 (or 7) waves using the
          expressions given by Eq. [4.18]--[4.21]. 
          Fast and slow eigenvectors are multiplied by a^2 while
@@ -390,30 +378,30 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
     lambda[k] = u - cf;
 
     scrh    = alpha_s*cs*sBx;
-    beta_dv = EXPAND(0.0, + beta_y*dV[VXt], + beta_z*dV[VXb]);
-    beta_dB = EXPAND(0.0, + beta_y*dV[BXt], + beta_z*dV[BXb]);
-    beta_v  = EXPAND(0.0, + beta_y*v,       + beta_z*w);
+    beta_dv = beta_y*dV[VXt] + beta_z*dV[VXb];
+    beta_dB = beta_y*dV[BXt] + beta_z*dV[BXb];
+    beta_v  = beta_y*v       + beta_z*w;
 
     Rc[RHO][k] = alpha_f;
-    EXPAND(Rc[MXn][k] = alpha_f*lambda[k];          ,
-           Rc[MXt][k] = alpha_f*v + scrh*beta_y;    ,
-           Rc[MXb][k] = alpha_f*w + scrh*beta_z;) 
-    EXPAND(                                         ,
-           Rc[BXt][k] = alpha_s*a*beta_y/sqrt_rho;  ,
-           Rc[BXb][k] = alpha_s*a*beta_z/sqrt_rho;)
+    Rc[MXn][k] = alpha_f*lambda[k];
+    Rc[MXt][k] = alpha_f*v + scrh*beta_y;
+    Rc[MXb][k] = alpha_f*w + scrh*beta_z; 
+
+    Rc[BXt][k] = alpha_s*a*beta_y/sqrt_rho;
+    Rc[BXb][k] = alpha_s*a*beta_z/sqrt_rho;
 
     #if EOS == IDEAL
-     Rc[ENG][k] =   alpha_f*(Hgas - u*cf) + scrh*beta_v
-                  + alpha_s*a*Btmag/sqrt_rho;
-     #if BACKGROUND_FIELD == YES
-      Rc[ENG][k] -= B0y*Rc[BXt][k] + B0z*Rc[BXb][k];
-     #endif
+    Rc[ENG][k] =   alpha_f*(Hgas - u*cf) + scrh*beta_v
+                 + alpha_s*a*Btmag/sqrt_rho;
+    #if BACKGROUND_FIELD == YES
+    Rc[ENG][k] -= B0y*Rc[BXt][k] + B0z*Rc[BXb][k];
+    #endif
 
-     eta[k] =   alpha_f*(X*dV[RHO] + dV[PRS]) + rho*scrh*beta_dv
-              - rho*alpha_f*cf*dV[VXn]        + sqrt_rho*alpha_s*a*beta_dB;
+    eta[k] =   alpha_f*(X*dV[RHO] + dV[PRS]) + rho*scrh*beta_dv
+             - rho*alpha_f*cf*dV[VXn]        + sqrt_rho*alpha_s*a*beta_dB;
     #elif EOS == ISOTHERMAL
-     eta[k] =   alpha_f*(0.0*X + a2)*dV[RHO] + rho*scrh*beta_dv
-              - rho*alpha_f*cf*dV[VXn] + sqrt_rho*alpha_s*a*beta_dB;
+    eta[k] =   alpha_f*(0.0*X + a2)*dV[RHO] + rho*scrh*beta_dv
+             - rho*alpha_f*cf*dV[VXn] + sqrt_rho*alpha_s*a*beta_dB;
     #endif
     
     eta[k] *= 0.5/a2;
@@ -426,26 +414,26 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
     lambda[k] = u + cf;
 
     Rc[RHO][k] = alpha_f;
-    EXPAND( Rc[MXn][k] = alpha_f*lambda[k];         ,
-            Rc[MXt][k] = alpha_f*v - scrh*beta_y;  ,
-            Rc[MXb][k] = alpha_f*w - scrh*beta_z; ) 
-    EXPAND(                              ,                                
-            Rc[BXt][k] = Rc[BXt][KFASTM];  ,
-            Rc[BXb][k] = Rc[BXb][KFASTM]; )
+    Rc[MXn][k] = alpha_f*lambda[k];
+    Rc[MXt][k] = alpha_f*v - scrh*beta_y;
+    Rc[MXb][k] = alpha_f*w - scrh*beta_z;
+
+    Rc[BXt][k] = Rc[BXt][KFASTM];
+    Rc[BXb][k] = Rc[BXb][KFASTM];
 
     #if EOS == IDEAL
-     Rc[ENG][k] =   alpha_f*(Hgas + u*cf) - scrh*beta_v
-                  + alpha_s*a*Btmag/sqrt_rho;
+    Rc[ENG][k] =   alpha_f*(Hgas + u*cf) - scrh*beta_v
+                 + alpha_s*a*Btmag/sqrt_rho;
 
-     #if BACKGROUND_FIELD == YES
-      Rc[ENG][k] -= B0y*Rc[BXt][k] + B0z*Rc[BXb][k];
-     #endif
+    #if BACKGROUND_FIELD == YES
+    Rc[ENG][k] -= B0y*Rc[BXt][k] + B0z*Rc[BXb][k];
+    #endif
 
-     eta[k] =   alpha_f*(X*dV[RHO] + dV[PRS]) - rho*scrh*beta_dv
-              + rho*alpha_f*cf*dV[VXn]        + sqrt_rho*alpha_s*a*beta_dB;
+    eta[k] =   alpha_f*(X*dV[RHO] + dV[PRS]) - rho*scrh*beta_dv
+             + rho*alpha_f*cf*dV[VXn]        + sqrt_rho*alpha_s*a*beta_dB;
     #elif EOS == ISOTHERMAL
-     eta[k] =   alpha_f*(0.*X + a2)*dV[RHO] - rho*scrh*beta_dv
-              + rho*alpha_f*cf*dV[VXn]      + sqrt_rho*alpha_s*a*beta_dB;
+    eta[k] =   alpha_f*(0.0*X + a2)*dV[RHO] - rho*scrh*beta_dv
+             + rho*alpha_f*cf*dV[VXn]      + sqrt_rho*alpha_s*a*beta_dB;
     #endif
 
     eta[k] *= 0.5/a2;
@@ -459,9 +447,9 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
      lambda[k] = u;
 
      Rc[RHO][k] = 1.0;
-     EXPAND( Rc[MXn][k] = u; ,
-             Rc[MXt][k] = v; ,
-             Rc[MXb][k] = w; )
+     Rc[MXn][k] = u; 
+     Rc[MXt][k] = v; 
+     Rc[MXb][k] = w; 
      Rc[ENG][k] = 0.5*vel2 + (g_gamma - 2.0)/g1*X;
 
      eta[k] = ((a2 - X)*dV[RHO] - dV[PRS])/a2;
@@ -495,133 +483,126 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
      #endif
     #endif
     
-    #if COMPONENTS > 1    
-
    /* -----------------------
        Slow wave:  u - c_s
       ----------------------- */
 
-     scrh = alpha_f*cf*sBx;
+    scrh = alpha_f*cf*sBx;
      
-     k = KSLOWM;
-     lambda[k] = u - cs;
+    k = KSLOWM;
+    lambda[k] = u - cs;
 
-     Rc[RHO][k] = alpha_s;
-     EXPAND( Rc[MXn][k] = alpha_s*lambda[k];        ,
-             Rc[MXt][k] = alpha_s*v - scrh*beta_y;  ,
-             Rc[MXb][k] = alpha_s*w - scrh*beta_z;) 
-     EXPAND(                                            ,                                
-             Rc[BXt][k] = - alpha_f*a*beta_y/sqrt_rho;  ,
-             Rc[BXb][k] = - alpha_f*a*beta_z/sqrt_rho; )
+    Rc[RHO][k] = alpha_s;
+    Rc[MXn][k] = alpha_s*lambda[k];      
+    Rc[MXt][k] = alpha_s*v - scrh*beta_y;
+    Rc[MXb][k] = alpha_s*w - scrh*beta_z;
 
-     #if EOS == IDEAL
-      Rc[ENG][k] =   alpha_s*(Hgas - u*cs) - scrh*beta_v
-                   - alpha_f*a*Btmag/sqrt_rho; 
-      #if BACKGROUND_FIELD == YES
-       Rc[ENG][k] -= B0y*Rc[BXt][k] + B0z*Rc[BXb][k];
-      #endif
+    Rc[BXt][k] = - alpha_f*a*beta_y/sqrt_rho;
+    Rc[BXb][k] = - alpha_f*a*beta_z/sqrt_rho;
 
-      eta[k] =   alpha_s*(X*dV[RHO] + dV[PRS]) - rho*scrh*beta_dv
-               - rho*alpha_s*cs*dV[VXn]        - sqrt_rho*alpha_f*a*beta_dB;
-     #elif EOS == ISOTHERMAL
-      eta[k] =   alpha_s*(0.*X + a2)*dV[RHO] - rho*scrh*beta_dv
-               - rho*alpha_s*cs*dV[VXn]      - sqrt_rho*alpha_f*a*beta_dB;
-     #endif
+    #if EOS == IDEAL
+    Rc[ENG][k] =   alpha_s*(Hgas - u*cs) - scrh*beta_v
+                 - alpha_f*a*Btmag/sqrt_rho; 
+    #if BACKGROUND_FIELD == YES
+    Rc[ENG][k] -= B0y*Rc[BXt][k] + B0z*Rc[BXb][k];
+    #endif
 
-     eta[k] *= 0.5/a2;
+    eta[k] =   alpha_s*(X*dV[RHO] + dV[PRS]) - rho*scrh*beta_dv
+             - rho*alpha_s*cs*dV[VXn]        - sqrt_rho*alpha_f*a*beta_dB;
+    #elif EOS == ISOTHERMAL
+    eta[k] =   alpha_s*(0.*X + a2)*dV[RHO] - rho*scrh*beta_dv
+             - rho*alpha_s*cs*dV[VXn]      - sqrt_rho*alpha_f*a*beta_dB;
+    #endif
+
+    eta[k] *= 0.5/a2;
 
    /* -----------------------
        Slow wave:  u + c_s
       ----------------------- */
 
-     k = KSLOWP;
-     lambda[k] = u + cs; 
+    k = KSLOWP;
+    lambda[k] = u + cs; 
 
-     Rc[RHO][k] = alpha_s;
-     EXPAND(Rc[MXn][k] = alpha_s*lambda[k];         ,
-            Rc[MXt][k] = alpha_s*v + scrh*beta_y;   ,
-            Rc[MXb][k] = alpha_s*w + scrh*beta_z; ) 
-     EXPAND(                                , 
-            Rc[BXt][k] = Rc[BXt][KSLOWM];   ,
-            Rc[BXb][k] = Rc[BXb][KSLOWM];)
+    Rc[RHO][k] = alpha_s;
+    Rc[MXn][k] = alpha_s*lambda[k]; 
+    Rc[MXt][k] = alpha_s*v + scrh*beta_y;
+    Rc[MXb][k] = alpha_s*w + scrh*beta_z;
 
-     #if EOS == IDEAL
-      Rc[ENG][k] =   alpha_s*(Hgas + u*cs) + scrh*beta_v
-                   - alpha_f*a*Btmag/sqrt_rho;
-      #if BACKGROUND_FIELD == YES
-       Rc[ENG][k] -= B0y*Rc[BXt][k] + B0z*Rc[BXb][k];
-      #endif
+    Rc[BXt][k] = Rc[BXt][KSLOWM];
+    Rc[BXb][k] = Rc[BXb][KSLOWM];
 
-      eta[k] =   alpha_s*(X*dV[RHO] + dV[PRS]) + rho*scrh*beta_dv
-               + rho*alpha_s*cs*dV[VXn]        - sqrt_rho*alpha_f*a*beta_dB; 
-     #elif EOS == ISOTHERMAL
-      eta[k] =   alpha_s*(0.*X + a2)*dV[RHO] + rho*scrh*beta_dv
-               + rho*alpha_s*cs*dV[VXn]      - sqrt_rho*alpha_f*a*beta_dB; 
-     #endif
-
-     eta[k] *= 0.5/a2;
-
+    #if EOS == IDEAL
+    Rc[ENG][k] =   alpha_s*(Hgas + u*cs) + scrh*beta_v
+                 - alpha_f*a*Btmag/sqrt_rho;
+    #if BACKGROUND_FIELD == YES
+    Rc[ENG][k] -= B0y*Rc[BXt][k] + B0z*Rc[BXb][k];
     #endif
 
-    #if COMPONENTS == 3
+    eta[k] =   alpha_s*(X*dV[RHO] + dV[PRS]) + rho*scrh*beta_dv
+             + rho*alpha_s*cs*dV[VXn]        - sqrt_rho*alpha_f*a*beta_dB; 
+    #elif EOS == ISOTHERMAL
+    eta[k] =   alpha_s*(0.*X + a2)*dV[RHO] + rho*scrh*beta_dv
+             + rho*alpha_s*cs*dV[VXn]      - sqrt_rho*alpha_f*a*beta_dB; 
+    #endif
+
+    eta[k] *= 0.5/a2;
 
    /* ------------------------
        Alfven wave:  u - c_a
       ------------------------ */
 
-     k = KALFVM;
-     lambda[k] = u - ca;
+    k = KALFVM;
+    lambda[k] = u - ca;
 
-     Rc[MXt][k] = - rho*beta_z;  
-     Rc[MXb][k] = + rho*beta_y;
-     Rc[BXt][k] = - sBx*sqrt_rho*beta_z;   
-     Rc[BXb][k] =   sBx*sqrt_rho*beta_y;
-     #if EOS == IDEAL
-      Rc[ENG][k] = - rho*(v*beta_z - w*beta_y);
-      #if BACKGROUND_FIELD == YES
-       Rc[ENG][k] -= B0y*Rc[BXt][k] + B0z*Rc[BXb][k];
-      #endif
-     #endif
+    Rc[MXt][k] = - rho*beta_z;  
+    Rc[MXb][k] = + rho*beta_y;
+    Rc[BXt][k] = - sBx*sqrt_rho*beta_z;   
+    Rc[BXb][k] =   sBx*sqrt_rho*beta_y;
+    #if EOS == IDEAL
+    Rc[ENG][k] = - rho*(v*beta_z - w*beta_y);
+    #if BACKGROUND_FIELD == YES
+    Rc[ENG][k] -= B0y*Rc[BXt][k] + B0z*Rc[BXb][k];
+    #endif
+    #endif
 
-     eta[k] = + beta_y*dV[VXb]               - beta_z*dV[VXt] 
-              + sBx/sqrt_rho*(beta_y*dV[BXb] - beta_z*dV[BXt]);
+    eta[k] = + beta_y*dV[VXb]               - beta_z*dV[VXt] 
+             + sBx/sqrt_rho*(beta_y*dV[BXb] - beta_z*dV[BXt]);
 
-     eta[k] *= 0.5;
+    eta[k] *= 0.5;
 
    /* -----------------------
        Alfven wave:  u + c_a 
       ----------------------- */
 
-     k = KALFVP;
-     lambda[k] = u + ca;
+    k = KALFVP;
+    lambda[k] = u + ca;
 
-     Rc[MXt][k] = - Rc[MXt][KALFVM];  
-     Rc[MXb][k] = - Rc[MXb][KALFVM];
-     Rc[BXt][k] =   Rc[BXt][KALFVM];   
-     Rc[BXb][k] =   Rc[BXb][KALFVM];
-     #if EOS == IDEAL
-      Rc[ENG][k] = - Rc[ENG][KALFVM];
-      #if BACKGROUND_FIELD == YES
-       Rc[ENG][k] -= B0y*Rc[BXt][k] + B0z*Rc[BXb][k];
-      #endif
-     #endif
-
-     eta[k] = - beta_y*dV[VXb]               + beta_z*dV[VXt] 
-              + sBx/sqrt_rho*(beta_y*dV[BXb] - beta_z*dV[BXt]);
-
-     eta[k] *= 0.5;
+    Rc[MXt][k] = - Rc[MXt][KALFVM];  
+    Rc[MXb][k] = - Rc[MXb][KALFVM];
+    Rc[BXt][k] =   Rc[BXt][KALFVM];   
+    Rc[BXb][k] =   Rc[BXb][KALFVM];
+    #if EOS == IDEAL
+    Rc[ENG][k] = - Rc[ENG][KALFVM];
+    #if BACKGROUND_FIELD == YES
+    Rc[ENG][k] -= B0y*Rc[BXt][k] + B0z*Rc[BXb][k];
+    #endif
     #endif
 
+    eta[k] = - beta_y*dV[VXb]               + beta_z*dV[VXt] 
+             + sBx/sqrt_rho*(beta_y*dV[BXb] - beta_z*dV[BXt]);
+
+    eta[k] *= 0.5;
+
    /* -----------------------------------------
-      6g. Compute maximum signal velocity
+      4g. Compute maximum signal velocity
       ----------------------------------------- */
 
     cmax[i] = fabs (u) + cf;
     g_maxMach = MAX (fabs (u / a), g_maxMach);
-    for (k = 0; k < NFLX; k++) alambda[k] = fabs(lambda[k]);
+    NFLX_LOOP(k) alambda[k] = fabs(lambda[k]);
 
    /* --------------------------------
-      6h. Entropy Fix 
+      4h. Entropy Fix 
       -------------------------------- */
       
     if (alambda[KFASTM] < 0.5*delta) {
@@ -630,17 +611,16 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
     if (alambda[KFASTP] < 0.5*delta) {
       alambda[KFASTP] = lambda[KFASTP]*lambda[KFASTP]/delta + 0.25*delta;
     }
-    #if COMPONENTS > 1
-     if (alambda[KSLOWM] < 0.5*delta) {
-       alambda[KSLOWM] = lambda[KSLOWM]*lambda[KSLOWM]/delta + 0.25*delta;
-     }
-     if (alambda[KSLOWP] < 0.5*delta) {
-       alambda[KSLOWP] = lambda[KSLOWP]*lambda[KSLOWP]/delta + 0.25*delta; 
-     }
-    #endif
+
+    if (alambda[KSLOWM] < 0.5*delta) {
+      alambda[KSLOWM] = lambda[KSLOWM]*lambda[KSLOWM]/delta + 0.25*delta;
+    }
+    if (alambda[KSLOWP] < 0.5*delta) {
+      alambda[KSLOWP] = lambda[KSLOWP]*lambda[KSLOWP]/delta + 0.25*delta; 
+    }
    
   /*  ---------------------------------
-      6i. Compute Roe numerical flux 
+      4i. Compute Roe numerical flux 
       --------------------------------- */
 
     for (nv = 0; nv < NFLX; nv++) {
@@ -651,9 +631,9 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
       sweep->flux[i][nv] = 0.5*(fL[i][nv] + fR[i][nv] - scrh);
     }
     sweep->press[i] = 0.5*(pL[i] + pR[i]);
-
+    
   /* --------------------------------------------------------
-     6j. Check the Roe matrix condition, FR - FL = A*(UR - UL)
+     4j. Check the Roe matrix condition, FR - FL = A*(UR - UL)
          where A*(UR - UL) = R*lambda*eta.
     -------------------------------------------------------- */
 
@@ -665,24 +645,29 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
          dV[nv] -= Rc[nv][k]*eta[k]*lambda[k];
        }
        if (fabs(dV[nv]) > 1.e-4){
-         printf (" ! Roe matrix condition not satisfied, var = %d\n", nv);
+         printf (" ! Roe_Solver(): matrix condition not satisfied, var = %d\n", nv);
          printf (" ! Err = %12.6e\n",dV[nv]); 
-         Show(VL, i);
-         Show(VR, i);
-         exit(1);
+         ShowVector(vL, NFLX);
+         ShowVector(vR, NFLX);
+         QUIT_PLUTO(1);
        }
      } 
     #endif
 
   /* -------------------------------------------------------------
-     6k. Save max and min Riemann fan speeds for EMF computation.
+     4k. Save max and min Riemann fan speeds for EMF computation.
      ------------------------------------------------------------- */
 
-    SL[i] = lambda[KFASTM];
-    SR[i] = lambda[KFASTP];
+    sweep->SL[i]  = lambda[KFASTM];
+    sweep->SR[i]  = lambda[KFASTP];
+    sweep->SaL[i] = lambda[KALFVM];
+    sweep->SaR[i] = lambda[KALFVP];
+    #if HAVE_ENERGY
+    sweep->Sc[i]  = lambda[KENTRP];
+    #endif
 
   /* -----------------------------------------------------------------
-     6l. Hybridize with HLL solver: replace occurences of unphysical 
+     4l. Hybridize with HLL solver: replace occurences of unphysical 
          states (p < 0, rho < 0) with HLL Flux. Reference:
       
         "A Positive Conservative Method for MHD based based on HLL 
@@ -690,47 +675,46 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
      ----------------------------------------------------------------- */
 
     #if HLL_HYBRIDIZATION == YES
+    if (SL[i] < 0.0 && SR[i] > 0.0){
+      ifail = 0;    
 
-     if (SL[i] < 0.0 && SR[i] > 0.0){
-       ifail = 0;    
+    /* -----------------------
+         check left state
+       ----------------------- */
 
-      /* -----------------------
-           check left sweep 
-         ----------------------- */
-
-       #if EOS == ISOTHERMAL
-        Uv[RHO] = uL[RHO] + (sweep->flux[i][RHO] - fL[i][RHO])/SL[i];        
-        ifail  = (Uv[RHO] < 0.0);
-       #else
-        for (nv = NFLX; nv--; ){
-          Uv[nv] = uL[nv] + (sweep->flux[i][nv] - fL[i][nv])/SL[i];        
-        }
-        Uv[MXn] += (sweep->press[i] - pL[i])/SL[i];    
+      #if EOS == ISOTHERMAL
+      Uv[RHO] = uL[RHO] + (sweep->flux[i][RHO] - fL[i][RHO])/SL[i];        
+      ifail  = (Uv[RHO] < 0.0);
+      #else
+      NFLX_LOOP(nv) {
+        Uv[nv] = uL[nv] + (sweep->flux[i][nv] - fL[i][nv])/SL[i];        
+      }
+      Uv[MXn] += (sweep->press[i] - pL[i])/SL[i];    
  
-        vel2  = EXPAND(Uv[MX1]*Uv[MX1], + Uv[MX2]*Uv[MX2], + Uv[MX3]*Uv[MX3]);
-        b2    = EXPAND(Uv[BX1]*Uv[BX1], + Uv[BX2]*Uv[BX2], + Uv[BX3]*Uv[BX3]);    
-        pr    = Uv[ENG] - 0.5*vel2/Uv[RHO] - 0.5*b2;
-        ifail = (pr < 0.0) || (Uv[RHO] < 0.0);
-       #endif
+      vel2  = Uv[MX1]*Uv[MX1] + Uv[MX2]*Uv[MX2] + Uv[MX3]*Uv[MX3];
+      b2    = Uv[BX1]*Uv[BX1] + Uv[BX2]*Uv[BX2] + Uv[BX3]*Uv[BX3];    
+      pr    = Uv[ENG] - 0.5*vel2/Uv[RHO] - 0.5*b2;
+      ifail = (pr < 0.0) || (Uv[RHO] < 0.0);
+      #endif
 
-      /* -----------------------
-           check right sweep 
-         ----------------------- */
+    /* -----------------------
+         check right state
+       ----------------------- */
 
-       #if EOS == ISOTHERMAL
-        Uv[RHO] = uR[RHO] + (sweep->flux[i][RHO] - fR[i][RHO])/SR[i];
-        ifail  = (Uv[RHO] < 0.0);
-       #else
-        for (nv = NFLX; nv--;  ){
-          Uv[nv] = uR[nv] + (sweep->flux[i][nv] - fR[i][nv])/SR[i];
-        }
-        Uv[MXn] += (sweep->press[i] - pR[i])/SR[i];
+      #if EOS == ISOTHERMAL
+      Uv[RHO] = uR[RHO] + (sweep->flux[i][RHO] - fR[i][RHO])/SR[i];
+      ifail  = (Uv[RHO] < 0.0);
+      #else
+      for (nv = NFLX; nv--;  ){
+        Uv[nv] = uR[nv] + (sweep->flux[i][nv] - fR[i][nv])/SR[i];
+      }
+      Uv[MXn] += (sweep->press[i] - pR[i])/SR[i];
 
-        vel2  = EXPAND(Uv[MX1]*Uv[MX1], + Uv[MX2]*Uv[MX2], + Uv[MX3]*Uv[MX3]);
-        b2    = EXPAND(Uv[BX1]*Uv[BX1], + Uv[BX2]*Uv[BX2], + Uv[BX3]*Uv[BX3]);    
-        pr    = Uv[ENG] - 0.5*vel2/Uv[RHO] - 0.5*b2;
-        ifail = (pr < 0.0) || (Uv[RHO] < 0.0);
-       #endif
+      vel2  = Uv[MX1]*Uv[MX1] + Uv[MX2]*Uv[MX2] + Uv[MX3]*Uv[MX3];
+      b2    = Uv[BX1]*Uv[BX1] + Uv[BX2]*Uv[BX2] + Uv[BX3]*Uv[BX3];
+      pr    = Uv[ENG] - 0.5*vel2/Uv[RHO] - 0.5*b2;
+      ifail = (pr < 0.0) || (Uv[RHO] < 0.0);
+      #endif
 
     /* -------------------------------------------------------
         Use the HLL flux function if the interface lies 
@@ -738,60 +722,62 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
         visible in the Mach reflection test.
        ------------------------------------------------------- */
 
-       #if DIMENSIONS > 1   
-        #if EOS == ISOTHERMAL
-         scrh  = fabs(vL[RHO] - vR[RHO]);
-         scrh /= MIN(vL[RHO], vR[RHO]);
-        #else       
-         scrh  = fabs(vL[PRS] - vR[PRS]);
-         scrh /= MIN(vL[PRS], vR[PRS]);
-        #endif
-        if (scrh > 1.0 && (vR[VXn] < vL[VXn])) ifail = 1;
-       #endif
+      #if DIMENSIONS > 1   
+      #if EOS == ISOTHERMAL
+      scrh  = fabs(vL[RHO] - vR[RHO]);
+      scrh /= MIN(vL[RHO], vR[RHO]);
+      #else       
+      scrh  = fabs(vL[PRS] - vR[PRS]);
+      scrh /= MIN(vL[PRS], vR[PRS]);
+      #endif
+      if (scrh > 1.0 && (vR[VXn] < vL[VXn])) ifail = 1;
+      #endif
       
-       if (ifail){
-         scrh = 1.0/(SR[i] - SL[i]);
-         for (nv = 0; nv < NFLX; nv++) {
-           sweep->flux[i][nv] = SL[i]*SR[i]*(uR[nv] - uL[nv]) +
-                                SR[i]*fL[i][nv] - SL[i]*fR[i][nv];
-           sweep->flux[i][nv] *= scrh;
-         }
-         sweep->press[i] = (SR[i]*pL[i] - SL[i]*pR[i])*scrh;
-       }
-     }
-    #endif
+      if (ifail){
+        scrh = 1.0/(SR[i] - SL[i]);
+        for (nv = 0; nv < NFLX; nv++) {
+          sweep->flux[i][nv] = SL[i]*SR[i]*(uR[nv] - uL[nv]) +
+                               SR[i]*fL[i][nv] - SL[i]*fR[i][nv];
+          sweep->flux[i][nv] *= scrh;
+        }
+        sweep->press[i] = (SR[i]*pL[i] - SL[i]*pR[i])*scrh;
+      }
+    }
+    #endif  /* HLL_HYBRIDIZATION == YES */
   }
 
 /* --------------------------------------------------------
-              initialize source term
+   5. Define point and diffusive fluxes for CT
    -------------------------------------------------------- */
   
-#if DIVB_CONTROL == EIGHT_WAVES
-  Roe_DivBSource (sweep, beg + 1, end, grid);
+#if DIVB_CONTROL == CONSTRAINED_TRANSPORT 
+  CT_Flux (sweep, beg, end, grid);
 #endif
 
-/* ----------------------------------------------------------
-   4. Add CR flux contribution using simplified upwinding.
-   ---------------------------------------------------------- */
+/* --------------------------------------------------------
+   6. Compute Powell's source term
+   -------------------------------------------------------- */
+  
+  #if DIVB_CONTROL == EIGHT_WAVES
+  Roe_DivBSource (sweep, beg + 1, end, grid);
+  #endif
 
-#ifdef PARTICLES
-  #if (PARTICLES_TYPE == COSMIC_RAYS) && (PARTICLES_CR_FEEDBACK == YES) 
+/* --------------------------------------------------------
+   7. Add CR flux contribution using simplified
+      upwinding.
+   -------------------------------------------------------- */
+
+  #if (PARTICLES == PARTICLES_CR) && (PARTICLES_CR_FEEDBACK == YES) 
   Particles_CR_Flux (stateL, beg, end);
   Particles_CR_Flux (stateR, beg, end);
 
   for (i = beg; i <= end; i++){
-    if (sweep->flux[i][RHO] > 0.0) {
-      for (nv = NFLX; nv--; ) sweep->flux[i][nv] += stateL->fluxCR[i][nv];
-    }else if (sweep->flux[i][RHO] < 0.0){
-      for (nv = NFLX; nv--; ) sweep->flux[i][nv] += stateR->fluxCR[i][nv];
-    }else{
-      for (nv = NFLX; nv--; ) {
-        sweep->flux[i][nv] += 0.5*(stateL->fluxCR[i][nv] + stateR->fluxCR[i][nv]);
-      }
+    for (nv = NFLX; nv--; ) {
+      sweep->flux[i][nv] += 0.5*(stateL->fluxCR[i][nv] + stateR->fluxCR[i][nv]);
+//                          -2.0*(stateR->u[i][nv] - stateL->u[i][nv]);
     }
   }  
   #endif
-#endif
 
 }
 #undef sqrt_1_2

@@ -6,14 +6,14 @@
   Contains basic macro definitions, structure definitions and global 
   variable declarations used by the code.
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   Feb 21, 2018
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Jun 02, 2021
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #ifndef PLUTO_H
 #define PLUTO_H
 
-#define PLUTO_VERSION  "4.3"
+#define PLUTO_VERSION  "4.4-patch2"
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -65,6 +65,8 @@
 #define SSP_RK4                    8
 #define EXP_MIDPOINT               9  /* -- Used for dust time stepping -- */
 #define SEMI_IMPLICIT             10  /* -- Used for dust time stepping -- */
+#define RK_MIDPOINT               11
+#define RK4                       12
 
 #define EXPLICIT             1 /* -- just a number different from 0 !!!  -- */
 #define SUPER_TIME_STEPPING  2 /* -- just a number different from EXPLICIT -- */ 
@@ -72,8 +74,6 @@
 #define RK_LEGENDRE          8
 
 #define IMEX        2   /* Any number different from EXPLICIT (=1) */
-#define OP_SPLIT    4   /* Any number different from EXPLICIT (=1) */
-#define NEW_SPLIT   5   /* Any number different from EXPLICIT (=1) */
 
 /* ----   Output labels ---- */
 
@@ -85,14 +85,12 @@
 #define TAB_OUTPUT      6
 #define PPM_OUTPUT      7
 #define PNG_OUTPUT      8
-#ifdef PARTICLES
-  #define PARTICLES_DBL_OUTPUT  9
-  #define PARTICLES_FLT_OUTPUT  10
-  #define PARTICLES_VTK_OUTPUT  11
-  #define PARTICLES_TAB_OUTPUT  12
-  #define PARTICLES_HDF5_OUTPUT  13
-#endif
 
+#define PARTICLES_DBL_OUTPUT  9
+#define PARTICLES_FLT_OUTPUT  10
+#define PARTICLES_VTK_OUTPUT  11
+#define PARTICLES_TAB_OUTPUT  12
+#define PARTICLES_HDF5_OUTPUT  13
 
 #define VTK_VECTOR  5  /* -- any number but NOT 1  -- */
 
@@ -101,6 +99,10 @@
 #define MAX_OUTPUT_VARS  64    /* The maximum nuber of variables that can be
                                   dumped to disk for a single format. */
 
+
+#define CONS_ARRAY   0
+#define PRIM_ARRAY   1
+
 /* ----  Cooling labels ----  */
 
 #define POWER_LAW    3
@@ -108,13 +110,13 @@
 #define SNEq         5
 #define TABULATED    6
 #define H2_COOL      7
-#define KROME	     8
+#define KROME	       8
 
 /*----- Particle Labels ----- */
 
-#define LAGRANGIAN 	    1
-#define COSMIC_RAYS     3
-#define DUST            4
+#define PARTICLES_LP    1
+#define PARTICLES_CR    2
+#define PARTICLES_DUST  3
 
 /* ---- Physics modules labels ----  */
 
@@ -123,7 +125,8 @@
 #define RHD           3
 #define MHD           4
 #define RMHD          5
-#define CR_TRANSPORT  6
+#define ResRMHD       6
+#define CR_TRANSPORT  7
 
 /*  ----  SET LABELS FOR DIV.B Control  ----  
           If you move them to the MHD header, 
@@ -150,6 +153,8 @@
 #define PERIODIC         5
 #define SHEARING         6
 #define USERDEF          7
+#define POLARAXIS        8
+#define CONSTANT         9
 
 /*! \name Labels identifying different boundary and domain regions. 
    These are useful in Boundary() and when setting RBox structures
@@ -174,10 +179,10 @@
 
 /*! \name Bit flag labels.
     The following macros define the bits that can be turned on or off
-    in an unsigned char (= 1 byte = 8 bits) variable. 
+    in an uint16_t (2 bytes integer, 1 byte = 8 bits) variable. 
     Different bit flags allow to enable or disable certain actions in 
     a given cell at different points in the code, see also flag.c.
-    The 3D unsigned char \c ***flag array is used for bookeeping, in each zone 
+    The 3D, 16-bit \c ***flag array is used for bookeeping, in each zone 
     (i,j,k), which bits are actually switched on or off.
     A simple bitwise operation is used to enable a flag, e.g., 
     <tt> flag[k][j][i] |= FLAG_XXX </tt>.
@@ -189,16 +194,26 @@
     Individual bits can also be turned off, e.g., <tt> flag &= ~FLAG_XXX; </tt>
 */
 /**@{ */
-#define FLAG_MINMOD      1  /**< Reconstruct using MINMOD limiter. */
-#define FLAG_FLAT        2  /**< Reconstruct using FLAT limiter.   */
-#define FLAG_HLL         4  /**< Use HLL Riemann solver. */
-#define FLAG_ENTROPY     8  /**< Update pressure using entropy equation. */
-#define FLAG_SPLIT_CELL  16 /**< Zone is covered by a finer level (AMR only). */
+#define FLAG_MINMOD               1  /**< Reconstruct using MINMOD limiter. */
+#define FLAG_FLAT                 2  /**< Reconstruct using FLAT limiter.   */
+#define FLAG_HLL                  4  /**< Switch to HLL Riemann solver. */
+#define FLAG_ENTROPY              8  /**< Update pressure using entropy equation. */
+#define FLAG_SPLIT_CELL          16  /**< Zone is covered by a finer level
+                                         (AMR only). */
 #define FLAG_INTERNAL_BOUNDARY   32  /**< Zone belongs to an internal boundary
                                           region and should be excluded from 
                                           being updated in time              */
 #define FLAG_CONS2PRIM_FAIL      64    
-#define FLAG_BIT8         128  
+#define FLAG_NEGATIVE_PRESSURE  128 /**< A negative pressure has been found */  
+#define FLAG_NEGATIVE_ENERGY    256 /**< A negative energy   has been found  */  
+#define FLAG_NEGATIVE_DENSITY   512 /**< A negative density  has been found  */  
+#define FLAG_BIT_11            1024 /**< Free bit */  
+#define FLAG_BIT_12            2048 /**< Free bit */  
+#define FLAG_BIT_13            4096 /**< Free bit */  
+#define FLAG_BIT_14            8192 /**< Free bit */  
+#define FLAG_BIT_15           16384 /**< Free bit */  
+#define FLAG_GCA_FAILURE      32768 /**< Singularity in the GCA because of
+                                         E_\perp > B (incomplete stencil error) */  
 /**@} */
 
 #define IDIR     0     /*   This sequence (0,1,2) should */
@@ -220,40 +235,43 @@
 #define FACE_CENTER    51
 #define EDGE_CENTER    52
 
-        /*  ----  SET LABELS FOR RECONSTRUCTION  ----   */
+/*  --  Set reconstruction labels  --   */
 
-#define FLAT              1
-#define LINEAR            2
-#define CENO3             3
-#define PARABOLIC         4
-#define LINEAR_MULTID     5
-#define MP5               6
-#define LimO3             7
-#define WENO3             8
-#define SPLINE1          30  /* Used by Table2D interpolation */
-#define SPLINE2          31  /* Used by Table2D interpolation */
+#define FLAT             10
+#define LINEAR           20
+#define LimO3            30
+#define WENO3            40
+#define PARABOLIC        50
+#define MP5              60
+#define WENOZ            70
+#define SPLINE1          11  /* Used by Table2D interpolation */
+#define SPLINE2          12  /* Used by Table2D interpolation */
 
-#define WENO3_FD             103
-#define WENO5_FD             105
-#define WENOZ_FD             106
-#define WENO7_FD             107
-#define MP5_FD               125
-#define LIMO3_FD             300
+#define WENO3_FD        103
+#define WENO5_FD        105
+#define WENOZ_FD        106
+#define WENO7_FD        107
+#define MP5_FD          125
+#define LIMO3_FD        300
 
-#define ONED   1
-#define MULTID 3
+#define ONED             1
+#define MULTID           3
 
-/* ---- limiter labels ---- */
+/* ----------------------------------------------
+   Set limiter labels.
+   These labels must be in the range [21,29]
+   in order to allow different limiters to be
+   used during the transverse reconstruction.
+   ---------------------------------------------- */
 
-#define FLAT_LIM          1
-#define MINMOD_LIM        2 
-#define VANALBADA_LIM     3
-#define OSPRE_LIM         4
-#define UMIST_LIM         5
-#define VANLEER_LIM       6
-#define MC_LIM            7
-#define FOURTH_ORDER_LIM  8
-
+#define FLAT_LIM          21
+#define MINMOD_LIM        22 
+#define VANALBADA_LIM     23
+#define OSPRE_LIM         24
+#define UMIST_LIM         25
+#define VANLEER_LIM       26
+#define MC_LIM            27
+#define FOURTH_ORDER_LIM  28
 
 /*! \name Physical constants in c.g.s units.
      The following set of macros express some useful physical constants
@@ -264,43 +282,43 @@
 #define CONST_AH      1.008              /*!< Atomic weight of Hydrogen  */
 #define CONST_AHe     4.004              /**< Atomic weight of Helium  */
 #define CONST_AZ      30.0               /**< Mean atomic weight of heavy elements */
-#define CONST_amu     1.66053886e-24     /**<  Atomic mass unit.          */
-#define CONST_au      1.49597892e13      /**<  Astronomical unit.         */
-#define CONST_c       2.99792458e10      /**<  Speed of Light.            */
-#define CONST_e       4.80320425e-10     /**<  Elementary (proton) charge */
-#define CONST_eV      1.602176463158e-12 /**<  Electron Volt in erg.      */
-#define CONST_G       6.6726e-8          /**<  Gravitational Constant.    */
-#define CONST_h       6.62606876e-27     /**<  Planck Constant.           */
-#define CONST_kB      1.3806505e-16      /**<  Boltzmann constant.        */
-#define CONST_ly      0.9461e18          /**<  Light year.                */
-#define CONST_mp      1.67262171e-24     /**<  Proton mass.               */
-#define CONST_mn      1.67492728e-24     /**<  Neutron mass.              */
-#define CONST_me      9.1093826e-28      /**<  Electron mass.             */
-#define CONST_mH      1.6733e-24         /**<  Hydrogen atom mass.        */
-#define CONST_Msun    2.e33              /**<  Solar Mass.                */
-#define CONST_Mearth  5.9736e27          /**<  Earth Mass.                */
-#define CONST_NA      6.0221367e23       /**<  Avogadro Contant.          */
-#define CONST_pc      3.0856775807e18    /**<  Parsec.                    */
-#define CONST_PI      3.14159265358979   /**<  \f$ \pi \f$.               */
-#define CONST_Rearth  6.378136e8         /**<  Earth Radius.              */
-#define CONST_Rgas    8.3144598e7        /**<  Perfect gas constant       */
-
-#define CONST_Rsun    6.96e10            /**<  Solar Radius.              */
-#define CONST_sigma   5.67051e-5         /**<  Stephan Boltmann constant. */
-#define CONST_sigmaT  6.6524e-25         /**<  Thomson Cross section.    */
+#define CONST_amu     1.66053886e-24     /**< Atomic mass unit.          */
+#define CONST_au      1.49597892e13      /**< Astronomical unit.         */
+#define CONST_c       2.99792458e10      /**< Speed of Light.            */
+#define CONST_e       4.80320425e-10     /**< Elementary (proton) charge */
+#define CONST_eV      1.602176463158e-12 /**< Electron Volt in erg.      */
+#define CONST_G       6.6726e-8          /**< Gravitational Constant.    */
+#define CONST_h       6.62606876e-27     /**< Planck Constant.           */
+#define CONST_kB      1.3806505e-16      /**< Boltzmann constant.        */
+#define CONST_ly      0.9461e18          /**< Light year.                */
+#define CONST_mp      1.67262171e-24     /**< Proton mass.               */
+#define CONST_mn      1.67492728e-24     /**< Neutron mass.              */
+#define CONST_me      9.1093826e-28      /**< Electron mass.             */
+#define CONST_mH      1.6733e-24         /**< Hydrogen atom mass.        */
+#define CONST_Msun    2.e33              /**< Solar Mass.                */
+#define CONST_Mearth  5.9736e27          /**< Earth Mass.                */
+#define CONST_NA      6.0221367e23       /**< Avogadro Contant.          */
+#define CONST_pc      3.0856775807e18    /**< Parsec.                    */
+#define CONST_PI      3.14159265358979   /**< \f$ \pi \f$.               */
+#define CONST_Rearth  6.378136e8         /**< Earth Radius.              */
+#define CONST_Rgas    8.3144598e7        /**< Perfect gas constant       */
+#define CONST_Rsun    6.96e10            /**< Solar Radius.              */
+#define CONST_sigma   5.67051e-5         /**< Stephan Boltmann constant. */
+#define CONST_sigmaT  6.6524e-25         /**< Thomson Cross section.    */
 /**@} */
 
-/* **********************************************************
+/* ********************************************************
     Including header files here
-   ********************************************************** */
+   ******************************************************** */
 
 #include "definitions.h"   /* Problem-dependent header file  */
 
-/* *******************************************************************
-    Set default values of fine-tuning macro-define constants.
-    This section of the code is for general-purpose macros although
-    other may exists elsewhere. 
-   ******************************************************************* */
+/* ********************************************************
+    Set default values of fine-tuning macro-define
+    constants.
+    This section of the code is for general-purpose macros
+    although other may exists elsewhere. 
+   ******************************************************** */
 
 #ifndef AMBIPOLAR_DIFFUSION
  #define AMBIPOLAR_DIFFUSION NO
@@ -325,22 +343,23 @@
   #define CHOMBO_LOGR NO
  #endif
  
-/* --------------------------------------------------------------------
-    By default we enable angular momentum conservation only if the 
-    entropy swtich is enabled.  
-    Otherwise angular momentum conservation is not enforced during
-    refluxing / prolongation / restriction operations since this has
-    been shown to lead to the appearance of negative pressures.
-    (Simultaneous energy and angular momentum conservation in Chombo 
-     does not seem to be vary robust)
-   -------------------------------------------------------------------- */
+/* ********************************************************
+    By default we enable angular momentum conservation only
+    if the entropy switch is enabled.  
+    Otherwise angular momentum conservation is not enforced
+    during refluxing / prolongation / restriction
+    operations since this has been shown to lead to the
+    appearance of negative pressures.
+    (Simultaneous energy and angular momentum conservation
+     in Chombo does not seem to be very robust)
+   ******************************************************** */
    
  #ifndef CHOMBO_CONS_AM
-  #if (GEOMETRY == CYLINDRICAL) && (COMPONENTS == 3) && (ENTROPY_SWITCH)
+  #if (GEOMETRY == CYLINDRICAL) && (ENTROPY_SWITCH)
    #define CHOMBO_CONS_AM YES
-  #elif (GEOMETRY == SPHERICAL) && (COMPONENTS == 3) && (ENTROPY_SWITCH)
+  #elif (GEOMETRY == SPHERICAL) && (ENTROPY_SWITCH)
    #define CHOMBO_CONS_AM YES
-  #elif (GEOMETRY == POLAR) && (COMPONENTS > 1) && (ENTROPY_SWITCH)
+  #elif (GEOMETRY == POLAR) && (ENTROPY_SWITCH)
    #define CHOMBO_CONS_AM YES
   #else
    #define CHOMBO_CONS_AM NO
@@ -358,6 +377,10 @@
  #define DUST_FLUID   NO
 #endif
 
+#ifndef ENABLE_HLLEM
+ #define ENABLE_HLLEM  NO
+#endif
+
 #ifndef ENTROPY_SWITCH
  #define ENTROPY_SWITCH  NO
 #endif 
@@ -366,40 +389,76 @@
  #define EOS  -1
 #endif
 
+#ifndef FAILSAFE
+ #define FAILSAFE   NO
+#endif
+
 #ifndef HALL_MHD
  #define HALL_MHD          NO
 #endif
 
 #ifndef INITIAL_SMOOTHING        
  #define INITIAL_SMOOTHING  NO  /**< Assign initial conditions by averaging
-                                     multiple values inside the cell */
-                     
+                                     multiple values inside the cell */              
 #endif
 
 #ifndef INTERNAL_BOUNDARY
  #define INTERNAL_BOUNDARY   NO
 #endif
 
+#ifndef INTERNAL_BOUNDARY_REFLECT
+ #define INTERNAL_BOUNDARY_REFLECT   NO
+#endif
+
 #ifndef LIMITER
  #define LIMITER         DEFAULT
 #endif
 
+#ifndef MULTIPLE_LOG_FILES
+ #define MULTIPLE_LOG_FILES   NO
+#endif
+
+#ifndef NGHOST_USR
+  #define NGHOST_USR          -1  /**< When positive, it specifes a
+                                       user-provided number of ghost zones. */
+#endif
+
 #ifndef RECONSTRUCT_4VEL
- #define RECONSTRUCT_4VEL   NO  /**< When set to YES, reconstruct 4-velocity
-                                     rather than 3-velocity (only for RHD and
-                                     RMHD physics modules)  */
+ #define RECONSTRUCT_4VEL     NO  /**< When set to YES, reconstruct 4-velocity
+                                       rather than 3-velocity (only for RHD and
+                                       RMHD physics modules)  */
 #endif  
 
 #ifndef RESISTIVITY 
- #define RESISTIVITY   NO
+ #define RESISTIVITY           NO
+#endif
+
+#ifndef RING_AVERAGE
+ #define RING_AVERAGE          NO
+#endif
+
+#ifndef RING_AVERAGE_REC
+  #if RING_AVERAGE > 1
+    #define RING_AVERAGE_REC 5
+  #else
+    #define RING_AVERAGE_REC 1
+  #endif
 #endif
 
 #ifndef ROTATING_FRAME
- #define ROTATING_FRAME NO
+ #define ROTATING_FRAME        NO
 #endif
 
 #ifndef SHOCK_FLATTENING
   #define SHOCK_FLATTENING     NO
+#endif
+
+#ifndef SHOW_TIMINIG
+  #define SHOW_TIMING          NO
+#endif
+
+#ifndef TIME_STEP_CONTROL
+ #define TIME_STEP_CONTROL     NO  
 #endif
 
 #ifndef THERMAL_CONDUCTION
@@ -415,7 +474,7 @@
 #endif
 
 #ifndef UNIT_VELOCITY
- #if PHYSICS == RHD || PHYSICS == RMHD
+ #if (PHYSICS == RHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
   #define UNIT_VELOCITY (CONST_c)
  #else
   #define UNIT_VELOCITY (1.e5)  /**< Unit velocity in cm/sec. */
@@ -430,13 +489,17 @@
  #define VISCOSITY NO
 #endif
 
+#ifndef RADIATION
+ #define RADIATION   NO
+#endif
+
 #ifndef WARNING_MESSAGES
  #define WARNING_MESSAGES    YES
 #endif
 
-/* -------------------------------------------------------------------
+/* ********************************************************
     Set HAVE_ENERGY to YES if an energy equation exists
-   -------------------------------------------------------------------- */
+   ******************************************************** */
 
 #if (EOS == IDEAL) || (EOS == PVTE_LAW) || (EOS == TAUB)  
  #define HAVE_ENERGY       YES
@@ -449,10 +512,17 @@
     T = (prs/rho)*KELVIN*mu                                   */
 #define KELVIN (UNIT_VELOCITY*UNIT_VELOCITY*CONST_amu/CONST_kB) 
 
-/* ******************************************************
+/* ********************************************************
     Debug switches
-   ****************************************************** */
+   ******************************************************** */
  
+/* -- CHECK_DIVB_CONDITION: used in MHD/CT/ct.c 
+      to check if div.B = 0 -- */
+
+#ifndef CHECK_DIVB_CONDITION
+ #define CHECK_DIVB_CONDITION   NO
+#endif
+
 /* -- CHECK_EIGENVECTORS: used in eigenv.c in HD/, MHD/, RHD/
       to check orthogonality and the correctness through 
       the relation the A = L*\Lambda*R  -- */
@@ -461,33 +531,25 @@
  #define CHECK_EIGENVECTORS     NO
 #endif
 
-/* -- CHECK_CONSERVATIVE_VAR: used in RHD/mappers.c to 
-      check that conservative vars are physical -- */
-
-#define CHECK_CONSERVATIVE_VAR  NO
-
-/* -- CHECK_DIVB_CONDITION: used in MHD/CT/ct.c 
-      to check if div.B = 0 -- */
-
-#ifndef CHECK_DIVB_CONDITION
- #define CHECK_DIVB_CONDITION   NO
+/* -- CHECK_ROE_MATRIX: used in roe.c to verify L.Lambda.R = A  -- */
+/*
+#ifndef CHECK_ROE_MATRIX
+ #define CHECK_ROE_MATRIX     NO
 #endif
-
+*/
 /* -- Shortcut for CTU -- */
 
 #if (TIME_STEPPING == HANCOCK) || (TIME_STEPPING == CHARACTERISTIC_TRACING)
- #if DIMENSIONAL_SPLITTING == NO
   #define CTU      1    /* -- Corner Transport Upwind method of Colella -- */
- #endif
 #endif
 
 /* -- Select Primitive / Conservative form of Hancock scheme -- */
 
 #if TIME_STEPPING == HANCOCK 
  #ifndef PRIMITIVE_HANCOCK
-  #if (PHYSICS == MHD) && (defined PARTICLES) && (PARTICLES_TYPE == COSMIC_RAYS)
+  #if (PHYSICS == MHD) && (PARTICLES == PARTICLES_CR)
    #define PRIMITIVE_HANCOCK   NO
-  #elif PHYSICS == RMHD
+  #elif (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
    #define PRIMITIVE_HANCOCK   NO
   #else
    #define PRIMITIVE_HANCOCK   YES
@@ -495,21 +557,22 @@
  #endif   
 #endif
 
-/* *********************************************************************
+/* ********************************************************
     Diffusion operators (HD and MHD only):
-    PARABOLIC_FLUX is the bitwise OR combination of all operators, each
-    being either one of NO, EXPLICIT (1st bit), STS (2nd bit),
-    RKL (3rd bit). 
+    PARABOLIC_FLUX is the bitwise OR combination of all
+    operators, each being either one of NO,
+    EXPLICIT (1st bit), STS (2nd bit), RKL (3rd bit). 
     It can take the following values
 
-      00   --> no diffusion operator is being used
-      01   --> there's at least one explicit diffusion operator and
-               no sts.
+      00   --> no diffusion operator is being used;
+      01   --> there's at least one explicit diffusion
+               operator and no STS.
                
-      10   --> there's at least one sts diffusion operator and
-               no explicit one.
-      11   --> mixed: there is at least one explicit and sts operator
-   ********************************************************************* */
+      10   --> there's at least one STS diffusion
+               operator and no explicit one.
+      11   --> mixed: there is at least one explicit
+               and sts operator
+   ******************************************************** */
 
 #if PHYSICS == HD || PHYSICS == MHD
  #define PARABOLIC_FLUX (RESISTIVITY|THERMAL_CONDUCTION|VISCOSITY)
@@ -530,14 +593,13 @@
 #include "macros.h"  /* Function-like macro header file */
 #include "structs.h" /* Structure declaration header file */
 
-/* *****************************************************
+/* ********************************************************
      Recurrent types
      Note: when using Finite Difference Schemes, the
           "Riemann Solver" function computes the fluxes
            with high order interpolants. 
-   ***************************************************** */
+   ******************************************************** */
 
-typedef double real;
 typedef void Riemann_Solver (const Sweep *, int, int, double *, Grid *);
 typedef void Limiter        (double *, double *, double *, int, int, Grid *);
 typedef double Reconstruct  (double *, double, int);
@@ -550,33 +612,82 @@ typedef double ****Data_Arr;
 #include "mod_defs.h"  /* Include physics header file (search path is set
                           in the makefile) */
 
-#if COOLING != NO      /* Cooling should be included as soon as possible */
-  #include "cooling.h" /* since it may change the number of variables    */
-  #define RHOE   PRS
+#if COOLING != NO              /* Cooling should be included as soon as possible */
+  #include "Cooling/cooling.h" /* since it may change the number of variables    */
 #endif
 
-/* ********************************************************************* */
+/* ********************************************************
+    Define mass fractions (H_MASS_FRAC = xH and
+    He_MASS_FRAC = xHe):
+    
+     xH  = mH  / mtot
+     xHe = mHe / mtot
+     xZ  = mZ  / mtot
+    
+    where xH + xHe + xZ = 1.
+    Number fraction are defined from mass fraction in
+    pluto.h
+    
+    - For SNEq, mass fractions are chosen so as to preserve
+      the original Raymond hydrogen number fraction (fZ = 1.e-3,
+      fHe = 0.082):
+    
+      xH  = 1 - xZ - xHe = 1 - xH/AH*(fZ*AZ + fHe*AHe)
+      
+      giving xH = AH/(AH + fZ*AZ + fHe*AHe) while
+      xHe = fHe*AHe*xH/AH.
+    
+    - For H2_COOL,  Proto-Solar Mass Fractions for Hydrogen
+      and Helium  (Lodders, ApJ 591, 2003 )  are used.
+
+   ******************************************************** */
+
+#ifndef H_MASS_FRAC  /* Set default values  */
+  #if COOLING == SNEq
+    #define H_MASS_FRAC       0.737743792120194
+  #else  
+    #define H_MASS_FRAC       0.7110
+  #endif  
+#endif
+
+#ifndef He_MASS_FRAC
+  #if (EOS == PVTE_LAW) && (COOLING == NO)
+    #define  He_MASS_FRAC  (1 - H_MASS_FRAC) /* Effective Y and not 0.2741
+                                                Baraffe (2008) */
+  #elif COOLING == SNEq
+    #define He_MASS_FRAC     (0.082*CONST_AHe*H_MASS_FRAC/CONST_AH)
+  #else  
+    #define He_MASS_FRAC      0.2741
+  #endif  
+#endif
+
+/* *********************************************************************
+    Define number fractions (FRAC_He = fHe and FRAC_Z = fZ, with
+    respect to hydrogen - FRAC_H = 1):
+    
+    fH = NH/NH = 1, fHe = NHe/NH,   fZ = NZ/NH
+   ********************************************************************* */
+
+#define Z_MASS_FRAC (1.0 - H_MASS_FRAC - He_MASS_FRAC)  
+#define FRAC_He     (He_MASS_FRAC/CONST_AHe*CONST_AH/H_MASS_FRAC)
+#define FRAC_Z      (Z_MASS_FRAC /CONST_AZ *CONST_AH/H_MASS_FRAC)
+
+/* ******************************************************** */
 /*! Set the number of scalars including:
 
     - \c NTRACER (user-supplied)
-    - \c NIONS chemical fractions (added by cooling modules)
+    - \c NIONS chemical fractions (cooling modules)
     - Entropy 
 
-    In total, there are <tt>NSCL = NIONS+NTRACER+(ENTROPY</tt> passive
-    scalar to be advected.
-  ********************************************************************** */
+    In total, there are <tt>NSCL = NIONS+NTRACER+ENTROPY</tt>
+    passive scalar to be advected.
+  ********************************************************* */
 
 #ifndef NIONS
   #define NIONS 0
 #endif
 
 #define NSCL        (NTRACER + NIONS + (ENTROPY_SWITCH != 0))
-
-#ifndef NDUST_FLUID
-  #define NDUST_FLUID  0
-#endif
-#define NDUST_FLUID_BEG   (NFLX + NSCL)
-#define NDUST_FLUID_END   (NDUST_FLUID_BEG + NDUST_FLUID - 1)
 
 /* -- Additional variable names -- */
 
@@ -589,50 +700,55 @@ typedef double ****Data_Arr;
  #endif
 #endif
 
-/* ********************************************************************* */
+/* ******************************************************** */
 /*! The total number of variables that are evolved in time.
     This includes:
 
-    - \c NFLX: number of equations defining the system of conservation laws.
-      For example, for the HD module, it consists of density, momentum and energy.
-                It is defined in the physics module header file mod_defs.h.
-    - \c NIONS: number of chemical species; defined in the cooling modules 
-                cooling.h, if present.
-    - \c NTRACER: number of user-defined tracers; defined in the problem
-                  directory header file definitions.h
-    \verbatim  
-           NFLX    NIONS    NTRACER    ENTR    NDUST_FLUID
-                   <---------------------->
-                              NSCL
-           <--------------------------------------->
-                    NVAR
-    \endverbatim
-   ********************************************************************* */
+    - \c NFLX: number of equations defining the system
+      of conservation laws. For example, for the HD module,
+      it consists of density, momentum and energy.
+      Defined in the physics module header file mod_defs.h.
 
-#define NVAR (NFLX + NSCL + NDUST_FLUID)
+    - \c NIONS: number of chemical species; defined in the
+      cooling modules cooling.h, if present.
+      
+    - \c NTRACER: number of user-defined tracers; defined
+      in the problem directory header file definitions.h
+
+    \verbatim  
+     NFLX    NIONS    NTRACER    ENTR    NDUST_FLUID
+             <---------------------->
+                       NSCL
+     <---------------------------------------------->
+                         NVAR
+    \endverbatim
+   ******************************************************** */
 
 /* -- Loop Macros -- */
 
-#define NFLX_LOOP(n)     for ((n) = NFLX;   (n)--;  )
-#define NIONS_LOOP(n)    for ((n) = NFLX;   (n) < (NFLX+NIONS); (n)++)
-#define NTRACER_LOOP(n)  for ((n) = TRC;    (n) < (TRC+NTRACER); (n)++)
-#define NSCL_LOOP(n)     for ((n) = NFLX;   (n) < (NFLX+NSCL); (n)++)
-#define NDUST_FLUID_LOOP(n)    for ((n) = NDUST_FLUID_BEG;  (n) <= NDUST_FLUID_END; (n)++)
+#define NFLX_LOOP(n)      for ((n) = NFLX; (n)--;  )
+#define NIONS_LOOP(n)     for ((n) = NFLX; (n) < (NFLX+NIONS); (n)++)
+#define NTRACER_LOOP(n)   for ((n) = TRC;  (n) < (TRC+NTRACER); (n)++)
+#define NSCL_LOOP(n)      for ((n) = NFLX; (n) < (NFLX+NSCL); (n)++)
+
+#if DUST_FLUID == YES
+  #include "Dust_Fluid/dust_fluid.h"            /* Dust header file */
+#else
+  #define NDUST_FLUID   0
+#endif
+#define NVAR (NFLX + NSCL + NDUST_FLUID)
+
 #define NVAR_LOOP(n)     for ((n) = NVAR;   (n)--;       )
 
 /* ********************************************************
     Keep on adding module header files 
    ******************************************************** */
 
-
-#if DUST_FLUID == YES
-  #include "Dust/dust.h"            /* Dust header file */
-#endif
-
 #ifdef FARGO
  #include "Fargo/fargo.h"           /* FARGO header file */
 #endif
 
+#define FORCED_TURB  NO
 #if FORCED_TURB == YES
   #include "Forced_Turb/forced_turb.h" /* Forced Turb Header file */
 #endif
@@ -641,7 +757,7 @@ typedef double ****Data_Arr;
  #include "MHD/Hall_MHD/hall_mhd.h"  /* Hall-MHD module header */
 #endif
 
-#ifdef PARTICLES                   /* Particle Header File */
+#if (PARTICLES != NO)                   /* Particle Header File */
  #include "Particles/particles.h"
 #endif
 
@@ -663,34 +779,9 @@ typedef double ****Data_Arr;
 #endif
 #include "Math_Tools/math_tools.h"  /* Math tools header file */
 
-/* *********************************************************************
-    Define mass fractions (H_MASS_FRAC and He_MASS_FRAC).
-    
-    For H2_COOL,  Proto-Solar Mass Fractions for Hydrogen
-    and Helium  (Lodders, ApJ 591, 2003 )  are used.
-
-    Define also the number fractions (relative to hydrogen)
-    as FRAC_He and FRAC_Z (FRAC_H = 1.0).
-   ********************************************************************* */
-
-#ifndef H_MASS_FRAC  /* Sets default values  */
-  #define H_MASS_FRAC       0.7110
-#endif
-
-#if (EOS == PVTE_LAW) && (COOLING == NO)
-  #define  He_MASS_FRAC  (1 - H_MASS_FRAC) /* Effective Y and not 0.2741
-                                              Baraffe (2008) */
-#endif
-
-#ifndef He_MASS_FRAC
-  #define He_MASS_FRAC      0.2741
-#endif
-
-#define Z_MASS_FRAC (1.0 - H_MASS_FRAC - He_MASS_FRAC)  
-#define FRAC_He     (He_MASS_FRAC/CONST_AHe*CONST_AH/H_MASS_FRAC)
-#define FRAC_Z      (Z_MASS_FRAC /CONST_AZ *CONST_AH/H_MASS_FRAC)
-
-/* -- IF_XXXX() Macros for simpler coding -- */
+/* ********************************************************
+    Define IF_XXXX() Macros for simpler coding
+   ******************************************************** */
   
 #if DUST_FLUID == YES
  #define IF_DUST_FLUID(a)  a
@@ -716,24 +807,25 @@ typedef double ****Data_Arr;
  #define IF_ROTATING_FRAME(a)  
 #endif
 
-/* ----------------------------------------------------------
+/* ********************************************************
     Include module header files: EOS
     [This section should be placed before, but NVAR 
      wouldn't be defined. Need to fix this at some point]
-   ---------------------------------------------------------- */
+   ******************************************************** */
 
 #include "eos.h"
 #include "prototypes.h"
 
-/* *****************************************************
+/* ********************************************************
      Declare global variables
-   ***************************************************** */
+   ******************************************************** */
 
  extern int SZ;
  extern int SZ_stagx;
  extern int SZ_stagy;
  extern int SZ_stagz;
  extern int SZ_char;
+ extern int SZ_uint16_t;
  extern int SZ_float;
  extern int SZ_Float_Vect;
  extern int SZ_rgb;
@@ -753,6 +845,9 @@ extern int EXn, EXt, EXb;
   extern int VXn_D, VXt_D, VXb_D;
   extern int MXn_D, MXt_D, MXb_D;
 #endif
+#if RADIATION
+  extern int FRn, FRt, FRb;
+#endif
 
 extern int g_i, g_j, g_k;
 
@@ -770,7 +865,6 @@ extern double g_maxCoolingRate, g_minCoolingTemp;
 extern double g_smallDensity, g_smallPressure;
 
 extern double g_time, g_dt;
-extern int    g_hydroStep;
 extern double g_maxMach;
 #if ROTATING_FRAME
  extern double g_OmegaZ;
@@ -783,6 +877,14 @@ extern double g_inputParam[32];
  extern double g_gamma;
 #elif EOS == ISOTHERMAL
  extern double g_isoSoundSpeed;
+#endif
+
+#if RADIATION
+ extern double g_absorptionCoeff;
+ extern double g_scatteringCoeff;
+ extern double g_radiationConst;
+ extern double g_idealGasConst;
+ extern double g_totalOpacity;
 #endif
 
 #ifdef CHOMBO

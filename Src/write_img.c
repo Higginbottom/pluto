@@ -169,7 +169,7 @@ void GetSlice (double ***Vdbl, Image *image, Grid *grid)
   size_t dsize = sizeof(float);
 
   #if DIMENSIONS == 1
-   print ("! PPM output disabled in 1-D\n");
+   printLog ("! PPM output disabled in 1-D\n");
    return;    
   #endif    
 

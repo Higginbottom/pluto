@@ -3,7 +3,7 @@
 #define LEFTGOING   YES
 
 /* ********************************************************************* */
-void Init (real *us, real x1, real x2, real x3)
+void Init (double *us, double x1, double x2, double x3)
 /*
  *
  *
@@ -77,6 +77,7 @@ void Init (real *us, real x1, real x2, real x3)
     us[BX2] /= sqrt(4.0*CONST_PI);
     us[BX3] /= sqrt(4.0*CONST_PI);
   }
+
 }
 
 /* ********************************************************************* */

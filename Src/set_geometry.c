@@ -6,14 +6,14 @@
   Compute grid quantities (such as interface areas, volumes, 
   centroid of volume, etc..) that depend on the geometry.
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   March 13, 2017
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Jul 26, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
 /* ********************************************************************* */
-void MakeGeometry (Grid *grid)
+void SetGeometry (Grid *grid)
 /*!
  *
  * \param [in,out] grid  Pointer to an array of Grid structures;
@@ -47,9 +47,9 @@ void MakeGeometry (Grid *grid)
    ----------------------------------------------------------- */
 
   grid->dV      = ARRAY_3D(nx3_tot, nx2_tot, nx1_tot, double);
-  grid->A[IDIR] = ArrayBox( 0, nx3_tot-1,  0, nx2_tot-1, -1, nx1_tot-1);
-  grid->A[JDIR] = ArrayBox( 0, nx3_tot-1, -1, nx2_tot-1,  0, nx1_tot-1);
-  grid->A[KDIR] = ArrayBox(-1, nx3_tot-1,  0, nx2_tot-1,  0, nx1_tot-1);
+  grid->A[IDIR] = ARRAY_BOX( 0, nx3_tot-1,  0, nx2_tot-1, -1, nx1_tot-1, double);
+  grid->A[JDIR] = ARRAY_BOX( 0, nx3_tot-1, -1, nx2_tot-1,  0, nx1_tot-1, double);
+  grid->A[KDIR] = ARRAY_BOX(-1, nx3_tot-1,  0, nx2_tot-1,  0, nx1_tot-1, double);
 
   grid->dx_dl[IDIR] = ARRAY_2D(nx2_tot, nx1_tot, double);
   grid->dx_dl[JDIR] = ARRAY_2D(nx2_tot, nx1_tot, double);
@@ -120,17 +120,17 @@ void MakeGeometry (Grid *grid)
   for (j = 0; j <= jend; j++){
   for (i = 0; i <= iend; i++){
     #if GEOMETRY == CARTESIAN
-    grid->dV[k][j][i]  = D_EXPAND(dx1[i], *dx2[j], *dx3[k]);  /* = dx*dy*dz */
+    grid->dV[k][j][i]  = DIM_EXPAND(dx1[i], *dx2[j], *dx3[k]);  /* = dx*dy*dz */
     #elif GEOMETRY == CYLINDRICAL
     dVr = fabs(x1[i])*dx1[i];
-    grid->dV[k][j][i]  = D_EXPAND(dVr, *dx2[j], *1.0);        /* = |r|*dr*dz */
+    grid->dV[k][j][i]  = DIM_EXPAND(dVr, *dx2[j], *1.0);        /* = |r|*dr*dz */
     #elif GEOMETRY == POLAR
     dVr = fabs(x1[i])*dx1[i];
-    grid->dV[k][j][i]  = D_EXPAND(dVr, *dx2[j], *dx3[k]);     /* = |r|*dr*dphi*dz */
+    grid->dV[k][j][i]  = DIM_EXPAND(dVr, *dx2[j], *dx3[k]);     /* = |r|*dr*dphi*dz */
     #elif GEOMETRY == SPHERICAL
     dVr = fabs(x1p[i]*x1p[i]*x1p[i] - x1m[i]*x1m[i]*x1m[i])/3.0;
     dmu = fabs(cos(x2m[j]) - cos(x2p[j]));
-    grid->dV[k][j][i]  = D_EXPAND(dVr, *dmu, *dx3[k]);        /* = dVr*dmu*dphi*/
+    grid->dV[k][j][i]  = DIM_EXPAND(dVr, *dmu, *dx3[k]);        /* = dVr*dmu*dphi*/
     #endif
   }}}
 
@@ -146,25 +146,25 @@ void MakeGeometry (Grid *grid)
   for (j =  0; j <= jend; j++){
   for (i = -1; i <= iend; i++){
     #if GEOMETRY == CARTESIAN
-    Ax1[k][j][i] = D_EXPAND(1.0, *dx2[j], *dx3[k]);         /* = dy*dz */ 
+    Ax1[k][j][i] = DIM_EXPAND(1.0, *dx2[j], *dx3[k]);         /* = dy*dz */ 
     #elif GEOMETRY == CYLINDRICAL
     if (i == -1) {
-      Ax1[k][j][i] = D_EXPAND(fabs(x1m[0]), *dx2[j], *1.0); /* = rp*dz */
+      Ax1[k][j][i] = DIM_EXPAND(fabs(x1m[0]), *dx2[j], *1.0); /* = rp*dz */
     }else{
-      Ax1[k][j][i] = D_EXPAND(fabs(x1p[i]), *dx2[j], *1.0); /* = rp*dz */
+      Ax1[k][j][i] = DIM_EXPAND(fabs(x1p[i]), *dx2[j], *1.0); /* = rp*dz */
     }
     #elif GEOMETRY == POLAR
     if (i == -1) {
-      Ax1[k][j][i] = D_EXPAND(fabs(x1m[0]), *dx2[j], *dx3[k]); /* = rp*dphi*dz */
+      Ax1[k][j][i] = DIM_EXPAND(fabs(x1m[0]), *dx2[j], *dx3[k]); /* = rp*dphi*dz */
     }else{
-      Ax1[k][j][i] = D_EXPAND(fabs(x1p[i]), *dx2[j], *dx3[k]); /* = rp*dphi*dz */
+      Ax1[k][j][i] = DIM_EXPAND(fabs(x1p[i]), *dx2[j], *dx3[k]); /* = rp*dphi*dz */
     }
     #elif GEOMETRY == SPHERICAL
     dmu = fabs(cos(x2m[j]) - cos(x2p[j]));
     if (i == -1) {
-      Ax1[k][j][i] = D_EXPAND(x1m[0]*x1m[0], *dmu, *dx3[k]); /* = rp^2*dmu*dphi */
+      Ax1[k][j][i] = DIM_EXPAND(x1m[0]*x1m[0], *dmu, *dx3[k]); /* = rp^2*dmu*dphi */
     }else{
-      Ax1[k][j][i] = D_EXPAND(x1p[i]*x1p[i], *dmu, *dx3[k]); /* = rp^2*dmu*dphi */
+      Ax1[k][j][i] = DIM_EXPAND(x1p[i]*x1p[i], *dmu, *dx3[k]); /* = rp^2*dmu*dphi */
     }
     #endif
   }}}
@@ -177,16 +177,16 @@ void MakeGeometry (Grid *grid)
   for (j = -1; j <= jend; j++){
   for (i =  0; i <= iend; i++){
     #if GEOMETRY == CARTESIAN
-    Ax2[k][j][i] = D_EXPAND(dx1[i], *1.0, *dx3[k]);        /* = dx*dz */
+    Ax2[k][j][i] = DIM_EXPAND(dx1[i], *1.0, *dx3[k]);        /* = dx*dz */
     #elif GEOMETRY == CYLINDRICAL
-    Ax2[k][j][i] = D_EXPAND(fabs(x1[i]), *dx1[i], *1.0);   /* = r*dr */
+    Ax2[k][j][i] = DIM_EXPAND(fabs(x1[i]), *dx1[i], *1.0);   /* = r*dr */
     #elif GEOMETRY == POLAR
-    Ax2[k][j][i] = D_EXPAND(dx1[i], *1.0, *dx3[k]);        /* = dr*dz */    
+    Ax2[k][j][i] = DIM_EXPAND(dx1[i], *1.0, *dx3[k]);        /* = dr*dz */    
     #elif GEOMETRY == SPHERICAL
     if (j == -1){
-      Ax2[k][j][i] = D_EXPAND(x1[i]*dx1[i], *fabs(sin(x2m[0])), *dx3[k]); /* = r*dr*sin(thp)*dphi */
+      Ax2[k][j][i] = DIM_EXPAND(fabs(x1[i])*dx1[i], *fabs(sin(x2m[0])), *dx3[k]); /* = r*dr*sin(thp)*dphi */
     }else{
-      Ax2[k][j][i] = D_EXPAND(x1[i]*dx1[i], *fabs(sin(x2p[j])), *dx3[k]); /* = r*dr*sin(thp)*dphi */
+      Ax2[k][j][i] = DIM_EXPAND(fabs(x1[i])*dx1[i], *fabs(sin(x2p[j])), *dx3[k]); /* = r*dr*sin(thp)*dphi */
     }
     #endif
   }}}
@@ -199,13 +199,13 @@ void MakeGeometry (Grid *grid)
   for (j =  0; j <= jend; j++){
   for (i =  0; i <= iend; i++){
     #if GEOMETRY == CARTESIAN
-    Ax3[k][j][i] = D_EXPAND(dx1[i], *dx2[j], *1.0);          /* = dx*dy */ 
+    Ax3[k][j][i] = DIM_EXPAND(dx1[i], *dx2[j], *1.0);  /* = dx*dy */ 
     #elif GEOMETRY == CYLINDRICAL
-    Ax3[k][j][i] = 1.0;   /* No 3rd direction in cylindrical coords */
+    Ax3[k][j][i] = 1.0;                              /* No 3rd direction in cylindrical coords */
     #elif GEOMETRY == POLAR
-    Ax3[k][j][i] = D_EXPAND(x1[i]*dx1[i], *dx2[j], *1.0);   /* = r*dr*dphi */        
+    Ax3[k][j][i] = DIM_EXPAND(fabs(x1[i])*dx1[i], *dx2[j], *1.0);   /* = |r|*dr*dphi */
     #elif GEOMETRY == SPHERICAL
-    Ax3[k][j][i] = D_EXPAND(x1[i]*dx1[i], *dx2[j], *1.0);   /* = r*dr*dth */        
+    Ax3[k][j][i] = DIM_EXPAND(fabs(x1[i])*dx1[i], *dx2[j], *1.0);   /* = r*dr*dth */        
     #endif
   }}}
 
@@ -239,7 +239,7 @@ void MakeGeometry (Grid *grid)
       between interfaces (inv_dx) and cell centers (inv_dxi)
    --------------------------------------------------------- */
 
-  for (idim = 0; idim < DIMENSIONS; idim++){
+  DIM_LOOP(idim){
     for (i = 0; i < grid->np_tot[idim]; i++) {
       grid->inv_dx[idim][i] = 1.0/(grid->dx[idim][i]);
     }

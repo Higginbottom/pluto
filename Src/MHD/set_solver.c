@@ -23,15 +23,13 @@ Riemann_Solver *SetSolver (const char *solver)
    return (&FD_Flux);
   #endif
 
-
 #if HALL_MHD
   if (strcmp(solver,"hll")) {
-    print ("! SetSolver(): %s not compatible with HALL_MHD, use hll instead\n",
+    printLog ("! SetSolver(): %s not compatible with HALL_MHD, use hll instead\n",
             solver);
     QUIT_PLUTO(1);
   }
 #endif
-
 
 /* ------------------------------------------------------
        Set Pointers for SOLVERS
@@ -45,7 +43,12 @@ Riemann_Solver *SetSolver (const char *solver)
             !strcmp(solver, "hll"))     return (&HLL_Solver);
    else if (!strcmp(solver, "hllc"))    return (&HLLC_Solver);
    else if (!strcmp(solver, "hlld"))    return (&HLLD_Solver);
+   #if ENABLE_HLLEM == YES
+   else if (!strcmp(solver, "hllem"))   return (&HLLEM_Solver);
+   #endif
+   else if (!strcmp(solver, "gforce"))  return (&GFORCE_Solver);
 /*
+   else if (!strcmp(solver, "gmusta1")) return (&GMUSTA1_Solver);
    else if (!strcmp(solver, "musta"))   return (&MUSTA_Solver);
 */
 
@@ -75,7 +78,7 @@ Riemann_Solver *SetSolver (const char *solver)
 
   #endif
 
-  print ("\n! SetSolver: '%s' is not available.\n", solver);
+  printLog ("\n! SetSolver: '%s' is not available.\n", solver);
   QUIT_PLUTO(1);
 
 }

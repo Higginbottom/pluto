@@ -19,8 +19,8 @@
   and the vector v. The result containing the characteristic
   variables is stored in the vector w = L.v
 
-  \authors A. Mignone (mignone@ph.unito.it)\n
-  \date    Feb 13, 2018
+  \authors A. Mignone (mignone@to.infn.it)\n
+  \date    June 25, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -50,7 +50,7 @@ void MaxSignalSpeed (const State *state, double *cmin, double *cmax,
     q = state->v[i];
     
     vx   = q[VXn];
-    vt2  = EXPAND(0.0, + q[VXt]*q[VXt], + q[VXb]*q[VXb]);
+    vt2  = q[VXt]*q[VXt] + q[VXb]*q[VXb];
     vel2 = vx*vx + vt2;
 
     sroot = sqrt(cs2[i]*(1.0 - vx*vx - vt2*cs2[i])*(1.0 - vel2)); 
@@ -62,7 +62,7 @@ void MaxSignalSpeed (const State *state, double *cmin, double *cmax,
   }
 }
 
-/* ******************************************************************** */
+/* ********************************************************************* */
 void PrimEigenvectors (const State *state, int beg, int end)
 /*!
  * Provide eigenvectors eigenvalues of the relativistic
@@ -100,22 +100,22 @@ void PrimEigenvectors (const State *state, int beg, int end)
 
   /* -- Compute Lorentz factor -- */
      
-  #if RECONSTRUCT_4VEL
-    g  = EXPAND(q[VXn]*q[VXn], + q[VXt]*q[VXt], + q[VXb]*q[VXb]);
+    #if RECONSTRUCT_4VEL
+    g  = q[VXn]*q[VXn] + q[VXt]*q[VXt] + q[VXb]*q[VXb];
     g  = sqrt(1.0 + g);
-    EXPAND(u = q[VXn]/g; ,
-           v = q[VXt]/g; ,
-           w = q[VXb]/g;)
-  #else
-    EXPAND(u = q[VXn]; ,
-           v = q[VXt]; ,
-           w = q[VXb];)
-  #endif
+    u = q[VXn]/g;
+    v = q[VXt]/g;
+    w = q[VXb]/g;
+    #else
+    u = q[VXn];
+    v = q[VXt];
+    w = q[VXb];
+    #endif
 
   /* -- u,v,w  are now the three dimensional velocities -- */
 
     cs    = sqrt(cs2);
-    v2tan = EXPAND(0.0, + v*v, + w*w);
+    v2tan = v*v + w*w;
     eta   = sqrt(1.0 - u*u - cs2*v2tan);
     g2_1d = 1.0/(1.0 - u*u);
     g2    = u*u + v2tan;
@@ -154,24 +154,24 @@ void PrimEigenvectors (const State *state, int beg, int end)
   /* -- lambda = u - cs -- */
 
     RR[RHO][0]  = 1.0;
-    EXPAND(RR[VXn][0] = -a;           ,
-           RR[VXt][0] = v*rm;  ,
-           RR[VXb][0] = w*rm;)
+    RR[VXn][0] = -a;  
+    RR[VXt][0] = v*rm;
+    RR[VXb][0] = w*rm;
     RR[PRS][0] = b;
 
   /* -- lambda = u + cs -- */
 
     RR[RHO][1] = 1.0;
-    EXPAND(RR[VXn][1] = a;    ,
-           RR[VXt][1] = v*rp; ,
-           RR[VXb][1] = w*rp;)
+    RR[VXn][1] = a;
+    RR[VXt][1] = v*rp;
+    RR[VXb][1] = w*rp;
     RR[PRS][1] = b;
 
   /* -- lambda = u -- */
 
-    EXPAND(RR[RHO][2] = 1.0; ,
-           RR[VXt][3] = 1.0; ,
-           RR[VXb][4] = 1.0;)
+    RR[RHO][2] = 1.0;
+    RR[VXt][3] = 1.0;
+    RR[VXb][4] = 1.0;
 
   /* -------------------------------------------
             LEFT Eigenvectors, 3-vel
@@ -197,16 +197,13 @@ void PrimEigenvectors (const State *state, int beg, int end)
 
   /* -- lambda = u for transverse vel. -- */
 
-    #if COMPONENTS > 1   
     LL[3][VXn] = u*v*g2_1d; 
     LL[3][VXt] = 1.0;                  
     LL[3][PRS] = v*g2_1d/(g2*q[RHO]*h);
-    #endif
-    #if COMPONENTS > 2 
+
     LL[4][VXn] = u*w*g2_1d; 
     LL[4][VXb] = 1.0;
     LL[4][PRS] = w*g2_1d/(g2*q[RHO]*h);
-    #endif
 
   #elif RECONSTRUCT_4VEL == YES
 
@@ -218,26 +215,26 @@ void PrimEigenvectors (const State *state, int beg, int end)
 
   /* -- lambda = u - c -- */
 
-    EXPAND(r2 = -(g + g3*u*u)*a + g3*u*rm*v2tan;  ,
-           r3 = v*(-g3*u*a + rm*(g + g3*v2tan));  ,
-           r4 = w*(-g3*u*a + rm*(g + g3*v2tan)); )
+    r2 = -(g + g3*u*u)*a + g3*u*rm*v2tan;
+    r3 = v*(-g3*u*a + rm*(g + g3*v2tan));
+    r4 = w*(-g3*u*a + rm*(g + g3*v2tan));
 
     RR[RHO][0] = 1.0;
-    EXPAND(RR[VXn][0] = r2;  ,
-           RR[VXt][0] = r3;  ,
-           RR[VXb][0] = r4;)
+    RR[VXn][0] = r2;
+    RR[VXt][0] = r3;
+    RR[VXb][0] = r4;
     RR[ENG][0] = b;
 
   /* -- lambda = u + c -- */
 
-    EXPAND(r2 =  (g + g3*u*u)*a + g3*u*rp*v2tan;  ,
-           r3 = v*(g3*u*a + rp*(g + g3*v2tan));   ,
-           r4 = w*(g3*u*a + rp*(g + g3*v2tan)); )
+    r2 =  (g + g3*u*u)*a + g3*u*rp*v2tan;
+    r3 = v*(g3*u*a + rp*(g + g3*v2tan));
+    r4 = w*(g3*u*a + rp*(g + g3*v2tan));
 
     RR[RHO][1] = 1.0;
-    EXPAND(RR[VXn][1] = r2;  ,
-           RR[VXt][1] = r3;  ,
-           RR[VXb][1] = r4;)
+    RR[VXn][1] = r2;
+    RR[VXt][1] = r3;
+    RR[VXb][1] = r4;
     RR[ENG][1] = b;
 
   /* -- lambda = u -- */
@@ -246,17 +243,13 @@ void PrimEigenvectors (const State *state, int beg, int end)
 
   /* -- lambda = u for transverse vel. -- */
 
-    #if COMPONENTS > 1
-    EXPAND(RR[VXn][3] = g3*u*v;      ,
-           RR[VXt][3] = g + g3*v*v;  ,
-           RR[VXb][3] = g3*v*w;)
+    RR[VXn][3] = g3*u*v;
+    RR[VXt][3] = g + g3*v*v;
+    RR[VXb][3] = g3*v*w;
 
-    #endif
-    #if COMPONENTS > 2
     RR[VXn][4] = g3*u*w;  
     RR[VXt][4] = g3*v*w;  
     RR[VXb][4] = g + g3*w*w;
-    #endif
 
   /* --------------------------------------------------
           LEFT Eigenvectors, 4-vel
@@ -264,16 +257,16 @@ void PrimEigenvectors (const State *state, int beg, int end)
 
   /* -- lambda = u - c -- */
 
-    EXPAND(LL[0][VXn] =-0.5*(1.0 - u*u)/a/g;  ,
-           LL[0][VXt] = 0.5*u*v/a/g;    ,
-           LL[0][VXb] = 0.5*u*w/a/g;)
+    LL[0][VXn] =-0.5*(1.0 - u*u)/a/g;
+    LL[0][VXt] = 0.5*u*v/a/g;
+    LL[0][VXb] = 0.5*u*w/a/g;
     LL[0][ENG] = 0.5/b;
 
   /* -- lambda = u + c -- */
 
-    EXPAND(LL[1][VXn] =  0.5*(1.0 - u*u)/a/g; ,
-           LL[1][VXt] = -0.5*u*v/a/g;      ,
-           LL[1][VXb] = -0.5*u*w/a/g;)
+    LL[1][VXn] =  0.5*(1.0 - u*u)/a/g;
+    LL[1][VXt] = -0.5*u*v/a/g; 
+    LL[1][VXb] = -0.5*u*w/a/g;
     LL[1][ENG] = 0.5/b;
 
   /* -- lambda = u -- */
@@ -281,18 +274,15 @@ void PrimEigenvectors (const State *state, int beg, int end)
     LL[2][RHO] = 1.0;
     LL[2][ENG]  =-1.0/b;
 
-    #if COMPONENTS > 1
-    EXPAND(LL[3][VXn] = -0.5*v*(rp - rm)/a/g/g2_1d - u*v/g;  ,
-           LL[3][VXt] =  0.5*v*v*(rp - rm)*u/a/g + (1.0 - v*v)/g;   ,
-           LL[3][VXb] =  0.5*v*(rp - rm)*u*w/a/g - v*w/g;)
+    LL[3][VXn] = -0.5*v*(rp - rm)/a/g/g2_1d - u*v/g;
+    LL[3][VXt] =  0.5*v*v*(rp - rm)*u/a/g + (1.0 - v*v)/g;
+    LL[3][VXb] =  0.5*v*(rp - rm)*u*w/a/g - v*w/g;
     LL[3][ENG] = -0.5*v*(rm + rp)/b;
-    #endif
-    #if COMPONENTS > 2
+
     LL[4][VXn] = -0.5*w*(rp - rm)/a/g/g2_1d - u*w/g;  
     LL[4][VXt] =  0.5*v*(rp - rm)*u*w/a/g - v*w/g;
     LL[4][VXb] =  0.5*w*w*(rp - rm)*u/a/g + (1.0 - w*w)/g;
     LL[4][ENG] = -0.5*w*(rp + rm)/b;
-    #endif
   #endif  /* RECONSTRUCT_4VEL == YES */
 
 /* -----------------------------------------
@@ -324,22 +314,22 @@ void PrimEigenvectors (const State *state, int beg, int end)
     }
   
     if (a > 1.e-1) {
-      print ("! Eigenvectors not consistent in EIGENV%12.6e\n",a);
+      printLog ("! Eigenvectors not consistent in EIGENV%12.6e\n",a);
       for (ii = 0; ii < NFLX; ii++){
         for (jj = 0; jj < NFLX; jj++){
-          print ("%12.6e   ",AA[ii][jj]);
+          printLog ("%12.6e   ",AA[ii][jj]);
         }
-        print("\n");
+        printLog ("\n");
       }
   
   
-      print ("Aw0:  ");
+      printLog ("Aw0:  ");
       for (ii = 0; ii < NFLX; ii++){
-        print ("%12.6e ,  ",Aw0[ii]);
+        printLog ("%12.6e ,  ",Aw0[ii]);
       }
-      print ("\nAw1:  ");
+      printLog ("\nAw1:  ");
       for (ii = 0; ii < NFLX; ii++){
-        print ("%12.6e ,  ",Aw1[ii]);
+        printLog ("%12.6e ,  ",Aw1[ii]);
       }
       QUIT_PLUTO(1);
     }
@@ -353,13 +343,13 @@ void PrimEigenvectors (const State *state, int beg, int end)
           a += LL[kk][ii]*RR[jj][kk];
         }
         if (ii==jj && fabs(a-1.0)>1.e-8) {
-          print ("! Eigenvectors not orthogonal!  %d  %d  %12.6e \n",ii,jj,a);
-          print ("NSweep: %d\n",g_dir);
+          printLog ("! Eigenvectors not orthogonal!  %d  %d  %12.6e \n",ii,jj,a);
+          printLog ("NSweep: %d\n",g_dir);
           QUIT_PLUTO(1);
         }
         if(ii!=jj && fabs(a)>1.e-8) {
-          print ("! Eigenvectors not orthogonal (2) %d  %d  %12.6e !\n",ii,jj,a);
-          print ("NSweep: %d\n",g_dir);
+          printLog ("! Eigenvectors not orthogonal (2) %d  %d  %12.6e !\n",ii,jj,a);
+          printLog ("NSweep: %d\n",g_dir);
           QUIT_PLUTO(1);
         }
       } 
@@ -368,54 +358,34 @@ void PrimEigenvectors (const State *state, int beg, int end)
   } /* End loop on i = beg, end */
 }
 
-/* ***************************************************************** */
+/* ********************************************************************* */
 void PrimToChar (double **L, double *v, double *w)
-/*
+/*!
+ *  Compute the matrix-vector product between the L matrix
+ *  (containing primitive left eigenvectors) and the vector v. 
+ *  For efficiency purpose, multiplication is done explicitly, so that
+ *  only nonzero entries of the left primitive eigenvectors are considered.
  *
- *  Compute the matrix-vector product between the
- *  the L matrix (containing primitive left eigenvectors) 
- *  and the vector v. 
- *  For efficiency purpose, multiplication is done 
- *  explicitly, so that only nonzero entries
- *  of the left primitive eigenvectors are considered.
- *  
- *
- ****************************************************************** */
+ *********************************************************************** */
 {
   int nv;
 
-  #if RECONSTRUCT_4VEL == NO
+#if RECONSTRUCT_4VEL == NO
+  w[0] = L[0][VXn]*v[VXn] + L[0][PRS]*v[PRS];
+  w[1] = L[1][VXn]*v[VXn] + L[1][PRS]*v[PRS];
+  w[2] = v[RHO] + L[2][PRS]*v[PRS];
+  w[3] = L[3][VXn]*v[VXn] + v[VXt] + L[3][PRS]*v[PRS];
+  w[4] = L[4][VXn]*v[VXn] + v[VXb] + L[4][PRS]*v[PRS];
 
-   w[0] = L[0][VXn]*v[VXn] + L[0][PRS]*v[PRS];
-   w[1] = L[1][VXn]*v[VXn] + L[1][PRS]*v[PRS];
-   EXPAND( w[2] = v[RHO] + L[2][PRS]*v[PRS];                    ,
-           w[3] = L[3][VXn]*v[VXn] + v[VXt] + L[3][PRS]*v[PRS];   ,
-           w[4] = L[4][VXn]*v[VXn] + v[VXb] + L[4][PRS]*v[PRS];)
+#elif RECONSTRUCT_4VEL == YES
+  w[0] = L[0][VXn]*v[VXn] + L[0][VXt]*v[VXt] + L[0][VXb]*v[VXb] + L[0][PRS]*v[PRS];
+  w[1] = L[1][VXn]*v[VXn] + L[1][VXt]*v[VXt] + L[1][VXb]*v[VXb] + L[1][PRS]*v[PRS];
 
-  #elif RECONSTRUCT_4VEL == YES
- 
-   w[0] = EXPAND(  L[0][VXn]*v[VXn],
-                 + L[0][VXt]*v[VXt],
-                 + L[0][VXb]*v[VXb]) + L[0][PRS]*v[PRS];
-   w[1] = EXPAND(  L[1][VXn]*v[VXn],
-                 + L[1][VXt]*v[VXt],
-                 + L[1][VXb]*v[VXb]) + L[1][PRS]*v[PRS];;
-
-   w[2] = v[RHO] + L[2][PRS]*v[PRS];
+  w[2] = v[RHO] + L[2][PRS]*v[PRS];
    
-   #if COMPONENTS > 1
-    w[3] = EXPAND(  L[3][VXn]*v[VXn],
-                  + L[3][VXt]*v[VXt],
-                  + L[3][VXb]*v[VXb]) +  L[3][PRS]*v[PRS];
-
-    #if COMPONENTS == 3
-    w[4] = L[4][VXn]*v[VXn],
-           L[4][VXt]*v[VXt],
-           L[4][VXb]*v[VXb] +  L[4][PRS]*v[PRS];
-    #endif
-   #endif
-
-  #endif
+  w[3] = L[3][VXn]*v[VXn] + L[3][VXt]*v[VXt] + L[3][VXb]*v[VXb] + L[3][PRS]*v[PRS];
+  w[4] = L[4][VXn]*v[VXn] + L[4][VXt]*v[VXt] + L[4][VXb]*v[VXb] + L[4][PRS]*v[PRS];
+#endif
 
 /* ----------------------------------------------- 
      For passive scalars, the characteristic 

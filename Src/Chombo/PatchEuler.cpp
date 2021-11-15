@@ -10,7 +10,7 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
                              FArrayBox&       a_Utmp,
                              const FArrayBox& a_dV,
                              FArrayBox&       split_tags,
-                             BaseFab<unsigned char>& a_Flags,
+                             BaseFab<uint16_t>& a_Flags,
                              FluxBox&         a_F,
                              timeStep        *Dts,
                              const Box&       UBox, 
@@ -35,8 +35,15 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
   double ***splitcells;
 #endif
   static Sweep sweep;
-  Riemann_Solver *Riemann = rsolver;
   RBox rbox;
+
+  #if RADIATION && RADIATION_IMEX_SSP2
+  static double  rk_gamma = 0.29289321881;
+  static Data_Arr Srad1, Srad2;
+  double dt_rk1 = g_dt*rk_gamma ,
+         dt_rk2 = g_dt*(1.0-3.0*rk_gamma) ,
+         dt_rk3 = g_dt*0.5*(1.0-rk_gamma) ; 
+  #endif
   
 // ----------------------------------------------------
 // 0. Check algorithm compatibilities
@@ -49,6 +56,11 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
 #if TIME_STEPPING != RK2
   print ("! advanceStep(): works only with RK2\n");
 #endif
+
+  #if (RADIATION) && (RADIATION_IMEX_SSP2 == YES) && (TIME_STEPPING != RK2)
+  print ("! advanceStep(): RADIATION_IMEX_SSP2 requires TIME_STEPPING == RK2\n");
+  QUIT_PLUTO(1);
+  #endif
 
 // ----------------------------------------------------
 // 1a. Map Chombo data structure
@@ -77,10 +89,10 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
   }
 
 // ----------------------------------------------------
-// 1b. Set flag
+// 1b. Set flag & Riemann solver
 // ----------------------------------------------------
 
-  d.flag = ArrayCharMap(NX3_TOT, NX2_TOT, NX1_TOT,a_Flags.dataPtr(0));
+  d.flag = ArrayUint16_tMap(NX3_TOT, NX2_TOT, NX1_TOT,a_Flags.dataPtr(0));
   if (g_intStage == 1) TOT_LOOP(k,j,i) d.flag[k][j][i] = 0;
   
 #ifdef SKIP_SPLIT_CELLS
@@ -102,12 +114,23 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
 
     d.Vc   = ARRAY_4D(NVAR, NX3_MAX, NX2_MAX, NX1_MAX, double);
     d.Uc   = ARRAY_4D(NX3_MAX, NX2_MAX, NX1_MAX, NVAR, double);
-#if RESISTIVITY
+    #if RESISTIVITY
     d.J    = ARRAY_4D(3,NX3_MAX, NX2_MAX, NX1_MAX, double);
-#endif
-#if THERMAL_CONDUCTION
+    #endif
+    #if THERMAL_CONDUCTION
     d.Tc   = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, double);
-#endif
+    #endif
+
+    #if RADIATION && RADIATION_IMEX_SSP2 == YES
+    Srad1 = ARRAY_4D(NX3_MAX, NX2_MAX, NX1_MAX, 4, double);
+    Srad2 = ARRAY_4D(NX3_MAX, NX2_MAX, NX1_MAX, 4, double);
+    #endif
+
+  // Set Riemann solver
+    d.fluidRiemannSolver = SetSolver (RuntimeGet()->solv_type);
+    #if RADIATION
+    d.radiationRiemannSolver = Rad_SetSolver (RuntimeGet()->rad_solv_type);
+    #endif
   }
 
 // Transpose array to have nv as fastest running index
@@ -137,9 +160,30 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
   for (in = 0; in < DIMENSIONS; in++) aflux[in] = a_F[in].dataPtr(0);
 
   RBoxDefine (IBEG, IEND, JBEG, JEND, KBEG, KEND, CENTER, &rbox);
-  UpdateStage(&d, d.Uc, aflux, Riemann, g_dt, Dts, grid);
+
+  #if RADIATION && (RADIATION_IMEX_SSP2 == YES)
+  if (g_intStage == 1){
+    RadStep3D (d.Uc, d.Vc, Srad1, d.flag, &rbox, dt_rk1);
+    getPrimitiveVars (d.Uc, &d, grid);
+  }
+  #endif
+
+  UpdateStage(&d, d.Uc, d.Vs, aflux, g_dt, Dts, grid);
 
   saveFluxes(aflux, grid);
+
+  #if RADIATION
+    #if RADIATION_IMEX_SSP2 == YES
+    if (g_intStage == 1) {
+      AddRadSource1(d.Uc, Srad1, &rbox, dt_rk2);
+      getPrimitiveVars (d.Uc, &d, grid);
+      RadStep3D (d.Uc, d.Vc, Srad2, d.flag, &rbox, dt_rk1);
+    }
+    #else
+    getPrimitiveVars (d.Uc, &d, grid);
+    RadStep3D (d.Uc, d.Vc, NULL, d.flag, &rbox, g_dt);
+    #endif
+  #endif
 
   DOM_LOOP(k,j,i) NVAR_LOOP(nv) UU[nv][k][j][i] = d.Uc[k][j][i][nv];
 
@@ -167,7 +211,7 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
     #ifdef GLM_MHD
     double dtdx = g_dt/g_coeff_dl_min/m_dx;
 //    double dtdx = g_dt/g_coeff_dl_min; /* If subcycling is turned off */
-    GLM_Source (d.Uc, dtdx, grid);
+    GLM_Source (&d, dtdx, grid);
     #endif
 
 
@@ -176,6 +220,10 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
     SplitSource (&d, g_dt, Dts, grid);
     PrimToCons3D(d.Vc, d.Uc, &rbox);
     #endif
+
+    #if RADIATION && (RADIATION_IMEX_SSP2 == YES)
+    AddRadSource2(d.Uc, Srad1, Srad2, &rbox, dt_rk1, dt_rk3);
+    #endif 
   }
 
 #if ENTROPY_SWITCH
@@ -228,5 +276,5 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
   FreeArrayBoxMap (splitcells, KBEG, KEND, JBEG, JEND, IBEG, IEND);
 #endif
  
-  FreeArrayCharMap(d.flag);
+  FreeArrayUint16_tMap(d.flag);
 }

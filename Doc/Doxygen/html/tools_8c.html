@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -76,8 +76,6 @@ $(function() {
 </div><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a8168fc5ee837915847a4f915fc09ddd2"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="tools_8c.html#a8168fc5ee837915847a4f915fc09ddd2">CheckNaN</a> (double **u, int is, int ie, int id)</td></tr>
-<tr class="separator:a8168fc5ee837915847a4f915fc09ddd2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7a4d626d840f93490b4505996e8dbb76"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="tools_8c.html#a7a4d626d840f93490b4505996e8dbb76">GetNeighbourRanks</a> (<a class="el" href="struct_grid.html">Grid</a> *grid, int **nranks)</td></tr>
 <tr class="separator:a7a4d626d840f93490b4505996e8dbb76"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ada1b2b037b2b120a7e66349095b79b17"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="tools_8c.html#ada1b2b037b2b120a7e66349095b79b17">IsLittleEndian</a> (void)</td></tr>
@@ -86,77 +84,23 @@ Functions</h2></td></tr>
 <tr class="separator:a53ff0c8291737cde0ff5ce322764d82a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a80a7e75dfd0ccca315502054bd8e7f59"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="tools_8c.html#a80a7e75dfd0ccca315502054bd8e7f59">PlutoError</a> (int condition, char *str)</td></tr>
 <tr class="separator:a80a7e75dfd0ccca315502054bd8e7f59"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0b998ed72e46f4c0370f3608087111c4"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="tools_8c.html#a0b998ed72e46f4c0370f3608087111c4">PrintColumnLegend</a> (char *legend[], int nfields, FILE *fp)</td></tr>
+<tr class="separator:a0b998ed72e46f4c0370f3608087111c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac13d53badd27e61e3e64828c129db182"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="tools_8c.html#ac13d53badd27e61e3e64828c129db182">StateStructAllocate</a> (<a class="el" href="struct_state.html">State</a> *p)</td></tr>
 <tr class="separator:ac13d53badd27e61e3e64828c129db182"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6c7040c89986b23cdad06c08631f4c6a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="tools_8c.html#a6c7040c89986b23cdad06c08631f4c6a">Show</a> (double **a, int ip)</td></tr>
-<tr class="separator:a6c7040c89986b23cdad06c08631f4c6a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a218ca49dab0a33643374a5a6b560a634"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="tools_8c.html#a218ca49dab0a33643374a5a6b560a634">ShowMatrix</a> (double **A, int n, double eps)</td></tr>
-<tr class="separator:a218ca49dab0a33643374a5a6b560a634"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adcf7d3ea24a8596f578adf2418c9e23d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="tools_8c.html#adcf7d3ea24a8596f578adf2418c9e23d">ShowVector</a> (double *v, int n)</td></tr>
-<tr class="separator:adcf7d3ea24a8596f578adf2418c9e23d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa8ab4887781e8cf7e48eab400c4db103"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="tools_8c.html#aa8ab4887781e8cf7e48eab400c4db103">StringArrayIndex</a> (char *str_arr[], int size, char *str)</td></tr>
 <tr class="separator:aa8ab4887781e8cf7e48eab400c4db103"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aab949ae265e2e41e30effd078e94ac89"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="tools_8c.html#aab949ae265e2e41e30effd078e94ac89">SymmetryCheck</a> (Data_Arr V, int where, <a class="el" href="struct_r_box.html">RBox</a> *box)</td></tr>
 <tr class="separator:aab949ae265e2e41e30effd078e94ac89"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a13a5425b4e8a347303906648dbaac444"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="tools_8c.html#a13a5425b4e8a347303906648dbaac444">SwapEndian</a> (void *x, const int nbytes)</td></tr>
 <tr class="separator:a13a5425b4e8a347303906648dbaac444"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae52eb648f8461408f9221736f646ddfb"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="tools_8c.html#ae52eb648f8461408f9221736f646ddfb">Trace</a> (double xx)</td></tr>
-<tr class="separator:ae52eb648f8461408f9221736f646ddfb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1b655c8a42bca91b14660433919fba5c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="tools_8c.html#a1b655c8a42bca91b14660433919fba5c">Where</a> (int i, <a class="el" href="struct_grid.html">Grid</a> *grid)</td></tr>
-<tr class="separator:a1b655c8a42bca91b14660433919fba5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a041aa1a196f8f0dc501d87f98761a106"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="tools_8c.html#a041aa1a196f8f0dc501d87f98761a106">WriteAsciiFile</a> (char *fname, double *q, int nvar)</td></tr>
 <tr class="separator:a041aa1a196f8f0dc501d87f98761a106"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>This file contains some miscellaneous tools for</p>
-<ul>
-<li>Debugging / printing / error functions such as <a class="el" href="tools_8c.html#ae52eb648f8461408f9221736f646ddfb">Trace()</a>, <a class="el" href="tools_8c.html#a6c7040c89986b23cdad06c08631f4c6a">Show()</a>, <a class="el" href="tools_8c.html#a1b655c8a42bca91b14660433919fba5c">Where()</a>, PlutoError</li>
-<li>function for swapping/detecting endianity</li>
-</ul>
-<dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'ph'+'.un'+'it'+'o.i'+'t'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@p<span style="display: none;">.nosp@m.</span>h.uni<span style="display: none;">.nosp@m.</span>to.i<span style="display: none;">.nosp@m.</span>t</a>) </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>July 15, 2017 </dd></dl>
+<div class="textblock"><dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'to'+'.in'+'fn'+'.it'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@t<span style="display: none;">.nosp@m.</span>o.inf<span style="display: none;">.nosp@m.</span>n.it</a>) </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>Jan 27, 2020 </dd></dl>
 </div><h2 class="groupheader">Function Documentation</h2>
-<a id="a8168fc5ee837915847a4f915fc09ddd2"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8168fc5ee837915847a4f915fc09ddd2">&#9670;&nbsp;</a></span>CheckNaN()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int CheckNaN </td>
-          <td>(</td>
-          <td class="paramtype">double **&#160;</td>
-          <td class="paramname"><em>u</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>is</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>ie</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>id</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Check whether the array <code>u</code> contains Not-a-Number (NaN). QUIT if true. </p>
-
-</div>
-</div>
 <a id="a7a4d626d840f93490b4505996e8dbb76"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a7a4d626d840f93490b4505996e8dbb76">&#9670;&nbsp;</a></span>GetNeighbourRanks()</h2>
 
@@ -260,23 +204,29 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a6c7040c89986b23cdad06c08631f4c6a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6c7040c89986b23cdad06c08631f4c6a">&#9670;&nbsp;</a></span>Show()</h2>
+<a id="a0b998ed72e46f4c0370f3608087111c4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0b998ed72e46f4c0370f3608087111c4">&#9670;&nbsp;</a></span>PrintColumnLegend()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void Show </td>
+          <td class="memname">void PrintColumnLegend </td>
           <td>(</td>
-          <td class="paramtype">double **&#160;</td>
-          <td class="paramname"><em>a</em>, </td>
+          <td class="paramtype">char *&#160;</td>
+          <td class="paramname"><em>legend</em>[], </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>ip</em>&#160;</td>
+          <td class="paramname"><em>nfields</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">FILE *&#160;</td>
+          <td class="paramname"><em>fp</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -285,71 +235,15 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Print the component of the array <code>a</code> at grid index <code>ip</code> </p>
-
-</div>
-</div>
-<a id="a218ca49dab0a33643374a5a6b560a634"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a218ca49dab0a33643374a5a6b560a634">&#9670;&nbsp;</a></span>ShowMatrix()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void ShowMatrix </td>
-          <td>(</td>
-          <td class="paramtype">double **&#160;</td>
-          <td class="paramname"><em>A</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>n</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double&#160;</td>
-          <td class="paramname"><em>eps</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Make a nice printing of a 2D matrix <code>A</code>[0..n-1][0..n-1] Entries with values below eps will display "0.0" </p>
-
-</div>
-</div>
-<a id="adcf7d3ea24a8596f578adf2418c9e23d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#adcf7d3ea24a8596f578adf2418c9e23d">&#9670;&nbsp;</a></span>ShowVector()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void ShowVector </td>
-          <td>(</td>
-          <td class="paramtype">double *&#160;</td>
-          <td class="paramname"><em>v</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>n</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Print the first n components of the vector v[] </p>
+<p>Print nicely formatted legend to an ASCII datfile header.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">legend</td><td>an array of strings describing the fields </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">nfields</td><td>the number of fields (also the dimensions of legend) </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">fp</td><td>a valid file descriptor. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -487,54 +381,6 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="ae52eb648f8461408f9221736f646ddfb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae52eb648f8461408f9221736f646ddfb">&#9670;&nbsp;</a></span>Trace()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void Trace </td>
-          <td>(</td>
-          <td class="paramtype">double&#160;</td>
-          <td class="paramname"><em>xx</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Print a number xx and the number of times it has been called. </p>
-
-</div>
-</div>
-<a id="a1b655c8a42bca91b14660433919fba5c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1b655c8a42bca91b14660433919fba5c">&#9670;&nbsp;</a></span>Where()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void Where </td>
-          <td>(</td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>i</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="struct_grid.html">Grid</a> *&#160;</td>
-          <td class="paramname"><em>grid</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Print the location of a particular zone (i,j,k) in the computational domain. </p><dl class="section note"><dt>Note</dt><dd>This function must be initialized before using it to store grid information. This is done by calling Where(i, grid) the very first time. Subsequent calls can be then done by simply using Where(i,NULL). </dd></dl>
-
-</div>
-</div>
 <a id="a041aa1a196f8f0dc501d87f98761a106"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a041aa1a196f8f0dc501d87f98761a106">&#9670;&nbsp;</a></span>WriteAsciiFile()</h2>
 
@@ -573,7 +419,7 @@ Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:51 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:58 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

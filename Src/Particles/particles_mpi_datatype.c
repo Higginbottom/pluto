@@ -4,13 +4,14 @@
   \brief Define MPI data-type structure for MPI communications
 
   Define the MPI Datatype of the Particle structure so that it can be 
-  passed among processors. This has to be done for each PARTICLES_TYPE
+  passed among processors. This has to be done for each PARTICLES type
   depending on the quantities present in the structure.
  
-  \authors   A. Mignone (mignone@ph.unito.it)\n
+  \authors   A. Mignone (mignone@to.infn.it)\n
              B. Vaidya (bvaidya@unito.it)\n
+             D. Mukherjee (dipanjan.mukherjee@unito.it)
   
-  \date      March 31, 2018
+  \date      Aug 17, 2020
   
   \b References
   http://mpi.deino.net/mpi_functions/MPI_Type_create_struct.html
@@ -31,13 +32,13 @@ void Particles_StructDatatype()
   int i = 0;
   Particle pl[1];
 
-#if (PARTICLES_TYPE == COSMIC_RAYS) || (PARTICLES_TYPE == DUST)
+#if PARTICLES == PARTICLES_CR
   #define N_ELEMENTS  9
   MPI_Datatype types[N_ELEMENTS] = {MPI_DOUBLE,    /* coord[3]      */
                                     MPI_DOUBLE,    /* speed[3]      */
                                     MPI_DOUBLE,    /* coord_old[3]  */
                                     MPI_DOUBLE,    /* speed_old[3] */
-                                    MPI_DOUBLE,    /* rho          */
+                                    MPI_DOUBLE,    /* mass         */
                                     MPI_FLOAT,     /* tinj         */ 
                                     MPI_FLOAT,     /* color        */ 
                                     MPI_INT,       /* cell[3]      */
@@ -51,7 +52,7 @@ void Particles_StructDatatype()
   offsets[i++] = offsetof(Particle, speed);
   offsets[i++] = offsetof(Particle, coord_old);
   offsets[i++] = offsetof(Particle, speed_old);
-  offsets[i++] = offsetof(Particle, rho);
+  offsets[i++] = offsetof(Particle, mass);
   offsets[i++] = offsetof(Particle, tinj);
   offsets[i++] = offsetof(Particle, color);
   offsets[i++] = offsetof(Particle, cell);
@@ -60,7 +61,34 @@ void Particles_StructDatatype()
   MPI_Type_create_struct(N_ELEMENTS, blocklengths, offsets, types, &MPI_PARTICLE);
   MPI_Type_commit(&MPI_PARTICLE);
                                    
-#elif (PARTICLES_TYPE == LAGRANGIAN) && (PARTICLES_LP_SPECTRA == NO)
+#elif PARTICLES == PARTICLES_DUST
+  #define N_ELEMENTS  8
+  MPI_Datatype types[N_ELEMENTS] = {MPI_DOUBLE,    /* coord[3]     */
+                                    MPI_DOUBLE,    /* speed[3]     */
+                                    MPI_DOUBLE,    /* mass         */
+                                    MPI_DOUBLE,    /* tau_s        */ 
+                                    MPI_FLOAT,     /* tinj         */ 
+                                    MPI_FLOAT,     /* color        */ 
+                                    MPI_INT,       /* cell[3]      */
+                                    MPI_UINT32_T}; /* id           */
+
+  int blocklengths[N_ELEMENTS]  = {3,3,1,1,1,1,3,1};
+  MPI_Aint offsets[N_ELEMENTS];
+
+  i=0;
+  offsets[i++] = offsetof(Particle, coord);
+  offsets[i++] = offsetof(Particle, speed);
+  offsets[i++] = offsetof(Particle, mass);
+  offsets[i++] = offsetof(Particle, tau_s);
+  offsets[i++] = offsetof(Particle, tinj);
+  offsets[i++] = offsetof(Particle, color);
+  offsets[i++] = offsetof(Particle, cell);
+  offsets[i++] = offsetof(Particle, id);
+  
+  MPI_Type_create_struct(N_ELEMENTS, blocklengths, offsets, types, &MPI_PARTICLE);
+  MPI_Type_commit(&MPI_PARTICLE);
+                                   
+#elif (PARTICLES == PARTICLES_LP) && (PARTICLES_LP_SPECTRA == NO)
   #define N_ELEMENTS  9
 
   MPI_Datatype types[N_ELEMENTS] = {MPI_DOUBLE,     /* coord[3]      */
@@ -73,7 +101,7 @@ void Particles_StructDatatype()
                                     MPI_INT,	      /* cell[3]      */
                                     MPI_UINT32_T};  /* id           */
 
-  int blocklengths[N_ELEMENTS]  = {3,3,3,3,1,1,1,3,1};
+  int blocklengths[N_ELEMENTS]  = {3,3,3,3,1,1,PARTICLES_LP_NCOLORS,3,1};
   MPI_Aint offsets[N_ELEMENTS];
 
   i=0;
@@ -90,57 +118,37 @@ void Particles_StructDatatype()
   MPI_Type_create_struct(N_ELEMENTS, blocklengths, offsets, types, &MPI_PARTICLE);
   MPI_Type_commit(&MPI_PARTICLE);
   
-#elif (PARTICLES_TYPE == LAGRANGIAN) && (PARTICLES_LP_SPECTRA == YES)
-  #define N_ELEMENTS  33
+#elif (PARTICLES == PARTICLES_LP) && (PARTICLES_LP_SPECTRA == YES)
+    
+  #define N_ELEMENTS 21
   MPI_Datatype types[N_ELEMENTS] = {MPI_DOUBLE,   /* coord[3]     */
                                     MPI_DOUBLE,   /* speed[3]     */
                                     MPI_DOUBLE,   /* coord_old[3] */
                                     MPI_DOUBLE,   /* speed_old[3] */
                                     MPI_DOUBLE,   /* density      */
-                                    
-                                    MPI_DOUBLE,   /* fourvel[4]   */
-                                    MPI_DOUBLE,   /* density_old  */
                                     MPI_DOUBLE,   /* pressure     */
-                                    MPI_DOUBLE,   /* pressure_old */
                                     MPI_DOUBLE,   /* shk_gradp    */
-                                    MPI_DOUBLE,   /* divv         */
-                                    
-                                    MPI_DOUBLE,   /* ca_old       */
-                                    MPI_DOUBLE,   /* ca           */
-                                    MPI_DOUBLE,   /* cr_old       */
                                     MPI_DOUBLE,   /* cr           */
                                     MPI_DOUBLE,   /* cmp_ratio    */
                                     MPI_DOUBLE,   /* lorG         */
-                                    MPI_DOUBLE,   /* lorG_old     */
-                                    
                                     MPI_DOUBLE,   /* nmicro       */
-                                    MPI_DOUBLE,   /* mag[3]       */
-                                    MPI_DOUBLE,   /* gradp[3]     */
-                                    MPI_DOUBLE,   /* shk_vL[NVAR] */
-                                    MPI_DOUBLE,   /* shk_vR[NVAR] */
-                                    
+                                    MPI_DOUBLE,   /* Vshk_upst[NVAR] */
+                                    MPI_DOUBLE,   /* Vshk_dnst[NVAR] */
                                     MPI_DOUBLE,   /* eng [EBINS] */
                                     MPI_DOUBLE,   /* chi [EBINS] */
-                                    
-                                    MPI_DOUBLE,   /* eng_old [EBINS] */
-                                    MPI_DOUBLE,   /* chi_old [EBINS] */
-                                    
-                                    MPI_FLOAT,    /* tinj         */ 
-                                    MPI_FLOAT,    /* color        */ 
-                                    MPI_INT,	  /* cell[3]      */
-                                    MPI_UINT32_T, /* id           */
-
-                                    MPI_CHAR,     /*   shkflag    */
-                                    MPI_CHAR,     /*   prev_shkflag    */
+                                    MPI_DOUBLE,   /* mag[3]       */
+                                     
+                                    MPI_FLOAT,    /* tinj            */ 
+                                    MPI_FLOAT,    /* color[PARTICLES_LP_NCOLORS]  */ 
+                                    MPI_INT,	  /* cell[3]                   */
+                                    MPI_UINT32_T, /* id                        */
+                                    MPI_CHAR,     /*   shkflag         */
    				    };
-
-  int blocklengths[N_ELEMENTS]  = {3, 3, 3, 3, 1, 4,
-                                   1, 1, 1, 1, 1, 1, 
-                                   1, 1, 1, 1, 1, 1, 1,
-                                    3, 3, NVAR, NVAR,
-                                   PARTICLES_LP_NEBINS, PARTICLES_LP_NEBINS,
-                                   PARTICLES_LP_NEBINS, PARTICLES_LP_NEBINS,
-                                   1, 1, 3, 1, 1, 1};
+    int blocklengths[N_ELEMENTS]  = {3, 3, 3, 3, 1,
+                                     1, 1, 1, 1, 1,
+                                     1, NVAR, NVAR,
+                                     PARTICLES_LP_NEBINS+1, PARTICLES_LP_NEBINS,
+                                     3, 1, PARTICLES_LP_NCOLORS, 3, 1, 1};
 
   MPI_Aint offsets[N_ELEMENTS];
 
@@ -150,35 +158,24 @@ void Particles_StructDatatype()
   offsets[i++] = offsetof(Particle, coord_old);
   offsets[i++] = offsetof(Particle, speed_old);
   offsets[i++] = offsetof(Particle, density);
-  offsets[i++] = offsetof(Particle, fourvel);
-  offsets[i++] = offsetof(Particle, density_old);
   offsets[i++] = offsetof(Particle, pressure);
-  offsets[i++] = offsetof(Particle, pressure_old);
   offsets[i++] = offsetof(Particle, shk_gradp);
-  offsets[i++] = offsetof(Particle, divv);
-  offsets[i++] = offsetof(Particle, ca_old);
-  offsets[i++] = offsetof(Particle, ca);
-  offsets[i++] = offsetof(Particle, cr_old);
   offsets[i++] = offsetof(Particle, cr);
   offsets[i++] = offsetof(Particle, cmp_ratio);
   offsets[i++] = offsetof(Particle, lorG);
-  offsets[i++] = offsetof(Particle, lorG_old);
   offsets[i++] = offsetof(Particle, nmicro);
-  offsets[i++] = offsetof(Particle, mag);
-  offsets[i++] = offsetof(Particle, gradp);
-  offsets[i++] = offsetof(Particle, shk_vL);
-  offsets[i++] = offsetof(Particle, shk_vR);
+  offsets[i++] = offsetof(Particle, Vshk_upst);
+  offsets[i++] = offsetof(Particle, Vshk_dnst);
   offsets[i++] = offsetof(Particle, eng);
   offsets[i++] = offsetof(Particle, chi);
-  offsets[i++] = offsetof(Particle, eng_old);
-  offsets[i++] = offsetof(Particle, chi_old);
+  offsets[i++] = offsetof(Particle, mag);
+
   offsets[i++] = offsetof(Particle, tinj);
   offsets[i++] = offsetof(Particle, color);
   offsets[i++] = offsetof(Particle, cell);
   offsets[i++] = offsetof(Particle, id);
   offsets[i++] = offsetof(Particle, shkflag);
-  offsets[i++] = offsetof(Particle, prev_shkflag);
-    
+
   MPI_Type_create_struct(N_ELEMENTS, blocklengths, offsets, types, &MPI_PARTICLE);
   MPI_Type_commit(&MPI_PARTICLE);
 #endif
@@ -244,7 +241,7 @@ print ("  local  number of particles [after]:  %d\n", p_nparticles);
    -------------------------------------------------------- */
   
   MPI_Allgather (&dn, 1, MPI_INT, dn_arr, 1, MPI_INT, MPI_COMM_WORLD);
-//  for (np = 0; np < g_nprocs; np++) print ("dn[%d] = %d\n",np, dn_arr[np]);
+//  for (np = 0; np < g_nprocs; np++) printLog ("dn[%d] = %d\n",np, dn_arr[np]);
   
 /* --------------------------------------------------------
    3. Set id to newly added particles. 
@@ -257,7 +254,6 @@ print ("  local  number of particles [after]:  %d\n", p_nparticles);
     p = &(curNode->p);
     if (p->id == -1){
       p->id = ++count;  
-//print ("  assigning new id = %d\n",count);
     }
   }
 

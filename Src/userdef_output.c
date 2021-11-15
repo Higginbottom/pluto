@@ -26,7 +26,7 @@ void ChangeOutputVar ()
 { 
   Image *image;
 
-#ifdef PARTICLES
+#if PARTICLES
   //SetOutputVar ("energy",PARTICLES_FLT_OUTPUT, NO);
 //  SetOutputVar ("x1",    PARTICLES_FLT_OUTPUT, NO);
   //SetOutputVar ("vx1",   PARTICLES_FLT_OUTPUT, NO);

@@ -12,10 +12,6 @@ void ComputeUserVar (const Data *d, Grid *grid)
  *
  ***************************************************************** */
 {
-  int i, j, k;  
-  
-  DOM_LOOP(k,j,i){
-  }
 }
 /* ************************************************************* */
 void ChangeOutputVar ()
@@ -32,8 +28,5 @@ void ChangeOutputVar ()
   SetOutputVar("vx2", FLT_OUTPUT, NO);
   SetOutputVar("vx3", FLT_OUTPUT, NO);
 }
-
-
-
 
 

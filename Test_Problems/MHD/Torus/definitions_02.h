@@ -1,14 +1,12 @@
 #define  PHYSICS                        MHD
-#define  DIMENSIONS                     2
-#define  COMPONENTS                     3
-#define  GEOMETRY                       CYLINDRICAL
+#define  DIMENSIONS                     3
+#define  GEOMETRY                       POLAR
 #define  BODY_FORCE                     VECTOR
-#define  FORCED_TURB                    NO
 #define  COOLING                        NO
 #define  RECONSTRUCTION                 LINEAR
 #define  TIME_STEPPING                  CHARACTERISTIC_TRACING
-#define  DIMENSIONAL_SPLITTING          YES
 #define  NTRACER                        1
+#define  PARTICLES                      NO
 #define  USER_DEF_PARAMETERS            6
 
 /* -- physics dependent declarations -- */
@@ -35,6 +33,7 @@
 
 /* [Beg] user-defined constants (do not change this line) */
 
+#define  INCLUDE_JDIR                   NO
 #define  CHAR_LIMITING                  YES
 #define  ASSIGN_VECTOR_POTENTIAL        YES
 #define  USE_DIPOLE                     NO

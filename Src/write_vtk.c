@@ -45,8 +45,8 @@
 
   http://www.vtk.org/VTK/img/file-formats.pdf
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   Nov 11, 2015
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Jun n11, 2021
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -81,7 +81,7 @@
          AL_Write_header (arr, nelem, MPI_DOUBLE, SZ_Float_Vect);
 #else
  #define VTK_HEADER_WRITE_STRING(header) \
-         fprintf (fvtk,header);
+         fprintf (fvtk, "%s", header);
  #define VTK_HEADER_WRITE_FLTARR(arr,nelem) \
          fwrite(arr, sizeof(float), nelem, fvtk);
  #define VTK_HEADER_WRITE_DBLARR(arr,nelem) \
@@ -103,7 +103,7 @@ void WriteVTK_Header (FILE *fvtk, Grid *grid)
 {
   long int i, j, k;
   long int nx1, nx2, nx3;
-  char     header[1024];
+  char     header[128];
   float    x1, x2, x3;
   static float  **node_coord, *xnode, *ynode, *znode;
 
@@ -155,8 +155,8 @@ void WriteVTK_Header (FILE *fvtk, Grid *grid)
   VTK_HEADER_WRITE_STRING("\n");
 #endif /* VTK_TIME_INFO */
 
-  sprintf(header,"DIMENSIONS %d %d %d\n",
-                  nx1 + IOFFSET, nx2 + JOFFSET, nx3 + KOFFSET);
+  sprintf(header,"DIMENSIONS %ld %ld %ld\n",
+                  nx1 + INCLUDE_IDIR, nx2 + INCLUDE_JDIR, nx3 + INCLUDE_KDIR);
   VTK_HEADER_WRITE_STRING(header);
   
 #if VTK_FORMAT == VTK_RECTILINEAR_GRID
@@ -164,73 +164,73 @@ void WriteVTK_Header (FILE *fvtk, Grid *grid)
 /* -- Allocate memory and define node coordinates only once -- */
 
   if (xnode == NULL){
-    xnode = ARRAY_1D(nx1 + IOFFSET, float);
-    ynode = ARRAY_1D(nx2 + JOFFSET, float);
-    znode = ARRAY_1D(nx3 + KOFFSET, float);
+    xnode = ARRAY_1D(nx1 + INCLUDE_IDIR, float);
+    ynode = ARRAY_1D(nx2 + INCLUDE_JDIR, float);
+    znode = ARRAY_1D(nx3 + INCLUDE_KDIR, float);
 
-    for (i = 0; i < nx1 + IOFFSET; i++){
+    for (i = 0; i < nx1 + INCLUDE_IDIR; i++){
       x1 = (float)(grid->xl_glob[IDIR][i+IBEG]);
       if (IsLittleEndian()) SWAP_VAR(x1);
       xnode[i] = x1;
     }
-    for (j = 0; j < nx2 + JOFFSET; j++){
+    for (j = 0; j < nx2 + INCLUDE_JDIR; j++){
       x2 = (float)(grid->xl_glob[JDIR][j+JBEG]);
       if (IsLittleEndian()) SWAP_VAR(x2);
       ynode[j] = x2;
     }
-    for (k = 0; k < nx3 + KOFFSET; k++){
+    for (k = 0; k < nx3 + INCLUDE_KDIR; k++){
       x3 = (float)(grid->xl_glob[KDIR][k+KBEG]);
       if (IsLittleEndian()) SWAP_VAR(x3);
-      #if DIMENSIONS == 2
-       znode[k] = 0.0;
+      #if !INCLUDE_KDIR 
+      znode[k] = 0.0;
       #else
-       znode[k] = x3;
+      znode[k] = x3;
       #endif
     }
   }
 
 /* -- Write rectilinear grid information -- */
 
-   sprintf(header,"X_COORDINATES %d float\n", nx1 + IOFFSET);
+   sprintf(header,"X_COORDINATES %ld float\n", nx1 + INCLUDE_IDIR);
    VTK_HEADER_WRITE_STRING(header);
-   VTK_HEADER_WRITE_FLTARR(xnode, nx1 + IOFFSET);
+   VTK_HEADER_WRITE_FLTARR(xnode, nx1 + INCLUDE_IDIR);
 
-   sprintf(header,"\nY_COORDINATES %d float\n", nx2 + JOFFSET);
+   sprintf(header,"\nY_COORDINATES %ld float\n", nx2 + INCLUDE_JDIR);
    VTK_HEADER_WRITE_STRING(header);
-   VTK_HEADER_WRITE_FLTARR(ynode, nx2 + JOFFSET);
+   VTK_HEADER_WRITE_FLTARR(ynode, nx2 + INCLUDE_JDIR);
 
-   sprintf(header,"\nZ_COORDINATES %d float\n", nx3 + KOFFSET);
+   sprintf(header,"\nZ_COORDINATES %ld float\n", nx3 + INCLUDE_KDIR);
    VTK_HEADER_WRITE_STRING(header);
-   VTK_HEADER_WRITE_FLTARR(znode, nx3 + KOFFSET);
+   VTK_HEADER_WRITE_FLTARR(znode, nx3 + INCLUDE_KDIR);
 
 #elif VTK_FORMAT == VTK_STRUCTURED_GRID
 
 /* -- Allocate memory and define node_coord -- */
 
-  if (node_coord == NULL) node_coord = ARRAY_2D(nx1 + IOFFSET, 3, float);
+  if (node_coord == NULL) node_coord = ARRAY_2D(nx1 + INCLUDE_IDIR, 3, float);
 
-  sprintf(header,"POINTS %d float\n", (nx1+IOFFSET)*(nx2+JOFFSET)*(nx3+KOFFSET));
+  sprintf(header,"POINTS %d float\n", (nx1+INCLUDE_IDIR)*(nx2+INCLUDE_JDIR)*(nx3+INCLUDE_KDIR));
   VTK_HEADER_WRITE_STRING(header);
 
 /* -- Write structured grid information -- */
 
   x1 = x2 = x3 = 0.0;
-  for (k = 0; k < nx3 + KOFFSET; k++){
-  for (j = 0; j < nx2 + JOFFSET; j++){ 
-    for (i = 0; i < nx1 + IOFFSET; i++){
-      D_EXPAND(x1 = grid->xl_glob[IDIR][IBEG + i];  ,
-               x2 = grid->xl_glob[JDIR][JBEG + j];  ,
-               x3 = grid->xl_glob[KDIR][KBEG + k];)
+  for (k = 0; k < nx3 + INCLUDE_KDIR; k++){
+  for (j = 0; j < nx2 + INCLUDE_JDIR; j++){ 
+    for (i = 0; i < nx1 + INCLUDE_IDIR; i++){
+      DIM_EXPAND(x1 = grid->xl_glob[IDIR][IBEG + i];  ,
+                 x2 = grid->xl_glob[JDIR][JBEG + j];  ,
+                 x3 = grid->xl_glob[KDIR][KBEG + k];)
        
-    #if (GEOMETRY == CARTESIAN) || (GEOMETRY == CYLINDRICAL)
+      #if (GEOMETRY == CARTESIAN) || (GEOMETRY == CYLINDRICAL)
       node_coord[i][0] = x1;
       node_coord[i][1] = x2;
       node_coord[i][2] = x3;
-    #elif GEOMETRY == POLAR
+      #elif GEOMETRY == POLAR
       node_coord[i][0] = x1*cos(x2);
       node_coord[i][1] = x1*sin(x2);
       node_coord[i][2] = x3;
-    #elif GEOMETRY == SPHERICAL
+      #elif GEOMETRY == SPHERICAL
       #if DIMENSIONS == 2
       node_coord[i][0] = x1*sin(x2);
       node_coord[i][1] = x1*cos(x2);
@@ -240,7 +240,7 @@ void WriteVTK_Header (FILE *fvtk, Grid *grid)
       node_coord[i][1] = x1*sin(x2)*sin(x3);
       node_coord[i][2] = x1*cos(x2);
       #endif
-    #endif
+      #endif
       
       if (IsLittleEndian()){
         SWAP_VAR(node_coord[i][0]);
@@ -248,7 +248,7 @@ void WriteVTK_Header (FILE *fvtk, Grid *grid)
         SWAP_VAR(node_coord[i][2]);
       }
     }
-    VTK_HEADER_WRITE_FLTARR(node_coord[0],3*(nx1+IOFFSET));
+    VTK_HEADER_WRITE_FLTARR(node_coord[0],3*(nx1+INCLUDE_IDIR));
   }}
 
 #endif
@@ -258,9 +258,8 @@ void WriteVTK_Header (FILE *fvtk, Grid *grid)
       to WriteVTK_Vector() or WriteVTK_Scalar()...]
    ----------------------------------------------------- */
 
-  sprintf (header,"\nCELL_DATA %d\n", nx1*nx2*nx3);
+  sprintf (header,"\nCELL_DATA %ld\n", nx1*nx2*nx3);
   VTK_HEADER_WRITE_STRING (header);
-
 }
 #undef VTK_STRUCTERED_GRID    
 #undef VTK_RECTILINEAR_GRID  
@@ -301,7 +300,7 @@ void WriteVTK_Vector (FILE *fvtk, Data_Arr V, double unit,
 {
   int i,j,k;
   int vel_field, mag_field;
-  char header[512];
+  char header[128];
   static Float_Vect ***vect3D;
   double v[3], x1, x2, x3;
 
@@ -317,12 +316,12 @@ void WriteVTK_Vector (FILE *fvtk, Data_Arr V, double unit,
   x1 = x2 = x3 = 0.0;
 
   vel_field = (strcmp(var_name,"vx1") == 0);
-  mag_field = (strcmp(var_name,"bx1") == 0);
+  mag_field = (strcmp(var_name,"Bx1") == 0);
   if (vel_field || mag_field) { 
     DOM_LOOP(k,j,i){ 
-      D_EXPAND(v[0] = V[0][k][j][i]; x1 = grid->x[IDIR][i]; ,
-               v[1] = V[1][k][j][i]; x2 = grid->x[JDIR][j]; ,
-               v[2] = V[2][k][j][i]; x3 = grid->x[KDIR][k];)
+      DIM_EXPAND(v[0] = V[0][k][j][i]; x1 = grid->x[IDIR][i]; ,
+                 v[1] = V[1][k][j][i]; x2 = grid->x[JDIR][j]; ,
+                 v[2] = V[2][k][j][i]; x3 = grid->x[KDIR][k];)
    
       VectorCartesianComponents(v, x1, x2, x3);
       vect3D[k][j][i].v1 = (float)v[0]*unit;
@@ -361,7 +360,7 @@ void WriteVTK_Scalar (FILE *fvtk, double ***V, double unit,
  *********************************************************************** */
 {
   int i,j,k;
-  char header[512];
+  char header[128];
   float ***Vflt;
 
   sprintf (header,"\nSCALARS %s float\n", var_name);

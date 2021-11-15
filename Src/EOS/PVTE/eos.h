@@ -61,23 +61,21 @@
   </CENTER>
 
   \authors B. Vaidya (bhargav.vaidya@ph.unito.it)\n
-           A. Mignone (mignone@ph.unito.it)
-  \date    June 25, 2014
+           A. Mignone (mignone@to.infn.it)
+  \date    April 07, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #ifndef T_CUT_RHOE
  #define T_CUT_RHOE  10.0  /**< Sets the lowest cut-off temperature used in 
-                                the PVTE_LAW equation of sweep.
+                                the PVTE_LAW equation of state.
                                 Zones with temperature below T_CUT_RHOE
                                 will be reset to this value and the internal
                                 energy will be redefined accordingly. */
 #endif
 
-
 #if ENTROPY_SWITCH
  #error ! PVTE_LAW not working with ENTROPY_SWITCH
 #endif
-
 
 /* ***********************************************************
     \cond REPEAT_FUNCTION_DOCUMENTATION_IN_HEADER_FILES 

@@ -36,7 +36,7 @@ void Jacobian (double *v, double *rhs, double **dfdy)
  *
  ********************************************************** */
 {
-  print (" ! Jacobian not defined \n");
+  printLog (" ! Jacobian not defined \n");
   QUIT_PLUTO(1);
 }
 

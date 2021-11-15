@@ -59,7 +59,7 @@ void EMF_USERDEF_BOUNDARY (EMF *emf, int side, int loc, Grid *grid)
   if (side == X1_BEG) {
 
     X1_BEG_LOOP(k,j,i){
-      D_EXPAND(                                    ,
+      DIM_EXPAND(                                    ,
         emf->ezj[k][j][i] = emf->ezj[k][j][IBEG];  ,
         emf->eyk[k][j][i] = emf->eyk[k][j][IBEG];
       )
@@ -68,7 +68,7 @@ void EMF_USERDEF_BOUNDARY (EMF *emf, int side, int loc, Grid *grid)
   }else if (side == X1_END){
 
     X1_END_LOOP(k,j,i){
-      D_EXPAND(                                    ,
+      DIM_EXPAND(                                    ,
         emf->ezj[k][j][i] = emf->ezj[k][j][IEND];  ,
         emf->eyk[k][j][i] = emf->eyk[k][j][IEND];  
       )
@@ -77,7 +77,7 @@ void EMF_USERDEF_BOUNDARY (EMF *emf, int side, int loc, Grid *grid)
   }else if (side == X2_BEG){
 
     X2_BEG_LOOP(k,j,i){
-      D_EXPAND(                                    ,
+      DIM_EXPAND(                                    ,
         emf->ezi[k][j][i] = emf->ezi[k][JBEG][i];  ,
         emf->exk[k][j][i] = emf->exk[k][JBEG][i];
       )
@@ -86,7 +86,7 @@ void EMF_USERDEF_BOUNDARY (EMF *emf, int side, int loc, Grid *grid)
   }else if (side == X2_END){
 
     X2_END_LOOP(k,j,i){
-      D_EXPAND(                                    ,
+      DIM_EXPAND(                                    ,
         emf->ezi[k][j][i] = emf->ezi[k][JEND][i];  ,
         emf->exk[k][j][i] = emf->exk[k][JEND][i];
       )

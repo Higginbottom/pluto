@@ -114,7 +114,7 @@ int QuarticSolveNew (double b, double c, double d, double e, double *z)
   SortArray(z,4);
 
   if (debug_print){
-    print ("Quartic roots = %f  %f  %f  %f; q = %8.3e\n",z[0],z[1],z[2],z[3],q);
+    printLog ("Quartic roots = %f  %f  %f  %f; q = %8.3e\n",z[0],z[1],z[2],z[3],q);
     CheckSolutions(b,c,d,e,z);
   }
 
@@ -137,7 +137,7 @@ void CheckSolutions(double b, double c, double d, double e, double *z)
   for (n = 0; n < 4; n++){
     x = z[n];
     f =  e + x*(d + x*(c + x*(b + x)));
-    print ("> CheckSolutions(): f(z[%d]) = %8.3e\n",n,f);
+    printLog ("> CheckSolutions(): f(z[%d]) = %8.3e\n",n,f);
   }
    
 }
@@ -148,24 +148,24 @@ void QuarticPrintCoeffs(double b, double c, double d, double e)
  *
  ********************************************************************** */
 {
-  print ("  f(x) = %18.12e + x*(%18.12e + x*(%18.12e ",
+  printLog ("  f(x) = %18.12e + x*(%18.12e + x*(%18.12e ",
          e, d, c);
-      print ("  + x*(%18.12e + x*%18.12e)))\n", b, 1.0);
+      printLog ("  + x*(%18.12e + x*%18.12e)))\n", b, 1.0);
 
-  print ("  b = %18.14e;\n",b);
-  print ("  c = %18.14e;\n",c);
-  print ("  d = %18.14e;\n",d);
-  print ("  e = %18.14e;\n",e);
+  printLog ("  b = %18.14e;\n",b);
+  printLog ("  c = %18.14e;\n",c);
+  printLog ("  d = %18.14e;\n",d);
+  printLog ("  e = %18.14e;\n",e);
 
   double a2 = -2.0*c;
   double a1 = c*c + b*d - 4.0*e;
   double a0 = -(b*c*d - b*b*e - d*d);
 
-  print ("  Resolvent cubic:\n");
-  print ("  g(x) = %18.12e + x*(%18.12e + x*(%18.12e + x))\n", a0, a1, a2);
+  printLog ("  Resolvent cubic:\n");
+  printLog ("  g(x) = %18.12e + x*(%18.12e + x*(%18.12e + x))\n", a0, a1, a2);
   double Y    = 0.25*b*b + 2.0*d/(b+1.e-40) - c;
-  print ("  b^2/4 = %f\n",0.25*b*b);
-  print ("  Y     = %8.3e\n",Y);  
+  printLog ("  b^2/4 = %f\n",0.25*b*b);
+  printLog ("  Y     = %8.3e\n",Y);  
 }
 
 
@@ -175,7 +175,7 @@ void PrintSolution (double *z)
  *
  ********************************************************************** */
 {
-  print ("z = %f  %f  %f  %f\n",z[0],z[1],z[2],z[3]);
+  printLog ("z = %f  %f  %f  %f\n",z[0],z[1],z[2],z[3]);
 }
 
 
@@ -188,9 +188,9 @@ int CubicSolve2 (double b, double c, double d, double z[])
   R  = (2.0*b*b*b - 9.0*b*c + 27.0*d)/54.0;  /* Eq. [5.6.10] */
   R_Q = R/Q;
 
-if (debug_print) print ("R = %8.3e, Q = %8.3e, R^2/Q^3 - 1.0 = %8.3e\n",R,Q,R_Q*R_Q/Q-1.0);
+if (debug_print) printLog ("R = %8.3e, Q = %8.3e, R^2/Q^3 - 1.0 = %8.3e\n",R,Q,R_Q*R_Q/Q-1.0);
   if (R_Q*R_Q <= Q){   /*** First case: 3 real roots ***/
-if (debug_print) print ("> CubicSolve2(): 3 real roots\n");    
+if (debug_print) printLog ("> CubicSolve2(): 3 real roots\n");    
     sQ = sqrt(Q);
     th = acos(R_Q/sQ);    /* Eq. [5.6.11]  */
     tn = tan(th/3.0);
@@ -218,7 +218,7 @@ if (debug_print) print ("> CubicSolve2(): 3 real roots\n");
      z[2] = -2.0*sQ*cos((th + 2.0*CONST_PI)/3.0) - b/3.0;
       
   }else{    /*** Second case: one root only ***/
-    print( "! CubicSolve2(): 1 root only, arg = %8.3e !!\n", R_Q*R_Q/Q);
+    printLog( "! CubicSolve2(): 1 root only, arg = %8.3e !!\n", R_Q*R_Q/Q);
 
     A = Q/R;
     A = fabs(R)*(1.0 + sqrt(1.0 - A*A*Q));
@@ -233,18 +233,18 @@ if (debug_print) print ("> CubicSolve2(): 3 real roots\n");
   if(debug_print) {
     int l;
     double x,f;
-    print ("===========================================================\n");
-    print ("> Resolvent cubic:\n");
-    print ("  g(x) = %18.12e + x*(%18.12e + x*(%18.12e + x))\n", d, c, b);
-    print ("> Cubic roots = %8.3e  %8.3e  %8.3e\n",z[0],z[1],z[2]);
+    printLog ("===========================================================\n");
+    printLog ("> Resolvent cubic:\n");
+    printLog ("  g(x) = %18.12e + x*(%18.12e + x*(%18.12e + x))\n", d, c, b);
+    printLog ("> Cubic roots = %8.3e  %8.3e  %8.3e\n",z[0],z[1],z[2]);
     for (l = 0; l < 3; l++){  // check accuracy of solution
      
       x = z[l];
       f = d + x*(c + x*(b + x));
-      print ("  verify: g(x[%d]) = %8.3e\n",l,f);   
+      printLog ("  verify: g(x[%d]) = %8.3e\n",l,f);   
     }
 
-    print ("===========================================================\n");
+    printLog ("===========================================================\n");
   }
 
   return 0;

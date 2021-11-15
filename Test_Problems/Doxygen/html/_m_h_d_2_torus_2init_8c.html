@@ -22,6 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO Test Problems
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -83,25 +84,25 @@ Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Magnetized accretion torus in 2D spherical coordinates in a radially stratified atmosphere. The accretion torus is determined by the equilibrium condition </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ -\frac{1}{R} + \frac{1}{2(1-a)}\frac{L_k^2}{r^{2-2a}} +(n+1)\frac{p}{\rho} = const \]" src="form_246.png"/>
+<img class="formulaDsp" alt="\[ -\frac{1}{R} + \frac{1}{2(1-a)}\frac{L_k^2}{r^{2-2a}} +(n+1)\frac{p}{\rho} = const \]" src="form_232.png"/>
 </p>
-<p> where <img class="formulaInl" alt="$p = K\rho^\gamma $" src="form_247.png"/>, <code>R</code> is the spherical radius, <code>r</code> is the cylindrical radius. Since <img class="formulaInl" alt="$ n = 1/(\gamma-1) $" src="form_248.png"/> then <img class="formulaInl" alt="$ 1+n = \gamma/(\gamma-1) $" src="form_249.png"/> we can also write using <img class="formulaInl" alt="$ a = 0 $" src="form_250.png"/> (constant angular momentum distribution, Kuwabara Eq [8]): </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ -\frac{1}{R} + \frac{1}{2}\frac{L_k^2}{r^2} + \frac{\gamma}{\gamma-1}K\rho^{\gamma-1} = c = -\frac{1}{r_{\min}} + \frac{1}{2}\frac{L_k^2}{r_{\min}^2} \]" src="form_251.png"/>
+<p> where <img class="formulaInl" alt="$p = K\rho^\gamma $" src="form_233.png"/>, <code>R</code> is the spherical radius, <code>r</code> is the cylindrical radius. Since <img class="formulaInl" alt="$ n = 1/(\gamma-1) $" src="form_234.png"/> then <img class="formulaInl" alt="$ 1+n = \gamma/(\gamma-1) $" src="form_235.png"/> we can also write using <img class="formulaInl" alt="$ a = 0 $" src="form_236.png"/> (constant angular momentum distribution, Kuwabara Eq [8]): </p><p class="formulaDsp">
+<img class="formulaDsp" alt="\[ -\frac{1}{R} + \frac{1}{2}\frac{L_k^2}{r^2} + \frac{\gamma}{\gamma-1}K\rho^{\gamma-1} = c = -\frac{1}{r_{\min}} + \frac{1}{2}\frac{L_k^2}{r_{\min}^2} \]" src="form_237.png"/>
 </p>
 <p> where the constant on the right hand side is determined at the zero pressure surface. The previous equation is used to compute <code>K</code> at the point where the density is maximum and then again to obtain the density distribution: </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ K = \frac{\gamma-1}{\gamma}\left[ c + \frac{1}{r_{\max}} - \frac{1}{2}\frac{L_k^2}{r_{\max}^2} \right]\frac{1}{\rho_{\max}^{\gamma-1}}\,;\qquad \rho = \left[\frac{\gamma-1}{K\gamma}\left(c + \frac{1}{R} - \frac{1}{2}\frac{L_k^2}{r^2}\right)\right]^{1/(\gamma-1)} \]" src="form_252.png"/>
+<img class="formulaDsp" alt="\[ K = \frac{\gamma-1}{\gamma}\left[ c + \frac{1}{r_{\max}} - \frac{1}{2}\frac{L_k^2}{r_{\max}^2} \right]\frac{1}{\rho_{\max}^{\gamma-1}}\,;\qquad \rho = \left[\frac{\gamma-1}{K\gamma}\left(c + \frac{1}{R} - \frac{1}{2}\frac{L_k^2}{r^2}\right)\right]^{1/(\gamma-1)} \]" src="form_238.png"/>
 </p>
-<p> Thus, specifying <img class="formulaInl" alt="$ r_{\min} $" src="form_253.png"/>, <img class="formulaInl" alt="$ r_{\max} $" src="form_254.png"/> and <img class="formulaInl" alt="$ \rho_{\max}$" src="form_255.png"/> determine the torus structure completely. The torus azimuthal velocity is compute from <img class="formulaInl" alt="$v_\phi = L_k/r$" src="form_256.png"/>.</p>
+<p> Thus, specifying <img class="formulaInl" alt="$ r_{\min} $" src="form_239.png"/>, <img class="formulaInl" alt="$ r_{\max} $" src="form_240.png"/> and <img class="formulaInl" alt="$ \rho_{\max}$" src="form_241.png"/> determine the torus structure completely. The torus azimuthal velocity is compute from <img class="formulaInl" alt="$v_\phi = L_k/r$" src="form_242.png"/>.</p>
 <p>The atmosphere is assumed to be isothermal and it is given by the condition of hydrostatic balance: </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ \rho_a(R) = \eta\rho_{\max} \exp\left[\left(\frac{1}{R}-\frac{1}{r_{\min}}\right) \frac{GM}{a^2}\right] \]" src="form_257.png"/>
+<img class="formulaDsp" alt="\[ \rho_a(R) = \eta\rho_{\max} \exp\left[\left(\frac{1}{R}-\frac{1}{r_{\min}}\right) \frac{GM}{a^2}\right] \]" src="form_243.png"/>
 </p>
-<p> where <img class="formulaInl" alt="$\eta$" src="form_4.png"/> is the density contrast between the (maximum) torus density and the atmosphere density at <img class="formulaInl" alt="$(r_{\min},0)$" src="form_258.png"/>.</p>
-<p>The torus surface is defined by the condition <img class="formulaInl" alt="$p_t &gt; p_a$" src="form_259.png"/>.</p>
+<p> where <img class="formulaInl" alt="$\eta$" src="form_5.png"/> is the density contrast between the (maximum) torus density and the atmosphere density at <img class="formulaInl" alt="$(r_{\min},0)$" src="form_244.png"/>.</p>
+<p>The torus surface is defined by the condition <img class="formulaInl" alt="$p_t &gt; p_a$" src="form_245.png"/>.</p>
 <p>The dimensionless form of the equation employs on the following units:</p>
 <ul>
-<li><img class="formulaInl" alt="$ [\rho] = \rho_{\max}$" src="form_260.png"/>: reference density;</li>
-<li><img class="formulaInl" alt="$ [L] = R_{*} $" src="form_261.png"/>: star radius;</li>
-<li><img class="formulaInl" alt="$ [v^2] = GM/L $" src="form_262.png"/>: reference (squared) velocity.</li>
+<li><img class="formulaInl" alt="$ [\rho] = \rho_{\max}$" src="form_246.png"/>: reference density;</li>
+<li><img class="formulaInl" alt="$ [L] = R_{*} $" src="form_247.png"/>: star radius;</li>
+<li><img class="formulaInl" alt="$ [v^2] = GM/L $" src="form_248.png"/>: reference (squared) velocity.</li>
 </ul>
 <p>The user defined parameters of this problem, as they appear in pluto.ini, allows for control in the Torus shape and the contrast of physical values:</p>
 <ol type="1">
@@ -110,10 +111,10 @@ Functions</h2></td></tr>
 <li><code>g_inputParam[RHO_CUT]</code>: minimum density to define the last contour of the magnetic vec. pot.</li>
 <li><code>g_inputParam[BETA]</code>: plasma beta</li>
 <li><code>g_inputParam[ETA]</code> density contrast between atmosphere and Torus</li>
-<li><code>g_inputParam[SCALE_HEIGHT]</code>: atmosphere scale height <img class="formulaInl" alt="$ H=GM/a^2$" src="form_263.png"/></li>
+<li><code>g_inputParam[SCALE_HEIGHT]</code>: atmosphere scale height <img class="formulaInl" alt="$ H=GM/a^2$" src="form_249.png"/></li>
 </ol>
 <p>The magnetic field can be specified to be inside the torus or as a large-scale dipole field. In the first case, we give the vector potential: </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ A_\phi = B_0(\rho_t - \rho_{\rm cut}) \]" src="form_264.png"/>
+<img class="formulaDsp" alt="\[ A_\phi = B_0(\rho_t - \rho_{\rm cut}) \]" src="form_250.png"/>
 </p>
 <p> In the second case, a dipole field is specified in the function DipoleField(). The user-defined constant <code>USE_DIPOLE</code> can be used to select between the two configurations.</p>
 <dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'ph'+'.un'+'it'+'o.i'+'t'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@p<span style="display: none;">.nosp@m.</span>h.uni<span style="display: none;">.nosp@m.</span>to.i<span style="display: none;">.nosp@m.</span>t</a>) <br />
@@ -193,7 +194,7 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Assign initial condition by looping over the computational domain. Called after the usual <a class="el" href="_particles_2_c_r_2_gyration_2init_8c.html#a8488b38b779097d732c203983f9bb9bf">Init()</a> function to assign initial conditions on primitive variables. Value assigned here will overwrite those prescribed during <a class="el" href="_particles_2_c_r_2_gyration_2init_8c.html#a8488b38b779097d732c203983f9bb9bf">Init()</a>. </p>
+<p>Assign initial condition by looping over the computational domain. Called after the usual <a class="el" href="_particles_2_dust_2_r_v___drift_2init_8c.html#a8488b38b779097d732c203983f9bb9bf">Init()</a> function to assign initial conditions on primitive variables. Value assigned here will overwrite those prescribed during <a class="el" href="_particles_2_dust_2_r_v___drift_2init_8c.html#a8488b38b779097d732c203983f9bb9bf">Init()</a>. </p>
 
 </div>
 </div>
@@ -241,7 +242,7 @@ Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Jun 15 2018 22:46:22 for PLUTO Test Problems by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:25:25 for PLUTO Test Problems by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

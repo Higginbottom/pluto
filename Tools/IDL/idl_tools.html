@@ -14,7 +14,7 @@ this routine, refer to the IDL Online Help Navigator
 or type: <P>
 <PRE>     ? mk_html_help</PRE><P>
 at the IDL command line prompt.<P>
-<STRONG>Last modified: </STRONG>Fri Jun 15 22:46:22 2018.<P>
+<STRONG>Last modified: </STRONG>Sat Jun 26 13:26:39 2021.<P>
  
 <HR>
  
@@ -27,7 +27,10 @@ at the IDL command line prompt.<P>
 <LI><A HREF="#FIELD_LINE[1]">FIELD_LINE[1]</A>
 <LI><A HREF="#FIELD_LINE[2]">FIELD_LINE[2]</A>
 <LI><A HREF="#FIND_SHOCK">FIND_SHOCK</A>
-<LI><A HREF="#FOURIER">FOURIER</A>
+<LI><A HREF="#FOURIER[1]">FOURIER[1]</A>
+<LI><A HREF="#FOURIER[2]">FOURIER[2]</A>
+<LI><A HREF="#FOURIER[3]">FOURIER[3]</A>
+<LI><A HREF="#FOURIER[4]">FOURIER[4]</A>
 <LI><A HREF="#GET_FRAME">GET_FRAME</A>
 <LI><A HREF="#H5LOAD">H5LOAD</A>
 <LI><A HREF="#HDF5LOAD">HDF5LOAD</A>
@@ -180,10 +183,10 @@ at the IDL command line prompt.<P>
  SYNTAX:  display, img[,x1=x1][,x2=x2][,BACKGROUND=value]
                   [,CBDIV=integer][,CHARSIZE=value][,COLOR=value][,/EPS]
                   [,FILENAME=string][,IMAX=value][,IMIN=value]
-                  [,IMSIZE=value][,LABEL1=string][,LABEL2=string][,/LOG_GRID]
+                  [,IMSIZE=value][,LABEL1=string][,LABEL2=string]
                   [,/SMOOTH][,TITLE=string][,/HBAR][,/VBAR][,/XSYM][,/YSYM]
-                  [,XRANGE=[min,max]][,YRANGE=[min,max]][,NWIN=integer]
-                  [,/POLAR][,{LFT,RGT,TOP,BOT}=value]
+                  [,/XLOG],[,/YLOG][,XRANGE=[min,max]][,YRANGE=[min,max]]
+                  [,NWIN=integer][,/POLAR][,{LFT,RGT,TOP,BOT}=value]
 
 
  KEYWORDS:
@@ -297,7 +300,7 @@ at the IDL command line prompt.<P>
       IDL&gt; display, img, x1 = x1, x2 = 0.5*!PI - x2, /polar, ims = [400,400]
 
 
-  LAST MODIFIED:   June 6, 2015 by A.Mignone (mignone@ph.unito.it)
+  LAST MODIFIED:   Dec 09, 2019 by A.Mignone (mignone@to.infn.it)
 
 </PRE><P>
 <STRONG>(See display.pro)</STRONG><P>
@@ -446,7 +449,7 @@ at the IDL command line prompt.<P>
    IDL&gt; field_line, Bx1, Bx2, Bx3, x1, x2, x3, seed=[-1,2,0.5], pl, method=&quot;BS23&quot;, tol=1.e-4
     
 
- LAST MODIFIED:    June 19, 2013 by A. Mignone (mignone@ph.unito.it)
+ LAST MODIFIED:    Dec 12, 2018 by A. Mignone (mignone@to.infn.it)
 
 </PRE><P>
 <STRONG>(See field_line.pro)</STRONG><P>
@@ -455,7 +458,7 @@ at the IDL command line prompt.<P>
 <A NAME="FIND_SHOCK">
 <H2>FIND_SHOCK</H2></A>
 <A HREF="#FIELD_LINE[2]">[Previous Routine]</A>
-<A HREF="#FOURIER">[Next Routine]</A>
+<A HREF="#FOURIER[1]">[Next Routine]</A>
 <A HREF="#ROUTINELIST">[List of Routines]</A>
 <PRE>
 
@@ -498,45 +501,169 @@ at the IDL command line prompt.<P>
 <STRONG>(See find_shock.pro)</STRONG><P>
 <HR>
  
-<A NAME="FOURIER">
-<H2>FOURIER</H2></A>
+<A NAME="FOURIER[1]">
+<H2>FOURIER[1]</H2></A>
 <A HREF="#FIND_SHOCK">[Previous Routine]</A>
+<A HREF="#FOURIER[2]">[Next Routine]</A>
+<A HREF="#ROUTINELIST">[List of Routines]</A>
+<PRE>
+ NAME:        FOURIER_1D
+
+ AUTHOR:      A. Mignone (mignone@to.infn.it)
+
+ PURPOSE:     Compute the fast Fourier transform of a 1D array or a
+              mutldimensional array in a specific direction.
+              Return the complex FFT along with the frequency array
+              sorted in ascending order.
+
+ SYNTAX:      FOURIER_1D, Q, xi, Qk, kxi[,/POWER][,DIMENSION=DIMENSION]
+
+ ARGUMENTS:
+
+   Q  [in]     A 1, 2 or 3D array to which the Fast Fourier Transform should
+               be applied.
+   xi  [in]    The coordinate array (e.g. time or space) in the
+               direction across the FFT is desired.  
+   Qk [out]    The output FFT array with dimensions identical to
+               those of the input array.
+   kxi [out]   The frequency array (output) corresponding to xi.
+
+ KEYWORDS:
+
+   DIMENSION   A scalar indicating the dimension across which to calculate
+               the FFT.
+
+   POWER      When enabled, the output array Qk will contain the normalized
+              power.
+</PRE><P>
+<STRONG>(See fourier.pro)</STRONG><P>
+<HR>
+ 
+<A NAME="FOURIER[2]">
+<H2>FOURIER[2]</H2></A>
+<A HREF="#FOURIER[1]">[Previous Routine]</A>
+<A HREF="#FOURIER[3]">[Next Routine]</A>
+<A HREF="#ROUTINELIST">[List of Routines]</A>
+<PRE>
+ NAME:        FOURIER_2D
+
+ AUTHOR:      A. Mignone (mignone@to.infn.it)
+
+ PURPOSE:     Compute the fast Fourier transform of a 2D array.
+              Return the 2D complex FFT along with the frequency arrays
+              sorted in ascending order.
+
+ SYNTAX:      FOURIER_2D, Q, x, y, Qk, kx, ky[, /POWER]
+
+ ARGUMENTS:
+
+   Q  [in]     The 2D array to which the Fast Fourier Transform should
+               be applied.
+   x  [in]     The coordinate array (e.g. time or space) relative to 1st dim.
+   y  [in]     The coordinate array (e.g. time or space) relative to 2nd dim.
+   Qk [out]   ÊThe output FFT array with dimensions identical to
+               those of the input array.
+   kx [out]    The frequency array (output) for the 1st dim.
+   ky [out]    The frequency array (output) for the 2nd dim.
+
+ KEYWORDS:
+
+   POWER      When enabled, the output array Qk will contain the normalized
+              power.
+</PRE><P>
+<STRONG>(See fourier.pro)</STRONG><P>
+<HR>
+ 
+<A NAME="FOURIER[3]">
+<H2>FOURIER[3]</H2></A>
+<A HREF="#FOURIER[2]">[Previous Routine]</A>
+<A HREF="#FOURIER[4]">[Next Routine]</A>
+<A HREF="#ROUTINELIST">[List of Routines]</A>
+<PRE>
+ NAME:        FOURIER_3D
+
+ AUTHOR:      A. Mignone (mignone@to.infn.it)
+
+ PURPOSE:     Compute the fast Fourier transform of a 2D array.
+              Return the 2D complex FFT along with the frequency arrays
+              sorted in ascending order.
+
+ SYNTAX:      FOURIER_3D, Q, x, y, z, Qk, kx, ky, kz[, /POWER]
+
+ ARGUMENTS:
+
+   Q  [in]     The 2D array to which the Fast Fourier Transform should
+               be applied.
+   x  [in]     The coordinate array (e.g. time or space) relative to 1st dim.
+   y  [in]     The coordinate array (e.g. time or space) relative to 2nd dim.
+   z  [in]     The coordinate array (e.g. time or space) relative to 3rd dim.
+   Qk [out]   ÊThe output FFT array with dimensions identical to
+               those of the input array.
+   kx [out]    The frequency array (output) for the 1st dim.
+   ky [out]    The frequency array (output) for the 2nd dim.
+   kz [out]    The frequency array (output) for the 3rd dim.
+
+ KEYWORDS:
+
+   POWER      When enabled, the output array Qk will contain the normalized
+              power.
+</PRE><P>
+<STRONG>(See fourier.pro)</STRONG><P>
+<HR>
+ 
+<A NAME="FOURIER[4]">
+<H2>FOURIER[4]</H2></A>
+<A HREF="#FOURIER[3]">[Previous Routine]</A>
 <A HREF="#GET_FRAME">[Next Routine]</A>
 <A HREF="#ROUTINELIST">[List of Routines]</A>
 <PRE>
+ NAME:        FOURIER
 
-  NAME:      fourier 
+ AUTHOR:      A. Mignone (mignone@to.infn.it)
 
-  AUTHOR:    Andrea Mignone
+ PURPOSE:     Compute the fast Fourier transform of a 1- or 2D multidimensional
+              array.
+              Return the complex FFT along with the frequency array(s).
+              This function is actually a wrapper for FOURIER_1D or FOURIER_2D.
 
-  DATE:      Feb 10, 2005
+ SYNTAX:      FOURIER, Q, x, Qk, kx[, /POWER][DIMENSION=DIMENSION]   (in 1D)
 
-  PURPOSE:   Take the fourier transform of some signal and make
-             a log-log plot of its power in frequency space.
+                or
 
-  SYNOPSIS:  fourier, time, sp, nbeg, nend[, title = title]
+              FOURIER, Q, x, y, Qk, kx,ky[, /POWER]                  (in 2D)
+              
 
-  ARGUMENTS / KEYWORDS:
+ ARGUMENTS:
 
-                        time:  a 1-D vector containing the
-                               times at which the signal 
-                               is sampled.
+   Q  [in]     The 1D or 2D array to which the Fast Fourier Transform should
+               be applied.
+   x  [in]     The coordinate array (e.g. time or space) relative to 1st dim.
+   y  [in]     The coordinate array (e.g. time or space) relative to 2nd dim.
+   Qk [out]    The output FFT array with dimensions identical to
+               those of the input array.
+   kx [out]    The frequency array (output) for the 1st dim.
+   ky [out]    The frequency array (output) for the 2nd dim.
 
-                        sp  :  a 1-D vector containing the 
-                               sampled data.
 
-                        nbeg:  the initial index of the time
-                               window to be transformed.
-                               In other words, only the interval
-                               time(nbeg) &lt; t &lt; time(nend) 
-                               is considered.
+ KEYWORDS:
 
-                        nend:  the final index. 
+   DIM        A scalar indicating the dimension across which to calculate
+              the FFT.
+   POWER      When enabled, the output array Qk will contain the normalized
+              power.
 
-                        title: an optional keyword specifying the 
-                               title of the plot
+ EXAMPLES:
 
- VERSION:           beta
+   IDL&gt; Nx = 2048
+   IDL&gt; x  = 0.0 + DINDGEN(Nx)/(Nx-1.0); Generate a uniform grid in [0,1] 
+   IDL&gt; twopi = 2.0*!PI*x
+   IDL&gt; ; Build simple array with three frequencies
+   IDL&gt; Q  = 5.0*sin(twopi) + 2.0*cos(10.0*twopi) + cos(30.0*twopi)
+   IDL&gt; FOURIER, Q, x, Qk, k, /POWER
+   IDL&gt; PLOT, k, pwr, psym=-6,xrange=[-64,64], xstyle=1
+
+
+ LAST MODIFIED:   March 29, 2019 by A. Mignone
 
 </PRE><P>
 <STRONG>(See fourier.pro)</STRONG><P>
@@ -544,7 +671,7 @@ at the IDL command line prompt.<P>
  
 <A NAME="GET_FRAME">
 <H2>GET_FRAME</H2></A>
-<A HREF="#FOURIER">[Previous Routine]</A>
+<A HREF="#FOURIER[4]">[Previous Routine]</A>
 <A HREF="#H5LOAD">[Next Routine]</A>
 <A HREF="#ROUTINELIST">[List of Routines]</A>
 <PRE>
@@ -801,7 +928,9 @@ at the IDL command line prompt.<P>
 
  KEYWORDS:
 
-
+    LP        Keyword to denote LP module. Needed to avoid printing Totparticles
+              nchunk values, which are not defined for other modules.s
+  
  EXAMPLES:
 
   * Example #1: Load the 10-th particles output file:
@@ -811,7 +940,7 @@ at the IDL command line prompt.<P>
 
  LAST MODIFIED:
 
-  May 15, 2018 by D. Mukherjee &amp; A. Mignone (dipanjan.mukherjee@unito.it)
+  Mar 08, 2021 by D. Mukherjee &amp; A. Mignone (dipanjan.mukherjee@unito.it)
 
 </PRE><P>
 <STRONG>(See particles_load.pro)</STRONG><P>
@@ -887,7 +1016,9 @@ at the IDL command line prompt.<P>
 
  ARGUMENTS:
 
-   nout = the output number, e.g., 0,1,2, ...
+   nout  = the output number, e.g., 0,1,2, ...
+   nchunk = the particle sub-file for a given nout. e.g. nchunk=1 if particles.0001_ch00.dbl
+           is to be loaded. nchunk=0 by default and may be omitted for particles.0001_ch00.dbl
 
  KEYWORDS:
 
@@ -897,28 +1028,30 @@ at the IDL command line prompt.<P>
    /SILENT    set this keyword to suppress printing information
 
    /FLOAT     set this keyword to read single precision binary datafile
-              (particles.nnnn.flt). 
+              (particles.nnnn.flt).
+
+   /FLT       short for FLOAT with same function. Shorter name for easier usage.
+ 
               
    /VTK       set this keyword to read .vtk particle files.
               In this case, the PARTICLES_VTKLOAD procedure is invoked.
-
-   /REDUCED   Assume particle data files have been written with
-              the PARTCILES_REDUCE_FLT switch turned to YES.
-              In this case, the particle structure will contain
-              fewer fields.
+   
+   /LP        set this keyword to read particle output for Lagrangian Particle (LP) module
 
  EXAMPLES:
 
-  * Example #1: Load the 7-th particles output file in single precision
+  * Example #1: Load the 10-th particles output file in single precision
                 and print the x2-component of velocity of the 4-th particle:
 
-    IDL&gt; PARTICLES_LOAD, /FLOAT, 10
+    IDL&gt; PARTICLES_LOAd,10,/FLOAT      ;--Loads particles from particles.0010.flt.00
     IDL&gt; PRINT,particles[4].vx2
 
+    IDL&gt; PARTICLES_LOAd,10,1,/FLOAT    ;--Loads particles from particles.0010.flt.01
+    IDL&gt; PARTICLES_LOAd,10,/FLOAT,/ALL ;--Loads particles from all particles.0010.flt.*
 
  LAST MODIFIED:
 
-  April 6, 2018 by D. Mukherjee (dipanjan.mukherjee@unito.it)
+  October 19, 2018 by D. Mukherjee (dipanjan.mukherjee@unito.it)
 
 </PRE><P>
 <STRONG>(See particles_load.pro)</STRONG><P>
@@ -940,8 +1073,9 @@ at the IDL command line prompt.<P>
 
  SYNTAX:
 
-   PARTICLES_OPLOT[, cvalue_max = cvalue_max][, cvalue_min = cvalue_min]
-                  [, field=field][, symsize=symsize]
+   PARTICLES_OPLOT, particles,
+                   [, cvalue_max = cvalue_max][, cvalue_min = cvalue_min]
+                   [, field=field][, symsize=symsize]
 
 
  ARGUMENTS:
@@ -978,7 +1112,7 @@ at the IDL command line prompt.<P>
                   to be plotted. 
 		   For 2D plots, default is x1=x1,x2=x2. Need not be specified.
 		   For 3D runs, x1,x2 should be specified if x3 coordinate
-		   need to be plotted.
+		   needs to be plotted.
 		   
 
  EXAMPLES:
@@ -1143,6 +1277,9 @@ at the IDL command line prompt.<P>
       Bx1s, Bx2s, Bx3s = staggered components of magnetic field (only with 
                          double precision binary data files) available with 
                          constrained transport.
+      Ex1s, Ex2s, Ex3s = staggered components of electric field (only with 
+                         double precision binary data files) available with 
+                         constrained transport in Resistive RMHD.
                       
    PLUTO_RUN -&gt; contains time-related information:
 
@@ -1569,7 +1706,8 @@ at the IDL command line prompt.<P>
   SYNTAX:    put_eps, data, x, y, pos
              [,xtitle=xtitle][,ytitle=ytitle][,title=title][,charsize=charsize]
              [,dmax = dmax][,dmin = dmin][,/vbar][,/hbar][,color=color]
-             [,cbwidth=cbwidth][,cbcharsize=cbcharsize][,cbformat=cbformat]
+             [,cbwidth=cbwidth][,cbcharsize=cbcharsize][cbdiv=cbdiv]
+             [,cbformat=cbformat][,cbposition=cbposition]
              [,/noxticks][,/noyticks][,xrange=xrange][,yrange=yrange]
 
              where data is a two-dimensional array, x and y
@@ -1627,7 +1765,7 @@ at the IDL command line prompt.<P>
 
      cbposition = lower left position of the colorbar
 
-  LAST MODIFIED:  Oct 31, 2017 by A. Mignone (mignone@ph.unito.it)
+  LAST MODIFIED:  Dec 12, 2018 by A. Mignone (mignone@ph.unito.it)
 
 </PRE><P>
 <STRONG>(See put_eps.pro)</STRONG><P>

@@ -54,7 +54,7 @@
         variable versus constant adiabatic index",
         Mignone \& McKinney, MNRAS (2007) 378, 1118.
 
-  \author A. Mignone (mignone@ph.unito.it)
+  \author A. Mignone (mignone@to.infn.it)
   \date   Sep 22, 2014
 */
 /* ///////////////////////////////////////////////////////////////////// */
@@ -77,8 +77,8 @@ void Init (double *v, double x1, double x2, double x3)
     arg = g_inputParam[MACH]/g_inputParam[VEL0];
     arg = arg*arg;
     #if EOS == IDEAL
-     g_gamma = 4./3.;
-     pr0 = (g_gamma - 1.0)/((g_gamma - 1.0)*arg - 1.0)/g_gamma;
+    g_gamma = 4./3.;
+    pr0 = (g_gamma - 1.0)/((g_gamma - 1.0)*arg - 1.0)/g_gamma;
     #else
     { 
       double a,b,c;  /* See Eq. 32 of Mignone \& McKinney (MNRAS 2007) */
@@ -148,7 +148,85 @@ void Analysis (const Data *d, Grid *grid)
  *
  *********************************************************************** */
 {
+  int    i,j,k;
+  static int first_call=1;
+  double *dx, *dy, *dz;
+  double *x, *y, *z;
+  double Lx, Ly, Lz, scrh;
+  double vy2_av, vy_max, vy_min, tot_vol, dV;
 
+/* -- compute domain sizes and box volume -- */
+
+  Lx = g_domEnd[IDIR] - g_domBeg[IDIR];
+  Ly = g_domEnd[JDIR] - g_domBeg[JDIR];
+  Lz = g_domEnd[KDIR] - g_domBeg[KDIR];
+
+  tot_vol = DIM_EXPAND(Lx, *Ly, *Lz);
+
+/* -- pointers to mesh spacing and coordinates -- */
+
+  dx = grid->dx[IDIR]; dy = grid->dx[JDIR]; dz = grid->dx[KDIR];
+   x = grid->x[IDIR];   y = grid->x[JDIR];   z = grid->x[KDIR];
+
+/* ------------------------------------------------------------
+    Main analysis loop.
+    Compute volume-integrated magnetic pressure and stresses
+   ------------------------------------------------------------ */
+
+  vy2_av = vy_max = vy_min = 0.0;
+  DOM_LOOP(k,j,i){
+    dV  = dx[i]*dy[j]*dz[k];
+    vy2_av += d->Vc[VX2][k][j][i]*d->Vc[VX2][k][j][i]*dV;
+    vy_max  = MAX(d->Vc[VX2][k][j][i],vy_max);
+    vy_min  = MIN(d->Vc[VX2][k][j][i],vy_min);
+  }
+  
+/* -- divide by total volume -- */
+
+  vy2_av /= tot_vol;
+
+/* -- parallel reduce -- */
+
+  #ifdef PARALLEL
+  MPI_Allreduce (&vy2_av, &scrh, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  vy2_av = scrh;
+
+  MPI_Allreduce (&vy_max, &scrh, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+  vy_max = scrh;
+
+  MPI_Allreduce (&vy_min, &scrh, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+  vy_min = scrh;
+  MPI_Barrier (MPI_COMM_WORLD);
+  #endif
+
+/* -- only proc #0 writes ascii data-file to disk -- */
+
+  if (prank == 0){
+    static double tpos = -1.0;
+    FILE *fp;
+    char fname[32] = "kh.dat";
+
+    if (g_stepNumber == 0){   /* -- open for writing if initial step -- */
+      fp = fopen(fname,"w");
+      fprintf (fp,"# %4s  %12s  %12s  %12s  %12s\n",
+                   "step","  time  "," <vy2> "," max(vy) ","min(vy)");
+      first_call = 0;
+    }else{                 
+      if (tpos < 0.0){  /* obtain time coordinate of last written line */
+        char   sline[512];
+        fp = fopen(fname,"r");
+        while (fgets(sline, 512, fp))  {}
+        sscanf(sline, "%lf\n",&tpos);
+        fclose(fp);
+      }
+      fp = fopen(fname,"a");
+    }
+    if (g_time > tpos){ /* -- write -- */
+      fprintf (fp, "%4d    %12.6e  %12.6e  %12.6e  %12.6e\n", 
+               g_stepNumber, g_time, vy2_av, vy_max, vy_min);
+    }
+    fclose(fp);
+  }
 }
 /* ********************************************************************* */
 void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid) 

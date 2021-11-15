@@ -15,8 +15,8 @@
   In the following "local" means "for the local processor".
   "Interior" means inside the computational domain.
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   Sep 16, 2012
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Dec 02, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 
@@ -26,6 +26,7 @@
  int SZ_stagz;
  int SZ_float;
  int SZ_char;
+ int SZ_uint16_t;
  int SZ_Float_Vect;
  int SZ_rgb;
  int SZ_short;
@@ -70,14 +71,18 @@ long int NMAX_POINT;  /**< Maximum number of points among the three
     Values are set in the SetIndex() function before commencing 
     integration.                                                        */
 /**@{ */
-int VXn, VXt, VXb; 
-int MXn, MXt, MXb;
-int BXn, BXt, BXb;
-int EXn, EXt, EXb;
+int VXn, VXt, VXb;  
+int MXn, MXt, MXb;  
+int BXn, BXt, BXb;  
+int EXn, EXt, EXb;  
 #if DUST_FLUID == YES
   int VXn_D, VXt_D, VXb_D;
   int MXn_D, MXt_D, MXb_D;
 #endif
+#if RADIATION
+  int FRn, FRt, FRb;
+#endif
+
 /**@} */
                
 int g_i; /**<  x1 grid index when sweeping along the x2 or x3 direction. */
@@ -92,9 +97,6 @@ int g_dir; /**< Specifies the current sweep or direction of integration.
                 - KDIR, for integration in the X3 dir; */
 
 double g_dt;       /**< The current integration time step. */
-
-int    g_hydroStep = 0;   /**< Tells whether we're in a hydro step (=1)
-                           or SplitSource step (=0)                  */
 
 int    g_intStage;    /**< Gives the current integration stage of the time
                              stepping method (predictor = 0, 1st
@@ -116,6 +118,14 @@ double g_smallPressure = 1.e-12; /**< Small value for pressure fix. */
  double g_gamma = 5./3.;
 #elif EOS == ISOTHERMAL
  double g_isoSoundSpeed = 1.0; /* g_isoSoundSpeed */
+#endif
+
+#if RADIATION
+ double g_absorptionCoeff = 0.0;	//Absorption coefficient (code_length^2/code_energy)
+ double g_scatteringCoeff = 0.0;	//Scattering coefficient (code_length^2/code_energy)
+ double g_radiationConst = 1.0;	//Radiation constant (4*StefanBoltzmannConstant/c) (code_energy/(code_length^3*code_temperature^4))
+ double g_idealGasConst = 1.0;  //(code_temperature) g_idealGasConst*prs/rho determines the gas temperature.
+ double g_totalOpacity = 0.0;
 #endif
 
 long int g_stepNumber;  /**< Gives the current integration step number. */
@@ -156,8 +166,8 @@ double g_inputParam[32]; /**< Array containing the user-defined parameters.
 #endif
 
 #if DEBUG == TRUE
-  int d_indent;        /**< Number of indentation space using during debug printing */
-  int d_condition=1;   /**< Enable/disable printing when a certain cond. is verified */
+  int d_indent;        /**< Number of indentation space using during debug printLoging */
+  int d_condition=1;   /**< Enable/disable printLoging when a certain cond. is verified */
 #endif
 
 #ifdef  PARTICLES
@@ -165,9 +175,7 @@ double g_inputParam[32]; /**< Array containing the user-defined parameters.
                                     processor domain */
   long int p_idCounter = 0;     /**< Total number of particle ids created since
                                       beginning [global] */
-
   int p_nrestart   = 0;
-  int p_intStage;
  #ifdef PARALLEL   
   MPI_Datatype MPI_PARTICLE;
   MPI_Datatype PartOutputType;

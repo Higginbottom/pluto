@@ -22,9 +22,9 @@
        of magnetized shear flows with the PLUTO code"\n
        Mignone et al, A&A (2012) 545, A152  (--> Section 2.4)
 
-  \author A. Mignone (mignone@ph.unito.it)\n
+  \author A. Mignone (mignone@to.infn.it)\n
           G. Muscianisi (g.muscianisi@cineca.it)
-  \date   March 05, 2017
+  \date   July 10, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -78,35 +78,48 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
    RBox    lbox, ubox;              /* lower and upper box structures  */
   #endif
 
-  #if GEOMETRY == CYLINDRICAL
-   print ("! FARGO cannot be used in this geometry\n");
-   QUIT_PLUTO(1);
-  #endif
+#if GEOMETRY == CYLINDRICAL
+  printLog ("! FARGO cannot be used in this geometry\n");
+  QUIT_PLUTO(1);
+#endif
 
-/* -----------------------------------------------------------------
-   1. Allocate memory for static arrays.
-      In parallel mode, one-dimensional arrays must be large enough
-      to contain data values coming from neighbour processors.
-      For this reason we augment them with an extra zone buffer
-      containing MAX_BUF_SIZE cells on both sides.
+/* --------------------------------------------------------
+   1. Add source term (if any)
+   -------------------------------------------------------- */
+
+#ifdef SHEARINGBOX
+  FARGO_Source(U, Us, g_dt, grid);  
+#endif
+
+#if (GEOMETRY != SPHERICAL) && !INCLUDE_JDIR
+  return;   /* No shift needed in axisymmetric geometry */
+#endif
+
+/* --------------------------------------------------------
+   2. Allocate memory for static arrays.
+      In parallel mode, one-dimensional arrays must be
+      large enough to contain data values coming from
+      neighbour processors.
+      For this reason we augment them with an extra zone
+      buffer containing MAX_BUF_SIZE cells on both sides.
       In this way, the array indices for q can be negative.
    
     
       <..MAX_BUF_SIZE..>|---|---| ... |---|----|<..MAX_BUF_SIZE..>
                           0   1            NX2-1
-   ----------------------------------------------------------------- */
+   -------------------------------------------------------- */
 
   if (q00 == NULL){
     #if GEOMETRY == SPHERICAL && DIMENSIONS == 3
-     q00    = ARRAY_1D(NX3_TOT + 2*MAX_BUF_SIZE,double);
-     flux00 = ARRAY_1D(NX3_TOT + 2*MAX_BUF_SIZE,double);
+    q00    = ARRAY_1D(NX3_TOT + 2*MAX_BUF_SIZE,double);
+    flux00 = ARRAY_1D(NX3_TOT + 2*MAX_BUF_SIZE,double);
     #else
-     q00    = ARRAY_1D(NX2_TOT + 2*MAX_BUF_SIZE,double);
-     flux00 = ARRAY_1D(NX2_TOT + 2*MAX_BUF_SIZE,double);
+    q00    = ARRAY_1D(NX2_TOT + 2*MAX_BUF_SIZE,double);
+    flux00 = ARRAY_1D(NX2_TOT + 2*MAX_BUF_SIZE,double);
     #endif
     #ifdef STAGGERED_MHD
-     Ez = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
-     Ex = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+    Ez = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+    Ex = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
     #endif
  
   /* ------------------------------------------------------
@@ -124,11 +137,11 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
   q    = q00    + MAX_BUF_SIZE;
   flux = flux00 + MAX_BUF_SIZE;
 
-/* ------------------------------------------------------------
-   2. Get the pointer to the orbital speed array
-   ------------------------------------------------------------ */
+/* --------------------------------------------------------
+   3. Get the pointer to the orbital speed array
+   -------------------------------------------------------- */
 
-  wA = FARGO_GetVelocity();
+  wA = FARGO_Velocity();
 
   nproc_s = grid->nproc[SDIR];   /* -- # of processors along shift dir -- */
   ngh     = grid->nghost[SDIR]; 
@@ -136,15 +149,7 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
 
   dphi = grid->dx[SDIR][SBEG];
 
-/* -----------------------------------------------------------
-   3. Add source term (if any)
-   ----------------------------------------------------------- */
-
-#if (HAVE_ENERGY) && (defined SHEARINGBOX)
-  FARGO_Source(U, g_dt, grid);  
-#endif
-  
-/* -----------------------------------------------------------
+/* --------------------------------------------------------
    4. Fargo parallelization is performed by adding extra
       data layers above and below the current data set so
       as to enlarge the required computational stencil in
@@ -159,86 +164,87 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
            |    +----------+
            |    |recv_upper|
 
-      The buffers recv_upper and recv_lower are received from
-      the processors lying, respectively, below and above and
-      their size changes dynamically from one step to the next.
-   ----------------------------------------------------------- */
+      The buffers recv_upper and recv_lower are received
+      from the processors lying, respectively, below and
+      above and their size changes dynamically from
+      one step to the next.
+   -------------------------------------------------------- */
     
-  #ifdef PARALLEL
-   if (nproc_s > 1){ 
-     nbuf_lower = abs(mmin) + ngh + 1;
-     nbuf_upper =     mmax  + ngh + 1;
+#ifdef PARALLEL
+  if (nproc_s > 1){ 
+    nbuf_lower = abs(mmin) + ngh + 1;
+    nbuf_upper =     mmax  + ngh + 1;
 
   /* -- check that buffer is not larger than processor size -- */
 
-     if (nbuf_upper > NS || nbuf_lower > NS){
-       print ("! FARGO_ShiftSolution: buffer size exceeds processsor size\n");
-       QUIT_PLUTO(1);
-     }
+    if (nbuf_upper > NS || nbuf_lower > NS){
+      printLog ("! FARGO_ShiftSolution: buffer size exceeds processsor size\n");
+      QUIT_PLUTO(1);
+    }
 
   /* -- check that buffer is less than MAX_BUF_SIZE -- */
  
-     if (nbuf_upper > MAX_BUF_SIZE || nbuf_lower > MAX_BUF_SIZE){
-       print ("! FARGO_ShiftSolution: buffer size exceeds maximum length\n");
-       QUIT_PLUTO(1);
-     }
+    if (nbuf_upper > MAX_BUF_SIZE || nbuf_lower > MAX_BUF_SIZE){
+      printLog ("! FARGO_ShiftSolution: buffer size exceeds maximum length\n");
+      QUIT_PLUTO(1);
+    }
 
   /* -- set grid indices of the lower & upper boxes -- */
 
-     #if GEOMETRY == CARTESIAN || GEOMETRY == POLAR
+    #if GEOMETRY == CARTESIAN || GEOMETRY == POLAR
 
-      lbox.ibeg = IBEG; lbox.jbeg =            0; lbox.kbeg = KBEG; 
-      lbox.iend = IEND; lbox.jend = nbuf_lower-1; lbox.kend = KEND;
-      lbox.di   = lbox.dj = lbox.dk = 1;
+    lbox.ibeg = IBEG; lbox.jbeg =            0; lbox.kbeg = KBEG; 
+    lbox.iend = IEND; lbox.jend = nbuf_lower-1; lbox.kend = KEND;
+    lbox.di   = lbox.dj = lbox.dk = 1;
 
-      ubox.ibeg = IBEG; ubox.jbeg =            0; ubox.kbeg = KBEG; 
-      ubox.iend = IEND; ubox.jend = nbuf_upper-1; ubox.kend = KEND;
-      ubox.di = ubox.dj = ubox.dk = 1;
+    ubox.ibeg = IBEG; ubox.jbeg =            0; ubox.kbeg = KBEG; 
+    ubox.iend = IEND; ubox.jend = nbuf_upper-1; ubox.kend = KEND;
+    ubox.di = ubox.dj = ubox.dk = 1;
 
-      #ifdef STAGGERED_MHD  /* -- enlarge boxes to fit staggered fields --*/
-       D_EXPAND(lbox.ibeg--; ubox.ibeg--;  ,
-                                    ;  ,
-                lbox.kbeg--; ubox.kbeg--;)
-      #endif 
+    #ifdef STAGGERED_MHD  /* -- enlarge boxes to fit staggered fields --*/
+    DIM_EXPAND(lbox.ibeg--; ubox.ibeg--;  ,
+                                     ;  ,
+             lbox.kbeg--; ubox.kbeg--;)
+    #endif 
 
-     #elif GEOMETRY == SPHERICAL
+    #elif GEOMETRY == SPHERICAL
 
-      lbox.ibeg = IBEG; lbox.jbeg = JBEG; lbox.kbeg =            0; 
-      lbox.iend = IEND; lbox.jend = JEND; lbox.kend = nbuf_lower-1; 
-      lbox.di = lbox.dj = lbox.dk = 1;
+    lbox.ibeg = IBEG; lbox.jbeg = JBEG; lbox.kbeg =            0; 
+    lbox.iend = IEND; lbox.jend = JEND; lbox.kend = nbuf_lower-1; 
+    lbox.di = lbox.dj = lbox.dk = 1;
 
-      ubox.ibeg = IBEG; ubox.jbeg = JBEG; ubox.kbeg =            0; 
-      ubox.iend = IEND; ubox.jend = JEND; ubox.kend = nbuf_upper-1; 
-      ubox.di = ubox.dj = ubox.dk = 1;
+    ubox.ibeg = IBEG; ubox.jbeg = JBEG; ubox.kbeg =            0; 
+    ubox.iend = IEND; ubox.jend = JEND; ubox.kend = nbuf_upper-1; 
+    ubox.di = ubox.dj = ubox.dk = 1;
 
-      #ifdef STAGGERED_MHD  /* -- enlarge boxes to fit staggered fields --*/
-       D_EXPAND(lbox.ibeg--; ubox.ibeg--;  ,
-                lbox.jbeg--; ubox.jbeg--;  ,
-                                    ; )
-      #endif 
+    #ifdef STAGGERED_MHD  /* -- enlarge boxes to fit staggered fields --*/
+    DIM_EXPAND(lbox.ibeg--; ubox.ibeg--;  ,
+             lbox.jbeg--; ubox.jbeg--;  ,
+                                     ; )
+    #endif 
 
-     #endif  /* GEOMETRY */
+    #endif  /* GEOMETRY */
 
   /* -- allocate memory -- */
 
-     for (nv = 0; nv < NVAR; nv++){
-       upper_buf[nv] = ArrayBox(ubox.kbeg, ubox.kend,
+    for (nv = 0; nv < NVAR; nv++){
+      upper_buf[nv] = ARRAY_BOX(ubox.kbeg, ubox.kend,
                                 ubox.jbeg, ubox.jend,
-                                ubox.ibeg, ubox.iend);
-       lower_buf[nv] = ArrayBox(lbox.kbeg, lbox.kend,
+                                ubox.ibeg, ubox.iend, double);
+      lower_buf[nv] = ARRAY_BOX(lbox.kbeg, lbox.kend,
                                 lbox.jbeg, lbox.jend,
-                                lbox.ibeg, lbox.iend);
-     }
+                                lbox.ibeg, lbox.iend, double);
+    }
 
   /* -- exchange data values between neighbour processes -- */
  
      FARGO_ParallelExchange(U, Us, lower_buf, &lbox, upper_buf, &ubox, grid);
    }
-  #endif  /* PARALLEL */
+#endif  /* PARALLEL */
 
-/* -------------------------------------------------
+/* --------------------------------------------------------
    5. Shift cell-centered quantities
-   ------------------------------------------------- */
+   -------------------------------------------------------- */
 
   mmax = mmin = 0;
 #if GEOMETRY == CARTESIAN || GEOMETRY == POLAR
@@ -255,9 +261,9 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
     w = wA[j][i]/(x1[i]*sin(x2[j]));
     #endif
 
-  /* --------------------------------------------------
-     5a. Obtain shift in terms of an integer number of 
-         cells (m) plus a remainder eps. 
+  /* --------------------------------------------
+     5a. Obtain shift in terms of an integer
+         number of cells (m) plus a remainder eps. 
          The integer part is obtained by rounding
          dL/dphi  to the nearest integer.
          Examples:
@@ -265,7 +271,7 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
          dL/dphi = 3.4   -->   m =  3, eps =  0.4
          dL/dphi = 4.7   -->   m =  5, eps = -0.3
          dL/dphi = -0.8  -->   m = -1, eps =  0.2
-     -------------------------------------------------- */
+     -------------------------------------------- */
 
     dL  = w*g_dt;                 /* spatial shift */
     dL  = fmod(dL, Lphi);
@@ -276,11 +282,11 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
 
     if (nproc_s > 1){
       if (w > 0.0 && (m + ngh) > nbuf_upper){
-        print ("! FARGO_ShiftSolution: positive shift too large\n");
+        printLog ("! FARGO_ShiftSolution: positive shift too large\n");
         QUIT_PLUTO(1);
       }
       if (w < 0.0 && (-m + ngh) > nbuf_lower){
-        print ("! FARGO_ShiftSolution: negative shift too large\n");
+        printLog ("! FARGO_ShiftSolution: negative shift too large\n");
         QUIT_PLUTO(1);
       }
     }
@@ -288,16 +294,16 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
     mmax = MAX(m, mmax);
     mmin = MIN(m, mmin);
 
-  /* ------------------------------------
+  /* --------------------------------------------
      5b. Start main loop on variables 
-     ------------------------------------ */
+     -------------------------------------------- */
    
     for (nv = NVAR; nv--;   ){
 
       #ifdef STAGGERED_MHD
-       D_EXPAND(if (nv == BX1) continue;  ,
-                if (nv == BX2) continue;  ,
-                if (nv == BX3) continue;)
+      DIM_EXPAND(if (nv == BX1) continue;  ,
+               if (nv == BX2) continue;  ,
+               if (nv == BX3) continue;)
       #endif
 
   /* -- copy 3D data into 1D array -- */
@@ -306,13 +312,13 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
 
       if (nproc_s > 1){ /* -- copy values from lower and upper buffers -- */
         #ifdef PARALLEL
-         for (s = SBEG-1; s >= SBEG - nbuf_upper; s--){
-           q[s] = FARGO_ARRAY_INDEX(upper_buf[nv], SBEG-1-s, k, j, i);
-         }
-         for (s = SEND+1; s <= SEND + nbuf_lower; s++){
-           q[s] = FARGO_ARRAY_INDEX(lower_buf[nv], s-SEND-1, k, j, i);
-         } 
-         FARGO_Flux (q-m, flux-m, eps); 
+        for (s = SBEG-1; s >= SBEG - nbuf_upper; s--){
+          q[s] = FARGO_ARRAY_INDEX(upper_buf[nv], SBEG-1-s, k, j, i);
+        }
+        for (s = SEND+1; s <= SEND + nbuf_lower; s++){
+          q[s] = FARGO_ARRAY_INDEX(lower_buf[nv], s-SEND-1, k, j, i);
+        } 
+        FARGO_Flux (q-m, flux-m, eps); 
         #endif
       }else{               /* -- impose periodic b.c. -- */
         for (s = 1; s <= ngh; s++) {
@@ -326,10 +332,10 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
 
       if (nproc_s > 1){
         #ifdef PARALLEL
-         for (s = SBEG; s <= SEND; s++){
-           sm = s - m;
-           U[k][j][i][nv] = q[sm] - eps*(flux[sm] - flux[sm-1]);
-         }
+        for (s = SBEG; s <= SEND; s++){
+          sm = s - m;
+          U[k][j][i][nv] = q[sm] - eps*(flux[sm] - flux[sm-1]);
+        }
         #endif
       }else{
         for (s = SBEG; s <= SEND; s++){
@@ -340,9 +346,9 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
     }
   }  /* -- end main spatial loop -- */
 
-/* -------------------------------------------------
+/* --------------------------------------------------------
    6. Shift staggered magnetic fields
-   ------------------------------------------------- */
+   -------------------------------------------------------- */
 
 #ifdef STAGGERED_MHD 
 {
@@ -352,19 +358,20 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
 
 /* -- pointer shortcuts -- */
 
-  D_EXPAND(bx1 = Us[BX1s];  ,
-           bx2 = Us[BX2s];  ,
-           bx3 = Us[BX3s];)
+  DIM_EXPAND(bx1 = Us[BX1s];  ,
+             bx2 = Us[BX2s];  ,
+             bx3 = Us[BX3s];)
 
-/* ------------------------------------------------------------------
-   6a. Compute  Ez   at x(i+1/2), y(j+1/2), z(k)  (Cartesian or Polar) 
-       Compute -Eth  at x(i+1/2), y(j), z(k+1/2)  (Spherical) 
-   ------------------------------------------------------------------ */
+/* ----------------------------------------------
+   6a. Compute:
+        Ez   at x(i+1/2), y(j+1/2), z(k)  (Cartesian or Polar) 
+       -Eth  at x(i+1/2), y(j), z(k+1/2)  (Spherical) 
+   ---------------------------------------------- */
 
   #if GEOMETRY == CARTESIAN || GEOMETRY == POLAR
-   KDOM_LOOP(k) for (i = IBEG-1; i <= IEND; i++){
+  KDOM_LOOP(k) for (i = IBEG-1; i <= IEND; i++){
   #else
-   JDOM_LOOP(j) for (i = IBEG-1; i <= IEND; i++){
+  JDOM_LOOP(j) for (i = IBEG-1; i <= IEND; i++){
   #endif
 
     #if GEOMETRY == CARTESIAN
@@ -375,10 +382,10 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
     w = 0.5*(wA[j][i] + wA[j][i+1])/(x1p[i]*sin(x2[j]));
     #endif
 
-  /* --------------------------------------------------
-     6b. Obtain shift in terms of an integer number of 
-         cells (m) plus a remainder eps. 
-     -------------------------------------------------- */
+  /* --------------------------------------------
+     6b. Obtain shift in terms of an integer
+         number of cells (m) plus a remainder eps. 
+     -------------------------------------------- */
 
     dL  = w*g_dt;                 /* spatial shift */
     dL  = fmod(dL, Lphi);
@@ -390,13 +397,13 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
     SDOM_LOOP(s) q[s] = bx1[k][j][i];
     if (nproc_s > 1){  /* -- copy values from lower and upper buffers -- */
       #ifdef PARALLEL
-       for (s = SBEG-1; s >= SBEG - nbuf_upper; s--){
-         q[s] = FARGO_ARRAY_INDEX(upper_buf[BX1], SBEG-1-s, k, j, i); 
-       }
-       for (s = SEND+1; s <= SEND + nbuf_lower; s++){
-         q[s] = FARGO_ARRAY_INDEX(lower_buf[BX1], s-SEND-1, k, j, i);
-       }
-       FARGO_Flux (q-m, flux-m, eps);
+      for (s = SBEG-1; s >= SBEG - nbuf_upper; s--){
+        q[s] = FARGO_ARRAY_INDEX(upper_buf[BX1], SBEG-1-s, k, j, i); 
+      }
+      for (s = SEND+1; s <= SEND + nbuf_lower; s++){
+        q[s] = FARGO_ARRAY_INDEX(lower_buf[BX1], s-SEND-1, k, j, i);
+      }
+      FARGO_Flux (q-m, flux-m, eps);
       #endif
     }else{                  /* -- assign periodic b.c. -- */
       for (s = 1; s <= ngh; s++) {
@@ -410,21 +417,21 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
 
     if (nproc_s > 1){ 
       #ifdef PARALLEL
-       if (m >= 0){
-         for (s = SBEG - 1; s <= SEND; s++) {
-           sm = s - m;
-           Ez[k][j][i] = eps*flux[sm];
-           for (ss = s; ss > (s-m); ss--) Ez[k][j][i] += q[ss];
-           Ez[k][j][i] *= dphi;
-         }
-       }else{
-         for (s = SBEG-1; s <= SEND; s++) {
-           sm = s - m;
-           Ez[k][j][i] = eps*flux[sm];
-           for (ss = s+1; ss < (s-m+1); ss++) Ez[k][j][i] -= q[ss];
-           Ez[k][j][i] *= dphi;
-         }
-       } 
+      if (m >= 0){
+        for (s = SBEG - 1; s <= SEND; s++) {
+          sm = s - m;
+          Ez[k][j][i] = eps*flux[sm];
+          for (ss = s; ss > (s-m); ss--) Ez[k][j][i] += q[ss];
+          Ez[k][j][i] *= dphi;
+        }
+      }else{
+        for (s = SBEG-1; s <= SEND; s++) {
+          sm = s - m;
+          Ez[k][j][i] = eps*flux[sm];
+          for (ss = s+1; ss < (s-m+1); ss++) Ez[k][j][i] -= q[ss];
+          Ez[k][j][i] *= dphi;
+        }
+      } 
       #endif
     }else{
       if (m >= 0){
@@ -445,12 +452,13 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
     }
   }
 
-#if DIMENSIONS == 3
+#if INCLUDE_KDIR
 
-/* -----------------------------------------------------------------
-   6c. Compute  Ex  at x(i), y(j+1/2), z(k+1/2)  (Cartesian or Polar) 
-       Compute -Er  at x(i), y(j+1/2), z(k+1/2)  (Spherical) 
-   ----------------------------------------------------------------- */
+/* ----------------------------------------------
+   6c. Compute
+        Ex  at x(i), y(j+1/2), z(k+1/2)  (Cartesian or Polar) 
+       -Er  at x(i), y(j+1/2), z(k+1/2)  (Spherical) 
+   ---------------------------------------------- */
 
 #if GEOMETRY == CARTESIAN || GEOMETRY == POLAR
   for (k = KBEG-1; k <= KEND; k++) IDOM_LOOP(i){
@@ -470,10 +478,10 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
     w = 0.5*(wA[j][i] + wA[j+1][i])/(x1[i]*sin(x2p[j]));
     #endif
 
-  /* --------------------------------------------------
-     6d. Obtain shift in terms of an integer number of 
-         cells (m) plus a remainder eps. 
-     -------------------------------------------------- */
+  /* --------------------------------------------
+     6d. Obtain shift in terms of an integer
+         number of cells (m) plus a remainder eps. 
+     -------------------------------------------- */
 
     dL  = w*g_dt;                 /* spatial shift */
     dL  = fmod(dL, Lphi);
@@ -541,29 +549,31 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
   }
 #endif /*  DIMENSIONS == 3 */
 
-/* ------------------------------------------
+/* ----------------------------------------------
    6e. Update bx1 staggered magnetic field
-   ------------------------------------------ */
+   ---------------------------------------------- */
 
   KDOM_LOOP(k) JDOM_LOOP(j) for (i = IBEG-1; i <= IEND; i++){
     #if GEOMETRY == CARTESIAN || GEOMETRY == POLAR
     bx1[k][j][i] -= (Ez[k][j][i] - Ez[k][j-1][i])/dphi;
     #elif GEOMETRY == SPHERICAL /* in spherical coordinates Ez = -Eth */
-    bx1[k][j][i] -= (Ez[k][j][i] - Ez[k-1][j][i])/dphi;
+//    bx1[k][j][i] -= (Ez[k][j][i] - Ez[k-1][j][i])/dphi;
+    double dmu = cos(x2m[j]) - cos(x2p[j]);
+    bx1[k][j][i] -= dx2[j]*sin(x2[j])/(dmu*dphi)*(Ez[k][j][i] - Ez[k-1][j][i]);
     #endif
   }
 
-/* ------------------------------------------
+/* ----------------------------------------------
    6f. Update bx2 staggered magnetic field
-   ------------------------------------------ */
+   ---------------------------------------------- */
 
   KDOM_LOOP(k) for (j = JBEG-1; j <= JEND; j++) IDOM_LOOP(i){
     #if GEOMETRY == CARTESIAN
-    bx2[k][j][i] += D_EXPAND(                                    ,
+    bx2[k][j][i] += DIM_EXPAND(                                    ,
                            (Ez[k][j][i] - Ez[k][j][i-1])/dx1[i]  ,
                          - (Ex[k][j][i] - Ex[k-1][j][i])/dx3[k]);
     #elif GEOMETRY == POLAR
-     bx2[k][j][i] += D_EXPAND(                                             ,
+     bx2[k][j][i] += DIM_EXPAND(                                             ,
                        (x1p[i]*Ez[k][j][i] -  x1p[i-1]*Ez[k][j][i-1])/dx1[i]  ,
                        - x1[i]*(Ex[k][j][i] - Ex[k-1][j][i])/dx3[k]); 
     #elif GEOMETRY == SPHERICAL /* in spherical coordinates Ex = -Er */
@@ -571,15 +581,15 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
     #endif
   }
 
-/* ------------------------------------------
+/* ----------------------------------------------
    6g. Update bx3 staggered magnetic field
-   ------------------------------------------ */
+   ---------------------------------------------- */
 
-#if DIMENSIONS == 3
+#if INCLUDE_KDIR
   for (k = KBEG-1; k <= KEND; k++) JDOM_LOOP(j) IDOM_LOOP(i){
     #if GEOMETRY == CARTESIAN || GEOMETRY == POLAR
     bx3[k][j][i] += (Ex[k][j][i] - Ex[k][j-1][i])/dphi;
-    #elif GEOMETRY == SPHERICAL
+    #elif GEOMETRY == SPHERICAL /* Ez = -Eth, Ez = -Er */
     A1p = x1p[i]*x1p[i];
     A1m = x1m[i]*x1m[i];
     A2p = fabs(sin(x2p[j]));
@@ -587,7 +597,7 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
 
     bx3[k][j][i] += sin(x2[j])*(   A1p*Ez[k][j][i] 
                                 -  A1m*Ez[k][j][i-1])/(x1[i]*dx1[i])
-                       - (A2p*Ex[k][j][i] - A2m*Ex[k][j-1][i])/dx2[j];
+                    - (A2p*Ex[k][j][i] - A2m*Ex[k][j-1][i])/dx2[j];
     #endif
   }
 #endif
@@ -595,7 +605,7 @@ void FARGO_ShiftSolution(Data_Arr U, Data_Arr Us, Grid *grid)
 /* -- redefine cell-centered field -- */
   
   DOM_LOOP(k,j,i){
-    D_EXPAND(
+    DIM_EXPAND(
       U[k][j][i][BX1] = 0.5*(Us[BX1s][k][j][i] + Us[BX1s][k][j][i-1]);  ,
       U[k][j][i][BX2] = 0.5*(Us[BX2s][k][j][i] + Us[BX2s][k][j-1][i]);  ,
       U[k][j][i][BX3] = 0.5*(Us[BX3s][k][j][i] + Us[BX3s][k-1][j][i]);
@@ -674,7 +684,7 @@ void FARGO_ParallelExchange (Data_Arr U, Data_Arr Us,
 
   ntot  = (ie - ib + 1)*(je - jb + 1)*(ke - kb + 1);
   for (nv = 0; nv < NVAR; nv++){
-    send_buf[nv] = ArrayBox(kb, ke, jb, je, ib, ie);
+    send_buf[nv] = ARRAY_BOX(kb, ke, jb, je, ib, ie, double);
   }
 
   /* -- copy data -- */
@@ -685,7 +695,7 @@ void FARGO_ParallelExchange (Data_Arr U, Data_Arr Us,
 
      for (nv = NVAR; nv--; ) send_buf[nv][k][j][i] = U[k][JEND-j][i][nv]; 
      #ifdef STAGGERED_MHD
-      D_EXPAND(send_buf[BX1][k][j][i] = Us[BX1s][k][JEND-j][i];  ,
+      DIM_EXPAND(send_buf[BX1][k][j][i] = Us[BX1s][k][JEND-j][i];  ,
                                                             ;  ,
                send_buf[BX3][k][j][i] = Us[BX3s][k][JEND-j][i];)
      #endif
@@ -694,7 +704,7 @@ void FARGO_ParallelExchange (Data_Arr U, Data_Arr Us,
 
      for (nv = NVAR; nv--; ) send_buf[nv][k][j][i] = U[KEND-k][j][i][nv]; 
      #ifdef STAGGERED_MHD
-      D_EXPAND(send_buf[BX1][k][j][i] = Us[BX1s][KEND-k][j][i];  ,
+      DIM_EXPAND(send_buf[BX1][k][j][i] = Us[BX1s][KEND-k][j][i];  ,
                send_buf[BX2][k][j][i] = Us[BX2s][KEND-k][j][i];  ,
                                                             ;)
      #endif
@@ -727,7 +737,7 @@ void FARGO_ParallelExchange (Data_Arr U, Data_Arr Us,
   ntot  = (ie - ib + 1)*(je - jb + 1)*(ke - kb + 1);
 
   for (nv = 0; nv < NVAR; nv++){
-    send_buf[nv] = ArrayBox(kb, ke, jb, je, ib, ie);
+    send_buf[nv] = ARRAY_BOX(kb, ke, jb, je, ib, ie, double);
   }
 
   BOX_LOOP(lbox, k, j, i) {
@@ -735,18 +745,18 @@ void FARGO_ParallelExchange (Data_Arr U, Data_Arr Us,
 
      for (nv = NVAR; nv--;  ) send_buf[nv][k][j][i] = U[k][JBEG+j][i][nv]; 
      #ifdef STAGGERED_MHD
-      D_EXPAND(send_buf[BX1][k][j][i] = Us[BX1s][k][JBEG+j][i];  ,
-                                                            ;  ,
-               send_buf[BX3][k][j][i] = Us[BX3s][k][JBEG+j][i];)
+      DIM_EXPAND(send_buf[BX1][k][j][i] = Us[BX1s][k][JBEG+j][i];  ,
+                                                                ;  ,
+                 send_buf[BX3][k][j][i] = Us[BX3s][k][JBEG+j][i];)
      #endif
 
     #elif GEOMETRY == SPHERICAL
 
      for (nv = NVAR; nv--;  ) send_buf[nv][k][j][i] = U[KBEG+k][j][i][nv]; 
      #ifdef STAGGERED_MHD
-      D_EXPAND(send_buf[BX1][k][j][i] = Us[BX1s][KBEG+k][j][i];  ,
-               send_buf[BX2][k][j][i] = Us[BX2s][KBEG+k][j][i];  ,
-                                                            ;)
+      DIM_EXPAND(send_buf[BX1][k][j][i] = Us[BX1s][KBEG+k][j][i];  ,
+                 send_buf[BX2][k][j][i] = Us[BX2s][KBEG+k][j][i];  ,
+                                                                ;)
      #endif
 
     #endif
@@ -856,13 +866,13 @@ void FARGO_Flux (double *q, double *flx, double eps)
      }
    }
   #else
-   print ("! FARGO_ORDER should be either 2 or 3\n");
+   printLog ("! FARGO_ORDER should be either 2 or 3\n");
    QUIT_PLUTO(1);
   #endif
 
 }
 
-#ifdef PARTICLES
+#if PARTICLES
 /* ********************************************************************* */
 void FARGO_ShiftParticles(Data *d, Grid *grid, double dt)
 /*!
@@ -878,19 +888,23 @@ void FARGO_ShiftParticles(Data *d, Grid *grid, double dt)
   particleNode *curNode;
   Particle *p;
 
+  #if !INCLUDE_JDIR
+  return;
+  #endif
+  
 /* -----------------------------------------------------
    0. Allocate memory
    ----------------------------------------------------- */
 
   if (wp == NULL){
-    wp = ArrayBox (-1, 1, -1, 1, -1, 1);
+    wp = ARRAY_BOX (-1, 1, -1, 1, -1, 1, double);
   }
 
 /* -----------------------------------------------------
    1. Shift particles in the orbital direction
    ----------------------------------------------------- */
   
-  wA = FARGO_GetVelocity();
+  wA = FARGO_Velocity();
   PARTICLES_LOOP(curNode, d->PHead){
     p = &(curNode->p);
 
@@ -902,9 +916,9 @@ void FARGO_ShiftParticles(Data *d, Grid *grid, double dt)
     k = p->cell[KDIR];
 
     v = 0.0;
-    for (k1 = -KOFFSET; k1 <= KOFFSET; k1++){
-    for (j1 = -JOFFSET; j1 <= JOFFSET; j1++){
-    for (i1 = -IOFFSET; i1 <= IOFFSET; i1++){
+    for (k1 = -INCLUDE_KDIR; k1 <= INCLUDE_KDIR; k1++){
+    for (j1 = -INCLUDE_JDIR; j1 <= INCLUDE_JDIR; j1++){
+    for (i1 = -INCLUDE_IDIR; i1 <= INCLUDE_IDIR; i1++){
       v += wp[k1][j1][i1]*wA[k + k1][i + i1];
     }}}
 // v = -SB_Q*SB_OMEGA*p->coord[IDIR];
@@ -919,7 +933,4 @@ void FARGO_ShiftParticles(Data *d, Grid *grid, double dt)
   Particles_BoundaryExchange(d, grid);
 }
 #endif
-
-
-
 #undef MAX_BUF_SIZE

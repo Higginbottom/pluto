@@ -69,12 +69,12 @@
  
  
   \last change  D. Mukherjee, A. Mignone (dipanjan.mukherjee@unito.it) \n
-  \date         May 21, 2018
+  \date         Jul 26, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
-#if PHYSICS == MHD || PHYSICS == RMHD
+#if PHYSICS == MHD || PHYSICS == RMHD || PHYSICS == ResRMHD
 /* ********************************************************************* */
 void VectorPotentialDiff (double *b, Data *d, int i, int j, int k, Grid *grid)
 /*!
@@ -117,7 +117,6 @@ void VectorPotentialDiff (double *b, Data *d, int i, int j, int k, Grid *grid)
 /* -- Define pointers to A[] -- */
   A1 = d->Ax1;  A2 = d->Ax2; A3 = d->Ax3; 
 
-
   x1p = grid->xr[IDIR][i]; x1m = grid->xl[IDIR][i];
   x2p = grid->xr[JDIR][j]; x2m = grid->xl[JDIR][j];
   x3p = grid->xr[KDIR][k]; x3m = grid->xl[KDIR][k];
@@ -125,17 +124,14 @@ void VectorPotentialDiff (double *b, Data *d, int i, int j, int k, Grid *grid)
   x2f = grid->xr[JDIR][j]; /* field at face centers                  */
   x3f = grid->xr[KDIR][k];
   
-  A1_x2p = A1[k][j][i]; A1_x2m = A1[k][j-1][i];
-  A1_x3p = A1[k][j][i]; A1_x3m = A1[k-1][j][i];
-
-  A2_x1p = A2[k][j][i]; A2_x1m = A2[k][j][i-1];
-  A2_x3p = A2[k][j][i]; A2_x3m = A2[k-1][j][i];
-
-  A3_x1p = A3[k][j][i]; A3_x1m = A3[k][j][i-1];
-  A3_x2p = A3[k][j][i]; A3_x2m = A3[k][j-1][i];
- 
-
-
+  DIM_EXPAND(
+    A2_x1p = A2[k][j][i]; A2_x1m = A2[k][j][i-1];
+    A3_x1p = A3[k][j][i]; A3_x1m = A3[k][j][i-1];  ,
+    A1_x2p = A1[k][j][i]; A1_x2m = A1[k][j-1][i];
+    A3_x2p = A3[k][j][i]; A3_x2m = A3[k][j-1][i];  ,
+    A1_x3p = A1[k][j][i]; A1_x3m = A1[k-1][j][i];
+    A2_x3p = A2[k][j][i]; A2_x3m = A2[k-1][j][i]; )
+  
 #if GEOMETRY == CARTESIAN
 /* -----------------------------------------------------
     Compute Bx
@@ -145,7 +141,7 @@ void VectorPotentialDiff (double *b, Data *d, int i, int j, int k, Grid *grid)
    ----------------------------------------------------- */
   bx = (A3_x2p - A3_x2m)/dx2;
 
-  #if DIMENSIONS == 3
+  #if INCLUDE_KDIR
   bx -= (A2_x3p - A2_x3m)/dx3;
   #endif 
   
@@ -156,7 +152,7 @@ void VectorPotentialDiff (double *b, Data *d, int i, int j, int k, Grid *grid)
                              +(Ax[0++] - Ax[0+-])/dz
    ----------------------------------------------------- */
   by = -(A3_x1p - A3_x1m)/dx1;
-  #if DIMENSIONS == 3
+  #if INCLUDE_KDIR
   by += (A1_x3p - A1_x3m)/dx3;
   #endif 
 
@@ -182,14 +178,14 @@ void VectorPotentialDiff (double *b, Data *d, int i, int j, int k, Grid *grid)
    Note that A3 = -A_\phi since in cylindrical
    coordinates (R,z) are not right-handed
    -----------------------------------------------------*/
-   br = -(A3_x2p   - A3_x2m)/dx2;
+   br = -(A3_x2p - A3_x2m)/dx2;
 
 /* ----------------------------------------------------------
    Compute Bz  
    - For cell centred: Bz = 1/r delr (r*Aphi) 
    - For Staggered:    Bz = (r+ A3[0,0] - r- A3[0,-])/(r dr)
   -----------------------------------------------------------*/
-  bz =  (x1p*A3_x1p   - x1m*A3_x1m)/(x1*dx1);
+  bz =  (x1p*A3_x1p - x1m*A3_x1m)/(x1*dx1);
 
 /* ----------------------------------------------
     Compute Bphi  
@@ -210,11 +206,16 @@ void VectorPotentialDiff (double *b, Data *d, int i, int j, int k, Grid *grid)
     - For Staggered:    Br =  (Az[++0]   - Az[+-0]  )/(r dphi)
                              -(Aphi[+0+] - Aphi[+0-])/dz
   --------------------------------------------------------------*/
-  br = (A3_x2p - A3_x2m)/(x1f*dx2);
-
-  #if DIMENSIONS == 3
-  br -= (A2_x3p   - A2_x3m)/dx3;
-  #endif 
+ 
+  if (fabs(x1f) < 1.e-8 && INCLUDE_JDIR) {   /* Avoid singularity at origin */
+    br = DIM_EXPAND(  0.0                         ,
+                  + (A3_x2p - A3_x2m)/(x1f*dx2 + 1.e-32)   ,
+                  - (A2_x3p - A2_x3m)/dx3);
+  }else{    
+    br = DIM_EXPAND(  0.0                         ,
+                  + (A3_x2p - A3_x2m)/(x1f*dx2)   ,
+                  - (A2_x3p - A2_x3m)/dx3);
+  }  
 
 /* -----------------------------------------------------------
     Compute Bphi 
@@ -222,11 +223,9 @@ void VectorPotentialDiff (double *b, Data *d, int i, int j, int k, Grid *grid)
     - For Staggered:    Bphi =  (Az[++0] - Az[-+0])/dr 
 		               -(Ar[0++] - Ar[0+-])/dz
   -------------------------------------------------------------*/
-  bphi = -(A3_x1p   - A3_x1m)/dx1;
-
-  #if DIMENSIONS == 3
-  bphi += (A1_x3p - A1_x3m)/dx3;
-  #endif 
+  bphi = DIM_EXPAND(- (A3_x1p - A3_x1m)/dx1   ,
+                                            ,
+                  + (A1_x3p - A1_x3m)/dx3);
 
 /* ------------------------------------------------------------------
    Compute Bz  
@@ -234,7 +233,10 @@ void VectorPotentialDiff (double *b, Data *d, int i, int j, int k, Grid *grid)
     - For Staggered:    Bz = ((r+) Aphi[+0+] - (r-) Aphi[+0-])/(r dr)
 		            -(     Ar[0++]   -      Ar[0-+]  )/(r dphi) 
    --------------------------------------------------------------------*/
-  bz =  (x1p*A2_x1p - x1m*A2_x1m)/(x1*dx1) - (A1_x2p - A1_x2m)/(x1*dx2);
+  bz   = DIM_EXPAND(  (x1p*A2_x1p - x1m*A2_x1m)/(x1*dx1),
+                  - (A1_x2p - A1_x2m)/(x1*dx2),
+                  );
+
   b[0] = br; b[1] = bphi; b[2] = bz;
 
 #elif GEOMETRY == SPHERICAL
@@ -254,7 +256,7 @@ void VectorPotentialDiff (double *b, Data *d, int i, int j, int k, Grid *grid)
    -------------------------------------------------------------------------*/
   br = (A3_x2p*sin(x2p)   - A3_x2m*sin(x2m))/(x1f*(cos(x2m)-cos(x2p)));
 
-  #if DIMENSIONS == 3
+  #if INCLUDE_KDIR
   br -= 1./(x1p*sin(x2)*dx3)*(A2_x3p - A2_x3m);
   #endif 
 
@@ -268,7 +270,7 @@ void VectorPotentialDiff (double *b, Data *d, int i, int j, int k, Grid *grid)
    -------------------------------------------------------------*/
   bth = -(x1p*A3_x1p   - x1m*A3_x1m)/(x1*dx1);
 
-  #if DIMENSIONS == 3
+  #if INCLUDE_KDIR
   bth += 1./(x1p*sin(x2)*dx3)*(A1_x3p   - A1_x3m);
   #endif 
 

@@ -109,25 +109,27 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   int     i, j, k, nv;
   double  rho_out, vx_out, vy_out, vz_out;
   double  pr_out,  bx_out, by_out, bz_out;
-  double  prof, lor, pr_in, vy_in, bz_in, *r;
+  double  prof, lor, pr_in, *r;
 
 
   #ifdef STAGGERED_MHD
    #error Boundary not implemented for Staggered MHD
   #endif
 
+#if GEOMETRY == CYLINDRICAL
   if (side == X2_BEG){
+    double vy_in, bz_in; 
     if (box->vpos == CENTER){
       r = grid->x[IDIR];
       BOX_LOOP(box,k,j,i){
 
         rho_out = d->Vc[RHO][k][2*JBEG - j - 1][i];            
-        EXPAND(vx_out =  d->Vc[VX1][k][2*JBEG - j - 1][i];  ,
-               vy_out = -d->Vc[VX2][k][2*JBEG - j - 1][i];  ,
-               vz_out =  d->Vc[VX3][k][2*JBEG - j - 1][i];)
-        EXPAND(bx_out =  d->Vc[BX1][k][2*JBEG - j - 1][i];  ,
-               by_out =  d->Vc[BX2][k][2*JBEG - j - 1][i];  ,
-               bz_out = -d->Vc[BX3][k][2*JBEG - j - 1][i];)             
+        vx_out =  d->Vc[VX1][k][2*JBEG - j - 1][i];  
+        vy_out = -d->Vc[VX2][k][2*JBEG - j - 1][i];  
+        vz_out =  d->Vc[VX3][k][2*JBEG - j - 1][i];
+        bx_out =  d->Vc[BX1][k][2*JBEG - j - 1][i];  
+        by_out =  d->Vc[BX2][k][2*JBEG - j - 1][i];  
+        bz_out = -d->Vc[BX3][k][2*JBEG - j - 1][i];
         pr_out  = d->Vc[PRS][k][2*JBEG - j - 1][i];
 
         prof = (r[i] <= 1.0 ? 1.0 : 0.0);
@@ -148,16 +150,64 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
         }  
 
         d->Vc[RHO][k][j][i] = rho_out - (rho_out - g_inputParam[RHO_IN])*prof;
-        EXPAND(d->Vc[VX1][k][j][i] = vx_out*(1.0 - prof);              ,
-               d->Vc[VX2][k][j][i] = vy_out - (vy_out - vy_in)*prof;   ,
-               d->Vc[VX3][k][j][i] = vz_out*(1.0 - prof);)  
+        d->Vc[VX1][k][j][i] = vx_out*(1.0 - prof);             
+        d->Vc[VX2][k][j][i] = vy_out - (vy_out - vy_in)*prof;   
+        d->Vc[VX3][k][j][i] = vz_out*(1.0 - prof);  
 
-        EXPAND(d->Vc[BX1][k][j][i] = bx_out*(1.0 - prof);            ,
-               d->Vc[BX2][k][j][i] = by_out*(1.0 - prof);            ,
-               d->Vc[BX3][k][j][i] = bz_out - (bz_out - bz_in)*prof; )
+        d->Vc[BX1][k][j][i] = bx_out*(1.0 - prof);            
+        d->Vc[BX2][k][j][i] = by_out*(1.0 - prof);            
+        d->Vc[BX3][k][j][i] = bz_out - (bz_out - bz_in)*prof;
         d->Vc[PRS][k][j][i] = pr_out - (pr_out - pr_in)*prof;
       }
     }
   }
+#endif
+
+#if GEOMETRY == POLAR
+  if (side == X3_BEG){
+    double vz_in, by_in; 
+    if (box->vpos == CENTER){
+      r = grid->x[IDIR];
+      BOX_LOOP(box,k,j,i){
+
+        rho_out =  d->Vc[RHO][2*KBEG-k-1][j][i];          
+        vx_out  =  d->Vc[VX1][2*KBEG-k-1][j][i];
+        vy_out  =  d->Vc[VX2][2*KBEG-k-1][j][i];
+        vz_out  = -d->Vc[VX3][2*KBEG-k-1][j][i];
+        bx_out  =  d->Vc[BX1][2*KBEG-k-1][j][i];
+        by_out  = -d->Vc[BX2][2*KBEG-k-1][j][i];
+        bz_out  =  d->Vc[BX3][2*KBEG-k-1][j][i];
+        pr_out  =  d->Vc[PRS][2*KBEG-k-1][j][i];
+
+        prof  = (r[i] <= 1.0 ? 1.0 : 0.0);
+        lor   = 10.0;
+        vz_in = sqrt(1.0 - 1.0/lor/lor);
+
+        if (r[i] <= 1.0) {
+          prof = 1.0;
+          by_in = lor*g_inputParam[BM]*g_inputParam[RM]/r[i];
+          pr_in = alpha*pe;         
+          if (r[i] <= g_inputParam[RM]) {
+            by_in = lor*g_inputParam[BM]*r[i]/g_inputParam[RM];
+            pr_in = pe*(alpha + 2.0/g_inputParam[BETA]*(1.0 - r[i]*r[i]/g_inputParam[RM]/g_inputParam[RM]));
+          }
+        }else{
+          prof = 0.0;
+        }  
+
+        d->Vc[RHO][k][j][i] = rho_out - (rho_out - g_inputParam[RHO_IN])*prof;
+        d->Vc[VX1][k][j][i] = vx_out*(1.0 - prof); 
+        d->Vc[VX2][k][j][i] = vy_out*(1.0 - prof);
+        d->Vc[VX3][k][j][i] = vz_out - (vz_out - vz_in)*prof;
+
+        d->Vc[BX1][k][j][i] = bx_out*(1.0 - prof);
+        d->Vc[BX2][k][j][i] = by_out - (by_out - by_in)*prof;
+        d->Vc[BX3][k][j][i] = bz_out*(1.0 - prof);
+        d->Vc[PRS][k][j][i] = pr_out - (pr_out - pr_in)*prof;
+      }
+    }
+  }
+#endif
+
 }
 

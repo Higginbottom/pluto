@@ -1,14 +1,12 @@
 #define  PHYSICS                        MHD
 #define  DIMENSIONS                     2
-#define  COMPONENTS                     2
 #define  GEOMETRY                       CARTESIAN
 #define  BODY_FORCE                     NO
-#define  FORCED_TURB                    NO
 #define  COOLING                        NO
 #define  RECONSTRUCTION                 LINEAR
 #define  TIME_STEPPING                  HANCOCK
-#define  DIMENSIONAL_SPLITTING          NO
 #define  NTRACER                        0
+#define  PARTICLES                      NO
 #define  USER_DEF_PARAMETERS            3
 
 /* -- physics dependent declarations -- */
@@ -33,6 +31,6 @@
 /* [Beg] user-defined constants (do not change this line) */
 
 #define  LIMITER                        MC_LIM
-#define  CT_EMF_AVERAGE                 UCT_CONTACT
+#define  CT_EMF_AVERAGE                 CT_CONTACT
 
 /* [End] user-defined constants (do not change this line) */

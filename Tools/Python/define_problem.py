@@ -37,20 +37,19 @@ class DefineProblem(object):
     self.ChkCompatiblity() #To Replace Old Keywords with New Ones
 
     # defining the PLUTO entries and its default values in lists.  
-    self.entries = ['PHYSICS', 'DIMENSIONS', 'COMPONENTS', 'GEOMETRY',
-                    'BODY_FORCE', 'FORCED_TURB','COOLING', 'RECONSTRUCTION', 
-		    'TIME_STEPPING','DIMENSIONAL_SPLITTING', 'NTRACER', 
-		    'USER_DEF_PARAMETERS']
-    self.default = ['HD', '1', '1', 'CARTESIAN','NO', 'NO',
-                    'NO','LINEAR','RK2',
-                    'NO', '0', '0']
+    self.entries = ['PHYSICS', 'DIMENSIONS', 'GEOMETRY',
+                    'BODY_FORCE', 'COOLING', 'RECONSTRUCTION', 
+                    'TIME_STEPPING','NTRACER', 'PARTICLES','USER_DEF_PARAMETERS']
+    self.default = ['HD', '1', 'CARTESIAN',
+                    'NO', 'NO','LINEAR',
+                    'RK2', '0', 'NO','0']
 
     # Creating a dictionary of flags that are invoked by giving arguments.
     flag_keys = ['WITH-CHOMBO', 'FULL', 'WITH-FD', 'WITH-SB', 'WITH-FARGO',
                  'WITH-PARTICLES','WITH-CR_TRANSPORT']
     #self.flag_dict = {key: False for key in flag_keys} DOESNT WORK WITH PYTHON 2.6
     self.flag_dict = {'WITH-CHOMBO':False, 'FULL':False, 'WITH-FD':False,
-                      'WITH-SB':False, 'WITH-FARGO':False,'WITH-PARTICLES':False,
+                      'WITH-SB':False, 'WITH-FARGO':False,
                       'WITH-CR_TRANSPORT':False}
     
     for arg in sys.argv:
@@ -65,63 +64,69 @@ class DefineProblem(object):
     # Generates Full Option List.
     self.GenerateOptionsList()
     
-    # !!!!!!!!!!! CR_TRANSPORT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # if (self.flag_dict['WITH-CR_TRANSPORT'] == True):
-    #   self.options[self.entries.index('PHYSICS')] = ['CR_TRANSPORT']
-    # else:
-    #   i = self.entries.index('PHYSICS')
-    #   self.options[i].remove('CR_TRANSPORT')
-      
-
-    # print self.options[self.entries.index('PHYSICS')]
-    # print self.entries
-    # print self.options
-    #   
-    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    
     #Updates Options, default based on FLAGS.
     if True in self.flag_dict.values():
       self.AfterFlagLists() 
 
     #Read the exsisting definition.h file or Browse the menu for Setting up problem.
-    self.ReadOrBrowse(Ents=self.entries, Defs=self.default, Opts=self.options, MenuTitle="Setup problem")
+    self.ReadOrBrowse(Ents=self.entries, Defs=self.default, Opts=self.options,
+                      MenuTitle="Setup problem")
     
-    
-    #Process the PHYSICS Modules.
+
+    #Process Particles  Module.
+    #if (self.flag_dict['WITH-PARTICLES'] == True):
+    #  self.ProcessParticlesModule()
+    #  self.ReadOrBrowse(Ents = self.entries_Particles, Defs = self.default_Particles,
+    #                    Opts = self.options_Particles, MenuTitle = "Particle Menu")
+
+
+    #Process the PHYSICS Module.
     if self.default[self.entries.index('PHYSICS')] == 'HD':
       self.ProcessHDModule()
-      self.ReadOrBrowse(Ents = self.entries_HD, Defs = self.default_HD, Opts = self.options_HD, MenuTitle = "HD Menu")
+      self.ReadOrBrowse(Ents = self.entries_HD, Defs = self.default_HD,
+                        Opts = self.options_HD, MenuTitle = "HD Menu")
       self.eos = self.default_HD[self.entries_HD.index('EOS')]
 
     if self.default[self.entries.index('PHYSICS')] == 'RHD':
       self.ProcessRHDModule()
-      self.ReadOrBrowse(Ents = self.entries_RHD, Defs = self.default_RHD, Opts = self.options_RHD, MenuTitle = "RHD Menu")
+      self.ReadOrBrowse(Ents = self.entries_RHD, Defs = self.default_RHD,
+                        Opts = self.options_RHD, MenuTitle = "RHD Menu")
       self.eos = self.default_RHD[self.entries_RHD.index('EOS')]
 
     if self.default[self.entries.index('PHYSICS')] == 'MHD':
       self.ProcessMHDModule()
-      self.ReadOrBrowse(Ents = self.entries_MHD, Defs = self.default_MHD, Opts = self.options_MHD, MenuTitle = "MHD Menu")
+      self.ReadOrBrowse(Ents = self.entries_MHD, Defs = self.default_MHD,
+                        Opts = self.options_MHD, MenuTitle = "MHD Menu")
       self.eos = self.default_MHD[self.entries_MHD.index('EOS')]
 
     if self.default[self.entries.index('PHYSICS')] == 'RMHD':
       self.ProcessRMHDModule()
-      self.ReadOrBrowse(Ents = self.entries_RMHD, Defs = self.default_RMHD, Opts = self.options_RMHD, MenuTitle = "RMHD Menu")
+      self.ReadOrBrowse(Ents = self.entries_RMHD, Defs = self.default_RMHD,
+                        Opts = self.options_RMHD, MenuTitle = "RMHD Menu")
       self.eos = self.default_RMHD[self.entries_RMHD.index('EOS')]
+
+    if self.default[self.entries.index('PHYSICS')] == 'ResRMHD':
+      self.ProcessResRMHDModule()
+      self.ReadOrBrowse(Ents = self.entries_ResRMHD, Defs = self.default_ResRMHD,
+                        Opts = self.options_ResRMHD, MenuTitle = "ResRMHD Menu")
+      self.eos = self.default_ResRMHD[self.entries_ResRMHD.index('EOS')]
 
     if self.default[self.entries.index('PHYSICS')] == 'CR_TRANSPORT':
       self.ProcessCR_TransportModule()
       self.ReadOrBrowse(Ents = self.entries_CR_TRANSPORT,
                         Defs = self.default_CR_TRANSPORT,
-                        Opts = self.options_CR_TRANSPORT, MenuTitle = "CR_Transport Menu")
+                        Opts = self.options_CR_TRANSPORT,
+                        MenuTitle = "CR_Transport Menu")
       self.eos = self.default_CR_TRANSPORT[self.entries_CR_TRANSPORT.index('EOS')]
     
     # Process the KROME cooling module when required. 
     if self.default[self.entries.index('COOLING')] == 'KROME':
       self.ProcessKROMEModule()
-      self.ReadOrBrowse(Ents = self.entries_KROME, Defs = self.default_KROME, Opts = self.options_KROME, MenuTitle = "KROME Menu")
+      self.ReadOrBrowse(Ents = self.entries_KROME, Defs = self.default_KROME,
+                        Opts = self.options_KROME, MenuTitle = "KROME Menu")
       self.WriteKromeOpts()
 
-    #UserDef Para and Constants
+    #UserDef Parameters and Constants
     self.udef_params = []
     self.udef_const = []
     self.udef_const_vals = []
@@ -159,24 +164,21 @@ class DefineProblem(object):
     entries list. These are essentially the options
     that will be browsed in the Pluto Setup Menu.
     """
-    phylist = ['ADVECTION','HD','RHD','MHD','RMHD','CR_TRANSPORT']
+    phylist = ['HD','RHD','MHD','RMHD','ResRMHD']
     dimlist = ['1','2','3']
-    comlist = ['1','2','3']
     geolist = ['CARTESIAN','CYLINDRICAL','POLAR','SPHERICAL']
     bfolist = ['NO','VECTOR', 'POTENTIAL', '(VECTOR+POTENTIAL)']
-    ftblist = ['NO','YES']
     coolist = ['NO','POWER_LAW','TABULATED','SNEq','MINEq','H2_COOL', 'KROME']
-    intlist = ['FLAT','LINEAR','LimO3','WENO3','PARABOLIC']
-    tmslist = ['EULER','RK2','RK3','HANCOCK','CHARACTERISTIC_TRACING']
-    dislist = ['YES','NO']
+    intlist = ['FLAT','LINEAR','LimO3','WENO3','PARABOLIC','WENOZ','MP5']
+    tmslist = ['EULER','RK2','RK3','RK4','HANCOCK','CHARACTERISTIC_TRACING']
     ntrlist = ['%d'%n for n in range(9)]
+    prtlist = ['NO','PARTICLES_LP','PARTICLES_CR','PARTICLES_DUST']
     udplist = ['%d'%n for n in range(32)]
     udclist = ['%d'%n for n in range(32)]
 
-    self.options = [phylist, dimlist, comlist, geolist, bfolist,ftblist,
-                    coolist, intlist, tmslist,
-                    dislist, ntrlist, udplist,
-                    udclist]
+    self.options = [phylist, dimlist, geolist, bfolist,
+                    coolist, intlist, tmslist, ntrlist,
+                    prtlist, udplist, udclist]
 
   def AfterFlagLists(self):
     """Modify options and default list based on command-line flags.
@@ -187,22 +189,24 @@ class DefineProblem(object):
     the flags set using system arguments.
     """
     if self.flag_dict['FULL']:
-      self.options[self.entries.index('RECONSTRUCTION')] = ['FLAT','LINEAR','LimO3', 'WENO3','PARABOLIC', 'MP5']
+      self.options[self.entries.index('RECONSTRUCTION')] = ['FLAT',
+                                                            'LINEAR',
+                                                            'LimO3',
+                                                            'WENO3',
+                                                            'PARABOLIC',
+                                                            'WENOZ',
+                                                            'MP5']
     
     if self.flag_dict['WITH-CHOMBO']:
       self.options[self.entries.index('GEOMETRY')] = ['CARTESIAN','CYLINDRICAL','POLAR','SPHERICAL']
       self.options[self.entries.index('RECONSTRUCTION')] = ['FLAT','LINEAR','WENO3','PARABOLIC']
       self.options[self.entries.index('TIME_STEPPING')] = ['EULER','HANCOCK','CHARACTERISTIC_TRACING','RK2']
       self.default[self.entries.index('TIME_STEPPING')] = 'HANCOCK'
-      self.options[self.entries.index('DIMENSIONAL_SPLITTING')] = ['NO']
-      self.default[self.entries.index('DIMENSIONAL_SPLITTING')] = 'NO'
     
     if self.flag_dict['WITH-FARGO']:
       self.options[self.entries.index('PHYSICS')] = ['HD', 'MHD']
       self.options[self.entries.index('DIMENSIONS')] = ['2','3']
       self.default[self.entries.index('DIMENSIONS')] = '2'
-      self.options[self.entries.index('DIMENSIONAL_SPLITTING')] = ['NO']
-      self.default[self.entries.index('DIMENSIONAL_SPLITTING')] = 'NO'
         
     if self.flag_dict['WITH-FD']:
       self.options[self.entries.index('PHYSICS')] = ['HD', 'MHD']
@@ -217,8 +221,6 @@ class DefineProblem(object):
       self.default[self.entries.index('PHYSICS')] = 'MHD'
       self.options[self.entries.index('DIMENSIONS')] = ['2', '3']
       self.default[self.entries.index('DIMENSIONS')] = '2'
-      self.options[self.entries.index('COMPONENTS')] = ['2', '3']
-      self.default[self.entries.index('COMPONENTS')] = '2'
       self.options[self.entries.index('BODY_FORCE')] = ['VECTOR', 'POTENTIAL', '(VECTOR+POTENTIAL)']
       self.default[self.entries.index('BODY_FORCE')] = 'VECTOR'
 
@@ -255,15 +257,14 @@ class DefineProblem(object):
     Provides entries, options and defaults specific to Hydro Module.
     Also updates them accordingly if required by flags.
     """
-    self.entries_HD = ['EOS', 'ENTROPY_SWITCH',
+    self.entries_HD = ['DUST_FLUID','EOS', 'ENTROPY_SWITCH',
                        'THERMAL_CONDUCTION', 'VISCOSITY',
                        'ROTATING_FRAME']
-    self.default_HD = ['IDEAL', 'NO',
+    self.default_HD = ['NO','IDEAL', 'NO',
                        'NO',    'NO',
                        'NO']
-    self.options_HD = [['IDEAL','PVTE_LAW','ISOTHERMAL'],
-#                           ['NO','YES'],
-                        ['NO','SELECTIVE','ALWAYS','CHOMBO_REGRID'],
+    self.options_HD = [['NO','YES'],['IDEAL','PVTE_LAW','ISOTHERMAL'],
+                       ['NO','SELECTIVE','ALWAYS','CHOMBO_REGRID'],
                        ['NO','EXPLICIT','SUPER_TIME_STEPPING','RK_LEGENDRE'],
                        ['NO','EXPLICIT','SUPER_TIME_STEPPING','RK_LEGENDRE'],
                        ['NO','YES']]
@@ -280,11 +281,11 @@ class DefineProblem(object):
     Provides entries, options and defaults specific to Relativistic
     Hydro Module. Also updates them accordingly if required by flags.
     """
-    self.entries_RHD = ['EOS', 'ENTROPY_SWITCH']
+    self.entries_RHD = ['EOS', 'ENTROPY_SWITCH','RADIATION']
     self.default_RHD = ['IDEAL', 'NO', 'NO']
     self.options_RHD = [['IDEAL','TAUB'],
-#                            ['NO','YES']]
-                          ['NO','SELECTIVE','ALWAYS','CHOMBO_REGRID']]
+                        ['NO','SELECTIVE','ALWAYS','CHOMBO_REGRID'],
+                        ['NO','YES']]
 
   def ProcessMHDModule(self):
     """
@@ -329,7 +330,7 @@ class DefineProblem(object):
 
     if self.flag_dict['WITH-SB'] or self.flag_dict['WITH-FARGO']:
       indx_ = self.entries_MHD.index('DIVB_CONTROL')
-      self.options_MHD[indx_] = ['CONSTRAINED_TRANSPORT']
+      self.options_MHD[indx_] = ['CONSTRAINED_TRANSPORT', 'NO']
       self.default_MHD[indx_] = 'CONSTRAINED_TRANSPORT'
   
   def ProcessRMHDModule(self):
@@ -337,18 +338,42 @@ class DefineProblem(object):
     Provides entries, options and defaults specific to Relativisitc
     Magneto-Hydro Module.Also updates them accordingly if required by flags.
     """
-    self.entries_RMHD = ['EOS', 'ENTROPY_SWITCH','DIVB_CONTROL','RESISTIVITY']
-    self.default_RMHD = ['IDEAL', 'NO', 'NO','NO']
+    self.entries_RMHD = ['EOS', 'ENTROPY_SWITCH','RADIATION','DIVB_CONTROL']
+    self.default_RMHD = ['IDEAL',           'NO',       'NO',          'NO']
     self.options_RMHD = [['IDEAL', 'TAUB'],
-#                            ['NO','YES'],
                          ['NO','SELECTIVE','ALWAYS','CHOMBO_REGRID'],
-                         ['NO','EIGHT_WAVES','DIV_CLEANING','CONSTRAINED_TRANSPORT'],
-                         ['NO','EXPLICIT','IMEX','OP_SPLIT','NEW_SPLIT']]
+                         ['NO','YES'],
+                         ['NO','EIGHT_WAVES','DIV_CLEANING','CONSTRAINED_TRANSPORT']]
 
     if self.flag_dict['WITH-CHOMBO']:
       indx_ = self.entries_RMHD.index('DIVB_CONTROL')
       self.options_RMHD[indx_] = ['NO','EIGHT_WAVES','DIV_CLEANING','NO']
 
+  def ProcessResRMHDModule(self):
+    """
+    Provides entries, options and defaults specific to Resistive Relativisitc
+    Magneto-Hydro Module. Also updates them accordingly if required by flags.
+    """
+    self.entries_ResRMHD = ['EOS', 'ENTROPY_SWITCH','DIVB_CONTROL','DIVE_CONTROL']
+    self.default_ResRMHD = ['IDEAL',           'NO',          'NO',          'NO']
+    self.options_ResRMHD = [['IDEAL', 'TAUB'],
+#                            ['NO','YES'],
+                         ['NO','SELECTIVE','ALWAYS','CHOMBO_REGRID'],
+                         ['NO','EIGHT_WAVES','DIV_CLEANING','CONSTRAINED_TRANSPORT'],
+                         ['NO','CONSTRAINED_TRANSPORT']]
+
+    if self.flag_dict['WITH-CHOMBO']:
+      indx_ = self.entries_ResRMHD.index('DIVB_CONTROL')
+      self.options_ResRMHD[indx_] = ['NO','EIGHT_WAVES','DIV_CLEANING','NO']
+
+  def ProcessParticlesModule(self):
+    """
+    Provides entries, options and defaults specific to the
+    Particle module. Also updates them accordingly if required by flags.
+    """
+    self.entries_Particles = ['PARTICLES']
+    self.default_Particles = ['PARTICLES_LP']
+    self.options_Particles = [['PARTICLES_LP', 'PARTICLES_CR','PARTICLES_DUST']]
 
   def ProcessCR_TransportModule(self):
     """
@@ -366,7 +391,9 @@ class DefineProblem(object):
     netwrkfiles = os.listdir(self.krome_dir+'networks/')
     self.entries_KROME = ['NETWORK_FILE', 'USE_N','COOLING_TYPE', 'HEATING_TYPE', 'GAMMA_TYPE']
     self.default_KROME = [netwrkfiles[0], 'NO', 'NONE', 'NONE', 'DEFAULT']
-    self.options_KROME = [netwrkfiles, ['NO', 'YES'], [ 'NONE', 'H2', 'ATOMIC', 'Z', 'H2,ATOMIC'], ['NONE', 'COMPRESS', 'PHOTO', 'XRAY', 'CHEM'], ['DEFAULT','FULL', 'ROT', 'VIB', 'EXACT', 'REDUCED']]
+    self.options_KROME = [netwrkfiles, ['NO', 'YES'], [ 'NONE', 'H2', 'ATOMIC', 'Z', 'H2,ATOMIC'],
+                         ['NONE', 'COMPRESS', 'PHOTO', 'XRAY', 'CHEM'],
+                         ['DEFAULT','FULL', 'ROT', 'VIB', 'EXACT', 'REDUCED']]
 
     if self.eos == 'IDEAL':
       self.options_KROME[4] = ['DEFAULT']
@@ -517,18 +544,20 @@ class DefineProblem(object):
       self.additional_files.append('ppm_states.o')
       self.additional_files.append('ppm_coeffs.o')
       self.header_files.append('ppm_coeffs.h')
+    elif interp_mode in ['MP5','WENOZ']:
+      self.additional_files.append('mp5_states.o')
     elif interp_mode in ['FLAT', 'LimO3', 'WENO3']:
       self.additional_files.append(interp_mode.lower()+'_states.o')
     else:
       pass
     
     if self.flag_dict['WITH-FD']:
-      self.additional_files += ['fd_states.o', 'fd_reconstruct.o', 'fd_flux.o']
+      self.additional_files += ['fd_states.o', 'fd_flux.o']
 
-    if self.default[self.entries.index('COOLING')] not in ['NO', 'POWER_LAW', 'KROME']:
-      self.additional_files += ['cooling_source.o','cooling_ode_solver.o']
+#    if self.default[self.entries.index('COOLING')] not in ['NO', 'POWER_LAW', 'KROME']:
+#      self.additional_files += ['cooling_source.o','cooling_ode_solver.o']
 
-    if self.phymodule == 'MHD' or self.phymodule == 'RMHD':
+    if self.phymodule == 'MHD' or self.phymodule == 'RMHD' or self.phymodule == 'ResRMHD':
       self.additional_files.append('vec_pot_diff.o')
       if not self.flag_dict['WITH-CHOMBO']:
         self.additional_files.append('vec_pot_update.o')
@@ -541,7 +570,7 @@ class DefineProblem(object):
         self.additional_files.append('PatchCTU.o')
     else:
       cmset = set(['CHARACTERISTIC_TRACING', 'HANCOCK']) & set(self.default)
-      if len(cmset) != 0 and self.default[self.entries.index('DIMENSIONAL_SPLITTING')] == 'NO':
+      if len(cmset) != 0:
         self.additional_files.append('ctu_step.o')
       elif self.default[self.entries.index('TIME_STEPPING')] == 'SSP_RK4':
         self.additional_files.append('unsplit.ssprk.o')                
@@ -575,19 +604,23 @@ class DefineProblem(object):
   def AppendPlutoPathAndFlags(self):
     """
     Adds additional C flags and path to 'makefile' based on
-    modular defintions and requirements. 
+    module defintions and requirements. 
     """
     self.pluto_path.append(self.phymodule+'/')
     
-    dis_eff = ['Dust','Thermal_Conduction', 'Viscosity']
+    # Add path for diffusion modules
+    dis_eff = ['Dust_Fluid','Thermal_Conduction', 'Viscosity']
     for de in dis_eff:
-        if (     (de.upper() in self.mod_entries)
-             and (self.mod_default[self.mod_entries.index(de.upper())] != 'NO')):
-            self.pluto_path.append(de+'/')
+      if (    (de.upper() in self.mod_entries)
+          and (self.mod_default[self.mod_entries.index(de.upper())] != 'NO')):
+        self.pluto_path.append(de+'/')
     
-    if self.phymodule == 'MHD' or self.phymodule == 'RMHD':
+    if    self.phymodule == 'MHD' \
+       or self.phymodule == 'RMHD' \
+       or self.phymodule == "ResRMHD":
       divb_mode   = self.mod_default[self.mod_entries.index('DIVB_CONTROL')]
-      resistivity = self.mod_default[self.mod_entries.index('RESISTIVITY')]
+      if (self.phymodule == 'MHD'): \
+        resistivity = self.mod_default[self.mod_entries.index('RESISTIVITY')]
 
       if divb_mode == 'CONSTRAINED_TRANSPORT':
         self.pluto_path.append('MHD/CT/')
@@ -596,69 +629,84 @@ class DefineProblem(object):
       else:
           pass
 
-      if self.phymodule == 'MHD' and \
-        self.mod_default[self.mod_entries.index('AMBIPOLAR_DIFFUSION')] != 'NO':
+      if     self.phymodule == 'MHD' \
+         and self.mod_default[self.mod_entries.index('AMBIPOLAR_DIFFUSION')] != 'NO':
         self.pluto_path.append('MHD/Ambipolar_Diffusion/')
 
       if self.phymodule == 'MHD' and \
         self.mod_default[self.mod_entries.index('HALL_MHD')] != 'NO':
         self.pluto_path.append('MHD/Hall_MHD/')
 
-      if self.phymodule == 'MHD' and \
-        self.mod_default[self.mod_entries.index('RESISTIVITY')] != 'NO':
+      if     self.phymodule == 'MHD' \
+         and self.mod_default[self.mod_entries.index('RESISTIVITY')] != 'NO':
         self.pluto_path.append('MHD/Resistivity/')
 
-
-      if self.phymodule == 'RMHD' and \
-        resistivity   != 'NO':
-        self.pluto_path.append('RMHD/Resistivity/')
+      if self.phymodule == 'ResRMHD':
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # Hot fix to reverse path list for debugging purposed.
+        # Hot fix to reverse path list for debugging purposes.
         # This will have to be removed at some point later on...
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         self.pluto_path=list(reversed(self.pluto_path)) 
 
         if ('rk_step.o' in self.additional_files):
-          if (resistivity != "EXPLICIT"):
-            self.additional_files.remove('rk_step.o')
-            self.additional_files.append('rk_step_imex.o')
+          self.additional_files.remove('rk_step.o')
+          self.additional_files.append('rk_step_imex.o')
+        
 
-           
+    # -- Add path for Radiation --
+    if (self.phymodule == "RHD" or self.phymodule == "RMHD"):
+      radiation = self.mod_default[self.mod_entries.index('RADIATION')]
+      if (radiation == "YES"): 
+        self.pluto_path.append('RMHD/Radiation/')
+      
+    # -- Add path for FARGO --
+
     if self.flag_dict['WITH-FARGO']:
       self.pluto_path.append('Fargo/')
       self.additional_flags.append(' -DFARGO')
 
+    # -- Add path for finite difference (FD) --
+
     if self.flag_dict['WITH-FD']:
       self.additional_flags.append(' -DFINITE_DIFFERENCE')
 
-    if self.flag_dict['WITH-PARTICLES']:
-      self.pluto_path.append('Particles/')
-      self.additional_flags.append(' -DPARTICLES')
+    # -- Add path for ShearingBox (SB) --
 
     if self.flag_dict['WITH-SB']:
       self.pluto_path.append('MHD/ShearingBox/')
       self.additional_flags.append(' -DSHEARINGBOX')
     
+    # -- Add path for Body Force --
+
     bd_force = self.default[self.entries.index('BODY_FORCE')]
-    for_turb = self.default[self.entries.index('FORCED_TURB')]
-    if for_turb == 'YES':
-      self.pluto_path.append('Forced_Turb/') 
-    
+
+    # -- Add path for Cooling --
     cool_mode = self.default[self.entries.index('COOLING')]
     if cool_mode != 'NO':
+      if (cool_mode != "POWER_LAW"):
+         self.pluto_path.append('Cooling/')
+         
       if cool_mode == 'TABULATED':
-        self.pluto_path.append('Cooling/TABULATED/')
+        self.pluto_path.append('Cooling/Tabulated/')
       elif cool_mode == 'POWER_LAW':
         self.pluto_path.append('Cooling/Power_Law/')
       else:
         self.pluto_path.append('Cooling/'+ cool_mode +'/')
 
+    # -- Add path for EOS --
     if 'EOS' in self.mod_entries:
       if 'PVTE_LAW' in self.mod_default:
         tmp1 = 'PVTE'
       else:
         tmp1 = self.eos[0]+self.eos[1:].lower()
       self.pluto_path.append('EOS/'+tmp1+'/')
+
+    # -- Add path for Particles --
+    particles = self.default[self.entries.index('PARTICLES')]
+    if (   particles == "PARTICLES_LP" or particles == "PARTICLES_CR"
+        or particles == "PARTICLES_DUST"): 
+      self.pluto_path.append('Particles/')
+
 
   def UpdatePlutoIni(self):
     """
@@ -730,7 +778,8 @@ class DefineProblem(object):
     Writes all modular entries, options, defaults into a list.
     """
     for x in self.entries:
-        self.def_file_list.append('#define  '+x.ljust(28)+'   '+self.default[self.entries.index(x)]+'\n')
+        self.def_file_list.append( '#define  '+x.ljust(28)+'   '
+                                  +self.default[self.entries.index(x)]+'\n')
 
     self.def_file_list.append('\n/* -- physics dependent declarations -- */\n\n')
     self.phymodule = self.default[self.entries.index('PHYSICS')]
@@ -744,7 +793,8 @@ class DefineProblem(object):
     self.mod_default = self.__getattribute__(tmp1[1])
 
     for x in self.mod_entries:
-      self.def_file_list.append('#define  '+x.ljust(28)+'   '+ self.mod_default[self.mod_entries.index(x)]+'\n')
+      self.def_file_list.append( '#define  '+x.ljust(28)+'   '
+                                + self.mod_default[self.mod_entries.index(x)]+'\n')
 
     self.AppendAdditionalFiles()
     self.AppendPlutoPathAndFlags()
@@ -819,10 +869,10 @@ class DefineProblem(object):
         l2 = nlist[lindx1:]
         opBracket = 0
         clBracket = 0
-	addIndx   = 0
+        addIndx   = 0
         for item in l2:
           line = item.split()
-	  addIndx += 1
+          addIndx += 1
           if ((len(line) > 0) and (line[0] !='*')):
             for w in line:
               if "{" in list(w): opBracket += 1
@@ -837,4 +887,3 @@ class DefineProblem(object):
         pf.List2File(NewInit) 
     
     
-  

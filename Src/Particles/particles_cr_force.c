@@ -20,14 +20,13 @@
        WITH A THERMAL PLASMA: APPLICATION TO NON-RELATIVISTIC SHOCKS"\n
        Bai et al., ApJ (2015) 809, 55
 
-  \date   March 31, 2018
+  \date   Aug 27, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
 void Particles_CR_Current (Particle *p, double *qd);
 
-#if PARTICLES_TYPE == COSMIC_RAYS 
 /* ********************************************************************* */
 void Particles_CR_ComputeForce(Data_Arr V, const Data *data, Grid *grid)
 /*!
@@ -67,6 +66,12 @@ void Particles_CR_ComputeForce(Data_Arr V, const Data *data, Grid *grid)
   
   TOT_LOOP(k,j,i){
 
+  /* -- Divide by volume to obtain current density -- */
+
+    for (dir = 0; dir < 4; dir++) Jmu[dir][k][j][i] /= grid->dV[k][j][i];
+
+  /* -- Compute convective electric field -- */
+
     vx1 = V[VX1][k][j][i]; Bx1 = V[BX1][k][j][i];
     vx2 = V[VX2][k][j][i]; Bx2 = V[BX2][k][j][i];
     vx3 = V[VX3][k][j][i]; Bx3 = V[BX3][k][j][i];
@@ -89,14 +94,13 @@ void Particles_CR_ComputeForce(Data_Arr V, const Data *data, Grid *grid)
     inv_qg = 1.0/qg;
     for (dir = 0; dir < 3; dir++) {   
       data->Fcr[dir][k][j][i] = R1*(data->qcr[k][j][i]*emf0[dir] + Jcr_X_B[dir]);
-      data->Ecr[dir][k][j][i] = emf0[dir] - data->Fcr[dir][k][j][i]*inv_qg;
     }
 
   /* -- Compute source term to energy equation, vg*Fcr -- */
 
     data->Fcr[3][k][j][i] =   vx1*data->Fcr[IDIR][k][j][i]
                             + vx2*data->Fcr[JDIR][k][j][i]
-                            + vx3*data->Fcr[KDIR][k][j][i];
+                            + vx3*data->Fcr[KDIR][k][j][i];    
   }
 
 //print ("<<[Particles_CR_Force]\n");
@@ -106,7 +110,7 @@ void Particles_CR_ComputeForce(Data_Arr V, const Data *data, Grid *grid)
 void Particles_CR_ComputeCurrent(const Data *d, Grid *grid)
 /*!
  * Compute Fcr (Lorentz force felt by particles and fluid) at cell centers.
- * Force is compute by depositing charge and current from individual
+ * Force is computed by depositing charge and current from individual
  * particles to the grid.
  *
  * \param [in]      V   3D array of primitive variables, V[nv][k][j][i]
@@ -121,8 +125,6 @@ void Particles_CR_ComputeCurrent(const Data *d, Grid *grid)
   return;
 #endif
 
-//print (">>[Particles_CR_Force], step = %d\n", g_stepNumber);
-
 /* -------------------------------------------------------------
    1. Compute charge and current density from particles to grid 
    ------------------------------------------------------------- */
@@ -133,21 +135,22 @@ void Particles_CR_ComputeCurrent(const Data *d, Grid *grid)
   Jmu[3] = d->Jcr[2];
 
   Particles_Deposit (d->PHead, Particles_CR_Current, Jmu, 4, grid);
-
 }
  
 /* ************************************************************* */
 void Particles_CR_Current (Particle *p, double *qd)
 /*!
- *  Compute the quantities to be deposited to the grid. 
+ *  Compute charge and current to be deposited on the grid.
  *************************************************************** */
 {
-  const double q = PARTICLES_CR_E_MC * p->rho;
+  const double q = PARTICLES_CR_E_MC * p->mass;
+  double c2 = PARTICLES_CR_C*PARTICLES_CR_C;
+  double u2 = DOT_PRODUCT(p->speed, p->speed);
+  double inv_lor = 1.0/sqrt(1.0 + u2/c2);
 
   qd[0] = q;
-  qd[1] = q*p->speed[IDIR];
-  qd[2] = q*p->speed[JDIR];
-  qd[3] = q*p->speed[KDIR];
+  qd[1] = q*p->speed[IDIR]*inv_lor;
+  qd[2] = q*p->speed[JDIR]*inv_lor;
+  qd[3] = q*p->speed[KDIR]*inv_lor;
 }
 
-#endif  /* PARTICLES_TYPE == COSMIC_RAYS */

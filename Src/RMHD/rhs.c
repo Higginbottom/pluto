@@ -37,7 +37,7 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
  *
  * LAST MODIFIED
  * 
- *   March 09, 2017 by A. Mignone (mignone@ph.unito.it)
+ *   Apr 29, 2020 by A. Mignone (mignone@to.infn.it)
  *
  ************************************************************* */
 {
@@ -61,17 +61,6 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
     fA = ARRAY_2D(NMAX_POINT, NVAR, double);
     h  = ARRAY_1D(NMAX_POINT, double);
   }
-#if RESISTIVITY != NO
-  #error rhs works in Cartesian coords only  
-#endif
-#endif
-
-/* --------------------------------------------------
-             Compute passive scalar fluxes
-   -------------------------------------------------- */
-
-#if NSCL > 0
-  AdvectFlux (sweep, beg - 1, end, grid);
 #endif
 
 /* --------------------------
@@ -131,30 +120,6 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
       rhs[i][MX1] -= dtdx*(p[i] - p[i-1]);
       #endif
 
-    /* ----------------------------------------------------
-       I4. Include gravity
-       ---------------------------------------------------- */
-
-      v = stateC->v[i];
-      #if (BODY_FORCE & VECTOR)
-       BodyForceVector(v, g, x1[i], x2[j], x3[k]);
-       rhs[i][MX1] += dt*v[RHO]*g[IDIR];
-       #if DIMENSIONS == 1 && COMPONENTS > 1 /* In 1D and when COMPONENTS == 2  */
-                                             /* or 3, add gravity contributions */
-                                             /* along non-existing dimensions. */
-        EXPAND(                                     ,
-               rhs[i][MX2] += dt*vc[RHO]*g[JDIR];   ,
-               rhs[i][MX3] += dt*vc[RHO]*g[KDIR];)
-       #endif
-
-       #if HAVE_ENERGY
-        rhs[i][ENG] += dt*0.5*(flux[i][RHO] + flux[i-1][RHO])*g[IDIR];
-        #if DIMENSIONS == 1 && COMPONENTS > 1
-         rhs[i][ENG] += dt*(EXPAND(0.0, + vc[RHO]*vc[VX2]*g[JDIR],
-                                        + vc[RHO]*vc[VX3]*g[KDIR]));
-        #endif
-       #endif
-      #endif
     }
   } else if (g_dir == JDIR){
 
@@ -177,27 +142,9 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
 
       NVAR_LOOP(nv) rhs[j][nv] = -dtdx*(flux[j][nv] - flux[j-1][nv]);
       #if USE_PR_GRADIENT == YES
-       rhs[j][MX2] -= dtdx*(p[j] - p[j-1]);
+      rhs[j][MX2] -= dtdx*(p[j] - p[j-1]);
       #endif
 
-    /* ----------------------------------------------------
-       J4. Include gravity
-       ---------------------------------------------------- */
-
-      v = stateC->v[j];
-      #if (BODY_FORCE & VECTOR)
-       BodyForceVector(v, g, x1[i], x2[j], x3[k]);
-       rhs[j][MX2] += dt*v[RHO]*g[JDIR];
-       #if DIMENSIONS == 2 && COMPONENTS == 3
-        rhs[j][MX3] += dt*vc[RHO]*g[KDIR];
-       #endif
-       #if HAVE_ENERGY
-        rhs[j][ENG] += dt*0.5*(flux[j][RHO] + flux[j-1][RHO])*g[JDIR];
-        #if DIMENSIONS == 2 && COMPONENTS == 3
-         rhs[j][ENG] += dt*vc[RHO]*vc[VX3]*g[KDIR];
-        #endif
-       #endif
-      #endif
     }
 
   }else if (g_dir == KDIR){
@@ -225,19 +172,6 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
       #if USE_PR_GRADIENT == YES
        rhs[k][MX3] -= dtdx*(p[k] - p[k-1]);
       #endif
-
-    /* ----------------------------------------------------
-       K4. Include gravity
-       ---------------------------------------------------- */
-
-      v = stateC->v[k];
-      #if (BODY_FORCE & VECTOR)
-       BodyForceVector(v, g, x1[i], x2[j], x3[k]);
-       rhs[k][MX3] += dt*v[RHO]*g[KDIR];
-       #if HAVE_ENERGY
-        rhs[k][ENG] += dt*0.5*(flux[k][RHO] + flux[k-1][RHO])*g[KDIR];
-       #endif
-      #endif
     }
   }
 }
@@ -254,6 +188,10 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
   double R1, R_1;
   double vB, vel2, lor2, wt, mphi, B2;
 
+  #if RADIATION
+  double Sr;
+  #endif
+
   if (g_dir == IDIR) {  
 
   /* ****************************************************
@@ -266,22 +204,28 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
     for (i = beg - 1; i <= end; i++){ 
       R = fabs(x1p[i]);
 
-      fA[i][RHO] = flux[i][RHO]*R;
-      EXPAND(fA[i][iMR]   = flux[i][iMR]*R;     ,
-             fA[i][iMZ]   = flux[i][iMZ]*R;     ,
-             fA[i][iMPHI] = flux[i][iMPHI]*R*R;)       
+      fA[i][RHO]   = flux[i][RHO]*R;
+      fA[i][iMR]   = flux[i][iMR]*R;    
+      fA[i][iMZ]   = flux[i][iMZ]*R;    
+      fA[i][iMPHI] = flux[i][iMPHI]*R*R;
       #if PHYSICS == RMHD
-       EXPAND(fA[i][iBR]   = flux[i][iBR]*R;  ,
-              fA[i][iBZ]   = flux[i][iBZ]*R;  ,
-              fA[i][iBPHI] = flux[i][iBPHI]*R;)
+      fA[i][iBR]   = flux[i][iBR]*R;
+      fA[i][iBZ]   = flux[i][iBZ]*R;
+      fA[i][iBPHI] = flux[i][iBPHI]*R;
       #endif
       #if HAVE_ENERGY
-       fA[i][ENG] = flux[i][ENG]*R;
+      fA[i][ENG] = flux[i][ENG]*R;
       #endif
       #ifdef GLM_MHD
-       fA[i][PSI_GLM] = flux[i][PSI_GLM]*R;
+      fA[i][PSI_GLM] = flux[i][PSI_GLM]*R;
       #endif
-       NSCL_LOOP(nv) fA[i][nv] = flux[i][nv]*R;
+      #if RADIATION
+      fA[i][ENR]    = flux[i][ENR]*R;
+      fA[i][iFRR]   = flux[i][iFRR]*R;
+      fA[i][iFRZ]   = flux[i][iFRZ]*R;
+      fA[i][iFRPHI] = flux[i][iFRPHI]*R*R; 
+      #endif
+      NSCL_LOOP(nv) fA[i][nv] = flux[i][nv]*R;
     }
 
   /* ****************************************************
@@ -292,9 +236,7 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
        - add gravity                          (I4)
      **************************************************** */
 
-    #if COMPONENTS == 3
-     Enthalpy (stateC->v, h, beg, end);
-    #endif
+    Enthalpy (stateC->v, h, beg, end);
     for (i = beg; i <= end; i++){ 
       R    = x1[i];
       dtdV = dt/(fabs(x1[i])*dx1[i]);
@@ -305,28 +247,33 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
        I1. initialize rhs with flux difference
        ----------------------------------------------- */
 
-      rhs[i][RHO] = -dtdV*(fA[i][RHO] - fA[i-1][RHO]);
-      EXPAND(rhs[i][iMR]   = - dtdV*(fA[i][iMR]   - fA[i-1][iMR]);  ,
-             rhs[i][iMZ]   = - dtdV*(fA[i][iMZ]   - fA[i-1][iMZ]);  ,
-             rhs[i][iMPHI] = - dtdV*(fA[i][iMPHI] - fA[i-1][iMPHI])*fabs(R_1);)
+      rhs[i][RHO]   = - dtdV*(fA[i][RHO] - fA[i-1][RHO]);
+      rhs[i][iMR]   = - dtdV*(fA[i][iMR]   - fA[i-1][iMR]);
+      rhs[i][iMZ]   = - dtdV*(fA[i][iMZ]   - fA[i-1][iMZ]);
+      rhs[i][iMPHI] = - dtdV*(fA[i][iMPHI] - fA[i-1][iMPHI])*fabs(R_1);
       #if USE_PR_GRADIENT == YES
-       rhs[i][iMR] -= dtdx*(p[i] - p[i-1]);  
+      rhs[i][iMR] -= dtdx*(p[i] - p[i-1]);  
       #endif
       #if PHYSICS == RMHD
-       EXPAND(rhs[i][iBR]   = - dtdV*(fA[i][iBR]   - fA[i-1][iBR]);  ,
-              rhs[i][iBZ]   = - dtdV*(fA[i][iBZ]   - fA[i-1][iBZ]);  ,
-              rhs[i][iBPHI] = - dtdV*(fA[i][iBPHI] - fA[i-1][iBPHI]);)
-       #ifdef GLM_MHD
-        rhs[i][iBR]     = - dtdx*(flux[i][iBR]   - flux[i-1][iBR]);
-        rhs[i][PSI_GLM] = - dtdV*(fA[i][PSI_GLM] - fA[i-1][PSI_GLM]);
-       #endif
+      rhs[i][iBR]   = - dtdV*(fA[i][iBR]   - fA[i-1][iBR]);
+      rhs[i][iBZ]   = - dtdV*(fA[i][iBZ]   - fA[i-1][iBZ]);
+      rhs[i][iBPHI] = - dtdV*(fA[i][iBPHI] - fA[i-1][iBPHI]);
+      #ifdef GLM_MHD
+      rhs[i][iBR]     = - dtdx*(flux[i][iBR]   - flux[i-1][iBR]);
+      rhs[i][PSI_GLM] = - dtdV*(fA[i][PSI_GLM] - fA[i-1][PSI_GLM]);
       #endif
+      #endif /* PHYSICS == RMHD */
       #if HAVE_ENERGY
-       rhs[i][ENG] = -dtdV*(fA[i][ENG] - fA[i-1][ENG]);
+      rhs[i][ENG] = -dtdV*(fA[i][ENG] - fA[i-1][ENG]);
       #endif
-       NSCL_LOOP(nv) rhs[i][nv] = -dtdV*(fA[i][nv] - fA[i-1][nv]);
+      #if RADIATION
+      rhs[i][ENR]    = - dtdV*(fA[i][ENR]    - fA[i-1][ENR]);
+      rhs[i][iFRR]   = - dtdV*(fA[i][iFRR]   - fA[i-1][iFRR]);
+      rhs[i][iFRZ]   = - dtdV*(fA[i][iFRZ]   - fA[i-1][iFRZ]); 
+      rhs[i][iFRPHI] = - dtdV*(fA[i][iFRPHI] - fA[i-1][iFRPHI])*fabs(R_1);
+      #endif
+      NSCL_LOOP(nv) rhs[i][nv] = -dtdV*(fA[i][nv] - fA[i-1][nv]);
       
-
     /* -------------------------------------------------------
        I2. Add source terms
            [for Bphi we use the non-conservative formulation
@@ -336,37 +283,29 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
        ------------------------------------------------------- */
 
       v     = stateC->v[i];
-      #if COMPONENTS == 3
-       vel2  = EXPAND(v[VX1]*v[VX1], + v[VX2]*v[VX2], + v[VX3]*v[VX3]);
-       lor2  = 1.0/(1.0 - vel2);
-       #if PHYSICS == RMHD
-        vB   = EXPAND(v[VX1]*v[BX1], + v[VX2]*v[BX2], + v[VX3]*v[BX3]);
-        B2   = EXPAND(v[BX1]*v[BX1], + v[BX2]*v[BX2], + v[BX3]*v[BX3]);
-        wt   = v[RHO]*h[i]*lor2 + B2;
-        mphi = wt*v[iVPHI] - vB*v[iBPHI]; 
-       #elif PHYSICS == RHD
-        wt   = v[RHO]*h[i]*lor2;
-        mphi = wt*v[iVPHI]; 
-       #endif       
+      vel2  = v[VX1]*v[VX1] + v[VX2]*v[VX2] + v[VX3]*v[VX3];
+      lor2  = 1.0/(1.0 - vel2);
+      #if PHYSICS == RMHD
+      vB   = v[VX1]*v[BX1] + v[VX2]*v[BX2] + v[VX3]*v[BX3];
+      B2   = v[BX1]*v[BX1] + v[BX2]*v[BX2] + v[BX3]*v[BX3];
+      wt   = v[RHO]*h[i]*lor2 + B2;
+      mphi = wt*v[iVPHI] - vB*v[iBPHI]; 
+      #elif PHYSICS == RHD
+      wt   = v[RHO]*h[i]*lor2;
+      mphi = wt*v[iVPHI]; 
+      #endif       
       
-       rhs[i][iMR] += dt*mphi*v[iVPHI]*R_1;
-       #if PHYSICS == RMHD
-        rhs[i][iMR]   -= dt*(v[iBPHI]/lor2 + vB*v[iVPHI])*v[iBPHI]*R_1;
-        rhs[i][iBPHI] -= dt*(v[iVPHI]*v[iBR] - v[iBPHI]*v[iVR])*R_1;   
-       #endif
-      #endif  /* COMPONENTS == 3 */
-
-    /* ----------------------------------------------------
-       I4. Include gravity
-       ---------------------------------------------------- */
-
-      #if (BODY_FORCE & VECTOR)
-       BodyForceVector(v, g, x1[i], x2[g_j], x3[g_k]);
-       rhs[i][iMR] += dt*v[RHO]*g[g_dir];
-       #if HAVE_ENERGY
-        rhs[i][ENG] += dt*0.5*(flux[i][RHO] + flux[i-1][RHO])*g[g_dir];
-       #endif
+      rhs[i][iMR] += dt*mphi*v[iVPHI]*R_1;
+      #if PHYSICS == RMHD
+      rhs[i][iMR]   -= dt*(v[iBPHI]/lor2 + vB*v[iVPHI])*v[iBPHI]*R_1;
+      rhs[i][iBPHI] -= dt*(v[iVPHI]*v[iBR] - v[iBPHI]*v[iVR])*R_1;
       #endif
+
+      #if RADIATION
+      Sr = EddTensor(v,iFRPHI,iFRPHI) * v[ENR];
+      rhs[i][iFRR] += dt*Sr*R_1;
+      #endif
+
     }
      
   } else if (g_dir == JDIR) { 
@@ -390,21 +329,9 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
 
       NVAR_LOOP(nv) rhs[j][nv] = -dtdx*(flux[j][nv] - flux[j-1][nv]);
       #if USE_PR_GRADIENT == YES
-       rhs[j][iMZ] += - dtdx*(p[j] - p[j-1]);
+      rhs[j][iMZ] += - dtdx*(p[j] - p[j-1]);
       #endif
 
-    /* ----------------------------------------------------
-       J4. Include gravity
-       ---------------------------------------------------- */
-
-      v = stateC->v[j];
-      #if (BODY_FORCE & VECTOR)
-       BodyForceVector(v, g, x1[i], x2[j], x3[k]);
-       rhs[j][iMZ] += dt*v[RHO]*g[JDIR];
-       #if HAVE_ENERGY
-        rhs[j][ENG] += dt*0.5*(flux[j][RHO] + flux[j-1][RHO])*g[JDIR];
-       #endif
-      #endif
     }
   }
 }
@@ -418,9 +345,13 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
     
    *********************************************************** */
 {
-  double R, phi, z; 
-  double R_1;
-  double vB, vel2, g_2, wt, mphi, B2;
+  double R, z, phi; 
+  double R1, R_1;
+  double vB, vel2, lor2, wt, mphi, B2;
+
+  #if RADIATION
+  double frad2, Sr;
+  #endif
    
   if (g_dir == IDIR) { 
 
@@ -434,22 +365,28 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
     for (i = beg - 1; i <= end; i++) { 
       R = fabs(x1p[i]);
 
-      fA[i][RHO] = flux[i][RHO]*R;
-      EXPAND(fA[i][iMR]   = flux[i][iMR]*R;      ,
-             fA[i][iMPHI] = flux[i][iMPHI]*R*R;  ,
-             fA[i][iMZ]   = flux[i][iMZ]*R;)       
+      fA[i][RHO]   = flux[i][RHO]*R;
+      fA[i][iMR]   = flux[i][iMR]*R; 
+      fA[i][iMPHI] = flux[i][iMPHI]*R*R;
+      fA[i][iMZ]   = flux[i][iMZ]*R;      
       #if PHYSICS == RMHD
-       EXPAND(fA[i][iBR]   = flux[i][iBR]*R;    ,
-              fA[i][iBPHI] = flux[i][iBPHI];    ,
-              fA[i][iBZ]   = flux[i][iBZ]*R;)
+      fA[i][iBR]   = flux[i][iBR]*R;
+      fA[i][iBPHI] = flux[i][iBPHI]*R;
+      fA[i][iBZ]   = flux[i][iBZ]*R;
       #endif
       #if HAVE_ENERGY
-       fA[i][ENG] = flux[i][ENG]*R;
+      fA[i][ENG] = flux[i][ENG]*R;
       #endif
       #ifdef GLM_MHD
-       fA[i][PSI_GLM] = flux[i][PSI_GLM]*R;
+      fA[i][PSI_GLM] = flux[i][PSI_GLM]*R;
       #endif
-       NSCL_LOOP(nv) fA[i][nv] = flux[i][nv]*R;
+      #if RADIATION
+      fA[i][ENR]    = flux[i][ENR]*R;
+      fA[i][iFRR]   = flux[i][iFRR]*R; 
+      fA[i][iFRPHI] = flux[i][iFRPHI]*R*R;
+      fA[i][iFRZ]   = flux[i][iFRZ]*R;
+      #endif
+      NSCL_LOOP(nv) fA[i][nv] = flux[i][nv]*R;
     }
 
   /* ****************************************************
@@ -462,12 +399,10 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
        - add gravity                          (I4)
      **************************************************** */
 
-    #if COMPONENTS >= 2  /* -- need enthalpy for source term computation -- */
-     Enthalpy (stateC->v, h, beg, end);
-    #endif
+    Enthalpy (stateC->v, h, beg, end);
     for (i = beg; i <= end; i++) {
       R    = x1[i];
-      dtdV = dt/dV1[i];
+      dtdV = dt/(fabs(x1[i])*dx1[i]);
       dtdx = dt/dx1[i];
       R_1  = 1.0/x1[i];
 
@@ -475,63 +410,65 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
        I1. initialize rhs with flux difference
        ----------------------------------------------- */
 
-      rhs[i][RHO] = -dtdV*(fA[i][RHO] - fA[i-1][RHO]);
-      EXPAND(rhs[i][iMR]   = - dtdV*(fA[i][iMR]   - fA[i-1][iMR])
-                             - dtdx*(p[i] - p[i-1]);                      ,      
-             rhs[i][iMPHI] = - dtdV*(fA[i][iMPHI] - fA[i-1][iMPHI])*R_1;  ,
-             rhs[i][iMZ]   = - dtdV*(fA[i][iMZ]   - fA[i-1][iMZ]);)
+      rhs[i][RHO]   = - dtdV*(fA[i][RHO]   - fA[i-1][RHO]);
+      rhs[i][iMR]   = - dtdV*(fA[i][iMR]   - fA[i-1][iMR]); 
+      rhs[i][iMPHI] = - dtdV*(fA[i][iMPHI] - fA[i-1][iMPHI])*fabs(R_1);
+      rhs[i][iMZ]   = - dtdV*(fA[i][iMZ]   - fA[i-1][iMZ]);
+      #if USE_PR_GRADIENT == YES
+      rhs[i][iMR] -= dtdx*(p[i] - p[i-1]);  
+      #endif
       #if PHYSICS == RMHD
-       EXPAND(rhs[i][iBR]   = -dtdV*(fA[i][iBR]   - fA[i-1][iBR]);    ,
-              rhs[i][iBPHI] = -dtdx*(fA[i][iBPHI] - fA[i-1][iBPHI]);  ,
-              rhs[i][iBZ]   = -dtdV*(fA[i][iBZ]   - fA[i-1][iBZ]);)
-       #ifdef GLM_MHD
-        rhs[i][iBR]     = -dtdx*(flux[i][iBR]   - flux[i-1][iBR]);
-        rhs[i][PSI_GLM] = -dtdV*(fA[i][PSI_GLM] - fA[i-1][PSI_GLM]);
-       #endif
+      rhs[i][iBR]   = -dtdV*(fA[i][iBR]   - fA[i-1][iBR]); 
+      rhs[i][iBPHI] = -dtdV*(fA[i][iBPHI] - fA[i-1][iBPHI]);
+      rhs[i][iBZ]   = -dtdV*(fA[i][iBZ]   - fA[i-1][iBZ]);
+      #ifdef GLM_MHD
+      rhs[i][iBR]     = -dtdx*(flux[i][iBR]   - flux[i-1][iBR]);
+      rhs[i][PSI_GLM] = -dtdV*(fA[i][PSI_GLM] - fA[i-1][PSI_GLM]);
       #endif
+      #endif /* PHYSICS == RMHD */ 
       #if HAVE_ENERGY
-       rhs[i][ENG] = -dtdV*(fA[i][ENG] - fA[i-1][ENG]);
+      rhs[i][ENG] = -dtdV*(fA[i][ENG] - fA[i-1][ENG]);
+      #endif 
+      #if RADIATION
+      rhs[i][ENR]    = - dtdV*(fA[i][ENR]    - fA[i-1][ENR]);
+      rhs[i][iFRR]   = - dtdV*(fA[i][iFRR]   - fA[i-1][iFRR]);
+      rhs[i][iFRPHI] = - dtdV*(fA[i][iFRPHI] - fA[i-1][iFRPHI])*fabs(R_1);
+      rhs[i][iFRZ]   = - dtdV*(fA[i][iFRZ]   - fA[i-1][iFRZ]);
       #endif
-      
-       NSCL_LOOP(nv)  rhs[i][nv] = -dtdV*(fA[i][nv] - fA[i-1][nv]);
-      
+      NSCL_LOOP(nv)  rhs[i][nv] = -dtdV*(fA[i][nv] - fA[i-1][nv]);
 
-    /* ----------------------------------------------------
-       I2. Add source terms to the radial momentum eqn.
-           S = w*gamma^2*v(phi)^2 - B(phi)^2 - E(phi)^2
-       ---------------------------------------------------- */
+    /* -------------------------------------------------------
+       I2. Add source terms
+           [for Bphi we use the non-conservative formulation
+            with the source term since it has been found to 
+            be more stable at low resolution in toroidal jet
+            simulations]
+       ------------------------------------------------------- */
 
       v     = stateC->v[i];
-      #if COMPONENTS >= 2
-       vel2  = EXPAND(v[VX1]*v[VX1], + v[VX2]*v[VX2], + v[VX3]*v[VX3]);
-       g_2   = 1.0 - vel2;
-       #if PHYSICS == RMHD
-        vB   = EXPAND(v[VX1]*v[BX1], + v[VX2]*v[BX2], + v[VX3]*v[BX3]);
-        B2   = EXPAND(v[BX1]*v[BX1], + v[BX2]*v[BX2], + v[BX3]*v[BX3]);
-        wt   = v[RHO]*h[i]/g_2 + B2;
-        mphi = wt*v[iVPHI] - vB*v[iBPHI]; 
-       #elif PHYSICS == RHD
-        wt   = v[RHO]*h[i]/g_2;
-        mphi = wt*v[iVPHI]; 
-       #endif       
+      vel2  = v[VX1]*v[VX1] + v[VX2]*v[VX2] + v[VX3]*v[VX3];
+      lor2  = 1.0/(1.0 - vel2);
+      #if PHYSICS == RMHD
+      vB   = v[VX1]*v[BX1] + v[VX2]*v[BX2] + v[VX3]*v[BX3];
+      B2   = v[BX1]*v[BX1] + v[BX2]*v[BX2] + v[BX3]*v[BX3];
+      wt   = v[RHO]*h[i]*lor2 + B2;
+      mphi = wt*v[iVPHI] - vB*v[iBPHI]; 
+      #elif PHYSICS == RHD
+      wt   = v[RHO]*h[i]*lor2;
+      mphi = wt*v[iVPHI]; 
+      #endif       
       
-       rhs[i][iMR] += dt*mphi*v[iVPHI]*R_1;
-       #if PHYSICS == RMHD
-        rhs[i][iMR] -= dt*(v[iBPHI]*g_2 + vB*v[iVPHI])*v[iBPHI]*R_1;
-       #endif
-      #endif  /* COMPONENTS >= 2 */
- 
-    /* ----------------------------------------------------
-       I4. Include gravity
-       ---------------------------------------------------- */
-
-      #if (BODY_FORCE & VECTOR)
-       BodyForceVector(v, g, x1[i], x2[j], x3[k]);
-       rhs[i][iMR] += dt*v[RHO]*g[IDIR];
-       #if HAVE_ENERGY
-        rhs[i][ENG] += dt*0.5*(flux[i][RHO] + flux[i-1][RHO])*g[JDIR];
-       #endif
+      rhs[i][iMR] += dt*mphi*v[iVPHI]*R_1;
+      #if PHYSICS == RMHD
+      rhs[i][iMR]   -= dt*(v[iBPHI]/lor2 + vB*v[iVPHI])*v[iBPHI]*R_1;
+      rhs[i][iBPHI] -= dt*(v[iVPHI]*v[iBR] - v[iBPHI]*v[iVR])*R_1;
       #endif
+
+      #if RADIATION
+      Sr = EddTensor(v,iFRPHI,iFRPHI) * v[ENR] ;
+      rhs[i][iFRR] += dt*Sr*R_1;
+      #endif
+ 
     }
      
   } else if (g_dir == JDIR) {
@@ -557,18 +494,6 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
       NVAR_LOOP(nv) rhs[j][nv] = -dtdx*(flux[j][nv] - flux[j-1][nv]);
       rhs[j][iMPHI] -= dtdx*(p[j] - p[j-1]);
 
-    /* -------------------------------------------------------
-       J4. Include gravity
-       ------------------------------------------------------- */
-
-      v = stateC->v[j];
-      #if (BODY_FORCE & VECTOR)
-       BodyForceVector(v, g, x1[i], x2[j], x3[k]);
-       rhs[j][iMPHI] += dt*v[RHO]*g[JDIR];
-       #if HAVE_ENERGY
-        rhs[j][ENG] += dt*0.5*(flux[j][RHO] + flux[j-1][RHO])*g[JDIR];
-       #endif
-      #endif
     }
 
   } else if (g_dir == KDIR) { 
@@ -595,18 +520,6 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
       NVAR_LOOP(nv) rhs[k][nv] = -dtdx*(flux[k][nv] - flux[k-1][nv]);
       rhs[k][iMZ] -= dtdx*(p[k] - p[k-1]);
 
-    /* ----------------------------------------------------
-       K4. Include gravity
-       ---------------------------------------------------- */
-
-      v = stateC->v[k];
-      #if (BODY_FORCE & VECTOR)
-       BodyForceVector(v, g, x1[i], x2[j], x3[k]); 
-       rhs[k][iMZ] += dt*v[RHO]*g[KDIR];
-       #if HAVE_ENERGY
-        rhs[k][ENG] += dt*0.5*(flux[k][RHO] + flux[k-1][RHO])*g[KDIR];
-       #endif
-      #endif
     }
   }
 }
@@ -625,6 +538,10 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
   double vB, vel2, lor2, wt, B2;
   double mth = 0.0, mphi = 0.0;
 
+  #if RADIATION
+  double Sr;
+  #endif
+
   if (g_dir == IDIR) { 
     double Sm;
 
@@ -640,22 +557,29 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
       r2 = r*r; 
       r3 = r2*r;
 
-      fA[i][RHO] = flux[i][RHO]*r2;
-      EXPAND(fA[i][iMR]   = flux[i][iMR]*r2;   ,
-             fA[i][iMTH]  = flux[i][iMTH]*r2;  ,
-             fA[i][iMPHI] = flux[i][iMPHI]*r3;)
+      fA[i][RHO]   = flux[i][RHO]*r2;
+      fA[i][iMR]   = flux[i][iMR]*r2;
+      fA[i][iMTH]  = flux[i][iMTH]*r2;
+      fA[i][iMPHI] = flux[i][iMPHI]*r3;
+
       #if PHYSICS == RMHD
-       EXPAND(fA[i][iBR]   = flux[i][iBR]*r2;   ,
-              fA[i][iBTH]  = flux[i][iBTH]*r;  ,
-              fA[i][iBPHI] = flux[i][iBPHI]*r;)
+      fA[i][iBR]   = flux[i][iBR]*r2;
+      fA[i][iBTH]  = flux[i][iBTH]*r;
+      fA[i][iBPHI] = flux[i][iBPHI]*r;
       #endif
       #if HAVE_ENERGY
-       fA[i][ENG] = flux[i][ENG]*r2;
+      fA[i][ENG] = flux[i][ENG]*r2;
       #endif
       #ifdef GLM_MHD
-       fA[i][PSI_GLM] = flux[i][PSI_GLM]*r2;
+      fA[i][PSI_GLM] = flux[i][PSI_GLM]*r2;
       #endif
-       NSCL_LOOP(nv) fA[i][nv] = flux[i][nv]*r2;
+      #if RADIATION
+      fA[i][ENR]    = flux[i][ENR]*r2;
+      fA[i][iFRR]   = flux[i][iFRR]*r2; 
+      fA[i][iFRTH]  = flux[i][iFRTH]*r2;
+      fA[i][iFRPHI] = flux[i][iFRPHI]*r3;     
+      #endif
+      NSCL_LOOP(nv) fA[i][nv] = flux[i][nv]*r2;
     } 
 
   /* ****************************************************
@@ -668,9 +592,7 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
        - add gravity                          (I4)
      **************************************************** */
 
-    #if COMPONENTS >= 2  /* -- need enthalpy for source term computation -- */
-     Enthalpy (stateC->v, h, beg, end);
-    #endif
+    Enthalpy (stateC->v, h, beg, end);
     for (i = beg; i <= end; i++) { 
       r    = x1[i];
       dV1  = (x1p[i]*x1p[i]*x1p[i] - x1m[i]*x1m[i]*x1m[i])/3.0;
@@ -682,29 +604,31 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
        I1. initialize rhs with flux difference
        ----------------------------------------------- */
 
-      rhs[i][RHO] = -dtdV*(fA[i][RHO] - fA[i-1][RHO]);
-      EXPAND(
-        rhs[i][iMR]   = - dtdV*(fA[i][iMR] - fA[i-1][iMR])
-                        - dtdx*(p[i] - p[i-1]);                    ,
-        rhs[i][iMTH]  = -dtdV*(fA[i][iMTH]  - fA[i-1][iMTH]);      ,
-        rhs[i][iMPHI] = -dtdV*(fA[i][iMPHI] - fA[i-1][iMPHI])*r_1; 
-      )
+      rhs[i][RHO]   = - dtdV*(fA[i][RHO] - fA[i-1][RHO]);
+      rhs[i][iMR]   = - dtdV*(fA[i][iMR] - fA[i-1][iMR])
+                      - dtdx*(p[i] - p[i-1]);   
+      rhs[i][iMTH]  = -dtdV*(fA[i][iMTH]  - fA[i-1][iMTH]); 
+      rhs[i][iMPHI] = -dtdV*(fA[i][iMPHI] - fA[i-1][iMPHI])*r_1; 
       #if PHYSICS == RMHD
-       EXPAND(                                                     
-         rhs[i][iBR]   = -dtdV*(fA[i][iBR]   - fA[i-1][iBR]);       ,
-         rhs[i][iBTH]  = -dtdx*(fA[i][iBTH]  - fA[i-1][iBTH])*r_1;  ,
-         rhs[i][iBPHI] = -dtdx*(fA[i][iBPHI] - fA[i-1][iBPHI])*r_1;
-       )
-       #ifdef GLM_MHD
-        rhs[i][iBR]     = -dtdx*(flux[i][iBR]   - flux[i-1][iBR]);
-        rhs[i][PSI_GLM] = -dtdV*(fA[i][PSI_GLM] - fA[i-1][PSI_GLM]);
-       #endif
+      rhs[i][iBR]   = -dtdV*(fA[i][iBR]   - fA[i-1][iBR]); 
+      rhs[i][iBTH]  = -dtdx*(fA[i][iBTH]  - fA[i-1][iBTH])*r_1;
+      rhs[i][iBPHI] = -dtdx*(fA[i][iBPHI] - fA[i-1][iBPHI])*r_1;
+      #ifdef GLM_MHD
+      rhs[i][iBR]     = -dtdx*(flux[i][iBR]   - flux[i-1][iBR]);
+      rhs[i][PSI_GLM] = -dtdV*(fA[i][PSI_GLM] - fA[i-1][PSI_GLM]);
       #endif
+      #endif  /* PHYSICS == RMHD */
       #if HAVE_ENERGY
-       rhs[i][ENG] = -dtdV*(fA[i][ENG] - fA[i-1][ENG]);
+      rhs[i][ENG] = -dtdV*(fA[i][ENG] - fA[i-1][ENG]);
       #endif
+      #if RADIATION
+      rhs[i][ENR]    = -dtdV*(fA[i][ENR]    - fA[i-1][ENR]);
+      rhs[i][iFRR]   = -dtdV*(fA[i][iFRR]   - fA[i-1][iFRR]); 
+      rhs[i][iFRTH]  = -dtdV*(fA[i][iFRTH]  - fA[i-1][iFRTH]);
+      rhs[i][iFRPHI] = -dtdV*(fA[i][iFRPHI] - fA[i-1][iFRPHI])*r_1;        
+      #endif      
       
-       NSCL_LOOP(nv)  rhs[i][nv] = -dtdV*(fA[i][nv] - fA[i-1][nv]);
+      NSCL_LOOP(nv)  rhs[i][nv] = -dtdV*(fA[i][nv] - fA[i-1][nv]);
 
     /* ----------------------------------------------------
        I2. Add source terms 
@@ -712,40 +636,32 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
   
       v = stateC->v[i];
 
-      vel2 = EXPAND(v[VX1]*v[VX1], + v[VX2]*v[VX2], + v[VX3]*v[VX3]);
+      vel2 = v[VX1]*v[VX1] + v[VX2]*v[VX2] + v[VX3]*v[VX3];
       lor2 = 1.0/(1.0 - vel2);
       #if PHYSICS == RMHD
-       vB   = EXPAND(v[VX1]*v[BX1], + v[VX2]*v[BX2], + v[VX3]*v[BX3]);
-       B2   = EXPAND(v[BX1]*v[BX1], + v[BX2]*v[BX2], + v[BX3]*v[BX3]);
-       wt   = v[RHO]*h[i]*lor2 + B2;
-       EXPAND(                                  ,
-              mth  = wt*v[iVTH]  - vB*v[iBTH];  ,
-              mphi = wt*v[iVPHI] - vB*v[iBPHI];)
+      vB   = v[VX1]*v[BX1] + v[VX2]*v[BX2] + v[VX3]*v[BX3];
+      B2   = v[BX1]*v[BX1] + v[BX2]*v[BX2] + v[BX3]*v[BX3];
+      wt   = v[RHO]*h[i]*lor2 + B2;
+      mth  = wt*v[iVTH]  - vB*v[iBTH];
+      mphi = wt*v[iVPHI] - vB*v[iBPHI];
       #elif PHYSICS == RHD
-       wt   = v[RHO]*h[i]*lor2;
-       EXPAND(                 ;     ,
-              mth  = wt*v[iVTH];     ,
-              mphi = wt*v[iVPHI];)
+      wt   = v[RHO]*h[i]*lor2;
+      mth  = wt*v[iVTH]; 
+      mphi = wt*v[iVPHI];
       #endif
 
-      Sm = EXPAND(  0.0, + mth*v[iVTH], + mphi*v[iVPHI]);
+      Sm = mth*v[iVTH] + mphi*v[iVPHI];
       #if PHYSICS == RMHD 
-       Sm += EXPAND(  0.0, - (v[iBTH]/lor2  + vB*v[iVTH])*v[iBTH], 
-                           - (v[iBPHI]/lor2 + vB*v[iVPHI])*v[iBPHI]);
+      Sm +=  - (v[iBTH]/lor2  + vB*v[iVTH])*v[iBTH]
+             - (v[iBPHI]/lor2 + vB*v[iVPHI])*v[iBPHI];
       #endif
       rhs[i][iMR] += dt*Sm*r_1;
 
-    /* ----------------------------------------------------
-       I4. Include gravity
-       ---------------------------------------------------- */
-
-      #if (BODY_FORCE & VECTOR)
-       BodyForceVector(v, g, x1[i], x2[j], x3[k]); 
-       rhs[i][iMR] += dt*v[RHO]*g[IDIR];
-       #if HAVE_ENERGY
-        rhs[i][ENG] += dt*0.5*(flux[i][RHO] + flux[i-1][RHO])*g[IDIR]; 
-       #endif
+      #if RADIATION
+      Sr = (EddTensor(v,iFRTH,iFRTH) + EddTensor(v,iFRPHI,iFRPHI)) * v[ENR] ;
+      rhs[i][iFRR] += dt*Sr*r_1;
       #endif
+
     }
 
   } else if (g_dir == JDIR) {
@@ -763,21 +679,27 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
       s2 = s*s;
 
       fA[j][RHO] = flux[j][RHO]*s;
-      EXPAND(fA[j][iMR]   = flux[j][iMR]*s;   ,
-             fA[j][iMTH]  = flux[j][iMTH]*s;  ,
-             fA[j][iMPHI] = flux[j][iMPHI]*s2;) 
+      fA[j][iMR]   = flux[j][iMR]*s; 
+      fA[j][iMTH]  = flux[j][iMTH]*s;
+      fA[j][iMPHI] = flux[j][iMPHI]*s2;
       #if PHYSICS == RMHD
-       EXPAND(fA[j][iBR]   = flux[j][iBR]*s;   ,
-              fA[j][iBTH]  = flux[j][iBTH]*s;  ,
-              fA[j][iBPHI] = flux[j][iBPHI];)
+      fA[j][iBR]   = flux[j][iBR]*s;
+      fA[j][iBTH]  = flux[j][iBTH]*s;
+      fA[j][iBPHI] = flux[j][iBPHI];
       #endif
       #if HAVE_ENERGY
-       fA[j][ENG] = flux[j][ENG]*s;
+      fA[j][ENG] = flux[j][ENG]*s;
       #endif
       #ifdef GLM_MHD
-       fA[j][PSI_GLM] = flux[j][PSI_GLM]*s;
+      fA[j][PSI_GLM] = flux[j][PSI_GLM]*s;
       #endif
-       NSCL_LOOP(nv) fA[j][nv] = flux[j][nv]*s;
+      #if RADIATION
+      fA[j][ENR]    = flux[j][ENR]*s;
+      fA[i][iFRR]   = flux[i][iFRR]*s;
+      fA[i][iFRTH]  = flux[i][iFRTH]*s;
+      fA[i][iFRPHI] = flux[i][iFRPHI]*s2;      
+      #endif
+      NSCL_LOOP(nv) fA[j][nv] = flux[j][nv]*s;
     }
 
   /* ****************************************************
@@ -793,9 +715,7 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
     dV1  = (x1p[i]*x1p[i]*x1p[i] - x1m[i]*x1m[i]*x1m[i])/3.0;
     r_1 = 0.5*(x1p[i]*x1p[i] - x1p[i-1]*x1p[i-1])/dV1;
 
-    #if COMPONENTS >= 2  /* -- need enthalpy for source term computation -- */
-     Enthalpy (stateC->v, h, beg, end);
-    #endif
+    Enthalpy (stateC->v, h, beg, end);
     for (j = beg; j <= end; j++){
       th   = x2[j];
       dmu  = fabs(cos(x2m[j]) - cos(x2p[j]));
@@ -810,69 +730,63 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
        ----------------------------------------------- */
 
       rhs[j][RHO] = -dtdV*(fA[j][RHO] - fA[j-1][RHO]);
-      EXPAND(
-        rhs[j][iMR]   = - dtdV*(fA[j][iMR] - fA[j-1][iMR]);  , 
-        rhs[j][iMTH]  = - dtdV*(fA[j][iMTH] - fA[j-1][iMTH])
-                        - dtdx*(p[j] - p[j-1]);              , 
-        rhs[j][iMPHI] = - dtdV*(fA[j][iMPHI] - fA[j-1][iMPHI])*fabs(s_1);
-      )       
+      rhs[j][iMR]   = - dtdV*(fA[j][iMR] - fA[j-1][iMR]);
+      rhs[j][iMTH]  = - dtdV*(fA[j][iMTH] - fA[j-1][iMTH])
+                      - dtdx*(p[j] - p[j-1]);    
+      rhs[j][iMPHI] = - dtdV*(fA[j][iMPHI] - fA[j-1][iMPHI])*fabs(s_1);
       #if PHYSICS == RMHD
-       EXPAND(                                                     
-         rhs[j][iBR]   = -dtdV*(fA[j][iBR]   - fA[j-1][iBR]);  ,
-         rhs[j][iBTH]  = -dtdV*(fA[j][iBTH]  - fA[j-1][iBTH]);  ,
-         rhs[j][iBPHI] = -dtdx*(fA[j][iBPHI] - fA[j-1][iBPHI]);
-       )
-       #ifdef GLM_MHD
-        rhs[j][iBTH]    = -dtdx*(flux[j][iBTH] - flux[j-1][iBTH]);
-        rhs[j][PSI_GLM] = -dtdV*(fA[j][PSI_GLM] - fA[j-1][PSI_GLM]);
-       #endif
+      rhs[j][iBR]   = -dtdV*(fA[j][iBR]   - fA[j-1][iBR]);
+      rhs[j][iBTH]  = -dtdV*(fA[j][iBTH]  - fA[j-1][iBTH]);
+      rhs[j][iBPHI] = -dtdx*(fA[j][iBPHI] - fA[j-1][iBPHI]);
+      #ifdef GLM_MHD
+      rhs[j][iBTH]    = -dtdx*(flux[j][iBTH] - flux[j-1][iBTH]);
+      rhs[j][PSI_GLM] = -dtdV*(fA[j][PSI_GLM] - fA[j-1][PSI_GLM]);
       #endif
+      #endif /* PHYSICS == RMHD */
       #if HAVE_ENERGY
        rhs[j][ENG] = -dtdV*(fA[j][ENG] - fA[j-1][ENG]);
       #endif
+      #if RADIATION
+      rhs[j][ENR]    = -dtdV*(fA[j][ENR] - fA[j-1][ENR]);
+      rhs[i][iFRR]   = -dtdV*(fA[i][iFRR]   - fA[i-1][iFRR]);
+      rhs[i][iFRTH]  = -dtdV*(fA[i][iFRTH]  - fA[i-1][iFRTH]);
+      rhs[i][iFRPHI] = -dtdV*(fA[i][iFRPHI] - fA[i-1][iFRPHI])*fabs(s_1);      
+      #endif   
       
        NSCL_LOOP(nv)  rhs[j][nv] = -dtdV*(fA[j][nv] - fA[j-1][nv]);
-      
 
     /* ----------------------------------------------------
        J2. Add source terms
        ---------------------------------------------------- */
        
       v    = stateC->v[j];
-      vel2 = EXPAND(v[VX1]*v[VX1], + v[VX2]*v[VX2], + v[VX3]*v[VX3]);
+      vel2 = v[VX1]*v[VX1] + v[VX2]*v[VX2] + v[VX3]*v[VX3];
       lor2 = 1.0/(1.0 - vel2);
       #if PHYSICS == RMHD
-       vB  = EXPAND(v[VX1]*v[BX1], + v[VX2]*v[BX2], + v[VX3]*v[BX3]);
-       B2  = EXPAND(v[BX1]*v[BX1], + v[BX2]*v[BX2], + v[BX3]*v[BX3]);
-       wt  = v[RHO]*h[j]*lor2 + B2;
-       EXPAND(                                  ,
-              mth  = wt*v[iVTH]  - vB*v[iBTH];  ,
-              mphi = wt*v[iVPHI] - vB*v[iBPHI];)
+      vB  = v[VX1]*v[BX1] + v[VX2]*v[BX2] + v[VX3]*v[BX3];
+      B2  = v[BX1]*v[BX1] + v[BX2]*v[BX2] + v[BX3]*v[BX3];
+      wt  = v[RHO]*h[j]*lor2 + B2;
+      mth  = wt*v[iVTH]  - vB*v[iBTH]; 
+      mphi = wt*v[iVPHI] - vB*v[iBPHI];
       #elif PHYSICS == RHD
-       wt   = v[RHO]*h[j]*lor2;
-       EXPAND(                 ;      ,
-              mth  = wt*v[iVTH];      ,
-              mphi = wt*v[iVPHI];)
+      wt   = v[RHO]*h[j]*lor2;
+      mth  = wt*v[iVTH]; 
+      mphi = wt*v[iVPHI];
       #endif
 
-      Sm = EXPAND(  0.0, - mth*v[iVR], + ct*mphi*v[iVPHI]);
+      Sm = - mth*v[iVR] + ct*mphi*v[iVPHI];
       #if PHYSICS == RMHD
-      Sm += EXPAND(  0.0, +    (v[iBTH]/lor2  + vB*v[iVTH])*v[iBR],
-                          - ct*(v[iBPHI]/lor2 + vB*v[iVPHI])*v[iBPHI]);
+      Sm +=      (v[iBTH]/lor2  + vB*v[iVTH])*v[iBR]
+            - ct*(v[iBPHI]/lor2 + vB*v[iVPHI])*v[iBPHI];
       #endif
       rhs[j][iMTH] += dt*Sm*r_1;
 
-    /* ----------------------------------------------------
-       J4. Include gravity
-       ---------------------------------------------------- */
-
-      #if (BODY_FORCE & VECTOR)
-       BodyForceVector(v, g, x1[i], x2[j], x3[k]);
-       rhs[j][iMTH] += dt*v[RHO]*g[JDIR];
-       #if HAVE_ENERGY
-        rhs[j][ENG] += dt*0.5*(flux[j][RHO] + flux[j-1][RHO])*g[JDIR];
-       #endif
+      #if RADIATION
+      Sr = ( ct * EddTensor(v,iFRPHI,iFRPHI)
+           - EddTensor(v,iFRR,iFRTH) ) * v[ENR] ;
+      rhs[i][iFRTH] += dt*Sr*r_1;
       #endif
+
     }
 
   } else if (g_dir == KDIR) {
@@ -888,7 +802,7 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
     th = x2[j];
     dV1  = (x1p[i]*x1p[i]*x1p[i] - x1m[i]*x1m[i]*x1m[i])/3.0;
     dmu  = fabs(cos(x2m[j]) - cos(x2p[j]));
-    r_1  = 0.5*(x1p[i]*x1p[i] - x1p[i-1]*x1p[i-1])/dmu;
+    r_1  = 0.5*(x1p[i]*x1p[i] - x1p[i-1]*x1p[i-1])/dV1;
     scrh = dt*r_1*dx2[j]/dmu;
 
     for (k = beg; k <= end; k++) {
@@ -902,67 +816,23 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
       NVAR_LOOP(nv) rhs[k][nv] = -dtdx*(flux[k][nv] - flux[k-1][nv]);
       rhs[k][iMPHI] -= dtdx*(p[k] - p[k-1]); 
 
-    /* -------------------------------------------------------
-       K4. Include gravity
-       ------------------------------------------------------- */
-
-      v = stateC->v[k];
-      #if (BODY_FORCE & VECTOR)
-       BodyForceVector(v, g, x1[i], x2[j], x3[k]);
-       rhs[k][iMPHI] += dt*v[RHO]*g[KDIR];
-       #if HAVE_ENERGY
-        rhs[k][ENG] += dt*0.5*(flux[k][RHO] + flux[k-1][RHO])*g[KDIR];
-       #endif
-      #endif
     }
   }
 }
 #endif  /* GEOMETRY == SPHERICAL */
 
-/* --------------------------------------------------
-              Powell's source terms
-   -------------------------------------------------- */
+/* --------------------------------------------------------
+   6. Add source terms
+   -------------------------------------------------------- */
 
-  #if PHYSICS == RMHD
-   #if DIVB_CONTROL == EIGHT_WAVES
-    for (i = beg; i <= end; i++) {
-      EXPAND(rhs[i][MX1] += dt*sweep->src[i][MX1];  ,
-             rhs[i][MX2] += dt*sweep->src[i][MX2];  ,
-             rhs[i][MX3] += dt*sweep->src[i][MX3];)
-
-      EXPAND(rhs[i][BX1] += dt*sweep->src[i][BX1];  ,
-             rhs[i][BX2] += dt*sweep->src[i][BX2];  ,
-             rhs[i][BX3] += dt*sweep->src[i][BX3];)
-      #if HAVE_ENERGY
-       rhs[i][ENG] += dt*sweep->src[i][ENG];
-      #endif
-    }
-   #endif
-  #endif
-
-/* -------------------------------------------------
-            Extended GLM source terms
-   ------------------------------------------------- */
-
-  #if (defined GLM_MHD) && (GLM_EXTENDED == YES)
-   print ("! RightHandSide(): Extended GLM source terms not defined for RMHD\n");
-   QUIT_PLUTO(1);
-  #endif
-
-/* --------------------------------------------------------------
-   Add source terms
-   -------------------------------------------------------------- */
-
-#if PHYSICS == RMHD && RESISTIVITY != NO    
   RightHandSideSource (sweep, Dts, beg, end, dt, NULL, grid);
-#endif
 
 /* --------------------------------------------------
     Reset right hand side in internal boundary zones
    -------------------------------------------------- */
    
   #if INTERNAL_BOUNDARY == YES
-   InternalBoundaryReset(sweep, Dts, beg, end, grid);
+  InternalBoundaryReset(sweep, Dts, beg, end, grid);
   #endif
 
 }

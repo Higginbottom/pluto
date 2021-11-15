@@ -1,13 +1,11 @@
 var searchData=
 [
-  ['where',['Where',['../tools_8c.html#a1b655c8a42bca91b14660433919fba5c',1,'tools.c']]],
-  ['writeasciifile',['WriteAsciiFile',['../tools_8c.html#a041aa1a196f8f0dc501d87f98761a106',1,'tools.c']]],
-  ['writebinarytable2d',['WriteBinaryTable2D',['../math__table2_d_8c.html#aaa84b0bc474b41e395f5b022f4cb608d',1,'math_table2D.c']]],
-  ['writedata',['WriteData',['../write__data_8c.html#aebab1af9287f126afe893443fabd379f',1,'write_data.c']]],
-  ['writehdf5',['WriteHDF5',['../hdf5__io_8c.html#ad4bbe9b948b21776c7ec5e2292649dca',1,'WriteHDF5(Output *output, Grid *grid):&#160;hdf5_io.c'],['../hdf5__io_8v_chombo3_81_8c.html#ad4bbe9b948b21776c7ec5e2292649dca',1,'WriteHDF5(Output *output, Grid *grid):&#160;hdf5_io.vChombo3.1.c']]],
-  ['writetabarray',['WriteTabArray',['../write__tab_8c.html#a959941e1139a6f4387ca4a92e42e69f3',1,'write_tab.c']]],
-  ['writevtk_5fheader',['WriteVTK_Header',['../write__vtk_8c.html#a318ad93a5e2d73af7211ca44cd20d2a1',1,'write_vtk.c']]],
-  ['writevtk_5fscalar',['WriteVTK_Scalar',['../write__vtk_8c.html#a269e88203950ce9267c5efc024cdb713',1,'write_vtk.c']]],
-  ['writevtk_5fvector',['WriteVTK_Vector',['../write__vtk_8c.html#a8ed12df0377715d751ba77459b3dc410',1,'write_vtk.c']]],
-  ['writevtkprocfile',['WriteVTKProcFile',['../write__vtk__proc_8c.html#a24f4809c60c0e8f4c29e4c90c62e1e71',1,'write_vtk_proc.c']]]
+  ['vectorcartesiancomponents',['VectorCartesianComponents',['../math__misc_8c.html#a76bf545ecb973f5ba56bbbcba44097e8',1,'math_misc.c']]],
+  ['vectorpotentialdiff',['VectorPotentialDiff',['../vec__pot__diff_8c.html#aabe0165cc2bbd5b449c8ce9709c52a18',1,'vec_pot_diff.c']]],
+  ['vectorpotentialdiffpatch',['VectorPotentialDiffPatch',['../_patch_startup_8cpp.html#ab7946dce576003b661a82a90e5cef9f7',1,'PatchStartup.cpp']]],
+  ['velocitylimiter',['VelocityLimiter',['../_r_h_d_2mod__defs_8h.html#ae7521e6b8ac6465f96b8db24045cd7a3',1,'VelocityLimiter(double *, double *, double *):&#160;vel_limiter.c'],['../_r_m_h_d_2mod__defs_8h.html#ae7521e6b8ac6465f96b8db24045cd7a3',1,'VelocityLimiter(double *, double *, double *):&#160;vel_limiter.c'],['../vel__limiter_8c.html#af17e97e57bf456babf3b0deb1741fceb',1,'VelocityLimiter(double *v, double *vp, double *vm):&#160;vel_limiter.c']]],
+  ['velocitysquarefunc',['VelocitySquareFunc',['../rmhd__pressure__fix_8c.html#a83728ff7c3f7504041c4f32f30ace4a6',1,'rmhd_pressure_fix.c']]],
+  ['visc_5fnu',['Visc_nu',['../visc__nu_8c.html#a62649c3403909bc0fe9dd2deb67c77c2',1,'visc_nu.c']]],
+  ['viscousflux',['ViscousFlux',['../viscous__flux_8c.html#a31c33dec32c1df552e1ae01460c9cba3',1,'viscous_flux.c']]],
+  ['viscousrhs',['ViscousRHS',['../viscous__rhs_8c.html#a44b5fabbc2808d1f8f5597a5e12609f8',1,'viscous_rhs.c']]]
 ];

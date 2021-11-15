@@ -17,8 +17,8 @@
   - #06: Nsub = 4, wp2 (RK) 
   
   
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   April 2, 2018
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Aug 17, 2020
   \b References: \n
    - [MVBM18] "A PARTICLE MODULE FOR THE PLUTO CODE: I - AN IMPLEMENTATION OF
                THE MHD-PIC EQUATIONS", Mignone etal.ApJS (2018)  [ Sec. 4.3 ]
@@ -56,9 +56,6 @@ void Init (double *v, double x1, double x2, double x3)
   v[BX2] = 0.0;
   v[BX3] = B0;
 
-double L = g_domEnd[IDIR] - g_domBeg[IDIR];
-//v[BX3] += 0.1*B0*sin(2.0*CONST_PI*x1/L)*cos(4.0*CONST_PI*x2/L);
-  
   #if DIMENSIONS == 3
   v[BX1] = B0*sin(CONST_PI/3.0);
   v[BX3] = B0*cos(CONST_PI/3.0);
@@ -94,9 +91,9 @@ void Analysis (const Data *d, Grid *grid)
   double rho_p = 1.e-2*g_inputParam[RHO_GAS]/np_cell; /* Particle mass */
   double Bz0  = 2.0*CONST_PI;
   double rho  = g_inputParam[RHO_GAS];
-  double vpx0, vgx0, vgx_ex, vpx_ex, vgx, dvx, dvx_ex;
-  double vpy0, vgy0, vgy_ex, vpy_ex, vgy, dvy, dvy_ex;
-
+  double vpx0, vgx0, vgx_ex, vpx_ex, vpx, vgx, dvx, dvx_ex;
+  double vpy0, vgy0, vgy_ex, vpy_ex, vpy, vgy, dvy, dvy_ex;
+  double gamma, c2 = PARTICLES_CR_C*PARTICLES_CR_C;
   double Omega_g, Omega_p, Omega, R, err;
   double v[256];
   double c, s;
@@ -113,7 +110,6 @@ void Analysis (const Data *d, Grid *grid)
   vpx0 = g_inputParam[VPX1];
   vpy0 = g_inputParam[VPX2];
 
-//  p = &(d->PHead->p);
   p = Particles_Select(d->PHead, 1);
 
 /* -- Compute exact solution -- */
@@ -156,15 +152,21 @@ void Analysis (const Data *d, Grid *grid)
   vpx_ex /= Omega;
   vpy_ex /= Omega;
 
-/* -- 1c. Fluid velocity -- */
+/* -- 1c. Fluid & particle velocities -- */
 
   vgx = d->Vc[VX1][KBEG][JBEG][IBEG];
   vgy = d->Vc[VX2][KBEG][JBEG][IBEG];
+  vpx = p->speed[IDIR];
+  vpy = p->speed[JDIR];
+
+  gamma = sqrt(1.0 + (vpx*vpx + vpy*vpy)/c2);
+  vpx /= gamma;
+  vpy /= gamma;
 
 /* -- 1d. Compute relative velocity dv = vg-vp -- */
 
-  dvx = vgx - p->speed[IDIR];
-  dvy = vgy - p->speed[JDIR];
+  dvx = vgx - vpx;
+  dvy = vgy - vpy;
 
 /* -- 1e. Compute exact relative velocity -- */
 
@@ -190,19 +192,10 @@ void Analysis (const Data *d, Grid *grid)
 
 /* -- Compute L1-norm error and write it to disk -- */
 
-  err =   fabs(vgx_ex - vgx)            + fabs(vgy_ex - vgy)
-        + fabs(vpx_ex - p->speed[IDIR]) + fabs(vpy_ex - p->speed[JDIR]);
+  err =   fabs(vgx_ex - vgx) + fabs(vgy_ex - vgy)
+        + fabs(vpx_ex - vpx) + fabs(vpy_ex - vpy);
 
   fprintf (fp,"%12.6e  %12.6e  %12.6e\n", g_time, g_dt, err);
-/*
-  fprintf (fp,"%12.6e  %12.6e  %12.6e  %12.6e  %12.6e  %12.6e  %12.6e  %12.6e\n",
-           g_time, g_dt, fabs(p->speed[IDIR]-vp_ex[IDIR]),
-                         fabs(p->speed[JDIR]-vp_ex[JDIR]),
-                         fabs(p->speed[KDIR]-vp_ex[KDIR]),
-                         fabs(vg[IDIR] - vg_ex[IDIR]),
-                         fabs(vg[JDIR] - vg_ex[JDIR]),
-                         fabs(vg[KDIR] - vg_ex[KDIR]));
-*/
   fclose(fp);
 
 /* -- Write a particle trajectory to file -- */

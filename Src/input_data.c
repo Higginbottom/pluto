@@ -32,8 +32,8 @@
   The value of ::ID_NZ_MAX can be changed from your personal \c definitions.h.
   This task is performed in the InputDataReadSlice() function.
 
-  \authors A. Mignone (mignone@ph.unito.it)\n
-  \date    Nov 17, 2016
+  \authors A. Mignone (mignone@to.infn.it)\n
+  \date    Nov 10, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
@@ -53,6 +53,7 @@ typedef struct inputData_{
   int geom;
   int swap_endian;
   int klast;        /**< The index of the last read plane */
+  int vpos;         /**< Field position in the cell (CENTER, X1FACE, etc...) */
   double *x1;
   double *x2;
   double *x3;
@@ -64,7 +65,8 @@ typedef struct inputData_{
 static inputData id_stack[ID_NVAR_MAX];
 
 /* ********************************************************************* */
-int InputDataOpen(char *data_fname, char *grid_fname, char *endianity, int pos)
+int InputDataOpen(char *data_fname, char *grid_fname, char *endianity,
+                  long int offset, int vpos)
 /*!
  * Initialize access to input data file by assigning values to 
  * grid-related information (geometry, number of points, etc...).
@@ -77,38 +79,41 @@ int InputDataOpen(char *data_fname, char *grid_fname, char *endianity, int pos)
  *                           was originally written.
  *                           If an empty string is supplied, no change is
  *                           made.
- * \param [in] pos           an integer specifying the position of
- *                           the variable in the file.
+ * \param [in] offset        an integer specifying the offset of
+ *                           the variable (in units of double or float)
+ *                           in the file.
+ * \param [in] vpos          the variable position with respect to the cell
+ *                           center (CENTER / X1FACE / X2FACE / X3FACE).
  *
+ * \return                   The index of the id_stack[] array 
  *********************************************************************** */
 {
   char *sub_str, sline[256];
   const char delimiters[] = " \t\r\f\n";
   int    i, ip, success;
-  int    indx; /* The 1st available element in the id_stack structure */
+  int    indx = 0; /* The 1st available element in the id_stack structure */
   size_t str_length;
   double xl, xr;
   inputData *id;
   fpos_t file_pos;
   FILE *fp;
 
-  print ("> Input data:\n\n");
+  printLog ("> Input data:\n\n");
 
 /* --------------------------------------------------------------------- */
 /*! 0. Find the 1st available (NULL pointer) element in the stack        */
 /* --------------------------------------------------------------------- */
 
-  indx = 0;
   while (id_stack[indx].Vin != NULL){
     indx++;
     if (indx == ID_NVAR_MAX){
-      print ("! InputDataOpen(): max number of variables exceeded\n");
-      print ("!                  indx = %d\n",indx);
+      printLog ("! InputDataOpen(): max number of variables exceeded\n");
+      printLog ("!                  indx = %d\n",indx);
       QUIT_PLUTO(1);
     }
   }
 
-  print ("  Allocating memory for struct # %d\n",indx);
+  printLog ("  Allocating memory for struct # %d\n",indx);
   id = id_stack + indx;
 
 /* --------------------------------------------------------------------- */
@@ -119,7 +124,7 @@ int InputDataOpen(char *data_fname, char *grid_fname, char *endianity, int pos)
 
   fp = fopen(grid_fname,"r");
   if (fp == NULL){
-    print ("! InputDataOpen(): grid file %s not found\n",grid_fname);
+    printLog ("! InputDataOpen(): grid file %s not found\n",grid_fname);
     QUIT_PLUTO(1);
   }
   success = 0;
@@ -141,12 +146,12 @@ int InputDataOpen(char *data_fname, char *grid_fname, char *endianity, int pos)
   else if (!strcmp(sub_str,"POLAR"))       id->geom = POLAR;
   else if (!strcmp(sub_str,"SPHERICAL"))   id->geom = SPHERICAL;
   else{
-    print ("! InputDataOpen(): unknown geometry\n");
+    printLog ("! InputDataOpen(): unknown geometry\n");
     QUIT_PLUTO(1);
   }
     
-  print ("  Input grid file:       %s\n", grid_fname);
-  print ("  Input grid geometry:   %s\n", sub_str);
+  printLog ("  Input grid file:       %s\n", grid_fname);
+  printLog ("  Input grid geometry:   %s\n", sub_str);
 
 /* --------------------------------------------------------------------- */
 /*! 2. Move file pointer to the first line of grid.out that does not
@@ -165,29 +170,69 @@ int InputDataOpen(char *data_fname, char *grid_fname, char *endianity, int pos)
 /* --------------------------------------------------------------------- */
 /*! 3. Read number of points, allocate grid arrays and store input
        grid coordinates into structure members \c id->nx1, \c id->x1,
-       etc...                                                            */
+       etc...
+       In the case of a staggered direction [i] refers to the left
+       interface and we increment by 1 the number of points.             */
 /* --------------------------------------------------------------------- */
-   
+  
+/* -- x1 direction -- */   
+
   fscanf (fp,"%d \n",&(id->nx1));
-  id->x1 = ARRAY_1D(id->nx1, double);
-  for (i = 0; i < id->nx1; i++){
-    fscanf(fp,"%d  %lf %lf\n", &ip, &xl, &xr);
-    id->x1[i] = 0.5*(xl + xr);
-  }
+  if (vpos == X1FACE) {   
+    id->nx1++;
+    id->x1 = ARRAY_1D(id->nx1, double);
+    for (i = 0; i < id->nx1-1; i++){
+      fscanf(fp,"%d  %lf %lf\n", &ip, &xl, &xr);
+      id->x1[i] = xl;
+    }
+    id->x1[i] = xr;
+  }else {
+    id->x1 = ARRAY_1D(id->nx1, double);
+    for (i = 0; i < id->nx1; i++){
+      fscanf(fp,"%d  %lf %lf\n", &ip, &xl, &xr);
+      id->x1[i] = 0.5*(xl + xr);
+    }
+  }  
+  
+/* -- x2 direction -- */   
 
   fscanf (fp,"%d \n",&(id->nx2));
-  id->x2 = ARRAY_1D(id->nx2, double);
-  for (i = 0; i < id->nx2; i++){
-    fscanf(fp,"%d  %lf %lf\n", &ip, &xl, &xr);
-    id->x2[i] = 0.5*(xl + xr);
-  }
+  if (vpos == X2FACE){
+    id->nx2++;
+    id->x2 = ARRAY_1D(id->nx2, double);
+    for (i = 0; i < id->nx2-1; i++){
+      fscanf(fp,"%d  %lf %lf\n", &ip, &xl, &xr);
+      id->x2[i] = xl;
+    }
+    id->x2[i] = xr;
+  }else{
+    id->x2 = ARRAY_1D(id->nx2, double);
+    for (i = 0; i < id->nx2; i++){
+      fscanf(fp,"%d  %lf %lf\n", &ip, &xl, &xr);
+      id->x2[i] = 0.5*(xl + xr);
+    }
+  }  
 
+/* -- x3 direction -- */   
+  
   fscanf (fp,"%d \n",&(id->nx3));
-  id->x3 = ARRAY_1D(id->nx3, double);
-  for (i = 0; i < id->nx3; i++){
-    fscanf(fp,"%d  %lf %lf\n", &ip, &xl, &xr);
-    id->x3[i] = 0.5*(xl + xr);
-  }
+  if (vpos == X3FACE){
+    id->nx3++;
+    id->x3 = ARRAY_1D(id->nx3, double);
+    for (i = 0; i < id->nx3-1; i++){
+      fscanf(fp,"%d  %lf %lf\n", &ip, &xl, &xr);
+      id->x3[i] = xl;
+    }
+    id->x3[i] = xr;
+  }else{
+    id->x3 = ARRAY_1D(id->nx3, double);
+    for (i = 0; i < id->nx3; i++){
+      fscanf(fp,"%d  %lf %lf\n", &ip, &xl, &xr);
+      id->x3[i] = 0.5*(xl + xr);
+    }
+  }  
+
+  id->vpos = vpos;  
   fclose(fp);
 
 /* -- reset grid with 1 point -- */
@@ -196,11 +241,11 @@ int InputDataOpen(char *data_fname, char *grid_fname, char *endianity, int pos)
   if (id->nx2 == 1) id->x2[0] = 0.0;
   if (id->nx3 == 1) id->x3[0] = 0.0;
 
-  print ("  Input grid extension:  x1 = [%12.3e, %12.3e] (%d points)\n",
+  printLog ("  Input grid extension:  x1 = [%12.3e, %12.3e] (%d points)\n",
              id->x1[0], id->x1[id->nx1-1], id->nx1);
-  print ("\t\t\t x2 = [%12.3e, %12.3e] (%d points)\n",
+  printLog ("\t\t\t x2 = [%12.3e, %12.3e] (%d points)\n",
              id->x2[0], id->x2[id->nx2-1], id->nx2);
-  print ("\t\t\t x3 = [%12.3e, %12.3e] (%d points)\n",
+  printLog ("\t\t\t x3 = [%12.3e, %12.3e] (%d points)\n",
              id->x3[0], id->x3[id->nx3-1], id->nx3);
   
 /* ---------------------------------------------------------- */
@@ -210,10 +255,10 @@ int InputDataOpen(char *data_fname, char *grid_fname, char *endianity, int pos)
 
   char   ext[] = "   ";
 
-  sprintf (id->fname,"%s",data_fname);
+  strcpy (id->fname, data_fname);
   fp = fopen(id->fname, "rb");
   if (fp == NULL){
-    print ("! InputDataOpen(): file %s does not exist\n", data_fname);
+    printLog ("! InputDataOpen(): file %s does not exist\n", data_fname);
     QUIT_PLUTO(1);
   }
   fclose(fp);
@@ -231,8 +276,16 @@ int InputDataOpen(char *data_fname, char *grid_fname, char *endianity, int pos)
     id->swap_endian = NO;
   }
   
-  print ("  Input data file:       %s (endianity: %s) \n", 
+  printLog ("  Input data file:       %s (endianity: %s) \n", 
            data_fname, endianity);
+  if (id->vpos == CENTER) printLog ("  Input data field pos:  CENTER\n");
+  else if (id->vpos == X1FACE) printLog ("  Input data field pos:  X1FACE\n");
+  else if (id->vpos == X2FACE) printLog ("  Input data field pos:  X2FACE\n");
+  else if (id->vpos == X3FACE) printLog ("  Input data field pos:  X3FACE\n");
+  else{
+    printLog ("! InputDataOpen(): unknown field position\n");
+    QUIT_PLUTO(1);
+  }
   
 /* ---------------------------------------------------------- */
 /*! 6. Set data size (\c id->dsize) by looking at the file
@@ -243,13 +296,13 @@ int InputDataOpen(char *data_fname, char *grid_fname, char *endianity, int pos)
   for (i = 0; i < 3; i++) ext[i] = data_fname[str_length-3+i];
 
   if (!strcmp(ext,"dbl")){
-    print ("  Precision:             (double)\n");
+    printLog ("  Precision:             double\n");
     id->dsize = sizeof(double);
   } else if (!strcmp(ext,"flt")) {
-    print ("  Precision:\t\t single\n");
+    printLog ("  Precision:\t\t single\n");
     id->dsize = sizeof(float);
   } else {
-    print ("! InputDataRead: unsupported data type '%s'\n",ext);
+    printLog ("! InputDataRead: unsupported data type '%s'\n",ext);
     QUIT_PLUTO(1);
   }
 
@@ -258,11 +311,11 @@ int InputDataOpen(char *data_fname, char *grid_fname, char *endianity, int pos)
        initialize \c id->klast (last read plane) to -1        */
 /* ---------------------------------------------------------- */
 
-  id->offset = (long)pos*id->dsize*id->nx1*id->nx2*id->nx3;
+  id->offset = (long)offset*id->dsize;
   id->klast  = -1;
 
-  print ("  offset = %ld\n",id->offset);
-  print ("\n");
+  printLog ("  offset = %ld\n",id->offset);
+  printLog ("\n");
 
   return indx;  /* The index of the id_stack[] array */
 }
@@ -274,6 +327,7 @@ void InputDataClose(int indx)
  * Free memory and reset structure.
  *********************************************************************** */
 {
+  printLog ("  Freeing struct #%d\n",indx);
   inputData *id = id_stack + indx;
   FreeArray1D((void *)id->x1);
   FreeArray1D((void *)id->x2);
@@ -281,6 +335,28 @@ void InputDataClose(int indx)
   FreeArray3D((void *)id->Vin);
   id->Vin = NULL;
 }
+
+/* ********************************************************************* */
+void InputDataGridSize (int indx, int *size)
+/*!
+ * Return the size of the input data array, from the grid file. 
+ *
+ * \param [in] indx   input data array element (handle)
+ * \param [in] size   an array of integer containing the array size [nx1,nx2,nx3]
+ *
+ *********************************************************************** */
+{
+  inputData *id = id_stack + indx;
+  
+  if (id->Vin == NULL){
+    printLog ("! InputDataGridSize(): NULL stack\n");
+    QUIT_PLUTO(1);
+  }
+  size[0] = id->nx1;
+  size[1] = id->nx2;
+  size[2] = id->nx3;
+}
+
 /* ********************************************************************* */
 double InputDataInterpolate (int indx, double x1, double x2, double x3)
 /*!
@@ -335,7 +411,7 @@ double InputDataInterpolate (int indx, double x1, double x2, double x3)
     x1 = R; x2 = phi; x3 = z;
   }else if (id->geom == SPHERICAL){
     double r, theta, phi;
-    r     = D_EXPAND(x1*x1, + x2*x2, + x3*x3);
+    r     = DIM_EXPAND(x1*x1, + x2*x2, + x3*x3);
     r     = sqrt(r);
     theta = acos(x3/r);
     phi   = atan2(x2,x1);
@@ -344,7 +420,7 @@ double InputDataInterpolate (int indx, double x1, double x2, double x3)
      
     x1 = r; x2 = theta; x3 = phi;
   }else{
-    print ("! InputDataInterpolate(): invalid or unsupported coordinate transformation.\n");
+    printLog ("! InputDataInterpolate(): invalid or unsupported coordinate transformation.\n");
     QUIT_PLUTO(1);
   }
 #elif GEOMETRY == CYLINDRICAL
@@ -354,7 +430,7 @@ double InputDataInterpolate (int indx, double x1, double x2, double x3)
      
   }else if (id->geom == SPHERICAL) {  
     double r, theta, phi;
-    r     = D_EXPAND(x1*x1, + x2*x2, + 0.0);
+    r     = DIM_EXPAND(x1*x1, + x2*x2, + 0.0);
     r     = sqrt(r);
     theta = acos(x2/r);
     phi   = 0.0;
@@ -362,7 +438,7 @@ double InputDataInterpolate (int indx, double x1, double x2, double x3)
      
     x1 = r; x2 = theta; x3 = phi;
   }else{
-    print ("! InputDataInterpolate(): invalid or unsupported coordinate transformation.\n");
+    printLog ("! InputDataInterpolate(): invalid or unsupported coordinate transformation.\n");
     QUIT_PLUTO(1);
   }
 #elif GEOMETRY == POLAR
@@ -378,7 +454,7 @@ double InputDataInterpolate (int indx, double x1, double x2, double x3)
      
     x1 = x; x2 = y; x3 = z;
   }else{
-    print ("! InputDataInterpolate(): invalid or unsupported coordinate transformation.\n");
+    printLog ("! InputDataInterpolate(): invalid or unsupported coordinate transformation.\n");
     QUIT_PLUTO(1);
   }   
 #elif GEOMETRY == SPHERICAL
@@ -394,24 +470,68 @@ double InputDataInterpolate (int indx, double x1, double x2, double x3)
      
     x1 = x; x2 = y; x3 = z;
   }else{
-    print ("! InputDataInterpolate(): invalid or unsupported coordinate transformation.\n");
+    printLog ("! InputDataInterpolate(): invalid or unsupported coordinate transformation.\n");
     QUIT_PLUTO(1);
   }   
 #endif
+/*
+print ("o Interpolation required at (%f, %f, %f)\n",x1,x2,x3);
+print ("o Input data extension:  [%f, %f], [%f, %f], [%f, %f]\n",
+       id->x1[0], id->x1[id->nx1-1],
+       id->x2[0], id->x2[id->nx2-1],
+       id->x3[0], id->x3[id->nx3-1]);
+*/
 
 /* --------------------------------------------------------------------- */
 /*! - Make sure point (x1,x2,x3) does not fall outside input grid range. 
       Limit to input grid edge otherwise.                                */
 /* --------------------------------------------------------------------- */
-   
-  D_EXPAND(if      (x1 < id->x1[0])         x1 = id->x1[0];
-           else if (x1 > id->x1[id->nx1-1]) x1 = id->x1[id->nx1-1];  ,
-           
-           if      (x2 < id->x2[0])         x2 = id->x2[0];
-           else if (x2 > id->x2[id->nx2-1]) x2 = id->x2[id->nx2-1];  ,
-           
-           if      (x3 < id->x3[0])         x3 = id->x3[0];
-           else if (x3 > id->x3[id->nx3-1]) x3 = id->x3[id->nx3-1]; )
+  
+  #if DIMENSIONS >= 1
+  if (x1 < id->x1[0]) {
+    WARNING(
+      printLog ("! InputDataInterpolate(): x1-coord outside id range: [x1 = %f < %f]\n",
+                 x1, id->x1[0]);
+    )
+    x1 = id->x1[0];
+  } else if (x1 > id->x1[id->nx1-1]) {
+    WARNING(
+      printLog ("! InputDataInterpolate(): x1-coord outside id range: [x1 = %f > %f]\n",
+                 x1, id->x1[id->nx1-1]);
+    )
+    x1 = id->x1[id->nx1-1];
+  }
+  #endif
+  #if DIMENSIONS >= 2
+  if      (x2 < id->x2[0]){
+    WARNING(
+      printLog ("! InputDataInterpolate(): x2-coord outside id range: [x2 = %f < %f]\n",
+               x2, id->x2[0]);
+    )
+    x2 = id->x2[0];
+  }else if (x2 > id->x2[id->nx2-1]) {
+    WARNING(
+      printLog ("! InputDataInterpolate(): x2-coord outside id range: [x2 = %f > %f]\n",
+               x2, id->x2[id->nx2-1]);
+    )
+    x2 = id->x2[id->nx2-1];
+  }
+  #endif
+  #if DIMENSIONS == 3
+  if      (x3 < id->x3[0]) {
+    WARNING(
+      printLog ("! InputDataInterpolate(): x3-coord outside id range: [x3 = %f < %f]\n",
+                 x3, id->x3[0]);
+    )
+    x3 = id->x3[0];
+  }else if (x3 > id->x3[id->nx3-1]) {
+    WARNING(
+      printLog ("! InputDataInterpolate(): x3-coord outside id range: [x3 = %f > %f]\n",
+                 x3, id->x3[id->nx3-1]);
+    )
+    x3 = id->x3[id->nx3-1];
+  }
+  #endif
 
 /* --------------------------------------------------------------------- */
 /*! - Use table lookup by binary search to  find the indices 
@@ -464,8 +584,8 @@ double InputDataInterpolate (int indx, double x1, double x2, double x3)
 /*! - Read data from disk (1 or 2 planes)                                */
 /* --------------------------------------------------------------------- */
 
-
 /*
+if (id->vpos == X1FACE){
 print ("@@ Interpolation required at %f %f %f\n",x1,x2,x3);
 print ("@@ Closest input coord.      %f %f %f\n",
         id->x1[il], id->x2[jl], id->x3[kl]);
@@ -480,10 +600,10 @@ print ("@@ kl = %d, klast = %d; ncall = %d\n",kl,id->klast,ncall);
 ncall = 0;
   }
 ncall++;
+}
 */
 
-
-  if ( (kl >= id->klast + ID_NZ_MAX - 1) || (id->klast == -1) ){
+  if ( (kl >= id->klast + ID_NZ_MAX - 1) || (kl < id->klast) || (id->klast == -1) ){
     InputDataReadSlice(indx, kl);
   }
 
@@ -502,9 +622,11 @@ ncall++;
   }
   if (id->nx3 > 1){
     v +=   Vhi[jl][il]*(1.0 - xx)*(1.0 - yy)*zz
-         + Vhi[jl][il+1]*xx*(1.0 - yy)*zz
-         + Vhi[jl+1][il]*(1.0 - xx)*yy*zz
-         + Vhi[jl+1][il+1]*xx*yy*zz;
+         + Vhi[jl][il+1]*xx*(1.0 - yy)*zz;
+    if (id->nx2 > 1){
+      v +=   Vhi[jl+1][il]*(1.0 - xx)*yy*zz
+           + Vhi[jl+1][il+1]*xx*yy*zz;
+    }
   }
 
   return v;
@@ -545,14 +667,13 @@ void InputDataReadSlice(int indx, int kslice)
    2. Read binary data at specified position.
    ----------------------------------------------------- */
    
-  kmax = MIN(id->nx3,ID_NZ_MAX);
+  kmax = MIN(id->nx3-kslice,ID_NZ_MAX);
   if (id->dsize == sizeof(double)){
-
-    for (k = 0; k < kmax   ; k++){   /* Read at most 2 planes */  
+    for (k = 0; k < kmax   ; k++){   /* Read at most kmax planes */  
     for (j = 0; j < id->nx2; j++){
-    for (i = 0; i < id->nx1; i++){
+    for (i = 0; i < id->nx1; i++){      
       if (fread (&udbl, id->dsize, 1, fp) != 1){  
-        print ("! InputDataReadSlice(): error reading data (indx = %d)\n",indx);
+        printLog ("! InputDataReadSlice(): error reading data (indx = %d)\n",indx);
         break;
       }
       if (id->swap_endian) SWAP_VAR(udbl);
@@ -561,11 +682,11 @@ void InputDataReadSlice(int indx, int kslice)
 
    }else{
 
-    for (k = 0; k < kmax   ; k++){   /* Read at most 2 planes */  
+    for (k = 0; k < kmax   ; k++){   /* Read at most kmax planes */  
     for (j = 0; j < id->nx2; j++){
     for (i = 0; i < id->nx1; i++){
       if (fread (&uflt, id->dsize, 1, fp) != 1){
-        print ("! InputDataReadSlice(): error reading data (indx = %d)\n",indx);
+        printLog ("! InputDataReadSlice(): error reading data (indx = %d)\n",indx);
         break;
       }
       if (id->swap_endian) SWAP_VAR(uflt);
@@ -582,7 +703,9 @@ print ("@@@ Offset = %d\n",offset);
 for (k = 0; k < kmax   ; k++){
 for (j = 0; j < id->nx2; j++){
 for (i = 0; i < id->nx1; i++){
-  print ("@@@ Input value (%d %d %d) = %f\n",i,j,k,id->Vin[k][j][i]);
+  printLog ("@@@ Input value (%d %d %d) = %f\n",i,j,k,id->Vin[k][j][i]);
 }}}
 */
 }
+
+

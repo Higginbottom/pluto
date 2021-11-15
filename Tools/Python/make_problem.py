@@ -35,6 +35,7 @@ class MakeProblem(object):
     self.header_files = Dp.header_files
     self.pluto_path = Dp.pluto_path
     self.chomboflag = Dp.flag_dict['WITH-CHOMBO']
+    self.particles  = Dp.default[Dp.entries.index('PARTICLES')]
 
     try: 
       len(Dp.kromeoptstr)
@@ -148,6 +149,20 @@ class MakeProblem(object):
     
     for x in self.pluto_path:
       pf.InsertLine('include $(SRC)/' + x + 'makefile' + '\n',ipos)
+      ipos = ipos + 1
+    
+
+    # Add particle specific module: CR, LP or DUST
+    if (self.particles == 'PARTICLES_LP'):
+      pf.InsertLine('include $(SRC)/Particles/makefile_lp' + '\n',ipos)
+      ipos = ipos + 1
+
+    if (self.particles == 'PARTICLES_CR'):
+      pf.InsertLine('include $(SRC)/Particles/makefile_cr' + '\n',ipos)
+      ipos = ipos + 1
+
+    if (self.particles == 'PARTICLES_DUST'):
+      pf.InsertLine('include $(SRC)/Particles/makefile_dust' + '\n',ipos)
       ipos = ipos + 1
     
     for x in self.additional_flags:

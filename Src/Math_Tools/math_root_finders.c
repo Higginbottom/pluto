@@ -3,8 +3,8 @@
   \file
   \brief Collection of root-finder algorithms.
   
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   Oct 4, 2016
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Aug 21, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -45,7 +45,7 @@ int Brent(double (*Func)(double, void *), void *param, double x1,
     
   if ((fa > 0.0 && fb > 0.0) || (fa < 0.0 && fb < 0.0)){
     WARNING(
-      if(g_stepNumber > 0) print ("! Brent: initial interval does not contain root.\n");
+      if(g_stepNumber > 0) printLog ("! Brent: initial interval does not contain root.\n");
     )
     return 2;   /* Error: initial interval does not contain root */
   }
@@ -111,7 +111,7 @@ int Brent(double (*Func)(double, void *), void *param, double x1,
     fb=(*Func)(b, param);
   }
   WARNING(
-      print ("! Brent: exceed maximum iterations.\n");
+      printLog ("! Brent: exceed maximum iterations.\n");
   )
   return 1;
 }
@@ -193,12 +193,11 @@ int Ridder(double (*Func)(double, void *), void *param,
         xl = ans;
         fl = fnew;
       } else {
-        print ("! Ridder: never get here.\n");
-        print ("! xl   = %12.6e, fl   = %12.6e\n",xl,fl);
-        print ("! xh   = %12.6e, fh   = %12.6e\n",xh,fh);
-        print ("! xm   = %12.6e, fm   = %12.6e\n",xm,fm);
-        print ("! xnew = %12.6e, fnew = %12.6e\n",xnew,fnew);
-        print ("! sqrt^2 = %12.6e\n",fm*fm - fl*fh);
+        printLog ("! Ridder(): never get here.\n");
+        printLog ("! xl   = %12.6e, fl   = %12.6e\n",xl,fl);
+        printLog ("! xh   = %12.6e, fh   = %12.6e\n",xh,fh);
+        printLog ("! xm   = %12.6e, fm   = %12.6e\n",xm,fm);
+        printLog ("! sqrt^2 = %12.6e\n",fm*fm - fl*fh);
         QUIT_PLUTO(1);
       }
       
@@ -210,12 +209,13 @@ int Ridder(double (*Func)(double, void *), void *param,
       }
     }
     WARNING(
-      print ("! Ridder: exceed maximum iterations.\n");
+      printLog ("! Ridder: exceed maximum iterations.\n");
     )
     return 1;  /* Error: max number of iteration exceeded */
     
   } else {
   
+    j = 0;
     if (fl == 0.0) {
       *xroot = x1;
       g_maxRootIter = MAX(g_maxRootIter,j);
@@ -228,7 +228,7 @@ int Ridder(double (*Func)(double, void *), void *param,
     }
     /*  
     WARNING(
-      print ("! Ridder: initial interval does not contain root.\n");
+      printLog ("! Ridder: initial interval does not contain root.\n");
       )*/
     return 2;   /* Error: initial interval does not contain root */
   }
@@ -282,7 +282,7 @@ void LineSearch (int n, double xold[], double fold, double g[],
   for(i=0;i<n;i++) slope += g[i]*p[i];
   
   if(slope > 0.0){
-    print("! LineSearch: Roundoff problem in lnscrh\n");
+    printLog ("! LineSearch(): Roundoff problem in lnscrh\n");
     QUIT_PLUTO(1);
   }
 
@@ -346,7 +346,7 @@ void Broyden(double x[], int n, int *check,
   if (g == NULL){
            
     if(n > MAX_ROOT_EQNS)
-      print ("! Broyden : Number of equations exceed the maximum limit\n");
+      printLog ("! Broyden : Number of equations exceed the maximum limit\n");
     
     c       = ARRAY_1D(MAX_ROOT_EQNS, double);
     d       = ARRAY_1D(MAX_ROOT_EQNS, double);
@@ -394,76 +394,76 @@ void Broyden(double x[], int n, int *check,
       FDJacobian(n,x,fguess,r,vecfunc); /* Compute Initial Jacobian in r */
       QRDecompose (r, n, c, d, &sing); /* QR Decomposition of r. */
       if (sing){
-	       print ("! Broyden: singular Jacobian... Hard Luck !\n");
-	       QUIT_PLUTO(1);
+ printLog ("! Broyden(): singular Jacobian... Hard Luck !\n");
+	QUIT_PLUTO(1);
       }
 
       /* Initialize transpose(Q) to Identity matrix. */
       for(i=0;i<n;i++){
-	       for(j=0;j<n;j++) qt[i][j] = 0.0;
-	       qt[i][i] = 1.0;
+	for(j=0;j<n;j++) qt[i][j] = 0.0;
+	qt[i][i] = 1.0;
       }
       
       /* Compute transpose(Q) explicityly */
       for(k=0; k < n-1; k++) {
-	       if (c[k]) {
-	         for (j=0; j<n; j++) {
-	           sum = 0.0;
-	           for(i=k; i<n; i++) {
-	             sum += r[i][k]*qt[i][j];
-	           }
-	           sum /= c[k];
-	           for(i=k; i<n; i++) {
-	             qt[i][j] -= sum*r[i][k];
-	           }
-	         }
-	       }
+        if (c[k]) {
+          for (j=0; j<n; j++) {
+            sum = 0.0;
+            for(i=k; i<n; i++) {
+              sum += r[i][k]*qt[i][j];
+            }
+            sum /= c[k];
+            for(i=k; i<n; i++) {
+              qt[i][j] -= sum*r[i][k];
+            }
+          }
+        }
       }
       
       /* Create R */
       for(i=0;i<n;i++) {
-	       r[i][i] = d[i]; /* Diagonal are in 'd' : QRDecompose */
-	       for (j=0;j<i;j++) r[i][j] = 0.0;
+        r[i][i] = d[i]; /* Diagonal are in 'd' : QRDecompose */
+        for (j=0;j<i;j++) r[i][j] = 0.0;
       }
       
     } else { /* End of restart and now doing the Broyden Update */
       
       for(i=0; i<n; i++) s[i] = x[i] - xold[i]; /* s = delta(x) */
       for(i=0; i<n; i++) { /* t = R.s */
-	       sum = 0.0;
-	       for(j=i; j<n; j++) sum += r[i][j] * s[j];
-	       t[i] = sum;
+        sum = 0.0;
+        for(j=i; j<n; j++) sum += r[i][j] * s[j];
+        t[i] = sum;
       }
       skip = 1;
       for (i=0; i<n; i++){ /* w = delta(F) - B.s */
-	       sum = 0.0;
-	       for(j=0; j<n; j++) sum += qt[j][i] * t[j];
-	       w[i] = fguess[i] - fvcold[i] - sum;
-	       if (fabs(w[i]) >= EPS_FD_JAC*(fabs(fguess[i]) + fabs(fvcold[i]))) skip = 0;
-	/* No update with noisy components of w */
-	       else w[i] = 0.0;
+        sum = 0.0;
+        for(j=0; j<n; j++) sum += qt[j][i] * t[j];
+        w[i] = fguess[i] - fvcold[i] - sum;
+        if (fabs(w[i]) >= EPS_FD_JAC*(fabs(fguess[i]) + fabs(fvcold[i]))) skip = 0;
+       /* No update with noisy components of w */
+        else w[i] = 0.0;
       }
       
       if(!skip) {
-	       for(i=0;i<n;i++) { /* t = transpose(Q).w */
-	         sum = 0.0;
-	         for(j=0;j<n;j++) sum += qt[i][j]*w[j];
-	         t[i] = sum;
-	       }
-	
-	       den = 0.0;
-	       for(i=0; i<n;i++) den += s[i] * s[i];
-	       for(i=0; i<n;i++) s[i] /= den; /* Store s/(s.s) in s */
+        for(i=0;i<n;i++) { /* t = transpose(Q).w */
+          sum = 0.0;
+          for(j=0;j<n;j++) sum += qt[i][j]*w[j];
+          t[i] = sum;
+        }
+ 
+        den = 0.0;
+        for(i=0; i<n;i++) den += s[i] * s[i];
+        for(i=0; i<n;i++) s[i] /= den; /* Store s/(s.s) in s */
 
-	       QRUpdate(r,qt,n,t,s); /* Update R and transpose(Q) */
-	
-	       for(i=0; i<n; i++) {
-	         if (r[i][i] == 0.0){
-	           print ("! Broyden: R is singular .. Hard Luck ! \n");
-	           QUIT_PLUTO(1);
-	         }
-	         d[i] = r[i][i]; /* Diagonal of R in d */
-	       }
+        QRUpdate(r,qt,n,t,s); /* Update R and transpose(Q) */
+ 
+        for(i=0; i<n; i++) {
+          if (r[i][i] == 0.0){
+            printLog ("! Broyden(): R is singular .. Hard Luck ! \n");
+            QUIT_PLUTO(1);
+          }
+          d[i] = r[i][i]; /* Diagonal of R in d */
+        }
       } /* End if(!skip) */
     } /* End of Broyden Update */
     
@@ -512,17 +512,17 @@ void Broyden(double x[], int n, int *check,
     
     if(*check) { /* Line Search Failed */
       if (restrt) {
-	       print("! Broyden: Already tried reinitializing \n");
-	       return;
+        printLog ("! Broyden(): Already tried reinitializing \n");
+        return;
       } else {
-	       test = 0.0;
-	       den = MAX(f, 0.5*n);
-	       for(i=0; i<n; i++){
-	         temp = fabs(g[i]) * MAX(fabs(x[i]), 1.0)/den;
-	         if (temp > test) test = temp;
-	       }
-	       if (test < TOLMIN) return;
-	       else               restrt = 1;
+        test = 0.0;
+        den = MAX(f, 0.5*n);
+        for(i=0; i<n; i++){
+          temp = fabs(g[i]) * MAX(fabs(x[i]), 1.0)/den;
+          if (temp > test) test = temp;
+        }
+        if (test < TOLMIN) return;
+        else               restrt = 1;
       }
     } else { /* Sucess Step */
       restrt = 0;
@@ -532,12 +532,12 @@ void Broyden(double x[], int n, int *check,
 	       if (temp > test) test = temp;
       }
       if (test < TOLX){
-	       print("! Brodyen: All is Well !! \n");
-	       return;
+        printLog("! Brodyen(): All is Well !! \n");
+        return;
       }
     }
   }
-  print("! Brodyen: MAXITS exceeded in Broyden\n");
+  printLog("! Brodyen: MAXITS exceeded in Broyden\n");
   return;
 }
 
@@ -560,12 +560,12 @@ int QuadraticSolve(double a, double b, double c, double *x)
   del = b*b - 4.0*a*c;
 /*
   if (del < 0.0) {
-    print ("! QuadraticSolve(): del = %8.3e, resetting to 0\n",del);
+    printLog ("! QuadraticSolve(): del = %8.3e, resetting to 0\n",del);
     del = MAX(del,0.0);
   }
 */  
   if (del < 0.0) {
-    print ("! QuadraticSolve(): complex roots, del = %8.3e\n",del);    
+    printLog ("! QuadraticSolve(): complex roots, del = %8.3e\n",del);    
     return 1; /* No real root */
   }
 
@@ -632,11 +632,11 @@ int CubicSolve (double b, double c, double d, double z[])
 Q = MAX(Q, 0.0);
 /*
 if (fabs(Q) < 1.e-18){
-  print ("CubicSolve() very small Q = %12.6e\n",Q);
+  printLog ("CubicSolve() very small Q = %12.6e\n",Q);
   QUIT_PLUTO(1);
 }
 if (Q < 0.0){
-  print ("! CubicSolve(): Q = %8.3 < 0 \n",Q);
+  printLog ("! CubicSolve(): Q = %8.3 < 0 \n",Q);
   QUIT_PLUTO(1);
 }
 */
@@ -671,21 +671,21 @@ if (Q < 0.0){
   if(debug_print) {
     int l;
     double x, f;
-    print ("===========================================================\n");
-    print ("> Resolvent cubic:\n");
-    print ("  g(x)  = %18.12e + x*(%18.12e + x*(%18.12e + x))\n", d, c, b);
-    print ("  Q     = %8.3e\n",Q);
-    print ("  arg-1 = %8.3e\n",  -1.5*R/(Q*sQ)-1.0);
+    printLog ("===========================================================\n");
+    printLog ("> Resolvent cubic:\n");
+    printLog ("  g(x)  = %18.12e + x*(%18.12e + x*(%18.12e + x))\n", d, c, b);
+    printLog ("  Q     = %8.3e\n",Q);
+    printLog ("  arg-1 = %8.3e\n",  -1.5*R/(Q*sQ)-1.0);
 
-    print ("> Cubic roots = %8.3e  %8.3e  %8.3e\n",z[0],z[1],z[2]);
+    printLog ("> Cubic roots = %8.3e  %8.3e  %8.3e\n",z[0],z[1],z[2]);
     for (l = 0; l < 3; l++){  // check accuracy of solution
      
       x = z[l];
       f = d + x*(c + x*(b + x));
-      print ("  verify: g(x[%d]) = %8.3e\n",l,f);   
+      printLog ("  verify: g(x[%d]) = %8.3e\n",l,f);   
     }
 
-    print ("===========================================================\n");
+    printLog ("===========================================================\n");
   }
 */
   return(0);
@@ -761,7 +761,7 @@ int QuarticSolve (double b, double c, double d, double e, double *z)
   SortArray(z,4);
 /*
   if (debug_print){
-    print ("Quartic roots = %f  %f  %f  %f; q = %8.3e\n",z[0],z[1],z[2],z[3],q);
+    printLog ("Quartic roots = %f  %f  %f  %f; q = %8.3e\n",z[0],z[1],z[2],z[3],q);
     CheckSolutions(b,c,d,e,z);
   }
 */

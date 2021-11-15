@@ -17,9 +17,9 @@
   ::SB_SYMMETRIZE_EZ may be set to YES/NO to enable/disable enforcement
   of conservation at the radial (x) boundaries.
 
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \authors A. Mignone (mignone@to.infn.it)\n
            G. Muscianisi (g.muscianisi@cineca.it)
-  \date   Aug 26, 2015
+  \date   Dec 04, 2019
   \todo   Check if sb_vy and sb_Ly are really needed as global variables.
 */
 /* ///////////////////////////////////////////////////////////////////// */
@@ -32,6 +32,9 @@
 #endif                                 
 
 #ifndef FARGO
+/* ----------------------------------------------
+   Standard shearing-box
+   ---------------------------------------------- */
  #ifndef SB_SYMMETRIZE_HYDRO
   #define SB_SYMMETRIZE_HYDRO  YES  /**< Symmetrize the hydrodynamical fluxes 
           at the left and right x-boundaries in order to enforce conservation of
@@ -54,6 +57,9 @@
  #define SB_FORCE_EMF_PERIODS NO  /**< Force periodicity at y- and z-
                                        boundaries. */
 #else
+/* ----------------------------------------------
+   FARGO shearing-box
+   ---------------------------------------------- */
  #define SB_SYMMETRIZE_HYDRO  NO  
  #define SB_SYMMETRIZE_EY    (NO  && (DIMENSIONS == 3)) 
  #define SB_SYMMETRIZE_EZ     NO 
@@ -72,14 +78,6 @@
   #define SB_OMEGA   1.0 /**< Disk local orbital frequency \f$ \Omega_0 = 
                               \Omega(R_0)\f$.  */
 #endif
-
-//extern double sb_q;  /**< The shear parameter, \f$\DS q = -\HALF\frac{d\log
-//              \Omega^2}{d\log R} \f$. The explicit numerical value and the
-//              variable definition should be set inside your Init() function. */
-
-//extern double sb_Omega; /**< Disk local orbital frequency \f$ \Omega_0 = 
-//              \Omega(R_0)\f$. The explicit numerical value and the variable
- //             definition should be set inside your Init() function.  */
 
 extern double sb_vy;  /**< Velocity offset (>0), in SB_Boundary(). */ 
 
@@ -104,7 +102,7 @@ void SB_ShiftBoundaryVar(double ***, RBox *, int, double, Grid *);
 void SB_FillBoundaryGhost(double ***, RBox *, int, int, Grid *);
 
 #ifdef PARALLEL
- void ExchangeX (real *, real *, int, Grid *);
+ void ExchangeX (double *, double *, int, Grid *);
 #endif
  
 /* \endcond */

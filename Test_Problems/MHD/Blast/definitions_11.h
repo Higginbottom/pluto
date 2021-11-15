@@ -1,22 +1,20 @@
 #define  PHYSICS                        MHD
 #define  DIMENSIONS                     3
-#define  COMPONENTS                     3
 #define  GEOMETRY                       CARTESIAN
 #define  BODY_FORCE                     NO
-#define  FORCED_TURB                    NO
 #define  COOLING                        NO
 #define  RECONSTRUCTION                 LINEAR
-#define  TIME_STEPPING                  CHARACTERISTIC_TRACING
-#define  DIMENSIONAL_SPLITTING          NO
+#define  TIME_STEPPING                  RK2
 #define  NTRACER                        0
+#define  PARTICLES                      NO
 #define  USER_DEF_PARAMETERS            7
 
 /* -- physics dependent declarations -- */
 
 #define  EOS                            IDEAL
 #define  ENTROPY_SWITCH                 NO
-#define  DIVB_CONTROL                   DIV_CLEANING
-#define  BACKGROUND_FIELD               NO
+#define  DIVB_CONTROL                   CONSTRAINED_TRANSPORT
+#define  BACKGROUND_FIELD               YES
 #define  AMBIPOLAR_DIFFUSION            NO
 #define  RESISTIVITY                    NO
 #define  HALL_MHD                       NO
@@ -36,7 +34,8 @@
 
 /* [Beg] user-defined constants (do not change this line) */
 
-#define  CHAR_LIMITING                  YES
-#define  GLM_EXTENDED                   YES
+#define  ASSIGN_VECTOR_POTENTIAL        YES
+#define  CT_EMF_AVERAGE                 UCT_HLL
+#define  LIMITER                        MC_LIM
 
 /* [End] user-defined constants (do not change this line) */

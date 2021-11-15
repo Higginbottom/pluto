@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -83,6 +83,8 @@ Functions</h2></td></tr>
 <tr class="separator:ade604fa8267aeaf450418ee42a2bb75f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa1c4b234051c11b4e43c1f3adc181006"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="tc_8h.html#aa1c4b234051c11b4e43c1f3adc181006">TC_RHS</a> (const <a class="el" href="struct_data.html">Data</a> *, Data_Arr, double *, double **, double, int, int, <a class="el" href="struct_grid.html">Grid</a> *)</td></tr>
 <tr class="separator:aa1c4b234051c11b4e43c1f3adc181006"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5306bcef64c214aed3fbd83655d69609"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="tc_8h.html#a5306bcef64c214aed3fbd83655d69609">GetGradient</a> (double ***, double **, int, int, <a class="el" href="struct_grid.html">Grid</a> *)</td></tr>
+<tr class="separator:a5306bcef64c214aed3fbd83655d69609"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Contains prototypes for the thermal conduction module.</p>
@@ -90,6 +92,63 @@ Functions</h2></td></tr>
  T. Matsakos </dd></dl>
 <dl class="section date"><dt>Date</dt><dd>May 11, 2018 </dd></dl>
 </div><h2 class="groupheader">Function Documentation</h2>
+<a id="a5306bcef64c214aed3fbd83655d69609"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5306bcef64c214aed3fbd83655d69609">&#9670;&nbsp;</a></span>GetGradient()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void GetGradient </td>
+          <td>(</td>
+          <td class="paramtype">double ***&#160;</td>
+          <td class="paramname"><em>T</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double **&#160;</td>
+          <td class="paramname"><em>gradT</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>beg</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>end</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="struct_grid.html">Grid</a> *&#160;</td>
+          <td class="paramname"><em>grid</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Compute the gradient of a 3D scalar quantity T in the direction given by g_dir. Return a 1D array (dT/dx, dT/dy, dT/dz) along that direction computed at cell interfaces, e.g.</p>
+<p>if g_dir == IDIR &ndash;&gt; compute</p>
+<p>[ dT/dl1, dT/dl2, dT/dl3 ] at interface (i+1/2,j,k)</p>
+<p>if g_dir == JDIR &ndash;&gt; compute</p>
+<p>[ dT/dl1, dT/dl2, dT/dl3 ] at interface (i,j+1/2,k)</p>
+<p>if g_dir == KDIR &ndash;&gt; compute</p>
+<p>[ dT/dl1, dT/dl2, dT/dl3 ] at interface (i,j,k+1/2)</p>
+<p>Here dl1, dl2 and dl3 are the line element in the thre directions:</p>
+<p>Cartesian: {dl1, dl2, dl3} = {dx, dy, dz} Cylindrical: {dl1, dl2, dl3} = {dr, dz, - } Polar: {dl1, dl2, dl3} = {dr, r.dphi, dz} Spherical: {dl1, dl2, dl3} = {dr, r.dtheta, r.sin(theta).dphi}</p>
+<p>LAST MODIFIED</p>
+<p>14 Apr 2011 by T. Matsakos, A. Mignone </p>
+
+</div>
+</div>
 <a id="ad8037dc7e79c320d7d73675ba32a42c6"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ad8037dc7e79c320d7d73675ba32a42c6">&#9670;&nbsp;</a></span>TC_Flux()</h2>
 
@@ -217,9 +276,9 @@ Functions</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">x1</td><td>coordinate in the X1 direction </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">x2</td><td>coordinate in the X2 direction </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">x3</td><td>coordinate in the X3 direction </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">kpar</td><td>pointer to the conduction coefficient <img class="formulaInl" alt="$ \kappa_\parallel $" src="form_289.png"/> in the direction of magnetic field </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">knor</td><td>pointer to the conduction coefficient <img class="formulaInl" alt="$ \kappa_\perp $" src="form_290.png"/> perpendicular to magnetic field </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">phi</td><td>pointer to the parameter <img class="formulaInl" alt="$ \phi $" src="form_287.png"/> controlling the magnitude of the saturated flux. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">kpar</td><td>pointer to the conduction coefficient <img class="formulaInl" alt="$ \kappa_\parallel $" src="form_342.png"/> in the direction of magnetic field </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">knor</td><td>pointer to the conduction coefficient <img class="formulaInl" alt="$ \kappa_\perp $" src="form_343.png"/> perpendicular to magnetic field </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">phi</td><td>pointer to the parameter <img class="formulaInl" alt="$ \phi $" src="form_340.png"/> controlling the magnitude of the saturated flux. </td></tr>
   </table>
   </dd>
 </dl>
@@ -305,7 +364,7 @@ Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:51 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:58 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

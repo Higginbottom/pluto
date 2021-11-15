@@ -19,8 +19,8 @@
       Astrophysical Thermonuclear Flashes"
       Fryxell et al, ApJS(2000) 131:273 (pages 292-294)
         
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    Jan 26, 2017
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    June 27, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -138,7 +138,7 @@ void TwoShock_Solver (const Sweep *sweep, int beg, int end,
       if (fabs(dp/pstar) < 1.e-6) break;
 /*
       if (iter == MAX_ITER) {
-        print ("Rieman solver not converging  ps %12.6e  dp %12.6e %12.6e  %12.6e %12.6e %12.6e \n",
+        printLog ("Rieman solver not converging  ps %12.6e  dp %12.6e %12.6e  %12.6e %12.6e %12.6e \n",
            pstar,dp, scrh1, scrh2, scrh3, scrh4);
       }
 */
@@ -201,9 +201,8 @@ void TwoShock_Solver (const Sweep *sweep, int beg, int end,
         
   /* -- transverse velocities are advected --  */
 
-    EXPAND(                             , 
-           stateS.v[i][VXt] = qs[VXt]; ,  
-           stateS.v[i][VXb] = qs[VXb];)
+    stateS.v[i][VXt] = qs[VXt];
+    stateS.v[i][VXb] = qs[VXb];
 
   /* -- compute flux -- */
 
@@ -237,7 +236,7 @@ void TwoShock_Solver (const Sweep *sweep, int beg, int end,
 
   
 #else
-  print ("! TwoShock_Solver: not defined for this EOS\n");
+  printLog ("! TwoShock_Solver: not defined for this EOS\n");
   QUIT_PLUTO(1);
 #endif /* EOS == IDEAL */
 }

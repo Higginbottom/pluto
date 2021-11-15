@@ -15,10 +15,10 @@
   This function also updates the corresponding .out file associated 
   with the output data format.
 
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \authors A. Mignone (mignone@to.infn.it)\n
            G. Muscianisi (g.muscianisi@cineca.it)
 
-  \date   Sep 30, 2016
+  \date   Apr 15, 2021
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -43,6 +43,10 @@ void WriteData (const Data *d, Output *output, Grid *grid)
   static int last_computed_var = -1;
   double units[MAX_OUTPUT_VARS]; 
   float ***Vpt3;
+  #ifdef FARGO
+  static double ***vphi_res;
+  double **wA = FARGO_Velocity();
+  #endif
   void *Vpt;
   FILE *fout, *fbin;
   time_t tbeg, tend;
@@ -54,7 +58,7 @@ void WriteData (const Data *d, Output *output, Grid *grid)
 
   output->nfile++;
 
-  print ("> Writing file #%d (%s) to disk...", output->nfile, output->ext);
+  print ("> Writing file #%d (%s) to disk...\n", output->nfile, output->ext);
 
 #ifdef PARALLEL
   MPI_Barrier (MPI_COMM_WORLD);
@@ -74,14 +78,15 @@ void WriteData (const Data *d, Output *output, Grid *grid)
   }
 
 /* --------------------------------------------------------
-   2. With FARGO, we can output total or residual velocity 
+   2. With FARGO, we can output total or residual velocity
+      whenever output is not .dbl.
    -------------------------------------------------------- */
 
-#if (defined FARGO)
-  #if  (FARGO_OUTPUT_VTOT == YES)
-  if (FARGO_TotalVelocityIsSet() == 0) FARGO_AddVelocity (d,grid); 
-  #else 
-  if (FARGO_TotalVelocityIsSet() == 1) FARGO_SubtractVelocity (d,grid); 
+#ifdef FARGO
+  #if FARGO_OUTPUT_VTOT == YES
+  if (vphi_res == NULL) vphi_res = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  TOT_LOOP(k,j,i) vphi_res[k][j][i] = d->Vc[VX1+SDIR][k][j][i]; 
+  FARGO_ComputeTotalVelocity (d, d->Vc[VX1+SDIR], grid);
   #endif
 #endif
 
@@ -91,7 +96,9 @@ void WriteData (const Data *d, Output *output, Grid *grid)
 
   if (output->type == DBL_OUTPUT) {
 
-  /* ------------------------------------------------------------------- */
+  /* -------------------------------------------------------------------
+     3a. DBL Output
+     ------------------------------------------------------------------- */
   /*! - \b DBL output:
         Double-precision data files can be written using single or
         multiple file mode. 
@@ -121,36 +128,36 @@ void WriteData (const Data *d, Output *output, Grid *grid)
       FileDelete (filename);  /* Avoid partial fill of pre-existing files */
       offset = 0;
       #ifndef PARALLEL
-       fbin = FileOpen (filename, 0, "w");
+      fbin = FileOpen (filename, 0, "w");
       #endif
       for (nv = 0; nv < output->nvar; nv++) {
         if (!output->dump_var[nv]) continue;
 
         if      (output->stag_var[nv] == -1) {  /* -- cell-centered data -- */
-          sz = SZ;
+          sz  = SZ;
           Vpt = (void *)output->V[nv][0][0];
         } else if (output->stag_var[nv] == 0) { /* -- x-staggered data -- */
           sz  = SZ_stagx;
           Vpt = (void *)(output->V[nv][0][0]-1);
         } else if (output->stag_var[nv] == 1) { /* -- y-staggered data -- */
-          sz = SZ_stagy;
+          sz  = SZ_stagy;
           Vpt = (void *)output->V[nv][0][-1];
         } else if (output->stag_var[nv] == 2) { /* -- z-staggered data -- */
-           sz = SZ_stagz;
-           Vpt = (void *)output->V[nv][-1][0];
+          sz  = SZ_stagz;
+          Vpt = (void *)output->V[nv][-1][0];
         }
         #ifdef PARALLEL
-         fbin = FileOpen (filename, sz, "w");
-         AL_Set_offset(sz, offset);
+        fbin = FileOpen (filename, sz, "w");
+        AL_Set_offset(sz, offset);
         #endif
         FileWriteData (Vpt, dsize, sz, fbin, output->stag_var[nv]);
         #ifdef PARALLEL
-         offset = AL_Get_offset(sz);
-         FileClose(fbin, sz);
+        offset = AL_Get_offset(sz);
+        FileClose(fbin, sz);
         #endif
       }
       #ifndef PARALLEL
-       FileClose(fbin, sz);
+      FileClose(fbin, sz);
       #endif
 
     }else{              /* -- multiple files -- */
@@ -171,8 +178,8 @@ void WriteData (const Data *d, Output *output, Grid *grid)
           sz = SZ_stagy;
           Vpt = (void *)output->V[nv][0][-1];
         } else if (output->stag_var[nv] == 2) { /* -- z-staggered data -- */
-           sz = SZ_stagz;
-           Vpt = (void *)output->V[nv][-1][0];
+          sz = SZ_stagz;
+          Vpt = (void *)output->V[nv][-1][0];
         }
         fbin = FileOpen (filename, sz, "w");
         FileWriteData (Vpt, dsize, sz, fbin, output->stag_var[nv]);
@@ -180,11 +187,21 @@ void WriteData (const Data *d, Output *output, Grid *grid)
       }
     }
 
+  /* --------------------------------------------
+     With FARGO, write23D array for orbital vel.
+     to separate file.   
+     Needed also for restarting purposes.
+     -------------------------------------------- */
+
+    #ifdef FARGO
+    FARGO_Write(d, output->dir, output->nfile, grid);
+    #endif
+
   } else if (output->type == FLT_OUTPUT) {
 
-  /* ----------------------------------------------------------
-                 FLT output for cell-centered data
-     ---------------------------------------------------------- */
+  /* ------------------------------------------------------
+     3b. FLT output for cell-centered data
+     ------------------------------------------------------ */
 
     single_file = strcmp(output->mode,"single_file") == 0;
 
@@ -224,20 +241,22 @@ BOV_Header(output, filename);
   }else if (output->type == DBL_H5_OUTPUT || output->type == FLT_H5_OUTPUT){
 
   /* ------------------------------------------------------
-       HDF5 (static grid) output (single/double precision)
+     3c.  HDF5 (static grid) output (single/double precision)
      ------------------------------------------------------ */
 
     #ifdef USE_HDF5 
-     single_file = YES;
-     WriteHDF5 (output, grid);
+    single_file = YES;
+    WriteHDF5 (output, grid);
     #else
-     print ("! WriteData: HDF5 library not available\n");
-     return;
+    print ("! WriteData: HDF5 library not available\n");
+    return;
     #endif
 
   }else if (output->type == VTK_OUTPUT) { 
 
-  /* ------------------------------------------------------------------- */
+  /* -------------------------------------------------------------------
+     3d. VTK Output
+     ------------------------------------------------------------------- */
   /*! - \b VTK output:  
       in order to enable parallel writing, files must be closed and
       opened again for scalars, since the distributed array descriptors 
@@ -261,10 +280,10 @@ BOV_Header(output, filename);
       }
 
       #ifdef PARALLEL
-       offset = AL_Get_offset(SZ_Float_Vect);
-       FileClose(fbin, SZ_Float_Vect);
-       fbin  = FileOpen(filename, SZ_float, "w");
-       AL_Set_offset(SZ_float, offset);
+      offset = AL_Get_offset(SZ_Float_Vect);
+      FileClose(fbin, SZ_Float_Vect);
+      fbin  = FileOpen(filename, SZ_float, "w");
+      AL_Set_offset(SZ_float, offset);
       #endif
       
       for (nv = 0; nv < output->nvar; nv++) { /* -- write scalars -- */
@@ -281,7 +300,7 @@ BOV_Header(output, filename);
         if (strcmp(output->var_name[nv],"vx1") == 0) {
           sprintf (filename, "%s/vfield.%04d.%s", output->dir, output->nfile, 
                                                   output->ext);
-        }else if (strcmp(output->var_name[nv],"bx1") == 0) {
+        }else if (strcmp(output->var_name[nv],"Bx1") == 0) {
           sprintf (filename, "%s/bfield.%04d.%s", output->dir, output->nfile, 
                                                   output->ext);
         }else{
@@ -304,12 +323,12 @@ BOV_Header(output, filename);
         FileDelete (filename);  /* Avoid partial fill of pre-existing files */
         fbin = FileOpen(filename, SZ_Float_Vect, "w");
         WriteVTK_Header(fbin, grid);
-      #ifdef PARALLEL
+        #ifdef PARALLEL
         offset = AL_Get_offset(SZ_Float_Vect);
         FileClose(fbin, SZ_Float_Vect);
         fbin  = FileOpen(filename, SZ_float, "w");
         AL_Set_offset(SZ_float, offset);
-      #endif
+        #endif
         WriteVTK_Scalar(fbin, output->V[nv], units[nv],
                         output->var_name[nv], grid);
         FileClose (fbin, SZ_float);
@@ -319,7 +338,7 @@ BOV_Header(output, filename);
   }else if (output->type == TAB_OUTPUT) { 
 
   /* ------------------------------------------------------
-               Tabulated (ASCII) output
+     3e. Tabulated (ASCII) output
      ------------------------------------------------------ */
 
     single_file = YES;
@@ -348,16 +367,16 @@ BOV_Header(output, filename);
      ------------------------------------------------------ */
 
     #ifdef USE_PNG
-     single_file = NO;
-     for (nv = 0; nv < output->nvar; nv++) {
-       if (!output->dump_var[nv]) continue;
-       sprintf (filename, "%s/%s.%04d.%s", output->dir, output->var_name[nv], 
-                                           output->nfile, output->ext);
-       WritePNG (output->V[nv], output->var_name[nv], filename, grid);
-     }
+    single_file = NO;
+    for (nv = 0; nv < output->nvar; nv++) {
+      if (!output->dump_var[nv]) continue;
+      sprintf (filename, "%s/%s.%04d.%s", output->dir, output->var_name[nv], 
+                                          output->nfile, output->ext);
+      WritePNG (output->V[nv], output->var_name[nv], filename, grid);
+    }
     #else
-     print ("! PNG library not available\n");
-     return;
+    print ("! PNG library not available\n");
+    return;
     #endif
   }       
 
@@ -395,14 +414,19 @@ BOV_Header(output, filename);
     fclose (fout);
   }
 
-#ifdef PARALLEL
+/* -- Copy residual back onto main array -- */
+
+  #if (defined FARGO) &&  (FARGO_OUTPUT_VTOT == YES)
+  TOT_LOOP(k,j,i) d->Vc[VX1+SDIR][k][j][i] = vphi_res[k][j][i];
+  #endif
+
+  #ifdef PARALLEL
   MPI_Barrier (MPI_COMM_WORLD);
   if (prank == 0){
     time(&tend);
-    print (" [%5.2f sec]",difftime(tend,tbeg));
+    print ("  [%5.2f sec ]\n",difftime(tend,tbeg));
   }
-#endif
-  print ("\n");
+  #endif
 
 }
 
@@ -422,18 +446,18 @@ void GetCGSUnits (double *u)
   double unit_pressure = UNIT_DENSITY*UNIT_VELOCITY*UNIT_VELOCITY;
   double unit_mag      = UNIT_VELOCITY*sqrt(4.0*CONST_PI*UNIT_DENSITY);
   
-  #if PHYSICS == RHD || PHYSICS == RMHD
-   unit_velocity = CONST_c;
+  #if (PHYSICS == RHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
+  unit_velocity = CONST_c;
   #endif
 
   u[RHO] = UNIT_DENSITY;
-  EXPAND(u[VX1] = unit_velocity;  ,
-         u[VX2] = unit_velocity;  ,
-         u[VX3] = unit_velocity;)
-  #if PHYSICS == MHD || PHYSICS == RMHD
-   EXPAND(u[BX1] = unit_mag;  ,
-          u[BX2] = unit_mag;  ,
-          u[BX3] = unit_mag;)
+  u[VX1] = unit_velocity;
+  u[VX2] = unit_velocity;
+  u[VX3] = unit_velocity;
+  #if (PHYSICS == MHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
+  u[BX1] = unit_mag;
+  u[BX2] = unit_mag;
+  u[BX3] = unit_mag;
   #endif
   #if HAVE_ENERGY
    u[PRS] = unit_pressure;

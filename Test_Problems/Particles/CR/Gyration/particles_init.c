@@ -3,10 +3,10 @@
  \file
  \brief Initialize particle for gyration test.
  
- \authors A. Mignone (mignone@ph.unito.it)\n
+ \authors A. Mignone (mignone@to.infn.it)\n
           B. Vaidya (bvaidya@unito.it)\n
  
- \date    March 20, 2016
+ \date    Aug 17, 2020
  
  \b References: \n
    - "A PARTICLE MODULE FOR THE PLUTO CODE: I - AN IMPLEMENTATION OF THE
@@ -61,14 +61,22 @@ void Particles_Init(Data *d, Grid *grid)
       vy1   = v1*sin(alpha);
       vz1   = 0.0;
 
-    /* -- Compute particle velocity in Lab frame -- */
+    /* -- Compute particle 3-velocity in Lab frame -- */
 
       gamma = 1.0/sqrt(1.0 - vg*vg/c2);
       p.speed[IDIR] = (vx1 + vg)/(1.0 + vx1*vg/c2);
       p.speed[JDIR] = vy1/(1.0 + vx1*vg/c2)/gamma;
       p.speed[KDIR] = vz1/(1.0 + vx1*vg/c2)/gamma;
 
-      p.rho = 1.0;
+    /* -- Compute particle 4-velocity in Lab frame -- */
+
+      gamma = DOT_PRODUCT(p.speed, p.speed)/c2;
+      gamma = 1.0/sqrt(1.0 - gamma);
+      p.speed[IDIR] *= gamma;
+      p.speed[JDIR] *= gamma;
+      p.speed[KDIR] *= gamma;
+
+      p.mass = 1.0;
      
       Particles_Insert (&p, d, PARTICLES_CREATE, grid);
     }

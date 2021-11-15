@@ -22,6 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO Test Problems
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -78,11 +79,11 @@ Functions</h2></td></tr>
 <tr class="separator:aec5cba6ad33e98822880b5199543c6e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Implements the initial condition for a relativistic KH flow in 2D Cartesian coordinates as in section 6.6 of Mignone et al. (ApJS, 2012). Density and pressure are initially constant and equal to <img class="formulaInl" alt="$\rho = 1$" src="form_32.png"/> and <img class="formulaInl" alt="$p = p_0$" src="form_280.png"/> where the latter value is retrieved from the definition of the Mach number <img class="formulaInl" alt="$M = v/c_s$" src="form_281.png"/>. The sound speed is <img class="formulaInl" alt="$c_s=\sqrt{\Gamma p/w}$" src="form_282.png"/> for the <code>IDEAL</code> equation of state and <img class="formulaInl" alt="$c_s = \sqrt{\frac{p}{3w}\frac{5w - 8p}{w - p}}$" src="form_283.png"/> for the <code>TAUB</code> EoS (see Eq. [17], [31] and [32] of Mignone &amp; McKinney [MNRAS, 2007]), where <img class="formulaInl" alt="$ w = \rho h$" src="form_284.png"/> is the gas enthalpy.</p>
+<div class="textblock"><p>Implements the initial condition for a relativistic KH flow in 2D Cartesian coordinates as in section 6.6 of Mignone et al. (ApJS, 2012). Density and pressure are initially constant and equal to <img class="formulaInl" alt="$\rho = 1$" src="form_33.png"/> and <img class="formulaInl" alt="$p = p_0$" src="form_271.png"/> where the latter value is retrieved from the definition of the Mach number <img class="formulaInl" alt="$M = v/c_s$" src="form_272.png"/>. The sound speed is <img class="formulaInl" alt="$c_s=\sqrt{\Gamma p/w}$" src="form_273.png"/> for the <code>IDEAL</code> equation of state and <img class="formulaInl" alt="$c_s = \sqrt{\frac{p}{3w}\frac{5w - 8p}{w - p}}$" src="form_274.png"/> for the <code>TAUB</code> EoS (see Eq. [17], [31] and [32] of Mignone &amp; McKinney [MNRAS, 2007]), where <img class="formulaInl" alt="$ w = \rho h$" src="form_275.png"/> is the gas enthalpy.</p>
 <p>The velocity is parallel to the <code>x</code> axis with a hyperbolic tangent shear profile. Magnetic field has the form </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ \vec{B} = \left(\sqrt{2\sigma_{\rm pol}p_0},\, 0,\, \sqrt{2\sigma_{\rm tor}p_0}\right) \]" src="form_285.png"/>
+<img class="formulaDsp" alt="\[ \vec{B} = \left(\sqrt{2\sigma_{\rm pol}p_0},\, 0,\, \sqrt{2\sigma_{\rm tor}p_0}\right) \]" src="form_276.png"/>
 </p>
-<p> where <img class="formulaInl" alt="$\sigma_{\rm pol}$" src="form_286.png"/> and <img class="formulaInl" alt="$\sigma_{\rm tor}$" src="form_287.png"/> control the strength of the poloidal and toroidal component, respectively.</p>
+<p> where <img class="formulaInl" alt="$\sigma_{\rm pol}$" src="form_277.png"/> and <img class="formulaInl" alt="$\sigma_{\rm tor}$" src="form_278.png"/> control the strength of the poloidal and toroidal component, respectively.</p>
 <p>Periodic boundary conditions are assumed in the horizontal direction while zero-gradient (outflow) conditions hold at the lower and upper boundaries in the <code>y</code> direction.</p>
 <p>The presence of a magnetic field gives rise to a filamentary structure and to the formation of a number of vortices arranged symmetrically with respect to the central point. The figure below shows density for configuration #03 using AMR with 4 levels of refinement at <code>t</code> = 5</p>
 <p>The control parameters for this problem are:</p>
@@ -103,7 +104,7 @@ Functions</h2></td></tr>
 <li>"Equation of state in relativistic magnetohydrodynamics: 
       variable versus constant adiabatic index", Mignone &amp; McKinney, MNRAS (2007) 378, 1118.</li>
 </ul>
-<dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'ph'+'.un'+'it'+'o.i'+'t'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@p<span style="display: none;">.nosp@m.</span>h.uni<span style="display: none;">.nosp@m.</span>to.i<span style="display: none;">.nosp@m.</span>t</a>) </dd></dl>
+<dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'to'+'.in'+'fn'+'.it'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@t<span style="display: none;">.nosp@m.</span>o.inf<span style="display: none;">.nosp@m.</span>n.it</a>) </dd></dl>
 <dl class="section date"><dt>Date</dt><dd>Sep 22, 2014 </dd></dl>
 </div><h2 class="groupheader">Function Documentation</h2>
 <a id="aec5cba6ad33e98822880b5199543c6e7"></a>
@@ -131,14 +132,14 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Assign initial condition by looping over the computational domain. Called after the usual <a class="el" href="_particles_2_c_r_2_gyration_2init_8c.html#a8488b38b779097d732c203983f9bb9bf">Init()</a> function to assign initial conditions on primitive variables. Value assigned here will overwrite those prescribed during <a class="el" href="_particles_2_c_r_2_gyration_2init_8c.html#a8488b38b779097d732c203983f9bb9bf">Init()</a>. </p>
+<p>Assign initial condition by looping over the computational domain. Called after the usual <a class="el" href="_particles_2_dust_2_r_v___drift_2init_8c.html#a8488b38b779097d732c203983f9bb9bf">Init()</a> function to assign initial conditions on primitive variables. Value assigned here will overwrite those prescribed during <a class="el" href="_particles_2_dust_2_r_v___drift_2init_8c.html#a8488b38b779097d732c203983f9bb9bf">Init()</a>. </p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Jun 15 2018 22:46:22 for PLUTO Test Problems by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:25:25 for PLUTO Test Problems by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

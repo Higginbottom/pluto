@@ -2,9 +2,9 @@
 /*!
   \file
   \brief  Miscellaneous math functions.
-  \author A. Mignone (mignone@ph.unito.it)
+  \author A. Mignone (mignone@to.infn.it)
           B. Vaidya 
-  \date   Oct 4, 2016
+  \date   June 27, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -191,7 +191,7 @@ double BesselKn(int n, double x)
   int j;
   double bk,bkm,bkp,tox;
   if (n < 2){
-    print("!BesselKn: Index n less than 2");
+    printLog ("! BesselKn(): Index n less than 2");
     QUIT_PLUTO(1);
   }  
   tox = 2.0/x;
@@ -290,29 +290,27 @@ void VectorCartesianComponents(double *v, double x1, double x2, double x3)
   vx2 = v[1];
   vx3 = v[2];
 
-  #if GEOMETRY == CARTESIAN
+#if GEOMETRY == CARTESIAN
 
   /* nothing to do */
 
-  #elif GEOMETRY == POLAR
+#elif GEOMETRY == POLAR
 
-   EXPAND(v[0] = vx1*cos(x2) - vx2*sin(x2);   ,
-          v[1] = vx1*sin(x2) + vx2*cos(x2);   ,
-          v[2] = vx3;)
+  v[0] = vx1*cos(x2) - vx2*sin(x2);
+  v[1] = vx1*sin(x2) + vx2*cos(x2);
+  v[2] = vx3;
   
-  #elif GEOMETRY == SPHERICAL
+#elif GEOMETRY == SPHERICAL
 
-   #if DIMENSIONS == 2
-    EXPAND(v[0] = vx1*sin(x2) + vx2*cos(x2);   ,
-           v[1] = vx1*cos(x2) - vx2*sin(x2);   ,
-           v[2] = vx3;)
-   #elif DIMENSIONS == 3 
-    v[0] = (vx1*sin(x2) + vx2*cos(x2))*cos(x3) - vx3*sin(x3);
-    v[1] = (vx1*sin(x2) + vx2*cos(x2))*sin(x3) + vx3*cos(x3);
-    v[2] = (vx1*cos(x2) - vx2*sin(x2));
-   #endif
+  #if DIMENSIONS == 2
+  v[0] = vx1*sin(x2) + vx2*cos(x2);
+  v[1] = vx1*cos(x2) - vx2*sin(x2);
+  v[2] = vx3;
+  #elif DIMENSIONS == 3 
+  v[0] = (vx1*sin(x2) + vx2*cos(x2))*cos(x3) - vx3*sin(x3);
+  v[1] = (vx1*sin(x2) + vx2*cos(x2))*sin(x3) + vx3*cos(x3);
+  v[2] = (vx1*cos(x2) - vx2*sin(x2));
   #endif
+
+#endif
 }
-    
-
-

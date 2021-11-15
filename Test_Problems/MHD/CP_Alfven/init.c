@@ -25,26 +25,24 @@
   With this normalization, the Alfven velocity \f$V_A = B_x/\sqrt{\rho}\f$
   is always unity.
 
-  The configuration is rotated by specifying \f$t_a = k_y/k_x\f$ and
-  \f$t_b = k_z/k_x\f$ which express the ratios between the \f$y\f$- and
+  The configuration is rotated by specifying \f$\tan\alpha = k_y/k_x\f$ and
+  \f$\tan\beta = k_z/k_x\f$ which express the ratios between the \f$y\f$- and
   \f$z\f$- components of the wave vector with the \f$x\f$ component.
-  We choose the wavelength in \f$x\f$-direction to be always 1, so that
-  \f$k_x = 2\pi/l_x = 2\pi\f$, \f$k_y = 2\pi/l_y\f$, \f$k_z = 2\pi/l_z\f$
-  so that \f$t_z = 1/l_y\f$, \f$t_y = 1/l_z\f$.
-  By choosing the domain in the \f$x\f$-direction to be 1, the extent in
-  \f$y\f$ and \f$z\f$ should be adjusted so that \f$L_y/l_y = 1,2,3,4...\f$
-  (and similarly for \f$L_z/l_z\f$) becomes an integer number to ensure
-  periodicity. If one wants 1 wave length in both directions than 
-  \f$L_x = 1\f$, \f$L_y = 1/t_a\f$, \f$L_z = 1/t_b\f$.
- 
-  If \f$N\f$ wavelengths are specified in the \f$y\f$-direction than
-  \f$L_x = 1\f$, \f$L_y = N/t_a\f$, \f$L_z = N/t_b\f$
-
-  1D is recovered by specifying \f$t_z = t_y = 0\f$.
+  In order to apply periodic boundary conditions everywhere,
+  an integer number of wavelegnths must be contained in each direction,
+  that is, \f$k_x = 2\pi/L_x\f$, \f$k_y = 2\pi/L_y\f$, \f$k_z = 2\pi/L_z\f$.
+  
+  We use the tools in *rotate.c* which requires to specify the four
+  integer shifts such that
+  \f[
+      \tan\alpha = -\frac{j_x}{j_y}\frac{\Delta x}{\Delta y} = \frac{L_x}{L_y} ,
+      \qquad
+      \tan\beta  = -\frac{k_x}{k_z}\frac{\Delta x}{\Delta z} = \frac{L_x}{L_z}
+  \f]
 
   The final time step is one period and is found from 
                                 
-  \f$V_A = \omega/|k|\f$ --> \f$1/T = \sqrt{1 + t_a^2 + t_b^2}\f$
+  \f$V_A = \omega/|k|\f$ --> \f$1/T = \sqrt{1 + \tan^2\alpha + \tan^2\beta}\f$
 
   The runtime parameters that are read from \c pluto.ini are 
   - <tt>g_inputParam[EPS]</tt>:       sets the wave amplitude \f$\epsilon\f$;
@@ -56,8 +54,8 @@
   - #01-05, 08-09: 2D cartesian;
   - #06-07: 3D cartesian;
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   July 09, 2014 
+  \author A. Mignone (mignone@to.infn.it)
+  \date   June 11, 2019
 
   \b References: 
      - "High-order conservative finite difference GLM-MHD 
@@ -66,86 +64,78 @@
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
-
-static double AX_VEC (double x, double y, double z);
-static double AY_VEC (double x, double y, double z);
-static double AZ_VEC (double x, double y, double z);
-
-static double ta = 0.0, tb = 0.0;
-static double ca, sa, cg, sg;
+#include "rotate.h"
 
 /* ********************************************************************* */
-void Init (double *us, double x1, double x2, double x3)
+void Init (double *v, double x, double y, double z)
 /*
  *
  *********************************************************************** */
 {
+  int jshift_x, jshift_y, kshift_x, kshift_z;
   static int first_call = 1;
-  double tg, eps;
-  double x, y, z, kx, ky,kz;
-  double phi, cb, sb;
-  double vx, vy, vz, Bx, By, Bz, rho, pr;
-  double Lx, Ly, Lz;
-  
-  Lx = g_domEnd[IDIR] - g_domBeg[IDIR];
-  Ly = g_domEnd[JDIR] - g_domBeg[JDIR];
-  Lz = g_domEnd[KDIR] - g_domBeg[KDIR];
+  double eps;
+  double kx, ky,kz;
+  double phi;
+  double Lx = g_domEnd[IDIR] - g_domBeg[IDIR];
+  double Ly = g_domEnd[JDIR] - g_domBeg[JDIR];
+  double Lz = g_domEnd[KDIR] - g_domBeg[KDIR];
+  double kvec[3];
+  double xvec[3];
 
-  if (first_call == 1){
-    D_EXPAND(      ,
-      ta = Lx/Ly;  ,
-      tb = Lx/Lz;)
+/* ------------------------------------
+   0. Define rotation shift vectors
+      from the domain size.
+      Assume jshift_y = kshift_z = 1
+      and square cells (dx=dy=dz).
+   ------------------------------------ */
 
-    if (prank == 0) printf ("ta = %f; tb = %f\n",ta, tb);
-    first_call = 0;
-  }
-  x = x1; y = x2; z = x3;
+  jshift_y = 1;
+  jshift_x = round(-jshift_y/Ly);
+
+  kshift_z = 1;
+  kshift_x = round(-kshift_z/Lz);
+  RotateSet(jshift_x, jshift_y, kshift_x, kshift_z);
 
   eps = g_inputParam[EPS];   /* wave amplitude */
-  kx  = 2.0*CONST_PI/1.0;
-  ky  = ta*kx;
-  kz  = tb*kx;
+  kx  = 2.0*CONST_PI/1.0;    /* Wave vector is more conveniently expressed */
+  ky  = 2.0*CONST_PI/Ly;     /* in the rotated frame   */
+  kz  = 2.0*CONST_PI/Lz;
 
-  ca  = 1.0/sqrt(ta*ta + 1.0);
-  cb  = 1.0/sqrt(tb*tb + 1.0);
-  sa  = ta*ca;
-  sb  = tb*cb;
+  phi = DIM_EXPAND(kx*x, + ky*y, + kz*z);  /* k.x is invariant under rotations */
 
-  phi = D_EXPAND(kx*x, + ky*y, + kz*z);
+/* ------------------------------------
+   1. Define 1D solution
+   ------------------------------------ */
 
-/* -- define the 1-D solution -- */
+  v[RHO] = 1.0;
+  v[PRS] = g_inputParam[PR0];
+  v[TRC] = 0.0;
+  v[VX1] = g_inputParam[VEL0];  /* translational velocity */
+  v[VX2] = fabs(eps)*sin(phi);
+  v[VX3] = fabs(eps)*cos(phi);
+  v[BX1] = 1.0;
+  v[BX2] = eps*sqrt(v[RHO])*sin(phi);
+  v[BX3] = eps*sqrt(v[RHO])*cos(phi);
 
-  rho = 1.0;
-  pr  = g_inputParam[PR0];
-  vx  = g_inputParam[VEL0];  /* translational velocity */
-  vy  = fabs(eps)*sin(phi);
-  vz  = fabs(eps)*cos(phi);
-  Bx  = 1.0;
-  By  = eps*sqrt(rho)*sin(phi);
-  Bz  = eps*sqrt(rho)*cos(phi);
+/* ------------------------------------
+   2. Rotate vectors
+   ------------------------------------ */
 
-/* -- rotate solution -- */
+  RotateVector(v + VX1,-1);
+  RotateVector(v + BX1,-1);
+  
+  kvec[0] = kx; kvec[1] = ky; kvec[2] = kz;
+  xvec[0] =  x; xvec[1] =  y; xvec[2] =  z;
+  RotateVector(kvec,1);
+  RotateVector(xvec,1);
 
-  us[RHO] = rho;
-  us[PRS] = pr;
+  v[AX1] = 0.0;
+  v[AX2] = eps*sin(phi)/kvec[0];
+  v[AX3] = eps*cos(phi)/kvec[0] + xvec[1];  /* Assume rho = B = 1 */
 
-  tg = tb*ca;
-  cg = 1.0/sqrt(tg*tg + 1.0); sg = cg*tg;
+  RotateVector(v+AX1,-1);
 
-  us[VX1] =  vx*cg*ca - vy*sa - vz*sg*ca;
-  us[VX2] =  vx*cg*sa + vy*ca - vz*sg*sa;
-  us[VX3] =  vx*sg            + vz*cg;
-  us[TRC] = 0.0;
-
-  us[BX1] =  Bx*cg*ca - By*sa - Bz*sg*ca;
-  us[BX2] =  Bx*cg*sa + By*ca - Bz*sg*sa;
-  us[BX3] =  Bx*sg            + Bz*cg;
-
-  #ifdef STAGGERED_MHD
-   us[AX1] = AX_VEC(x,y,z);
-   us[AX2] = AY_VEC(x,y,z);
-   us[AX3] = AZ_VEC(x,y,z);
-  #endif
 }
 
 /* ********************************************************************* */
@@ -169,7 +159,8 @@ void Analysis (const Data *d, Grid *grid)
  *********************************************************************** */
 {
   int   i,j,k;
-  double bmag, err[3], gerr[3], Vtot, dV;
+  static int first_call = 1;
+  double err[3], gerr[3], Vtot, dV;
   double ***Bx, ***By, ***Bz;
   double *dx, *dy, *dz;
   static double ***Bx0, ***By0, ***Bz0;
@@ -182,7 +173,6 @@ void Analysis (const Data *d, Grid *grid)
     Bx0 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
     By0 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
     Bz0 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
-    print ("ANALYSIS: Initializing bmag\n");
     DOM_LOOP(k,j,i){
       Bx0[k][j][i] = Bx[k][j][i];
       By0[k][j][i] = By[k][j][i];
@@ -193,124 +183,42 @@ void Analysis (const Data *d, Grid *grid)
 
   for (i = 0; i < 3; i++) err[i] = 0.0;
   DOM_LOOP(k,j,i){
-    dV = D_EXPAND(dx[i], *dy[j], *dz[k]);
+    dV = DIM_EXPAND(dx[i], *dy[j], *dz[k]);
     err[0] += fabs(Bx[k][j][i] - Bx0[k][j][i])*dV;
     err[1] += fabs(By[k][j][i] - By0[k][j][i])*dV;
     err[2] += fabs(Bz[k][j][i] - Bz0[k][j][i])*dV;
   }
 
-  Vtot = D_EXPAND(
+  #ifdef PARALLEL 
+  MPI_Allreduce (err, gerr, 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  for (i = 0; i < 3; i++) err[i] = gerr[i];
+  MPI_Barrier (MPI_COMM_WORLD);
+  #endif
+
+  Vtot = DIM_EXPAND(
                   (g_domEnd[IDIR] - g_domBeg[IDIR]),
                  *(g_domEnd[JDIR] - g_domBeg[JDIR]),
                  *(g_domEnd[KDIR] - g_domBeg[KDIR]));
 
   for (i = 0; i < 3; i++) err[i] /= Vtot;
-
-  #ifdef PARALLEL 
-   MPI_Allreduce (err, gerr, 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-   for (i = 0; i < 3; i++) err[i] = gerr[i];
-   MPI_Barrier (MPI_COMM_WORLD);
-  #endif
-  
+    
   if (prank == 0){
     double errtot;
     errtot = sqrt(err[0]*err[0] + err[1]*err[1] + err[2]*err[2]);
-    fp  = fopen("bmag.dat","w");
-    printf ("analysis: writing to disk...\n");
-    fprintf (fp,"%d  %10.3e\n", (int)(1.0/dx[IBEG]),  errtot);
+    if (first_call) fp = fopen("bmag.dat","w");
+    else            fp = fopen("bmag.dat","a");
+    fprintf (fp,"%12.6e  %d  %10.3e\n",
+             g_time, (int)(1.0/dx[IBEG]), errtot);
     fclose (fp);
   }
+  first_call = 0;
 }
 /* ********************************************************************* */
 void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid) 
 /*
  *
  *********************************************************************** */
-{ }
-
-
-double AX_VEC (double x, double y, double z)
 {
-  double xn, yn, zn, eps;
-  double kx, ky, kz, phi;
-  double kxn, kyn, kzn;
-  double Axn, Ayn, Azn;
-
-  eps = g_inputParam[EPS];   
-  kx  = 2.0*CONST_PI/1.0;
-  ky  = ta*kx;
-  kz  = tb*kx;
-
-  phi = D_EXPAND(kx*x, + ky*y, + kz*z);
-
-  xn =  ca*cg*x + sa*cg*y + sg*z;
-  yn =    -sa*x +    ca*y;
-  zn = -ca*sg*x - sa*sg*y + cg*z;
-
-  kxn =  ca*cg*kx + sa*cg*ky + sg*kz;
-  kyn =    -sa*kx +    ca*ky;
-  kzn = -ca*sg*kx - sa*sg*ky + cg*kz;
-
-  Axn = 0.0;
-  Ayn = eps*sin(phi)/kxn;
-  Azn = eps*cos(phi)/kxn + yn;
-
-  return(Axn*cg*ca - Ayn*sa - Azn*sg*ca);
 }
 
-double AY_VEC (double x, double y, double z)
-{
-  double xn, yn, zn, eps;
-  double kx, ky, kz, phi;
-  double kxn, kyn, kzn;
-  double Axn, Ayn, Azn;
 
-  eps = g_inputParam[EPS];   
-  kx  = 2.0*CONST_PI/1.0;
-  ky  = ta*kx;
-  kz  = tb*kx;
-
-  phi = D_EXPAND(kx*x, + ky*y, + kz*z);
-
-  xn =  ca*cg*x + sa*cg*y + sg*z;
-  yn =    -sa*x +    ca*y;
-  zn = -ca*sg*x - sa*sg*y + cg*z;
-
-  kxn =  ca*cg*kx + sa*cg*ky + sg*kz;
-  kyn =    -sa*kx +    ca*ky;
-  kzn = -ca*sg*kx - sa*sg*ky + cg*kz;
-
-  Axn = 0.0;
-  Ayn = eps*sin(phi)/kxn;
-  Azn = eps*cos(phi)/kxn + yn;
-
-  return(Axn*cg*sa + Ayn*ca - Azn*sg*sa);
-}
-double AZ_VEC (double x, double y, double z)
-{
-  double xn, yn, zn, eps;
-  double kx, ky, kz, phi;
-  double kxn, kyn, kzn;
-  double Axn, Ayn, Azn;
-
-  eps = g_inputParam[EPS];   
-  kx  = 2.0*CONST_PI/1.0;
-  ky  = ta*kx;
-  kz  = tb*kx;
-
-  phi = D_EXPAND(kx*x, + ky*y, + kz*z);
-
-  xn =  ca*cg*x + sa*cg*y + sg*z;
-  yn =    -sa*x +    ca*y;
-  zn = -ca*sg*x - sa*sg*y + cg*z;
-
-  kxn =  ca*cg*kx + sa*cg*ky + sg*kz;
-  kyn =    -sa*kx +    ca*ky;
-  kzn = -ca*sg*kx - sa*sg*ky + cg*kz;
-
-  Axn = 0.0;
-  Ayn = eps*sin(phi)/kxn;
-  Azn = eps*cos(phi)/kxn + yn;
-
-  return(Axn*sg             + Azn*cg);
-}

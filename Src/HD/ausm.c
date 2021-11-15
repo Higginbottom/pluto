@@ -12,7 +12,7 @@ void AUSMp_Solver (const Sweep *sweep, int beg, int end,
  *
  * LAST_MODIFIED
  *
- *   Oct 11, 2016 by Andrea Mignone  (mignone@to.astro.it)
+ *   June 27, 2019 by Andrea Mignone  (mignone@to.infn.it)
  *
  ************************************************************************ */
 {
@@ -42,11 +42,11 @@ void AUSMp_Solver (const Sweep *sweep, int beg, int end,
     aL = sqrt(g_gamma*vL[PRS]/vL[RHO]);
     aR = sqrt(g_gamma*vR[PRS]/vR[RHO]);
 
-    asL2  = EXPAND(vL[VX1]*vL[VX1], + vL[VX2]*vL[VX2], + vL[VX3]*vL[VX3]);
+    asL2  = vL[VX1]*vL[VX1] + vL[VX2]*vL[VX2] + vL[VX3]*vL[VX3];
     asL2  = aL*aL/(g_gamma - 1.0) + 0.5*asL2;
     asL2 *= 2.0*(g_gamma - 1.0)/(g_gamma + 1.0);
 
-    asR2  = EXPAND(vR[VX1]*vR[VX1], + vR[VX2]*vR[VX2], + vR[VX3]*vR[VX3]);
+    asR2  = vR[VX1]*vR[VX1] + vR[VX2]*vR[VX2] + vR[VX3]*vR[VX3];
     asR2  = aR*aR/(g_gamma - 1.0) + 0.5*asR2;
     asR2 *= 2.0*(g_gamma - 1.0)/(g_gamma + 1.0);
 
@@ -93,11 +93,11 @@ void AUSMp_Solver (const Sweep *sweep, int beg, int end,
      ------------------------------------------------------------- */
 
     sweep->press[i] = PpL*vL[PRS] + PmR*vR[PRS];
-    sweep->flux[i][RHO]        = a*(mp*uL[RHO] + mm*uR[RHO]);
-    EXPAND(sweep->flux[i][MX1] = a*(mp*uL[MX1] + mm*uR[MX1]); ,
-           sweep->flux[i][MX2] = a*(mp*uL[MX2] + mm*uR[MX2]); ,
-           sweep->flux[i][MX3] = a*(mp*uL[MX3] + mm*uR[MX3]); )
-    sweep->flux[i][ENG]        = a*(mp*(uL[ENG] + vL[PRS]) + mm*(uR[ENG] + vR[PRS]));
+    sweep->flux[i][RHO] = a*(mp*uL[RHO] + mm*uR[RHO]);
+    sweep->flux[i][MX1] = a*(mp*uL[MX1] + mm*uR[MX1]);
+    sweep->flux[i][MX2] = a*(mp*uL[MX2] + mm*uR[MX2]);
+    sweep->flux[i][MX3] = a*(mp*uL[MX3] + mm*uR[MX3]);
+    sweep->flux[i][ENG] = a*(mp*(uL[ENG] + vL[PRS]) + mm*(uR[ENG] + vR[PRS]));
  
   /*  ----  get max eigenvalue  ----  */
 
@@ -108,7 +108,7 @@ void AUSMp_Solver (const Sweep *sweep, int beg, int end,
 
   }
 #else
-  print ("! AUSMp_Solver: not defined for this EOS\n");
+  printLog ("! AUSMp_Solver: not defined for this EOS\n");
   QUIT_PLUTO(1);
 #endif /* EOS == IDEAL */
 }

@@ -3,89 +3,25 @@
   \file  
   \brief PLUTO header file for structure declarations.
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   March 16, 2018
+  \author A. Mignone (mignone@to.infn.it)
+  \date   March 23, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 
-typedef struct Cmd_line_{
-  int restart;       
-  int h5restart;       
-  int nrestart;      
-  int makegrid;      
-  int write;     /**< Set it 1 or 0 to enable or disable writing. */         
-  int maxsteps;  /**< The maximum number of steps (unless negative) */
-  int jet;  /* -- follow jet evolution in a given direction -- */
-  int parallel_dim[3];
-  int nproc[3];  /* -- user supplied number of processors -- */
-  int xres; /* -- change the resolution via command line -- */
-  int fill; /* useless, it makes the struct a power of 2 */ 
-} Cmd_Line;
-
-/* ********************************************************************* */
-/*! The Data structure contains the main solution 3D arrays used by 
-    the code. 
-   ********************************************************************* */
-typedef struct Data_{
-  double ****Vc;    /**< The main four-index data array used for cell-centered
-                        primitive variables. The index order is
-                        <tt>Vc[nv][k][j][i]</tt> where \c nv gives the variable
-                        index while \c k,\c j and \c i are the
-                        locations of the cell in the \f$x_3\f$,
-                        \f$x_2\f$ and \f$x_1\f$ direction. */
-  double ****Uc;    /**< The main four-index data array used for cell-centered
-                       conservative variables. The index order is
-                       <tt>Uc[k][j][i][nv]</tt> (\c nv fast running index)
-                       where \c nv gives the variable index, \c k,\c j and \c i
-                       are the locations of the cell in the \f$x_3\f$,
-                       \f$x_2\f$ and \f$x_1\f$ direction. */
-  double ****Vs;    /**< The main four-index data array used for face-centered
-                         staggered magnetic fields. 
-                         The index order is <tt>Vc[nv][k][j][i]</tt>,
-                         where \c nv gives the variable index, \c k,\c j and \c i
-                         are the locations of the cell in the \f$x_3\f$,
-                         \f$x_2\f$ and \f$x_1\f$ direction. */
-  double ****Vuser; /**< Array storing user-defined supplementary variables 
-                         written to disk. */ 
-  double ***Ax1;    /**< Vector potential comp. in the \f$x_1\f$ dir.*/
-  double ***Ax2;    /**< Vector potential comp. in the \f$x_2\f$ dir.*/
-  double ***Ax3;    /**< Vector potential comp. in the \f$x_3\f$ dir.*/
-  double ****J;     /**< Electric current defined as curl(B). */
-  double ***Tc;     /**< Dimensionless temperature array (used for TC) */
-  unsigned char ***flag; /**< Pointer to a 3D array setting useful integration
-                              flags that are retrieved during integration. */
-
-  /* -- Particles-related quantities -- */
-
-  struct particleNode_ *PHead;   /* Must use full declaration since particleNode
-                                    typdef will come later on. */
-
-  double ****Fcr;   /**< A four-element 3D array used to compute the three
-                         components of the force and the energy source term
-                         of the CR feedback on the fluid. */
-  double ****Jcr;   /**< The CR current density 3D array. */
-  double ***qcr;    /**< The CR charge density 3D array. */
-  double ****Ecr;   /**< The electric field in the MHD-PIC formalism. */
-
-  double ****Vdust; /**< Deposit dust particle velocity  */
-  double ****Fdust; /**< Deposit dust drag force        */
-  struct Particle_ **pstr;  /**< Used to convert a linked list to array (useful ?) */
-
-/* EMF  */
-  double ***Ex1; /**< cell-centered emf used in CT averaging or CR particles */
-  double ***Ex2; /**< cell-centered emf used in CT averaging or CR particles */  
-  double ***Ex3; /**< cell-centered emf used in CT averaging or CR particles */
-
-  struct ElectroMotiveForce *emf;
-
-/* Others */
-  struct timeStep_  *Dts;
-
-  /* ForcedTurb */
-  struct ForcedTurb *Ft;
-  
-  char fill[78];  /* make the structure a power of two.  */
-} Data;
+typedef struct cmdLine_{
+  char restart;           /**< Enable restart from double precision binary files */      
+  char h5restart;         /**< Enable restart from hdf5 files   */      
+  char prestart;          /**< Enable / disable partice restart */
+  char makegrid;          /**< Write grid only                  */      
+  char write;             /**< Set it 1 or 0 to enable or disable writing. */         
+  char parallel_dim[3];   /**< Enable/disable domain decomp. in a given direction */
+  int nrestart;           /**< The file number used for restart */     
+  int maxsteps;           /**< The maximum number of steps (unless negative) */
+  int jet;                /**< Follow jet evolution in a given direction */
+  int nproc[3];           /**< User supplied number of processors */
+  int xres;               /**< Change the resolution via command line */
+  char fill[26];               /* useless, it makes the struct a power of 2 */ 
+} cmdLine;
 
 /* ********************************************************************* */
 /*! The EMF structure is used to pull together all the information 
@@ -99,13 +35,38 @@ typedef struct ElectroMotiveForce{
     at cell faces during the dimensional sweeps.     
 */
 /**@{ */
-  double ***exj; /**< Ex available at y-faces (j+1/2); */
-  double ***exk; /**< Ex available at z-faces (k+1/2); */
-  double ***eyi; /**< Ey available at x-faces (i+1/2); */
-  double ***eyk; /**< Ey available at z-faces (k+1/2); */
-  double ***ezi; /**< Ez available at x-faces (i+1/2); */
-  double ***ezj; /**< Ez available at y-faces (j+1/2); */
+  double ***exj; /**< Ex flux available at y-faces (j+1/2); */
+  double ***exk; /**< Ex flux available at z-faces (k+1/2); */
+  double ***eyi; /**< Ey flux available at x-faces (i+1/2); */
+  double ***eyk; /**< Ey flux available at z-faces (k+1/2); */
+  double ***ezi; /**< Ez flux available at x-faces (i+1/2); */
+  double ***ezj; /**< Ez flux available at y-faces (j+1/2); */
+
+  double ***exj_dff; /**< Ex flux available at y-faces (j+1/2); */
+  double ***exk_dff; /**< Ex flux available at z-faces (k+1/2); */
+  double ***eyi_dff; /**< Ey flux available at x-faces (i+1/2); */
+  double ***eyk_dff; /**< Ey flux available at z-faces (k+1/2); */
+  double ***ezi_dff; /**< Ez flux available at x-faces (i+1/2); */
+  double ***ezj_dff; /**< Ez flux available at y-faces (j+1/2); */
 /**@} */
+
+#if PHYSICS == ResRMHD
+/*! \name Face-centered magnetic field components.
+    Three-dimensional arrays storing the emf components computed
+    at cell faces during the dimensional sweeps.     
+*/
+/**@{ */
+  double ***Bxj; /**< Bx flux available at y-faces (j+1/2); */
+  double ***Bxk; /**< Bx flux available at z-faces (k+1/2); */
+  double ***Byi; /**< By flux available at x-faces (i+1/2); */
+  double ***Byk; /**< By flux available at z-faces (k+1/2); */
+  double ***Bzi; /**< Bz flux available at x-faces (i+1/2); */
+  double ***Bzj; /**< Bz flux available at y-faces (j+1/2); */
+  double ***Frho_i;
+  double ***Frho_j;
+  double ***Frho_k;
+/**@} */
+#endif
 
   signed char ***svx, ***svy, ***svz;
 
@@ -115,34 +76,31 @@ typedef struct ElectroMotiveForce{
   int  iend, jend, kend;
 /**@} */
 
-/*! \name Signal velocities  */
+/*! \name Signal velocities and emf coefficients */
 /**@{ */
-  double ***SxL;
-  double ***SxR;
-  double ***SyL;
-  double ***SyR;
-  double ***SzL;
-  double ***SzR;
+  double ***SxL, ***SxR;
+  double ***SyL, ***SyR;
+  double ***SzL, ***SzR;
+  double ***dxL, ***dxR, ***axL, ***axR;
+  double ***dyL, ***dyR, ***ayL, ***ayR;
+  double ***dzL, ***dzR, ***azL, ***azR;
 /**@} */
 
-/*! \name Edge-centered fields   */
+/*! \name Edge-averaged electric fields  ("e" = edge)  */
 /**@{ */
-  double ***ex;
-  double ***ey;
-  double ***ez;
+  double ***Ex1e;
+  double ***Ex2e;
+  double ***Ex3e;
 /**@} */
 
-/*! \name Staggered magnetic field and velocity slopes */
+#if PHYSICS == ResRMHD
+/*! \name Edge-averaged magnetic fields  ("e" = edge)  */
 /**@{ */
-  double ***dbx_dy, ***dbx_dz;  
-  double ***dby_dx, ***dby_dz;
-  double ***dbz_dx, ***dbz_dy;
-
-  double ***dvx_dx, ***dvy_dx, ***dvz_dx;
-  double ***dvx_dy, ***dvy_dy, ***dvz_dy;
-  double ***dvx_dz, ***dvy_dz, ***dvz_dz;
+  double ***Bx1e;
+  double ***Bx2e;
+  double ***Bx3e;
 /**@} */
-
+#endif
 } EMF;
  
 /* ********************************************************************* */
@@ -193,17 +151,17 @@ typedef struct Grid_{
   int np_int_glob[3]; /**< Total number of points in the global domain 
                         (boundaries excluded). */
   int np_tot[3];      /**< Total number of points in the local domain 
-                        (boundaries included). */
+                           (boundaries included). */
   int np_int[3];      /**< Total number of points in the local domain 
-                        (boundaries excluded). */
+                           (boundaries excluded). */
   int nghost[3];      /**< Number of ghost zones. */
   int lbound[3];      /**< When different from zero, it specifies the boundary
-                        condition to be applied at leftmost grid side where  
-                        the physical boundary is located.
-                        Otherwise, it equals zero if the current 
-                        processor does not touch the leftmost physical boundary. 
-                        This evantuality (lbound = 0) is possible only
-                        in PARALLEL mode.  */ 
+                           condition to be applied at leftmost grid side where  
+                           the physical boundary is located.
+                           Otherwise, it equals zero if the current 
+                           processor does not touch the leftmost physical boundary. 
+                           This evantuality (lbound = 0) is possible only
+                           in PARALLEL mode.  */ 
   int rbound[3];      /**< Same as lbound, but for the right edge of the grid. */
   int gbeg[3];        /**< Global start index for the global array. */
   int gend[3];        /**< Global end   index for the global array. */
@@ -215,7 +173,8 @@ typedef struct Grid_{
   int nproc[3];       /**< number of processors for this grid. */
   int rank_coord[3];  /**< Parallel coordinate in a Cartesian topology. */
   int level;          /**< The current refinement level (chombo only). */
-  char fill[376];   /* useless, just to make the structure size a power of 2 */
+  int *ring_av_csize; /**< The chunk size when RING_AVERAGE is turned on */   
+  char fill[344];   /* useless, just to make the structure size a power of 2 */
 } Grid;
 
 /* ********************************************************************* */
@@ -238,6 +197,7 @@ typedef struct Grid_{
            In this case the macro ::BOX_LOOP
           automatically reset the directional increment (\c box->di) to -1.
    ********************************************************************* */
+
 typedef struct RBox_{
   int ibeg; /**< Lower corner index in the x1 direction. */
   int iend; /**< Upper corner index in the x1 direction. */
@@ -283,6 +243,7 @@ typedef struct RBox_{
     structure and therefore troubleshooting when restarting 
     from files written on different architectures.              
    ********************************************************************* */
+
 typedef struct Restart_{
   int    nstep;
   int    nfile[MAX_OUTPUT_TYPES];
@@ -296,6 +257,7 @@ typedef struct Restart_{
     quantities, often used during 1D computations (Riemann solver,
     sound speed, etc..), 
    ********************************************************************* */
+
 typedef struct State_{
   double **v;      /**< Array of primitive variables    */
   double **u;      /**< Array of conservative variables */
@@ -323,6 +285,7 @@ typedef struct State_{
     It is a frequently passed to the Riemann solver routines, source and 
     flux functions, etc.
    ********************************************************************* */
+
 typedef struct Sweep_{
   double **vn;    /**< Cell-centered primitive varables at the base time level,
                       v[i] = \f$ \vec{V}^n_i \f$ . */
@@ -334,19 +297,29 @@ typedef struct Sweep_{
 
   double **rhs;     /**< Conservative right hand side */
   double *press;    /**< Upwind pressure term computed with the Riemann solver */
-  double *bn;       /**< Face magentic field, bn = bx(i+1/2) */
+  double *Bn;       /**< Face-centered magentic field, e.g., Bn = Bx(i+1/2) */
+  double *En;       /**< Face-centered electric field, e.g., En = Ex(i+1/2) */
   double *SL;       /**< Leftmost  velocity in the Riemann fan at i+1/2 */
   double *SR;       /**< Rightmost velocity in the Riemann fan at i+1/2 */
 
-
-  unsigned char *flag;
+  #if RADIATION
+  double *SrL;     /**< Leftmost interface velocity for radiation fields */
+  double *SrR;     /**< Rightmost interface velocity for radiation fields */
+  #endif
+  
+  double **pnt_flux;
+  double **dff_flux;
+  double *SaL, *SaR, *Sc; /**< MHD alfven waves, contact wave */
+  double *dL, *dR;        /**< Diffusion coefficient for EMF  */
+  double *aL, *aR;        /**< Flux averaging coefficients    */
+  uint16_t *flag;
   State stateL;
   State stateR;
   State stateC;
-  char fill[40];
+  char fill[16];
 } Sweep;
 
-typedef struct TABLE2D {
+typedef struct Table2D_ {
   char **defined;
   int nx;  /**< Number of columns or points in the x direction */
   int ny;  /**< Number of rows    or points in the y direction */  
@@ -386,17 +359,20 @@ typedef struct TABLE2D {
 /*! The timeStep structure contains essential information for 
     determining the time step.
    ********************************************************************* */
+
 typedef struct timeStep_{
   double *cmax;     /**< Maximum signal velocity for hyperbolic eqns. */
   double invDt_hyp;   /**< Inverse of hyperbolic time step, 
                          \f$ \lambda/\Delta l\f$.*/
   double invDt_par;   /**< Inverse of parabolic (diffusion)  time step 
                          \f$ \eta/\Delta l^2\f$. */
-  double invDt_particles;
+  double invDt_particles; /**< Max inverse dt for particles */
+  double omega_particles; /**< Max Larmor frequency for particles */
   double dt_cool;   /**< Cooling time step. */
   double cfl;       /**< Courant number for advection. */
   double cfl_par;   /**< Courant number for diffusion (STS only). */
   double rmax_par;
+  double particles_tstart; /**< A copy of runtime->particles_tstart */
   double clock_particles;
   double clock_particles_bound;
 
@@ -414,6 +390,7 @@ typedef struct timeStep_{
 /* ********************************************************************* */
 /*! The Output structure contains essential information for I/O.
    ********************************************************************* */
+
 typedef struct Output_{
   int    type;         /**< Output data format (DBL, FLT, VTK, ...). */
   int    nvar;         /**< (Fluid only) Total # of vars that can potentially be written.
@@ -444,6 +421,7 @@ typedef struct Output_{
 /*! The Runtime structure contains runtime initialization parameters
     read from pluto.ini (or equivalent). 
    ********************************************************************* */
+
 typedef struct Runtime_{
   int    npoint[3];           /**< Global number of zones in the interior domain */
   int    left_bound[3];       /**< Array of left boundary types */
@@ -457,6 +435,7 @@ typedef struct Runtime_{
                                  held in memory and written to disk */
   int    anl_dn;               /*  number of step increment for ANALYSIS */
   char   solv_type[64];         /**< The Riemann solver (\c Solver) */
+  char   rad_solv_type[64];     /**< The radiation Riemann solver (\c Solver) */
   char   user_var_name[128][128];
   char   output_dir[256];         /**< The name of the output directory.
                                        Default is current directory.
@@ -474,14 +453,14 @@ typedef struct Runtime_{
   double  rmax_par;          /**< (STS) max ratio between current time
                                 step and parabolic time step */
   double  tstop;           /**< The final integration time (\c tstop) */
+  double  tfreeze;         /**< The fluid freezing time  (\c tfreeze) */
   double  first_dt;        /**< The initial time step (\c first_dt) */
   double  anl_dt;          /**< Time step increment for Analysis()
                                 ( <tt> analysis (double) </tt> )*/
 
+  double particles_tstart;  /**< Time at which particles are integrated */
   int     Nparticles_glob;  /**< Total number of particles in the whole domain */
   int     Nparticles_cell;  /**< Total number of particles per cell */
-  double  particles_anl_dt; /* analysis      frequency in time units      */
-  int     particles_anl_dn; /* analysis      frequency in number of steps */
     
   double  aux[32];         /* we keep aux inside this structure, 
                               since in parallel execution it has
@@ -526,4 +505,72 @@ typedef struct intList_{
   int indx[2046]; /**< Array of integers containg variables indices. */
   int i;          /**< Internal counter. */
 } intList;
+
+/* ********************************************************************* */
+/*! The Data structure contains the main solution 3D arrays used by 
+    the code. 
+   ********************************************************************* */
+
+typedef struct Data_{
+  double ****Vc;    /**< The main four-index data array used for cell-centered
+                        primitive variables. The index order is
+                        <tt>Vc[nv][k][j][i]</tt> where \c nv gives the variable
+                        index while \c k,\c j and \c i are the
+                        locations of the cell in the \f$x_3\f$,
+                        \f$x_2\f$ and \f$x_1\f$ direction. */
+  double ****Uc;    /**< The main four-index data array used for cell-centered
+                       conservative variables. The index order is
+                       <tt>Uc[k][j][i][nv]</tt> (\c nv fast running index)
+                       where \c nv gives the variable index, \c k,\c j and \c i
+                       are the locations of the cell in the \f$x_3\f$,
+                       \f$x_2\f$ and \f$x_1\f$ direction. */
+  double ****Vs;    /**< The main four-index data array used for face-centered
+                         staggered magnetic fields. 
+                         The index order is <tt>Vc[nv][k][j][i]</tt>,
+                         where \c nv gives the variable index, \c k,\c j and \c i
+                         are the locations of the cell in the \f$x_3\f$,
+                         \f$x_2\f$ and \f$x_1\f$ direction. */
+  double ****Vuser; /**< Array storing user-defined supplementary variables 
+                         written to disk. */ 
+  double ***Ax1;    /**< Vector potential comp. in the \f$x_1\f$ dir.*/
+  double ***Ax2;    /**< Vector potential comp. in the \f$x_2\f$ dir.*/
+  double ***Ax3;    /**< Vector potential comp. in the \f$x_3\f$ dir.*/
+  double ****J;     /**< Electric current defined as curl(B). */
+  double ***Tc;     /**< Dimensionless temperature array (used for TC) */
+  double ***q;      /**< Electric charge density (only for ResRMHD)    */
+  uint16_t ***flag; /**< Pointer to a 3D array setting useful integration
+                         flags that are retrieved during integration. */
+
+  /* -- Particles-related quantities -- */
+
+  struct particleNode_ *PHead;   /* Must use full declaration since particleNode
+                                    typdef will come later on. */
+
+  double ****Fcr;   /**< A four-element 3D array used to compute the three
+                         components of the force and the energy source term
+                         of the CR feedback on the fluid. */
+  double ****Jcr;   /**< The CR current density 3D array. */
+  double ***qcr;    /**< The CR charge density 3D array. */
+  
+  double ****Fdust; /**< Drag force (dust particles only)   */
+  struct Particle_ **pstr;  /**< Used to convert a linked list to array (useful ?) */
+  int particles_GC_InvalidCount; /**< Number of particles for which GCA conditions are not fulfilled. */
+  
+/* EMF  */
+  double ***Ex1; /**< cell-centered emf used in CT averaging or CR particles */
+  double ***Ex2; /**< cell-centered emf used in CT averaging or CR particles */  
+  double ***Ex3; /**< cell-centered emf used in CT averaging or CR particles */
+
+  struct ElectroMotiveForce *emf;
+
+/* Others */
+  struct timeStep_  *Dts;
+
+  /* ForcedTurb */
+  struct ForcedTurb *Ft;
+  
+  void (*fluidRiemannSolver)     (const Sweep *, int, int, double *, Grid *);
+  void (*radiationRiemannSolver) (const Sweep *, int, int, double *, Grid *);
+  char fill[54];  /* make the structure a power of two.  */
+} Data;
 

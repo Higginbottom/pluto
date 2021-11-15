@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -134,6 +134,8 @@ Data Fields</h2></td></tr>
 <tr class="separator:ab3e4233c041325a39cfebd627e86dba7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acf4d33ee4cff36f69b924471174dcb11"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_grid.html#acf4d33ee4cff36f69b924471174dcb11">level</a></td></tr>
 <tr class="separator:acf4d33ee4cff36f69b924471174dcb11"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5e0be19061a17d90373659e6d291ec1d"><td class="memItemLeft" align="right" valign="top">int *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_grid.html#a5e0be19061a17d90373659e6d291ec1d">ring_av_csize</a></td></tr>
+<tr class="separator:a5e0be19061a17d90373659e6d291ec1d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>The PLUTO <a class="el" href="struct_grid.html">Grid</a> structure contains information pertaining to the computational mesh in a specific 1D coordinate direction. Since PLUTO assumes a logically rectangular system of coordinates, the whole computational domain is obtained as the cartesian product of 2 or 3 grid structures.<br />
@@ -151,7 +153,7 @@ Data Fields</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Right interface area, A[i] = <img class="formulaInl" alt="$A_{i+\HALF}$" src="form_67.png"/>. </p>
+<p>Right interface area, A[i] = <img class="formulaInl" alt="$A_{i+\HALF}$" src="form_322.png"/>. </p>
 
 </div>
 </div>
@@ -301,7 +303,7 @@ Data Fields</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>inverse of the distance between the center of two cells, inv_dxi = <img class="formulaInl" alt="$\DS \frac{2}{\Delta x_i + \Delta x_{i+1}}$" src="form_68.png"/>. </p>
+<p>inverse of the distance between the center of two cells, inv_dxi = <img class="formulaInl" alt="$\DS \frac{2}{\Delta x_i + \Delta x_{i+1}}$" src="form_323.png"/>. </p>
 
 </div>
 </div>
@@ -485,6 +487,21 @@ Data Fields</h2></td></tr>
 
 </div>
 </div>
+<a id="a5e0be19061a17d90373659e6d291ec1d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5e0be19061a17d90373659e6d291ec1d">&#9670;&nbsp;</a></span>ring_av_csize</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int* ring_av_csize</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>The chunk size when RING_AVERAGE is turned on </p>
+
+</div>
+</div>
 <a id="a7e1964a1ed8a45606f5d1bb93d8e781b"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a7e1964a1ed8a45606f5d1bb93d8e781b">&#9670;&nbsp;</a></span>rt</h2>
 
@@ -626,7 +643,7 @@ Data Fields</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:51 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:58 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

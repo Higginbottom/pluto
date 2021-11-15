@@ -61,8 +61,8 @@
         Dynamics" 
        Mignone et al, ApJS (2012) 198, 7M
    
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   May 13, 2018
+  \author A. Mignone (mignone@to.infn.it)
+  \date   July 22, 2019
 
 */
 /* ///////////////////////////////////////////////////////////////////// */
@@ -90,7 +90,7 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
  * \param [in]      beg    initial index of computation
  * \param [in]      end    final   index of computation
  * \param [in]      dt     time increment
- * \param [in]      grid  pointer to Grid structure
+ * \param [in]      grid   pointer to Grid structure
  *
  * \return This function has no return value.
  * \note    --
@@ -98,7 +98,6 @@ void RightHandSide (const Sweep *sweep, timeStep *Dts,
  ************************************************************************* */
 {
   int    i, j, k, nv;
-int *n;
   const State *stateC = &(sweep->stateC);
   const State *stateL = &(sweep->stateL);
   const State *stateR = &(sweep->stateR);
@@ -107,7 +106,7 @@ int *n;
   double **flux = sweep->flux;
   double *p     = sweep->press;
 
-  double A, scrh;
+  double A, scrh, w;
 
   double *x1  = grid->x[IDIR],  *x2  = grid->x[JDIR],  *x3  = grid->x[KDIR];
   double *x1p = grid->xr[IDIR], *x2p = grid->xr[JDIR], *x3p = grid->xr[KDIR];
@@ -116,15 +115,20 @@ int *n;
   double *dx   = grid->dx[g_dir];
   #if GEOMETRY != CARTESIAN
   double ***dV = grid->dV;
-  double *rt   = grid->rt;
-  double *dmu   = grid->dmu;
+  #if GEOMETRY == SPHERICAL
+  double *s    = grid->s;
+  #endif
   #endif
   double dtdV, dtdl;  
   static double **fA, *phi_p;
 
-/* --------------------------------------------------
+#ifdef FARGO
+  double **wA = FARGO_Velocity();
+#endif
+
+/* --------------------------------------------------------
    0. Allocate memory
-   -------------------------------------------------- */
+   -------------------------------------------------------- */
 
 #if GEOMETRY != CARTESIAN
   if (fA == NULL) {
@@ -133,22 +137,22 @@ int *n;
 #endif
   if (phi_p == NULL) phi_p = ARRAY_1D(NMAX_POINT, double);
 
-/* --------------------------------------------------
-   1. Compute fluxes for passive scalars and dust
-   -------------------------------------------------- */
+/* --------------------------------------------------------
+   1. Compute fluxes for dust
+   -------------------------------------------------------- */
 
-#if NSCL > 0
-  AdvectFlux (sweep, beg - 1, end, grid);
+#if DUST_FLUID == YES
+  DustFluid_Solver(sweep, beg - 1, end, Dts->cmax, grid);
 #endif
 
   i = g_i;  /* will be redefined during x1-sweep */
   j = g_j;  /* will be redefined during x2-sweep */
   k = g_k;  /* will be redefined during x3-sweep */
   
-/* ------------------------------------------------
+/* --------------------------------------------------------
    2. Add pressure to normal component of 
       momentum flux if necessary.
-   ------------------------------------------------ */
+   -------------------------------------------------------- */
 
 #if USE_PRS_GRADIENT == NO
   for (i = beg - 1; i <= end; i++) flux[i][MXn] += p[i];
@@ -175,20 +179,15 @@ int *n;
   }
 #endif
   
-/* -----------------------------------------------------
+/* --------------------------------------------------------
    4. Compute total flux
-   ----------------------------------------------------- */
-
-#if (defined FARGO && !defined SHEARINGBOX) ||\
-    (ROTATING_FRAME == YES) || (BODY_FORCE & POTENTIAL)
-//  TotalFlux(sweep, phi_p, fA, beg-1, end, grid);
-#endif
+   -------------------------------------------------------- */
 
   TotalFlux(sweep, phi_p, fA, beg-1, end, grid);
 
-/* -----------------------------------------------------
+/* --------------------------------------------------------
    5. Compute right hand side
-   ----------------------------------------------------- */
+   -------------------------------------------------------- */
 
 #if GEOMETRY == CARTESIAN
   for (i = beg; i <= end; i++) {
@@ -199,10 +198,38 @@ int *n;
     rhs[i][MXn] -= scrh*(p[i] - p[i-1]);
     #endif
   }
+
+  #if (defined FARGO && !defined SHEARINGBOX)
+  i = g_i;  /* will be redefined during x1-sweep */
+  j = g_j;  /* will be redefined during x2-sweep */
+  k = g_k;  /* will be redefined during x3-sweep */
+
+  if (g_dir == IDIR){
+    for (i = beg; i <= end; i++) {
+      w = wA[k][i];
+      rhs[i][MX2] -= w*rhs[i][RHO];
+      IF_ENERGY(rhs[i][ENG] -= w*(rhs[i][MX2] + 0.5*w*rhs[i][RHO]);)
+    }
+  }
+
+  if (g_dir == KDIR){
+    for (k = beg; k <= end; k++) {
+      w = wA[k][i];
+      rhs[k][MX2] -= w*rhs[k][RHO];
+      IF_ENERGY(rhs[k][ENG] -= w*(rhs[k][MX2] + 0.5*w*rhs[k][RHO]);)
+    }
+  }
+  #endif
+
 #else
   if (g_dir == IDIR){
     double q;
-    for (i = beg; i <= end; i++){ 
+    for (i = beg; i <= end; i++){
+
+    /* ------------------------------------------
+       I1. Build rhs in the x1-dir
+       ------------------------------------------ */
+           
       dtdV = dt/dV[k][j][i];
       dtdl = dt/dx1[i];
       NVAR_LOOP(nv) rhs[i][nv] = -dtdV*(fA[i][nv] - fA[i-1][nv]);
@@ -214,25 +241,48 @@ int *n;
       rhs[i][BXn] = -dtdl*(flux[i][BXn] - flux[i-1][BXn]);
       #endif
 
-      #ifdef iMPHI      
       rhs[i][iMPHI] /= fabs(x1[i]);
-      #endif
- 
-      #if (GEOMETRY == POLAR || GEOMETRY == CYLINDRICAL) &&  (defined iBPHI) 
+      IF_DUST_FLUID(rhs[i][iMPHI_D] /= fabs(x1[i]);)
+
+      #if PHYSICS == MHD 
+      #if (GEOMETRY == POLAR) || (GEOMETRY == CYLINDRICAL) 
       rhs[i][iBPHI] = -dtdl*(fA[i][iBPHI] - fA[i-1][iBPHI]);
-      #elif (GEOMETRY == SPHERICAL) && (PHYSICS == MHD)
+      #elif GEOMETRY == SPHERICAL 
       q = dtdl/x1[i];
-      EXPAND(                                                    ,
-             rhs[i][iBTH]  = -q*(fA[i][iBTH]  - fA[i-1][iBTH]);  ,
-             rhs[i][iBPHI] = -q*(fA[i][iBPHI] - fA[i-1][iBPHI]);)
+      rhs[i][iBTH]  = -q*(fA[i][iBTH]  - fA[i-1][iBTH]);
+      rhs[i][iBPHI] = -q*(fA[i][iBPHI] - fA[i-1][iBPHI]);
       #endif
+      #endif /* PHYSICS == MHD */
+
+    /* ------------------------------------------
+       I2. Modify rhs to enforce conservation
+       ------------------------------------------ */
+
+      #if (defined FARGO) || (ROTATING_FRAME == YES)
+      w = 0.0;
+      #if (GEOMETRY == CARTESIAN) || (GEOMETRY == POLAR)
+      IF_FARGO         (w += wA[k][i];)
+      IF_ROTATING_FRAME(w += g_OmegaZ*x1[i];)
+      #elif GEOMETRY == SPHERICAL
+      IF_FARGO         (w += wA[j][i];)
+      IF_ROTATING_FRAME(w += g_OmegaZ*x1[i]*s[j];)
+      #endif
+
+      rhs[i][iMPHI] -= w*rhs[i][RHO];
+      IF_ENERGY(rhs[i][ENG] -= w*(rhs[i][iMPHI] + 0.5*w*rhs[i][RHO]);)
+      #endif /* (defined FARGO) || (ROTATING_FRAME == YES) */
+      
     }  
 
   }else if (g_dir == JDIR){
     
     double **dx_dl = grid->dx_dl[JDIR];
-    double s;
-    for (j = beg; j <= end; j++){ 
+    for (j = beg; j <= end; j++){
+
+    /* ------------------------------------------
+       J1. Build rhs in the x2-dir
+       ------------------------------------------ */
+
       dtdV = dt/dV[k][j][i];
       dtdl = dt/dx2[j]*dx_dl[j][i];
       
@@ -245,19 +295,37 @@ int *n;
       rhs[j][BXn] = -dtdl*(flux[j][BXn] - flux[j-1][BXn]);
       #endif
 
-      #if (GEOMETRY == SPHERICAL) && (COMPONENTS == 3)
-      s = grid->s[j];
-      rhs[j][iMPHI] /= fabs(s);
+      #if GEOMETRY == SPHERICAL
+      rhs[j][iMPHI] /= fabs(s[j]);
+      IF_DUST_FLUID (rhs[j][iMPHI_D] /= fabs(s[j]);)
       #if PHYSICS == MHD
       rhs[j][iBPHI] = -dtdl*(fA[j][iBPHI] - fA[j-1][iBPHI]);
       #endif  /* PHYSICS == MHD */
+
+    /* ----------------------------------------------------
+       J2. Modify rhs to enforce conservation
+       ---------------------------------------------------- */
+
+      #if (defined FARGO) || (ROTATING_FRAME == YES)
+      w = 0.0; 
+      IF_FARGO         (w += wA[j][i];)
+      IF_ROTATING_FRAME(w += g_OmegaZ*x1[i]*s[j];)
+      rhs[j][MX3] -= w*rhs[j][RHO];
+      IF_ENERGY(rhs[j][ENG]  -= w*(rhs[j][MX3] + 0.5*w*rhs[j][RHO]);)
+      #endif
+
       #endif /* GEOMETRY == SPHERICAL  */
     }
 
   }else if (g_dir == KDIR){
 
     double **dx_dl = grid->dx_dl[KDIR];
-    for (k = beg; k <= end; k++){ 
+    for (k = beg; k <= end; k++){
+
+    /* ------------------------------------------
+       K1. Build rhs in the x3-dir
+       ------------------------------------------ */
+
       dtdV = dt/dV[k][j][i];
       dtdl = dt/dx3[k]*dx_dl[j][i];
 
@@ -269,19 +337,32 @@ int *n;
       #ifdef GLM_MHD
       rhs[k][BXn] = -dtdl*(flux[k][BXn] - flux[k-1][BXn]);
       #endif
+
+    /* ------------------------------------------------------
+       K2. modify rhs to enforce conservation (FARGO only)
+           (solid body rotations are not included the
+            velocity depends on the cylindrical radius only)
+       ------------------------------------------------------ */
+
+      #if (GEOMETRY == POLAR) && (defined FARGO)
+      w = wA[k][i];
+      rhs[k][MX2] -= w*rhs[k][RHO];
+      IF_ENERGY(rhs[k][ENG] -= w*(rhs[k][MX2] + 0.5*w*rhs[k][RHO]);)
+      #endif
+
     }
   }
 #endif  /* GEOMETRY == CARTESIAN */
 
-/* --------------------------------------------------------------
+/* --------------------------------------------------------
    6. Add source terms
-   -------------------------------------------------------------- */
+   -------------------------------------------------------- */
 
   RightHandSideSource (sweep, Dts, beg, end, dt, phi_p, grid);
 
-/* --------------------------------------------------
+/* --------------------------------------------------------
    7. Reset right hand side in internal boundary zones
-   -------------------------------------------------- */
+   -------------------------------------------------------- */
    
 #if INTERNAL_BOUNDARY == YES
   InternalBoundaryReset(sweep, Dts, beg, end, grid);
@@ -336,12 +417,16 @@ void TotalFlux (const Sweep *sweep, double *phi_p, double **fA,
 {
   int    i,j,k,nv;
   double wp, R, A;
-  double **flux, *vp;
+  double **flux;
   double *x1,  *x2,  *x3;
   double *x1p, *x2p, *x3p;
 #ifdef FARGO
-  double **wA;
-  wA = FARGO_GetVelocity();
+  double **wA = FARGO_Velocity();
+#endif
+#if DUST_FLUID == YES
+  #if (defined FARGO) || (defined SHEARINGBOX) || (ROTATING_FRAME == YES)
+    #error DUST_FLUID not yet compatibile with either FARGO/SHEARINGBOX/ROT. FRAME
+  #endif  
 #endif
 
 /* --------------------------------------------------------
@@ -384,7 +469,7 @@ void TotalFlux (const Sweep *sweep, double *phi_p, double **fA,
       IF_ENERGY  (flux[i][ENG] += wp*(0.5*wp*flux[i][RHO] + flux[i][iMPHI]);)
       flux[i][iMPHI] += wp*flux[i][RHO];
       #endif
-
+      
     /* -- 1b. Add gravitational potential -- */
 
       #if (BODY_FORCE & POTENTIAL) && HAVE_ENERGY
@@ -397,23 +482,20 @@ void TotalFlux (const Sweep *sweep, double *phi_p, double **fA,
       A  = grid->A[IDIR][k][j][i];
       NVAR_LOOP(nv) fA[i][nv] = flux[i][nv]*A;
 
-//// #ifdef iMPHI(as before)
-      #if    (GEOMETRY == POLAR       && COMPONENTS >= 2) \
-          || (GEOMETRY == CYLINDRICAL && COMPONENTS == 3)     
+      #if    (GEOMETRY == POLAR) || (GEOMETRY == CYLINDRICAL)
       fA[i][iMPHI] *= fabs(x1p[i]);
+      IF_DUST_FLUID(fA[i][iMPHI_D] *= fabs(x1p[i]);)
       #if PHYSICS == MHD
       fA[i][iBPHI] = flux[i][iBPHI];
       #endif
       #endif  /* GEOMETRY != CARTESIAN */
       
       #if GEOMETRY == SPHERICAL
-      EXPAND(                             ,
-                                          ,
-             fA[i][iMPHI] *= fabs(x1p[i]);)
+      fA[i][iMPHI] *= fabs(x1p[i]);
+      IF_DUST_FLUID(fA[i][iMPHI_D] *= fabs(x1p[i]);)
       #if PHYSICS == MHD
-      EXPAND(                                      ,
-             fA[i][iBTH]  = flux[i][iBTH]*x1p[i];  ,
-             fA[i][iBPHI] = flux[i][iBPHI]*x1p[i];)
+      fA[i][iBTH]  = flux[i][iBTH]*x1p[i];  
+      fA[i][iBPHI] = flux[i][iBPHI]*x1p[i];
       #endif
       #endif
       #endif /* GEOMETRY != CARTESIAN */
@@ -453,9 +535,10 @@ void TotalFlux (const Sweep *sweep, double *phi_p, double **fA,
       #if GEOMETRY != CARTESIAN      
       A  = grid->A[JDIR][k][j][i];
       NVAR_LOOP(nv) fA[j][nv] = flux[j][nv]*A;
-      #if (GEOMETRY == SPHERICAL && COMPONENTS == 3)     
+      #if GEOMETRY == SPHERICAL
       double sp = grid->sp[j];
       fA[j][iMPHI] *= fabs(sp);
+      IF_DUST_FLUID(fA[j][iMPHI_D] *= fabs(sp);)
       #if PHYSICS == MHD
       fA[j][iBPHI] = flux[j][iBPHI];      
       #endif
@@ -480,7 +563,7 @@ void TotalFlux (const Sweep *sweep, double *phi_p, double **fA,
       IF_ENERGY(flux[k][ENG] += wp*(0.5*wp*flux[k][RHO] + flux[k][iMPHI]);)
       flux[k][iMPHI] += wp*flux[k][RHO];
       #endif
-
+      
       #if (BODY_FORCE & POTENTIAL) && HAVE_ENERGY
       flux[k][ENG] += flux[k][RHO]*phi_p[k];
       #endif
@@ -489,7 +572,6 @@ void TotalFlux (const Sweep *sweep, double *phi_p, double **fA,
       A  = grid->A[KDIR][k][j][i];
       NVAR_LOOP(nv) fA[k][nv] = flux[k][nv]*A;
       #endif
-
     }
   }
 }

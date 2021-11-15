@@ -6,11 +6,11 @@
   Compute the one-dimensional right hand side for the viscous
   operator in the direction given by ::g_dir.
 
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \authors A. Mignone (mignone@to.infn.it)\n
 
  \b References
 
-  \date   May 13, 2018
+  \date   Aug 21, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -41,16 +41,16 @@ void ViscousRHS (const Data *d, Data_Arr dU, double *dcoeff,
   static double **ViF, **ViS, **fxA, **src;
   intList var_list;
   #if HAVE_ENERGY 
-  var_list.nvar = COMPONENTS+1;
-  EXPAND(var_list.indx[i=0] = MX1;  ,
-         var_list.indx[++i] = MX2;  ,
-         var_list.indx[++i] = MX3;)
+  var_list.nvar = 4;
+  var_list.indx[i=0] = MX1;
+  var_list.indx[++i] = MX2;
+  var_list.indx[++i] = MX3;
   var_list.indx[++i] = ENG;
   #else
-  var_list.nvar = COMPONENTS;
-  EXPAND(var_list.indx[i=0] = MX1;  ,
-         var_list.indx[++i] = MX2;  ,
-         var_list.indx[++i] = MX3;)
+  var_list.nvar = 3;
+  var_list.indx[i=0] = MX1;
+  var_list.indx[++i] = MX2;
+  var_list.indx[++i] = MX3;
   #endif
 
 /* --------------------------------------------------------
@@ -66,11 +66,16 @@ void ViscousRHS (const Data *d, Data_Arr dU, double *dcoeff,
 
   for (i = beg; i <= end; i++) NVAR_LOOP(nv) {
     fxA[i][nv] = src[i][nv] = 0.0;
-    ViS[i][nv] = 0.0;  // This helps restting ViS[ENG] = 0, since it's not done in viscous flux;
+    ViS[i][nv] = 0.0;  /* This resets ViS[ENG] = 0, since it's not
+                        * always done in viscous flux */
   }
 
   i = g_i; j = g_j; k = g_k;
-  ViscousFlux (d->Vc, ViF, ViS, dcoeff, beg-1, end, grid);
+  ViscousFlux (d, ViF, ViS, dcoeff, beg-1, end, grid);
+
+  #ifdef FARGO
+  double **wA = FARGO_Velocity();
+  #endif
 
   if (g_dir == IDIR){
 
@@ -87,7 +92,7 @@ void ViscousRHS (const Data *d, Data_Arr dU, double *dcoeff,
 
     /* -- 1a. Correct energy flux in rotating frame -- */
 
-      #if HAVE_ENERGY && ROTATING_FRAME == YES
+      #if HAVE_ENERGY && (ROTATING_FRAME == YES)
       #if GEOMETRY == POLAR || GEOMETRY == CYLINDRICAL
       wp = g_OmegaZ*x1p[i];
       #elif GEOMETRY == SPHERICAL
@@ -112,21 +117,37 @@ void ViscousRHS (const Data *d, Data_Arr dU, double *dcoeff,
       rhs[iMPHI] /= fabs(x1[i]);
       #endif
 
-  /* -- 1c. Correct energy rhs in rotating frame -- */
+    /* -- 1c. Correct energy rhs in rotating frame or fargo -- */
+  
+      #if HAVE_ENERGY
+      w = 0.0;
 
-      #if HAVE_ENERGY && ROTATING_FRAME == YES
-      #if GEOMETRY == POLAR || GEOMETRY == CYLINDRICAL
-      w = g_OmegaZ*x1[i];
-      #elif GEOMETRY == SPHERICAL
-      w = g_OmegaZ*x1[i]*s[j];
+      #ifdef FARGO
+      #if GEOMETRY == SPHERICAL
+      w = wA[j][i];
+      #else
+      w = wA[k][i];
       #endif
+      #endif
+
+      #if ROTATING_FRAME == YES
+      #if GEOMETRY == POLAR || GEOMETRY == CYLINDRICAL
+      w += g_OmegaZ*x1[i];
+      #elif GEOMETRY == SPHERICAL
+      w += g_OmegaZ*x1[i]*s[j];
+      #endif
+      #endif /* ROTATING_FRAME == YES */
+
+      #if GEOMETRY == CARTESIAN 
+      rhs[ENG] -= w*rhs[MX2];
+      #else
       rhs[ENG] -= w*rhs[iMPHI];
-      #endif 
-      
-  /* -- 1d. Update -- */
+      #endif
+      #endif /* HAVE_ENERGY */
+ 
+    /* -- 1d. Update -- */
 
       FOR_EACH(nv, &var_list) dU[k][j][i][nv] += rhs[nv];
-
     }
 
   }else if (g_dir == JDIR){
@@ -149,7 +170,7 @@ void ViscousRHS (const Data *d, Data_Arr dU, double *dcoeff,
       fxA[j][ENG] += wp*fxA[j][iMPHI];
       #endif 
 
-      #if (GEOMETRY == SPHERICAL) && (defined iMPHI)
+      #if (GEOMETRY == SPHERICAL)
       fxA[j][iMPHI] *= fabs(sp[j]);
       #endif
     }
@@ -162,15 +183,38 @@ void ViscousRHS (const Data *d, Data_Arr dU, double *dcoeff,
         rhs[nv] = dtdV*(fxA[j][nv] - fxA[j-1][nv]) + dt*src[j][nv];
       }
 
-      #if (GEOMETRY == SPHERICAL) && (defined iMPHI)
+      #if (GEOMETRY == SPHERICAL)
       rhs[iMPHI] /= fabs(s[j]);
       #endif
 
-      #if (GEOMETRY == SPHERICAL) && HAVE_ENERGY && (ROTATING_FRAME == YES)
-      w = g_OmegaZ*x1[i]*s[j];
-      rhs[ENG] -= w*rhs[iMPHI];
+    /* -- 2c. Correct energy rhs in rotating frame or fargo -- */
+
+      #if HAVE_ENERGY
+      w = 0.0;
+
+      #ifdef FARGO
+      #if GEOMETRY == SPHERICAL
+      w = wA[j][i];
+      #else
+      w = wA[k][i];
+      #endif
       #endif
 
+      #if ROTATING_FRAME == YES
+      #if GEOMETRY == SPHERICAL
+      w += g_OmegaZ*x1[i]*s[j];
+      #endif
+      #endif /* ROTATING_FRAME == YES */
+
+      #if GEOMETRY == CARTESIAN 
+      rhs[ENG] -= w*rhs[MX2];
+      #else
+      rhs[ENG] -= w*rhs[iMPHI];
+      #endif
+      #endif /* HAVE_ENERGY */
+
+    /* -- 2d. Update -- */
+    
       FOR_EACH(nv, &var_list) dU[k][j][i][nv] += rhs[nv];
     }
 
@@ -192,9 +236,31 @@ void ViscousRHS (const Data *d, Data_Arr dU, double *dcoeff,
 
     for (k = beg; k <= end; k++){
       dtdV = dt/grid->dV[k][j][i];
+
       FOR_EACH(nv, &var_list){
-        dU[k][j][i][nv] += dtdV*(fxA[k][nv] - fxA[k-1][nv]) + dt*src[k][nv];
+        rhs[nv] = dtdV*(fxA[k][nv] - fxA[k-1][nv]) + dt*src[k][nv];
       }  
+
+      #if HAVE_ENERGY
+      w = 0.0;
+
+      #ifdef FARGO
+      #if GEOMETRY == SPHERICAL
+      w = wA[j][i];
+      #else
+      w = wA[k][i];
+      #endif
+      #endif
+
+      #if GEOMETRY == CARTESIAN 
+      rhs[ENG] -= w*rhs[MX2];
+      #else
+      rhs[ENG] -= w*rhs[iMPHI];
+      #endif
+      
+      #endif /* HAVE_ENERGY */
+
+      FOR_EACH(nv, &var_list)  dU[k][j][i][nv] += rhs[nv];
     }
   }
 
@@ -203,7 +269,7 @@ void ViscousRHS (const Data *d, Data_Arr dU, double *dcoeff,
    -------------------------------------------------------- */
 
   #ifdef CHOMBO
-  StoreAMRFlux (ViF, aflux, -1, MX1, MX1+COMPONENTS-1, beg-1, end, grid);
+  StoreAMRFlux (ViF, aflux, -1, MX1, MX3, beg-1, end, grid);
   #if HAVE_ENERGY
   StoreAMRFlux (ViF, aflux, -1, ENG, ENG, beg-1, end, grid);
   #endif

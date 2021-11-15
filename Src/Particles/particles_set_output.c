@@ -3,9 +3,9 @@
  \file
  \brief Set particles output data attributes.
  
- \authors A. Mignone (mignone@ph.unito.it)\n
+ \authors A. Mignone (mignone@to.infn.it)\n
  
- \date    March 29, 2018
+ \date    Aug 27, 2020
  */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -54,7 +54,7 @@ void Particles_SetOutput (Data *d, Runtime *runtime)
          information.
      ------------------------------------------------------ */
 
-    #if PARTICLES_TYPE == LAGRANGIAN && PARTICLES_LP_SPECTRA == YES
+    #if (PARTICLES == PARTICLES_LP) && (PARTICLES_LP_SPECTRA == YES)
     output->var_name = ARRAY_2D(1024, 32, char);
     #else
     output->var_name = ARRAY_2D(16, 32, char);
@@ -66,10 +66,10 @@ void Particles_SetOutput (Data *d, Runtime *runtime)
 
   /* -- 1c. Set particles filename extensions -- */
 
-    if (output->type == PARTICLES_DBL_OUTPUT) sprintf (output->ext,"dbl");
-    if (output->type == PARTICLES_FLT_OUTPUT) sprintf (output->ext,"flt");
-    if (output->type == PARTICLES_VTK_OUTPUT) sprintf (output->ext,"vtk");
-    if (output->type == PARTICLES_TAB_OUTPUT) sprintf (output->ext,"tab");
+    if (output->type == PARTICLES_DBL_OUTPUT) strcpy (output->ext,"dbl");
+    if (output->type == PARTICLES_FLT_OUTPUT) strcpy (output->ext,"flt");
+    if (output->type == PARTICLES_VTK_OUTPUT) strcpy (output->ext,"vtk");
+    if (output->type == PARTICLES_TAB_OUTPUT) strcpy (output->ext,"tab");
 
   /* ------------------------------------------------------
      1d. Set default field names (all of them).
@@ -78,49 +78,69 @@ void Particles_SetOutput (Data *d, Runtime *runtime)
      ------------------------------------------------------ */
 
     i = 0;
-    #if PARTICLES_TYPE == COSMIC_RAYS
-    output->var_name[i++] = "id";
-    output->var_name[i++] = "x1";  
-    output->var_name[i++] = "x2";  
-    output->var_name[i++] = "x3";
-    output->var_name[i++] = "vx1";  
-    output->var_name[i++] = "vx2";  
-    output->var_name[i++] = "vx3";
-    output->var_name[i++] = "rho";
-    output->var_name[i++] = "tinj";
-    output->var_name[i++] = "color";
-    output->var_name[i++] = "energy";
+    #if PARTICLES == PARTICLES_CR
+    strcpy(output->var_name[i++], "id");
+    strcpy(output->var_name[i++], "x1");  
+    strcpy(output->var_name[i++], "x2");  
+    strcpy(output->var_name[i++], "x3");
+    strcpy(output->var_name[i++], "vx1");  
+    strcpy(output->var_name[i++], "vx2");  
+    strcpy(output->var_name[i++], "vx3");
+    strcpy(output->var_name[i++], "mass");
+    strcpy(output->var_name[i++], "tinj");
+    strcpy(output->var_name[i++], "color");
+    strcpy(output->var_name[i++], "energy");
     #endif
 
-    #if PARTICLES_TYPE == LAGRANGIAN
-    output->var_name[i++] = "id";
-    output->var_name[i++] = "x1";  
-    output->var_name[i++] = "x2";  
-    output->var_name[i++] = "x3";
-    output->var_name[i++] = "vx1";  
-    output->var_name[i++] = "vx2";  
-    output->var_name[i++] = "vx3";
-    output->var_name[i++] = "tinj";
-    output->var_name[i++] = "color";
+    #if PARTICLES == PARTICLES_DUST
+    strcpy(output->var_name[i++], "id");
+    strcpy(output->var_name[i++], "x1");  
+    strcpy(output->var_name[i++], "x2");  
+    strcpy(output->var_name[i++], "x3");
+    strcpy(output->var_name[i++], "vx1");  
+    strcpy(output->var_name[i++], "vx2");  
+    strcpy(output->var_name[i++], "vx3");
+    strcpy(output->var_name[i++], "mass");
+    strcpy(output->var_name[i++], "tau_s");
+    strcpy(output->var_name[i++], "tinj");
+    strcpy(output->var_name[i++], "color");
+    strcpy(output->var_name[i++], "energy");
+    #endif
+
+    #if PARTICLES == PARTICLES_LP
+    strcpy(output->var_name[i++], "id");
+    strcpy(output->var_name[i++], "x1");  
+    strcpy(output->var_name[i++], "x2");  
+    strcpy(output->var_name[i++], "x3");
+    strcpy(output->var_name[i++], "vx1");  
+    strcpy(output->var_name[i++], "vx2");  
+    strcpy(output->var_name[i++], "vx3");
+    strcpy(output->var_name[i++], "tinj");
+    strcpy(output->var_name[i],   "color");
+    output->field_dim[i++] = PARTICLES_LP_NCOLORS;
     #if PARTICLES_LP_SPECTRA == YES
-    output->var_name[i++] = "density";
-    output->var_name[i++] = "nmicro";
-    output->var_name[i++] = "cmp_ratio";
-    output->var_name[i++] = "shkflag";
-    output->var_name[i++] = "shk_gradp";
-    output->var_name[i++] = "ca";
-    output->var_name[i++] = "cr";
+    strcpy(output->var_name[i++], "density");
+    strcpy(output->var_name[i++], "pressure");
+    strcpy(output->var_name[i++], "bx1");  
+    strcpy(output->var_name[i++], "bx2");  
+    strcpy(output->var_name[i++], "bx3");  
+    strcpy(output->var_name[i++], "nmicro");
+    strcpy(output->var_name[i++], "cmp_ratio");
+    strcpy(output->var_name[i++], "shkflag");
+    strcpy(output->var_name[i++], "shk_gradp");
+  
+    strcpy(output->var_name[i++], "cr");
     
-    output->var_name[i]    = "vL";
+    strcpy(output->var_name[i], "vL");
     output->field_dim[i++] = NFLX;
 
-    output->var_name[i]    = "vR";
+    strcpy(output->var_name[i], "vR");
     output->field_dim[i++] = NFLX;
 
-    output->var_name[i]    = "eng";
-    output->field_dim[i++] = PARTICLES_LP_NEBINS;
+    strcpy(output->var_name[i], "eng");
+    output->field_dim[i++] = PARTICLES_LP_NEBINS + 1;
 
-    output->var_name[i]    = "chi";
+    strcpy(output->var_name[i], "chi");
     output->field_dim[i++] = PARTICLES_LP_NEBINS;
 
 /*
@@ -136,8 +156,8 @@ void Particles_SetOutput (Data *d, Runtime *runtime)
 */
     #endif
     #endif  
+
     output->nvar = i;
-//if (output->type == PARTICLES_FLT_OUTPUT) print ("SetOutput() output[%d]->nvar = %d\n",k,output->nvar);
     
   /* -- Initialize dump_var to YES for all fields -- */  
     for (nv = output->nvar; nv--; ) output->dump_var[nv] = YES;
@@ -147,30 +167,39 @@ void Particles_SetOutput (Data *d, Runtime *runtime)
    2. Unset fields [default]
    -------------------------------------------------------- */
 
-  #if PARTICLES_TYPE == LAGRANGIAN && PARTICLES_LP_SPECTRA == YES  
+  #if (PARTICLES == PARTICLES_CR) || (PARTICLES == PARTICLES_DUST)
+  SetOutputVar ("mass",   PARTICLES_FLT_OUTPUT, NO); 
+  SetOutputVar ("energy", PARTICLES_FLT_OUTPUT, NO);
+  #endif
+
+  #if (PARTICLES == PARTICLES_LP) && (PARTICLES_LP_SPECTRA == YES)
   SetOutputVar("nmicro",    PARTICLES_FLT_OUTPUT, NO);
   SetOutputVar("cmp_ratio", PARTICLES_FLT_OUTPUT, NO);
   SetOutputVar("shkflag",   PARTICLES_FLT_OUTPUT, NO);
   SetOutputVar("shk_gradp", PARTICLES_FLT_OUTPUT, NO);
   SetOutputVar("cmp_ratio", PARTICLES_FLT_OUTPUT, NO);
-  SetOutputVar("ca",        PARTICLES_FLT_OUTPUT, NO);
   SetOutputVar("cr",        PARTICLES_FLT_OUTPUT, NO);
+  SetOutputVar("vL",        PARTICLES_FLT_OUTPUT, NO);
+  SetOutputVar("vR",        PARTICLES_FLT_OUTPUT, NO);
 
-  SetOutputVar("vL",PARTICLES_FLT_OUTPUT,NO);
-  SetOutputVar("vR",PARTICLES_FLT_OUTPUT,NO);
+  SetOutputVar("pressure",  PARTICLES_DBL_OUTPUT, NO);
+  SetOutputVar("bx1",       PARTICLES_DBL_OUTPUT, NO);
+  SetOutputVar("bx2",       PARTICLES_DBL_OUTPUT, NO);
+  SetOutputVar("bx3",       PARTICLES_DBL_OUTPUT, NO);
+
+  SetOutputVar("pressure",  PARTICLES_FLT_OUTPUT, NO);
+  SetOutputVar("bx1",       PARTICLES_FLT_OUTPUT, NO);
+  SetOutputVar("bx2",       PARTICLES_FLT_OUTPUT, NO);
+  SetOutputVar("bx3",       PARTICLES_FLT_OUTPUT, NO);
   #endif
 
   SetOutputVar ("energy", PARTICLES_DBL_OUTPUT, NO); 
 
-  #if PARTICLES_TYPE == COSMIC_RAYS 
-  SetOutputVar ("rho",    PARTICLES_FLT_OUTPUT, NO); 
-  SetOutputVar ("energy", PARTICLES_FLT_OUTPUT, NO);
-  #endif
 
 //for (k = 0; k < MAX_OUTPUT_TYPES; k++){ 
 //  output = runtime->output + k;
 //  if (output->type == PARTICLES_FLT_OUTPUT) for (nv = 0; nv < output->nvar; nv++){
-//    print (".flt, field  #%d, dump = %c\n",nv, output->dump_var[nv] == YES ? 'Y':'N');
+//    printLog (".flt, field  #%d, dump = %c\n",nv, output->dump_var[nv] == YES ? 'Y':'N');
 //  }    
 //}
 

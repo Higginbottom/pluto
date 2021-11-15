@@ -10,8 +10,8 @@
   enable faster computation when the grid is uniform and Cartesian.
   In the general case (non-uniform and/or non-Cartesian), set it to NO. 
   
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    May 19, 2014
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    Jan 7, 2019
   
   \b References
      - "High-order conservative reconstruction schemes for finite
@@ -74,20 +74,20 @@ void PLM_CoefficientsGet(PLM_Coeffs*, int);
 
 /*! Set Minmod limiter. */
 #define SET_MM_LIMITER(dv, dvp, dvm, cp, cm) \
-  dv = (dvp*dvm > 0.0 ? ABS_MIN(dvp, dvm): 0.0)
+  dv = ( (dvp)*(dvm) > 0.0 ? ABS_MIN((dvp), (dvm)): 0.0)
 
 /*! Van Albada limiter */
 #define SET_VA_LIMITER(dv, dvp, dvm, cp, cm)\
-  if (dvp*dvm > 0.0) { \
-    double _dpp= dvp*dvp, _dmm = dvm*dvm; \
-    dv = (dvp*(_dmm + 1.e-18) + dvm*(_dpp + 1.e-18))/(_dpp + _dmm + 1.e-18); \
+  if ((dvp)*(dvm) > 0.0) { \
+    double _dpp= (dvp)*(dvp), _dmm = (dvm)*(dvm); \
+    dv = ( (dvp)*(_dmm + 1.e-18) + (dvm)*(_dpp + 1.e-18))/(_dpp + _dmm + 1.e-18); \
   }else dv = 0.0;
 
 /*! Umist limiter */
 #define SET_UM_LIMITER(dv, dvp, dvm, cp, cm)\
-  if (dvp*dvm > 0.0){ \
-    double _ddp = 0.25*(dvp + 3.0*dvm), _ddm = 0.25*(dvm + 3.0*dvp); \
-    double _d2  = 2.0*ABS_MIN(dvp, dvm);\
+  if ( (dvp)*(dvm) > 0.0){ \
+    double _ddp = 0.25*( (dvp) + 3.0*(dvm)), _ddm = 0.25*((dvm) + 3.0*(dvp)); \
+    double _d2  = 2.0*ABS_MIN( (dvp), (dvm) );\
     _d2  = ABS_MIN(_d2, _ddp);\
     dv   = ABS_MIN(_d2, _ddm);\
   }else dv = 0.0;
@@ -107,18 +107,18 @@ void PLM_CoefficientsGet(PLM_Coeffs*, int);
 
 /*! OSPRE limiter (uniform Cart. grid) */
  #define SET_OS_LIMITER(dv, dvp, dvm, cp, cm)\
-  dv = (dvp*dvm > 0.0? \
-       dv = 1.5*dvp*dvm*(dvm + dvp)/(dvp*dvp + dvm*dvm + dvp*dvm): 0.0);
+  dv = ( (dvp)*(dvm) > 0.0? \
+       dv = 1.5*(dvp)*(dvm)*((dvm) + (dvp))/((dvp)*(dvp) + (dvm)*(dvm) + (dvp)*(dvm)): 0.0);
 
 /*! Van Leer limiter (uniform Cartesian grid) */
  #define SET_VL_LIMITER(dv, dvp, dvm, cp, cm)\
-   dv = (dvp*dvm > 0.0 ? 2.0*dvp*dvm/(dvp + dvm) :0.0)
+   dv = ( (dvp)*(dvm) > 0.0 ? 2.0*(dvp)*(dvm)/((dvp) + (dvm)) :0.0)
 
 /*! Monotonized central limiter (uniform cart. grid). 
     Here \c cp and \c cm are useless. */
  #define SET_MC_LIMITER(dv, dvp, dvm, cp, cm) \
-   if (dvp*dvm > 0.0) { \
-     double _qc  = 0.5*(dvm + dvp), _scrh = 2.0*ABS_MIN(dvp, dvm); \
+   if ( (dvp)*(dvm) > 0.0) { \
+     double _qc  = 0.5*( (dvm) + (dvp) ), _scrh = 2.0*ABS_MIN( (dvp), (dvm) ); \
      dv   = ABS_MIN(_qc, _scrh);  \
    }else dv = 0.0; 
 
@@ -131,21 +131,21 @@ void PLM_CoefficientsGet(PLM_Coeffs*, int);
 /*! OSPRE limiter (general grid case) */
  #define SET_OS_LIMITER(dv, dvp, dvm, cp, cm)\
   if (dvp*dvm > 0.0){  \
-    double _den = 2.0*dvp*dvp + 2.0*dvm*dvm + (cp + cm - 2.0)*dvp*dvm;\
-    dv = dvp*dvm*((1.0+cp)*dvm + (1.0+cm)*dvp)/_den; \
+    double _den = 2.0*(dvp)*(dvp) + 2.0*(dvm)*(dvm) + (cp + cm - 2.0)*(dvp)*(dvm);\
+    dv = dvp*dvm*((1.0+cp)*(dvm) + (1.0+cm)*(dvp))/_den; \
   }else dv = 0.0;
 
 /* -- van Leer limiter (general grid) -- */
 
  #define SET_VL_LIMITER(dv, dvp, dvm, cp, cm)\
-   dv = (dvp*dvm > 0.0 ? dvp*dvm*(cp*dvm + cm*dvp) \
-                       /(dvp*dvp + dvm*dvm + (cp + cm - 2.0)*dvp*dvm) :0.0)
+   dv = (dvp*dvm > 0.0 ? (dvp)*(dvm)*(cp*(dvm) + cm*(dvp)) \
+                       /((dvp)*(dvp) + (dvm)*(dvm) + (cp + cm - 2.0)*(dvp)*(dvm)) :0.0)
 
 /* -- monotonized central (general grid) -- */
 
  #define SET_MC_LIMITER(dv, dvp, dvm, cp, cm) \
    if (dvp*dvm > 0.0) { \
-     double _qc  = 0.5*(dvm + dvp), _scrh = ABS_MIN(dvp*cp, dvm*cm); \
+     double _qc  = 0.5*((dvm) + (dvp)), _scrh = ABS_MIN((dvp)*cp, (dvm)*cm); \
      dv   = ABS_MIN(_qc, _scrh);  \
    }else dv = 0.0; 
 
@@ -174,3 +174,7 @@ void PLM_CoefficientsGet(PLM_Coeffs*, int);
  #endif
 #endif
 
+
+#ifndef SET_LIMITER
+  #define SET_LIMITER  SET_VL_LIMITER
+#endif

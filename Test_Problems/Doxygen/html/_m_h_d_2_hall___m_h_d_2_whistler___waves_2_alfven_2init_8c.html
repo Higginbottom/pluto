@@ -22,6 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO Test Problems
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -79,12 +80,12 @@ Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>The dispersion relation for whistler waves is given by (Huba, 2003): </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ \omega = \frac{k^2_x B}{e n_e} \]" src="form_110.png"/>
+<img class="formulaDsp" alt="\[ \omega = \frac{k^2_x B}{e n_e} \]" src="form_93.png"/>
 </p>
-<p> where <img class="formulaInl" alt="$k_x = 2\pi m/L_x$" src="form_111.png"/> is the wave number along the <code>x</code> direction, <img class="formulaInl" alt="$ L_x $" src="form_112.png"/> is the domain lenght in the horizontal direction, <img class="formulaInl" alt="$ e $" src="form_113.png"/> and <img class="formulaInl" alt="$ n_e $" src="form_114.png"/> are the electron charge and number density <code>B</code> is the magnetic field strength.</p>
+<p> where <img class="formulaInl" alt="$k_x = 2\pi m/L_x$" src="form_94.png"/> is the wave number along the <code>x</code> direction, <img class="formulaInl" alt="$ L_x $" src="form_95.png"/> is the domain lenght in the horizontal direction, <img class="formulaInl" alt="$ e $" src="form_96.png"/> and <img class="formulaInl" alt="$ n_e $" src="form_97.png"/> are the electron charge and number density <code>B</code> is the magnetic field strength.</p>
 <p><b> Whistler waves 1D (<code>SETUP</code> <code>==</code> <code>1</code>)</b></p>
-<p>In this section (configuration #01) we present numerical results of the dispersion relation of whistler waves and we compare it with the above analitical formula, in a manner similar to Huba 2003. The magnetic field is in the x-direction, <img class="formulaInl" alt="$\vec{B} = B_0 \hvec{e_x} $" src="form_115.png"/>, and the system is perturbed with <img class="formulaInl" alt="$ \delta B_y = +\delta B \cos(2\pi m x/Lx) $" src="form_116.png"/> and <img class="formulaInl" alt="$ \delta B_z = -\delta B \sin(2\pi m x/Lx) $" src="form_117.png"/>, where <img class="formulaInl" alt="$ m = 1, 2, ..., $" src="form_118.png"/> is the mode number, <img class="formulaInl" alt="$ B_0 = 100 $" src="form_119.png"/> G and <img class="formulaInl" alt="$ \delta B = 10^{-3} $" src="form_120.png"/> G. We also set <img class="formulaInl" alt="$ \rho = en_e = 1 $" src="form_121.png"/>.</p>
-<p>We show in Fig. 1 the temporal evolution of the perpendicular component of the magnetic field ( <img class="formulaInl" alt="$B_y$" src="form_122.png"/>) and the its fourier composition. In Fig. 2 we show the comparison between the analytical and numerical values of the whistler wave frequency as a function of <img class="formulaInl" alt="$ m $" src="form_123.png"/>. <br />
+<p>In this section (configuration #01) we present numerical results of the dispersion relation of whistler waves and we compare it with the above analitical formula, in a manner similar to Huba 2003. The magnetic field is in the x-direction, <img class="formulaInl" alt="$\vec{B} = B_0 \hvec{e_x} $" src="form_98.png"/>, and the system is perturbed with <img class="formulaInl" alt="$ \delta B_y = +\delta B \cos(2\pi m x/Lx) $" src="form_99.png"/> and <img class="formulaInl" alt="$ \delta B_z = -\delta B \sin(2\pi m x/Lx) $" src="form_100.png"/>, where <img class="formulaInl" alt="$ m = 1, 2, ..., $" src="form_101.png"/> is the mode number, <img class="formulaInl" alt="$ B_0 = 100 $" src="form_102.png"/> G and <img class="formulaInl" alt="$ \delta B = 10^{-3} $" src="form_103.png"/> G. We also set <img class="formulaInl" alt="$ \rho = en_e = 1 $" src="form_104.png"/>.</p>
+<p>We show in Fig. 1 the temporal evolution of the perpendicular component of the magnetic field ( <img class="formulaInl" alt="$B_y$" src="form_105.png"/>) and the its fourier composition. In Fig. 2 we show the comparison between the analytical and numerical values of the whistler wave frequency as a function of <img class="formulaInl" alt="$ m $" src="form_106.png"/>. <br />
  </p><div class="image">
 <img src="whistler_waves_fig1.png" alt="whistler_waves_fig1.png"/>
 <div class="caption">
@@ -97,12 +98,12 @@ Fig. 2 - Pseudocolor rendering of the current density (color) with magnetic fiel
 <p> <br />
 </p>
 <p><b> Whistler waves 2D (<code>SETUP</code> <code>==</code> <code>2</code>)</b></p>
-<p>In this section (configuration #02) we test the correct propagation of the whistler waves in 2D, in a manner similar to Viganò et al., 2012. The initial magnetic field is <img class="formulaInl" alt="$B_x = B_0 + B_1 \cos(k_x y) \cos(k_x x)$" src="form_124.png"/>, <img class="formulaInl" alt="$B_y = B_1 \sin(k_x y) \sin(k_x x)$" src="form_125.png"/> and <img class="formulaInl" alt="$ B_z = \sqrt{2} B_1 \sin(k_x y) \cos(k_x x)$" src="form_126.png"/>, where <img class="formulaInl" alt="$ B_0 = 10^3 $" src="form_127.png"/> and <img class="formulaInl" alt="$B_1 = 1$" src="form_128.png"/>. Again we set <img class="formulaInl" alt="$ \rho = en_e = 1 $" src="form_121.png"/>.</p>
-<p>The equations above admit wave solution travelling along <img class="formulaInl" alt="$ x $" src="form_129.png"/> with speed </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ v_w = -\frac{c}{4 e n_0} \frac{\sqrt{2} }{L_y} m B_0 \]" src="form_130.png"/>
+<p>In this section (configuration #02) we test the correct propagation of the whistler waves in 2D, in a manner similar to Viganò et al., 2012. The initial magnetic field is <img class="formulaInl" alt="$B_x = B_0 + B_1 \cos(k_x y) \cos(k_x x)$" src="form_107.png"/>, <img class="formulaInl" alt="$B_y = B_1 \sin(k_x y) \sin(k_x x)$" src="form_108.png"/> and <img class="formulaInl" alt="$ B_z = \sqrt{2} B_1 \sin(k_x y) \cos(k_x x)$" src="form_109.png"/>, where <img class="formulaInl" alt="$ B_0 = 10^3 $" src="form_110.png"/> and <img class="formulaInl" alt="$B_1 = 1$" src="form_111.png"/>. Again we set <img class="formulaInl" alt="$ \rho = en_e = 1 $" src="form_104.png"/>.</p>
+<p>The equations above admit wave solution travelling along <img class="formulaInl" alt="$ x $" src="form_112.png"/> with speed </p><p class="formulaDsp">
+<img class="formulaDsp" alt="\[ v_w = -\frac{c}{4 e n_0} \frac{\sqrt{2} }{L_y} m B_0 \]" src="form_113.png"/>
 </p>
-<p> where <img class="formulaInl" alt="$ L_y$" src="form_131.png"/> is the domain length in the vertical direction, and again <img class="formulaInl" alt="$ m $" src="form_123.png"/> is the number of wave modes.</p>
-<p>In Fig. 3 we show the result of our simulation ( <img class="formulaInl" alt="$ B_y $" src="form_132.png"/>) at <img class="formulaInl" alt="$ t = 0 $" src="form_133.png"/>. We checked the scaling of the whistler speed with <img class="formulaInl" alt="$ m $" src="form_123.png"/>, shown in Fig. 4.</p>
+<p> where <img class="formulaInl" alt="$ L_y$" src="form_114.png"/> is the domain length in the vertical direction, and again <img class="formulaInl" alt="$ m $" src="form_106.png"/> is the number of wave modes.</p>
+<p>In Fig. 3 we show the result of our simulation ( <img class="formulaInl" alt="$ B_y $" src="form_115.png"/>) at <img class="formulaInl" alt="$ t = 0 $" src="form_116.png"/>. We checked the scaling of the whistler speed with <img class="formulaInl" alt="$ m $" src="form_106.png"/>, shown in Fig. 4.</p>
 <div class="image">
 <img src="whistler_waves_fig3.png" alt="whistler_waves_fig3.png"/>
 <div class="caption">
@@ -154,7 +155,7 @@ Fig. 4 - The whistler speed for different values of m (red circles) compared wit
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Jun 15 2018 22:46:22 for PLUTO Test Problems by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:25:25 for PLUTO Test Problems by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

@@ -27,7 +27,7 @@ void SoundSpeed2 (const State *q, int beg, int end, int pos, Grid *grid)
   int  i;
   double theta;
 
-  #if PHYSICS == RHD || PHYSICS == RMHD
+  #if (PHYSICS == RHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
    Enthalpy(q->v, q->h, beg, end);
    for (i = beg; i <= end; i++) {
      theta = q->v[i][PRS]/q->v[i][RHO];
@@ -38,7 +38,7 @@ void SoundSpeed2 (const State *q, int beg, int end, int pos, Grid *grid)
      #endif
    }
   #else
-   print ("! SoundSpeed2: Taub EOS not defined for this physics module.\n");
+   printLog ("! SoundSpeed2: Taub EOS not defined for this physics module.\n");
    QUIT_PLUTO(1);
   #endif
 }
@@ -59,7 +59,7 @@ void Enthalpy (double **v, double *h, int beg, int end)
   int i;
   double gmmr, theta;
 
-  #if PHYSICS == RHD || PHYSICS == RMHD
+  #if (PHYSICS == RHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
    for (i = beg; i <= end; i++) {
      theta = v[i][PRS]/v[i][RHO];
      #if EOS == IDEAL
@@ -87,7 +87,7 @@ void Entropy (double **v, double *s, int beg, int end)
   int i;
   double rho, th;
 
-  #if PHYSICS == RHD || PHYSICS == RMHD
+  #if (PHYSICS == RHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
    for (i = beg; i <= end; i++) {
      rho = v[i][RHO];
      #if EOS == IDEAL

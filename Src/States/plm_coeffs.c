@@ -16,15 +16,15 @@
         volume methods in cylindrical and spherical coordinates"
         A. Mignone, JCP (2014), 270, 784.
         
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    Feb 28, 2017
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    Apr 20, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
-static double **cp3D, **cm3D;
-static double **wp3D, **wm3D;
-static double **dp3D, **dm3D;
+static double *cp3D[3], *cm3D[3];
+static double *wp3D[3], *wm3D[3];
+static double *dp3D[3], *dm3D[3];
 
 /* ********************************************************************* */
 void PLM_CoefficientsSet(Grid *grid)
@@ -39,13 +39,15 @@ void PLM_CoefficientsSet(Grid *grid)
   int    i, d, beg, end;
   double *dx, *xr, *xgc;
 
-  if (cp3D == NULL) {
-    cp3D = ARRAY_2D(DIMENSIONS, NMAX_POINT, double);
-    cm3D = ARRAY_2D(DIMENSIONS, NMAX_POINT, double);
-    dp3D = ARRAY_2D(DIMENSIONS, NMAX_POINT, double);
-    dm3D = ARRAY_2D(DIMENSIONS, NMAX_POINT, double);
-    wp3D = ARRAY_2D(DIMENSIONS, NMAX_POINT, double);
-    wm3D = ARRAY_2D(DIMENSIONS, NMAX_POINT, double);
+  if (cp3D[0] == NULL) {
+    DIM_LOOP(d){
+      cp3D[d] = ARRAY_1D(NMAX_POINT, double);
+      cm3D[d] = ARRAY_1D(NMAX_POINT, double);
+      dp3D[d] = ARRAY_1D(NMAX_POINT, double);
+      dm3D[d] = ARRAY_1D(NMAX_POINT, double);
+      wp3D[d] = ARRAY_1D(NMAX_POINT, double);
+      wm3D[d] = ARRAY_1D(NMAX_POINT, double);
+    }
   }
 
 /* -----------------------------------------------------
@@ -54,7 +56,8 @@ void PLM_CoefficientsSet(Grid *grid)
     order to store coefficients into memory.
    ----------------------------------------------------- */
 
-  for (d = 0; d < DIMENSIONS; d++){
+  DIM_LOOP(d){
+
     dx  = grid->dx[d];
     xgc = grid->xgc[d];
     xr  = grid->xr[d];
@@ -88,8 +91,8 @@ void PLM_CoefficientsGet(PLM_Coeffs *plm_coeffs, int dir)
  *
  *********************************************************************** */
 {
-  if (cp3D == NULL) {
-    print ("! PLM_Coefficients: coefficients not set.\n");
+  if (cp3D[0] == NULL) {
+    printLog ("! PLM_CoefficientsGet(): coefficients not set.\n");
     QUIT_PLUTO(1);
   }
 

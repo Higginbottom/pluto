@@ -22,9 +22,9 @@
     http://www.mcs.anl.gov/~kazutomo/hugepage-old/twister.c
   
 
-  \author A. Mignone (mignone@ph.unito.it)
+  \author A. Mignone (mignone@to.infn.it)
 
-  \date   April 21, 2017
+  \date   Aug 20, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -52,7 +52,7 @@ double RandomNumber (double rmin, double rmax)
  *    }
  *   
  *    for (k = 0; k < N; k++) {
- *      print ("rand = %f\n", RandomNumber(a,b));
+ *      printLog ("rand = %f\n", RandomNumber(a,b));
  *    }
  * \endcode
  *
@@ -69,7 +69,7 @@ double RandomNumber (double rmin, double rmax)
  * - A second possibility is to seed a different sequence on each
  *   processor and use the same offset:
  *   \code
- *     Random_Seed(SeedGenerator(), 0);
+ *     Random_Seed(SeedGenerator(s), 0);
  *   \endcode
  *
  *********************************************************************** */
@@ -84,8 +84,8 @@ double RandomNumber (double rmin, double rmax)
 
   count++;
   if (count >= rnd_seq_size){
-    print ("! RandomNumber(): maximum number of prns [%ld] exceeded\n", rnd_seq_size);
-    print ("                  count = %ld, rnd_seq_size = %ld\n",
+    printLog ("! RandomNumber(): maximum number of prns [%ld] exceeded\n", rnd_seq_size);
+    printLog ("                  count = %ld, rnd_seq_size = %ld\n",
                               count, rnd_seq_size);
     QUIT_PLUTO(1); 
   }
@@ -172,7 +172,7 @@ void RandomSeed (long int seed, long int offset)
 #elif PRNG == PRNG_ECUYER
   print ("> RandomSeed(): seeding sequence");
   print ("  [PRNG_ECUYER; seed = %ld, offset = %ld]\n", seed, offset);
-  rnd_seq_seed = -fabs(seed);
+  rnd_seq_seed = -labs(seed);
   rnd_seq_size = (long)2.e18;  /* Approximate period of L'Ecuyer prng */
   NR_ran2(&rnd_seq_seed);
 #elif PRNG == PRNG_MT
@@ -250,7 +250,7 @@ double PowerLawRandomNumber(double xmin, double xmax, double n)
   double r, x;
 
   if (fabs(n+1.0) < 1.e-12) {
-    print ("! PowerLawRandomNumber(): n = -1 not allowed\n");
+    printLog ("! PowerLawRandomNumber(): n = -1 not allowed\n");
     QUIT_PLUTO(1);
   }
   r = RandomNumber(0,1);
@@ -260,22 +260,24 @@ double PowerLawRandomNumber(double xmin, double xmax, double n)
 }
 
 /* ********************************************************************* */
-unsigned int SeedGenerator(void )
+unsigned int SeedGenerator(long s)
 /*
  *  Seed random sequence on multi-core system.
+ *
+ * \param [in]  s   the seed (fixed seed and same number of processor
+ *                  should generate the same sequence).
  *
  * \b Reference
  *    - "Random Numbers in Scientific Computing: An Introduction" \n
  *       Katzgrabber  (http://arxiv.org/abs/1005.4117), Sec. 7.1 
  *
- *
  *********************************************************************** */
 {
-  long s, seed,pid;
+  long seed,pid;
 
   pid  = prank;
-  s    = time (NULL); /* get CPU seconds since 01/01/1970 */
-  seed = abs(((s*181)*((pid-83)*359))%104729);
+/*  s    = time (NULL);  get CPU seconds since 01/01/1970 */
+  seed = labs(((s*181)*((pid-83)*359))%104729);
   return seed;
 }
 
@@ -319,7 +321,7 @@ double NR_ran2(long int *idum)
  *   }
  *
  *   for (k = 0; k < N; k++){
- *     print ("rand = %10.3e\n",NR_ran2(&dummy));
+ *     printLog ("rand = %10.3e\n",NR_ran2(&dummy));
  *   }  
  * \endcode
  * 
@@ -350,7 +352,7 @@ double NR_ran2(long int *idum)
   }
   k     = (*idum)/IQ1;              /* Start here when not initializing. */
   *idum = IA1*(*idum-k*IQ1)-k*IR1;  /* Compute idum=(IA1*idum) % IM1 without */
-  if (*idum < 0) *idum += IM1;      /* overflows by SchrageÕs method.        */
+  if (*idum < 0) *idum += IM1;      /* overflows by Schrag's method.        */
   k     = idum2/IQ2;
   idum2 = IA2*(idum2-k*IQ2)-k*IR2;  /* Compute idum2=(IA2*idum) % IM2 likewise.*/
 
@@ -359,7 +361,7 @@ double NR_ran2(long int *idum)
   iy    = iv[j]-idum2;    /* Here idum is shuffled, idum and idum2  */
   iv[j] = *idum;          /* are combined to generate output.       */
   if (iy < 1) iy += IMM1;
-  if ((temp=AM*iy) > RNMX) return RNMX; /* Because users donÕt expect
+  if ((temp=AM*iy) > RNMX) return RNMX; /* Because users don't expect
                                            endpoint values.*/
   else return temp;
 }

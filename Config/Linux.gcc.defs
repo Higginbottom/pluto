@@ -5,7 +5,7 @@
 ########################################################################
 
 CC       = gcc
-CFLAGS   = -c -O3
+CFLAGS   = -c -O3 -Wundef
 LDFLAGS  = -lm
 
 PARALLEL = FALSE

@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -84,8 +84,8 @@ Functions</h2></td></tr>
 <tr class="separator:ab66840625e2532c901cafdd1e62f944d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'ph'+'.un'+'it'+'o.i'+'t'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@p<span style="display: none;">.nosp@m.</span>h.uni<span style="display: none;">.nosp@m.</span>to.i<span style="display: none;">.nosp@m.</span>t</a>) </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>Sep 10, 2012 </dd></dl>
+<div class="textblock"><dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'to'+'.in'+'fn'+'.it'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@t<span style="display: none;">.nosp@m.</span>o.inf<span style="display: none;">.nosp@m.</span>n.it</a>) </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>Jul 07, 2020 </dd></dl>
 </div><h2 class="groupheader">Function Documentation</h2>
 <a id="ab66840625e2532c901cafdd1e62f944d"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ab66840625e2532c901cafdd1e62f944d">&#9670;&nbsp;</a></span>ApproximateFastWaves()</h2>
@@ -197,11 +197,11 @@ fdZ := (1-e2)*(u[0]*lambda - u[x])^4 + (1-lambda^2)*
 ########################################################
 "print the coefficients of the quartic polynomial fdZ";
 
-coeff(fMB,lambda,4);
-coeff(fMB,lambda,3);
-coeff(fMB,lambda,2);
-coeff(fMB,lambda,1);
-coeff(fMB,lambda,0);
+coeff(fdZ,lambda,4);
+coeff(fdZ,lambda,3);
+coeff(fdZ,lambda,2);
+coeff(fdZ,lambda,1);
+coeff(fdZ,lambda,0);
 
 fdZ := fdZ*wt;  
 
@@ -301,7 +301,7 @@ simplify(a0 - coeff(fMB2,lambda,0)/gamma^2);</pre>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:50 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:57 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

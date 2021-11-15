@@ -55,8 +55,8 @@
   resolution and for 90 orbits using FARGO.
 
   \image html mhd_spherical_disk.02.png "Density map of the disk after 90 innter orbits at twice the resolution."
-  \authors A. Mignone (mignone@ph.unito.it)\n
-  \date   Aug 16, 2012
+  \authors A. Mignone (mignone@to.infn.it)\n
+  \date    Jul 19, 2019
   
   \b References
      - [Flo11]: "Turbulence and Steady Flows in 3D Global Stratified
@@ -93,6 +93,11 @@ void Init (double *us, double x1, double x2, double x3)
   us[iVR]   = 0.0;
   us[iVTH]  = 1.e-4*cs*cos(8.0*x3)*exp(-2.0*z*z/(H*H));  /* Perturbation */
   us[iVPHI] = 1.0/sqrt(r)*(1.0 - 2.5*c0*c0/s);
+  #ifdef FARGO
+  us[FARGO_W] = 1.0/sqrt(r)*(1.0 - 2.5*c0*c0/s);
+  us[iVPHI]   = 0.0;
+  #endif
+  
   us[PRS]   = cs*cs*us[RHO];
 
   #if PHYSICS == MHD
@@ -235,7 +240,12 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
       BOX_LOOP(box,k,j,i){
         for (nv = 0; nv < NVAR; nv++) d->Vc[nv][k][j][i]= d->Vc[nv][k][j][IBEG];
         s = sin(th[j]);
+        #ifdef FARGO
+        d->Vc[iVPHI][k][j][i] = 0.0;
+        #else
         d->Vc[iVPHI][k][j][i] = 1.0/sqrt(r[i])*(1.0 - 2.5*c0*c0/s);
+        #endif
+        
         if (d->Vc[iVR][k][j][i] > 0.0) d->Vc[iVR][k][j][i] = 0.0;
       }
     }else if (box->vpos == X2FACE){
@@ -254,7 +264,11 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
       BOX_LOOP(box, k, j, i){
         for (nv = 0; nv < NVAR; nv++) d->Vc[nv][k][j][i]= d->Vc[nv][k][j][IEND];
         s = sin(th[j]);
+        #ifdef FARGO
+        d->Vc[iVPHI][k][j][i] = 0.0;
+        #else
         d->Vc[iVPHI][k][j][i] = 1.0/sqrt(r[i])*(1.0 - 2.5*c0*c0/s);
+        #endif
         d->Vc[iVR][k][j][i]   = -d->Vc[iVR][k][j][2*IEND - i + 1];
       }
     }else if (box->vpos == X2FACE){

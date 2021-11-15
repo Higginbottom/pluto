@@ -6,26 +6,26 @@
   Parse and read runtime information from the initialization file 
   pluto.ini (default) and sets value of the runtime structure.
 
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    March 16, 2018
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    June 24, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
 #define NOPT      32              /*  # of possible options in a menu */
-#define NLEN      128              /*  # default string length         */
+#define NLEN      128             /*  # default string length         */
 
 #define COMPARE(s1,s2,ii) \
         for ( (ii) = 1 ; (ii) < NOPT && !(strcmp ( (s1), (s2)) == 0); (ii)++);
 
 /* ********************************************************************* */
-int RuntimeSetup (Runtime *runtime, Cmd_Line *cmd_line, char *ini_file)
+int RuntimeSetup (Runtime *runtime, cmdLine *cmd_line, char *ini_file)
 /*!
  * Open and parse the runtime initialization file. 
  * Assign values to the runtime structure.
  *
- * \param [out]  runtime     pointer to a Runtime structure
- * \param [in]   cmd_line  pointer to a Cmd_Line structure (useful, e.g.,
+ * \param [out]  runtime   pointer to a Runtime structure
+ * \param [in]   cmd_line  pointer to a cmdLine structure (useful, e.g.,
  *                         to resize the domain using the \c -xres option)
  * \param [in]   ini_file  the name of the initialization file (default
  *                         is "pluto.ini") specified with the \c -i option.
@@ -33,6 +33,7 @@ int RuntimeSetup (Runtime *runtime, Cmd_Line *cmd_line, char *ini_file)
  *********************************************************************** */
 {
   int    idim, ip, ipos, itype, nlines;
+  int    include_dir[] = {INCLUDE_IDIR, INCLUDE_JDIR, INCLUDE_KDIR};
   char   *bound_opt[NOPT], str_var[512], *str;
   char  *glabel[]     = {"X1-grid", "X2-grid","X3-grid"};
   char  *bbeg_label[] = {"X1-beg", "X2-beg","X3-beg"};
@@ -58,6 +59,7 @@ int RuntimeSetup (Runtime *runtime, Cmd_Line *cmd_line, char *ini_file)
   bound_opt[PERIODIC]     = "periodic";
   bound_opt[SHEARING]     = "shearingbox";
   bound_opt[USERDEF]      = "userdef";
+  bound_opt[POLARAXIS]    = "polaraxis";
 
   runtime->log_freq = 1; /* -- default -- */
  
@@ -93,7 +95,7 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
       }else if (strcmp(str_var,"l-") == 0){
         runtime->patch_type[idim][ip] = LOGARITHMIC_DEC_GRID;
       }else{ 
-        printf ("\nSetup(): You must specify either 'u', 's', 'l+' or 'l-' as grid-type in %s\n",
+        printf ("\nRuntimeSetup(): You must specify either 'u', 's', 'l+' or 'l-' as grid-type in %s\n",
                 ini_file);
         QUIT_PLUTO(1);
       }
@@ -102,11 +104,11 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
     runtime->patch_left_node[idim][ip] = atof(ParamFileGet(glabel[idim], ++ipos));
 
     if ( (ipos+1) != (runtime->npatch[idim]*3 + 3)) {
-      printf ("! Setup(): domain #%d setup is not properly defined \n", idim);
+      printf ("! RuntimeSetup(): domain #%d setup is not properly defined \n", idim);
       QUIT_PLUTO(1);
     }
-    if (idim >= DIMENSIONS && runtime->npoint[idim] != 1) {
-      printf ("! Setup(): %d point(s) on dim. %d is NOT valid, resetting to 1\n",
+    if ( include_dir[idim] == FALSE && runtime->npoint[idim] != 1 ) {
+      printf ("! RuntimeSetup(): %d point(s) on dim. %d is NOT valid, resetting to 1\n",
               runtime->npoint[idim],idim+1);
       runtime->npoint[idim]          = 1;
       runtime->npatch[idim]          = 1;
@@ -120,9 +122,12 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
 
   if (cmd_line->xres > 1) {
     rx =  (double)cmd_line->xres/(double)runtime->patch_npoint[IDIR][1];
-    for (idim = 0; idim < DIMENSIONS; idim++){
+    for (idim = 0; idim < 3; idim++){
+
+      if (!include_dir[idim]) continue;
+
       if (runtime->npatch[idim] > 1){  
-        printf ("! Setup(): -xres option works on uniform, single patch grid\n");
+        printf ("! RuntimeSetup(): -xres option works on uniform, single patch grid\n");
         QUIT_PLUTO(1);
       }
       
@@ -140,20 +145,29 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
   runtime->cfl         = atof(ParamFileGet("CFL", 1));
 
   if (ParamExist ("CFL_par")) runtime->cfl_par = atof(ParamFileGet("CFL_par", 1));
-  else                        runtime->cfl_par = 0.8/(double)DIMENSIONS;
+  else {
+    int dimensions = INCLUDE_IDIR + INCLUDE_JDIR + INCLUDE_KDIR;
+    runtime->cfl_par = 0.8/(double)dimensions;
+  }
 
   if (ParamExist ("rmax_par")) runtime->rmax_par = atof(ParamFileGet("rmax_par", 1));
   else                         runtime->rmax_par = 100.0;
 
   runtime->cfl_max_var = atof(ParamFileGet("CFL_max_var", 1));
   runtime->tstop       = atof(ParamFileGet("tstop", 1));
+  if (ParamExist ("tfreeze")) runtime->tfreeze = atof(ParamFileGet("tfreeze", 1));
+  else                        runtime->tfreeze = runtime->tstop+1;
   runtime->first_dt    = atof(ParamFileGet("first_dt", 1));
 
 /* ------------------------------------------------------------
    [Solver] Section 
    ------------------------------------------------------------ */
 
-  sprintf (runtime->solv_type,"%s",ParamFileGet("Solver",1));
+  strcpy (runtime->solv_type, ParamFileGet("Solver",1));
+  strcpy (runtime->rad_solv_type,"hll");  /* Default */
+  if (ParamExist ("RadSolver")) {
+    strcpy (runtime->rad_solv_type, ParamFileGet("RadSolver",1));
+  }  
 
 /* ------------------------------------------------------------
    [Boundary] Section 
@@ -164,7 +178,7 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
     str = ParamFileGet(bbeg_label[idim], 1);
     COMPARE (str, bound_opt[itype], itype);
     if (itype == NOPT) {
-      printf ("! Setup(): don't know how to put left boundary '%s'  \n", str);
+      printf ("! RuntimeSetup(): don't know how to put left boundary '%s'  \n", str);
       QUIT_PLUTO(1);
     }
     runtime->left_bound[idim] = itype;
@@ -175,7 +189,7 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
     str = ParamFileGet(bend_label[idim], 1);
     COMPARE (str, bound_opt[itype], itype);
     if (itype == NOPT) {
-      printf ("! Setup(): don't know how to put left boundary '%s'  \n", str);
+      printf ("! RuntimeSetup(): don't know how to put left boundary '%s'  \n", str);
       QUIT_PLUTO(1);
     }
     runtime->right_bound[idim] = itype;
@@ -189,9 +203,9 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
   runtime->user_var = atoi(ParamFileGet("uservar", 1));
   for (ip = 0; ip < runtime->user_var; ip++){
     if ( (str = ParamFileGet("uservar", 2 + ip)) != NULL){
-      sprintf (runtime->user_var_name[ip], "%s", str);
+      strcpy (runtime->user_var_name[ip], str);
     }else{
-      printf ("! Setup(): missing name after user var name '%s'\n", 
+      printf ("! RuntimeSetup(): missing name after user var name '%s'\n", 
               runtime->user_var_name[ip-1]);
       QUIT_PLUTO(1);
     } 
@@ -199,10 +213,10 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
 
 /* ---- set output directory ---- */
 
-  sprintf (runtime->output_dir, "%s","./");  /* default value is current directory */
+  strcpy (runtime->output_dir, "./");  /* default value is current directory */
   if (ParamExist("output_dir")){
     str = ParamFileGet("output_dir",1);
-    sprintf (runtime->output_dir, "%s",str);
+    strcpy (runtime->output_dir, str);
   }
 
 /* -- check if we have write access and if the directory exists -- */
@@ -228,11 +242,11 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
   output->cgs   = 0;  /* cannot write .dbl using cgs units */
   GetOutputFrequency(output, "dbl");
 
-  sprintf (output->mode,"%s",ParamFileGet("dbl",3));
+  strcpy (output->mode, ParamFileGet("dbl",3));
   if (   strcmp(output->mode,"single_file")
       && strcmp(output->mode,"multiple_files")){
      printf (
-     "! Setup(): expecting 'single_file' or 'multiple_files' in dbl output\n");
+     "! RuntimeSetup(): expecting 'single_file' or 'multiple_files' in dbl output\n");
      QUIT_PLUTO(1);
   }     
 
@@ -243,11 +257,11 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
     output->type  = FLT_OUTPUT;
     GetOutputFrequency(output, "flt");
 
-    sprintf (output->mode,"%s",ParamFileGet("flt",3));  
+    strcpy (output->mode, ParamFileGet("flt",3));  
     if (    strcmp(output->mode,"single_file") 
          && strcmp(output->mode,"multiple_files")){
        printf (
-       "! Setup(): expecting 'single_file' or 'multiple_files' in flt output\n");
+       "! RuntimeSetup(): expecting 'single_file' or 'multiple_files' in flt output\n");
        QUIT_PLUTO(1);
     }  
     if (ParamFileHasBoth ("flt","cgs")) output->cgs = 1;
@@ -277,14 +291,14 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
     GetOutputFrequency(output, "vtk");
 
     if (ParamFileGet("vtk",3) == NULL){
-      printf ("! Setup(): extra field missing in vtk output\n");
+      printf ("! RuntimeSetup(): extra field missing in vtk output\n");
       QUIT_PLUTO(1);
     }
-    sprintf (output->mode,"%s",ParamFileGet("vtk",3));
+    strcpy (output->mode, ParamFileGet("vtk",3));
     if (   strcmp(output->mode,"single_file")
         && strcmp(output->mode,"multiple_files")){
-       printf ("! Setup(): expecting 'single_file' or 'multiple_files' in\n");
-       printf ("           vtk output\n");
+       printf ("! RuntimeSetup(): expecting 'single_file' or 'multiple_files' in\n");
+       printf ("                  vtk output\n");
        QUIT_PLUTO(1);
     }
     if (ParamFileHasBoth ("vtk","cgs")) output->cgs = 1;
@@ -324,7 +338,7 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
   strcpy (runtime->log_dir, runtime->output_dir);
   if (ParamExist ("log_dir")){
     str = ParamFileGet("log_dir",1);
-    sprintf (runtime->log_dir, "%s",str);
+    strcpy (runtime->log_dir, str);
   }
   
   runtime->log_freq = atoi(ParamFileGet("log", 1));
@@ -345,14 +359,21 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
    [Particles] Section 
    ------------------------------------------------------------ */
 
-#ifdef PARTICLES
+#if PARTICLES
 
-  runtime->Nparticles_glob = atoi(ParamFileGet("Nparticles", 1));
-  runtime->Nparticles_cell = atoi(ParamFileGet("Nparticles", 2));
+  runtime->Nparticles_glob = (int)atof(ParamFileGet("Nparticles", 1));
+  runtime->Nparticles_cell = (int)atof(ParamFileGet("Nparticles", 2));
   
   if (runtime->Nparticles_glob > 0 && runtime->Nparticles_cell > 0){
-    printf ("! Incorrect number of particles\n");
+    printf ("! RuntimeSetup(): Incorrect number of particles\n");
     QUIT_PLUTO(1);
+  }
+
+/* ---- particles tstart ---- */
+
+  runtime->particles_tstart = 0.0;
+  if (ParamExist ("particles_tstart")) {
+    runtime->particles_tstart = atof(ParamFileGet("particles_tstart", 1));
   }
 
  /* ---- particles dbl output ---- */
@@ -395,33 +416,6 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
     GetOutputFrequency(output, "particles_hdf5");
   }
 
-/* ---- particles analysis ---- */
-
-  if (ParamExist("particles_analysis")){
-   runtime->particles_anl_dt = atof(ParamFileGet("particles_analysis", 1));
-   runtime->particles_anl_dn = atoi(ParamFileGet("particles_analysis", 2));
-   }else{
-    runtime->particles_anl_dt = -1.0;   /* -- defaults -- */
-    runtime->particles_anl_dn = -1;
-  }
-  
-
-/*
-  runtime->particles_dbl_dt = atof(ParamFileGet("particles_dbl", 1));
-  runtime->particles_dbl_dn = atoi(ParamFileGet("particles_dbl", 2));
-
-  runtime->particles_tab_dt = atof(ParamFileGet("particles_tab", 1));
-  runtime->particles_tab_dn = atoi(ParamFileGet("particles_tab", 2));
-
-  runtime->particles_vtu_dt = atof(ParamFileGet("particles_vtu", 1));
-  runtime->particles_vtu_dn = atoi(ParamFileGet("particles_vtu", 2));
-
-  runtime->particles_vtk_dt = atof(ParamFileGet("particles_vtk", 1));
-  runtime->particles_vtk_dn = atoi(ParamFileGet("particles_vtk", 2));
-
-  runtime->particles_anl_dt = atof(ParamFileGet("particles_analysis", 1));
-  runtime->particles_anl_dn = atoi(ParamFileGet("particles_analysis", 2));
-*/
 #endif
 
  /* -- set default for remaining output type -- */
@@ -444,10 +438,10 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
 
 /* ---- set output directory ---- */
 
-  sprintf (runtime->output_dir, "%s","./");  /* default value is current directory */
+  strcpy (runtime->output_dir, "./");  /* default value is current directory */
   if (ParamExist("Output_dir")){
     str = ParamFileGet("Output_dir",1);
-    sprintf (runtime->output_dir, "%s",str);
+    strcpy (runtime->output_dir, str);
   }
 
 /* -- check if we have write access and if the directory exists -- */
@@ -455,9 +449,9 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
   sprintf (str_var,"%s/tmp09123.txt",runtime->output_dir); /* -- test file -- */
   fp = fopen(str_var,"w");  /* -- open test file for writing -- */
   if (fp == NULL){
-    printf ("! Setup(): cannot access directory '%s'.\n", runtime->output_dir);
-    printf ("!        Please check that the directory exists\n");
-    printf ("!        and you have write permission.\n");
+    printf ("! RuntimeSetup(): cannot access directory '%s'.\n", runtime->output_dir);
+    printf ("!                 Please check that the directory exists\n");
+    printf ("!                 and you have write permission.\n");
     QUIT_PLUTO(1);
   }else{
     fclose(fp);
@@ -552,7 +546,6 @@ void GetOutputFrequency(Output *output, const char *output_format)
     output->dclock = -1.0;    
     output->dn     = atoi(ParamFileGet(output_format, 2));
   }
-
 }
 
 /* ********************************************************************* */
@@ -564,7 +557,12 @@ void RuntimeSet(Runtime *runtime)
 {
   q = *runtime;
 }
+
+/* ********************************************************************* */
 Runtime *RuntimeGet(void)
+/*!
+ *  Return a pointer to runtime structure.
+ *********************************************************************** */
 {
   return &q;
 }

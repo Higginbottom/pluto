@@ -173,9 +173,9 @@ double TProfile (double x1, double x2, double x3, double t)
   Tc = zeta1*zeta1*zeta1/(rf*rf*rf)*Q*pow(n*zeta1*zeta1*p/2.0, 1.0/n);
 
   #if GEOMETRY == CARTESIAN || GEOMETRY == CYLINDRICAL
-  r = sqrt(D_EXPAND(x1*x1, + x2*x2, + x3*x3));
+  r = sqrt(DIM_EXPAND(x1*x1, + x2*x2, + x3*x3));
   #elif GEOMETRY == POLAR
-  r = sqrt(D_EXPAND(x1*x1, + 0.0, + x3*x3));
+  r = sqrt(DIM_EXPAND(x1*x1, + 0.0, + x3*x3));
   #elif GEOMETRY == SPHERICAL
   r = x1;
   #endif
@@ -226,9 +226,9 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
 
   if (side == 0) {    /* -- check solution inside domain -- */
     DOM_LOOP(k,j,i){
-      EXPAND(d->Vc[VX1][k][j][i] = 0.0;  ,
-             d->Vc[VX2][k][j][i] = 0.0;  ,
-             d->Vc[VX3][k][j][i] = 0.0;)
+      d->Vc[VX1][k][j][i] = 0.0; 
+      d->Vc[VX2][k][j][i] = 0.0;  
+      d->Vc[VX3][k][j][i] = 0.0;
     }
     #if ENTROPY_SWITCH == YES
      TOT_LOOP(k,j,i) d->flag[k][j][i] |= FLAG_ENTROPY;
@@ -240,18 +240,14 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
       BOX_LOOP(box,k,j,i){
         x1 = grid->x[IDIR][i];
         d->Vc[RHO][k][j][i] =  d->Vc[RHO][k][j][2*IBEG - i - 1];
-        EXPAND(
-          d->Vc[VX1][k][j][i] = -d->Vc[VX1][k][j][2*IBEG - i - 1];  ,
-          d->Vc[VX2][k][j][i] =  d->Vc[VX2][k][j][2*IBEG - i - 1];  ,
-          d->Vc[VX3][k][j][i] =  d->Vc[VX3][k][j][2*IBEG - i - 1];  
-        )
+        d->Vc[VX1][k][j][i] = -d->Vc[VX1][k][j][2*IBEG - i - 1]; 
+        d->Vc[VX2][k][j][i] =  d->Vc[VX2][k][j][2*IBEG - i - 1];  
+        d->Vc[VX3][k][j][i] =  d->Vc[VX3][k][j][2*IBEG - i - 1];  
         d->Vc[PRS][k][j][i] =  d->Vc[PRS][k][j][2*IBEG - i - 1];
         #if PHYSICS == MHD
-         EXPAND(
-           d->Vc[BX1][k][j][i] = d->Vc[BX1][k][j][2*IBEG - i - 1];  ,
-           d->Vc[BX2][k][j][i] = d->Vc[BX2][k][j][2*IBEG - i - 1];  ,
-           d->Vc[BX3][k][j][i] = d->Vc[BX3][k][j][2*IBEG - i - 1];  
-         )
+        d->Vc[BX1][k][j][i] = d->Vc[BX1][k][j][2*IBEG - i - 1];  
+        d->Vc[BX2][k][j][i] = d->Vc[BX2][k][j][2*IBEG - i - 1];  
+        d->Vc[BX3][k][j][i] = d->Vc[BX3][k][j][2*IBEG - i - 1];  
         #endif
       }
     }

@@ -1,12 +1,9 @@
 #include "pluto.h"
 
-/* ******************************************************************** */
+/* ********************************************************************* */
 void GetGradient (double ***T, double **gradT, 
                   int beg, int end, Grid *grid)
-/*
- *
- * PURPOSE
- *
+/*!
  *   Compute the gradient of a 3D scalar quantity T in the direction
  *   given by g_dir.
  *   Return a 1D array (dT/dx, dT/dy, dT/dz) along that direction 
@@ -38,7 +35,7 @@ void GetGradient (double ***T, double **gradT,
  *   14 Apr 2011 by T. Matsakos, A. Mignone
  *
  *
- ************************************************************* */
+ *********************************************************************** */
 {
   int  i,j,k;
   double *r, *rp;
@@ -47,35 +44,37 @@ void GetGradient (double ***T, double **gradT,
   double dl1, dl2, dl3, theta, r_1, s_1;
   double dx1, dx2, dx3;
   
-  D_EXPAND(inv_dx  = grid->inv_dx[IDIR]; inv_dxi = grid->inv_dxi[IDIR];  ,
-           inv_dy  = grid->inv_dx[JDIR]; inv_dyi = grid->inv_dxi[JDIR];  ,
-           inv_dz  = grid->inv_dx[KDIR]; inv_dzi = grid->inv_dxi[KDIR];)
+  inv_dx  = grid->inv_dx[IDIR]; inv_dxi = grid->inv_dxi[IDIR];
+  inv_dy  = grid->inv_dx[JDIR]; inv_dyi = grid->inv_dxi[JDIR];
+  inv_dz  = grid->inv_dx[KDIR]; inv_dzi = grid->inv_dxi[KDIR];
 
   r  = grid->x[IDIR];
   rp = grid->xr[IDIR];
 
-  i = g_i; j = g_j; k = g_k;
+  i = g_i;
+  j = g_j;
+  k = g_k;
 
   if (g_dir == IDIR) {
 
     #if GEOMETRY == SPHERICAL
-     theta = grid->x[JDIR][j];
-     s_1   = 1.0/sin(theta);
+    theta = grid->x[JDIR][j];
+    s_1   = 1.0/sin(theta);
     #endif
-    D_EXPAND(                 ,
+    DIM_EXPAND(                 ,
       dl2 = dx2 = inv_dy[j];  ,
       dl3 = dx3 = inv_dz[k];
     )
     for (i = beg; i <= end; i++){
       dl1 = inv_dxi[i];  
       #if GEOMETRY == POLAR && DIMENSIONS >= 2
-       dl2 = dx2/rp[i]; 
+      dl2 = dx2/rp[i]; 
       #elif GEOMETRY == SPHERICAL
-       D_EXPAND(               ,
-         dl2 = dx2/rp[i];      ,
-         dl3 = dx3*s_1/rp[i];)
+      DIM_EXPAND(                      ,
+               dl2 = dx2/rp[i];      ,
+               dl3 = dx3*s_1/rp[i];)
       #endif
-      D_EXPAND( 
+      DIM_EXPAND( 
         gradT[i][0] = (T[k][j][i+1] - T[k][j][i])*dl1;         ,
         gradT[i][1] = 0.25*(  T[k][j+1][i] + T[k][j+1][i+1]
                             - T[k][j-1][i] - T[k][j-1][i+1])*dl2;  ,
@@ -87,7 +86,7 @@ void GetGradient (double ***T, double **gradT,
   }else if (g_dir == JDIR) {
 
     r_1  = 1.0/r[i];
-    D_EXPAND(
+    DIM_EXPAND(
       dl1 = dx1 = inv_dx[i];   ,
                                ,
       dl3 = dx3 = inv_dz[k];
@@ -95,19 +94,19 @@ void GetGradient (double ***T, double **gradT,
     for (j = beg; j <= end; j++){
       dl2 = inv_dyi[j]; 
       #if GEOMETRY == POLAR
-       dl2 *= r_1;
+      dl2 *= r_1;
       #elif GEOMETRY == SPHERICAL
-       D_EXPAND(               ,
-                dl2  *= r_1;   ,
-                theta = grid->xr[JDIR][j];
-                dl3   = dx3*r_1/sin(theta);)
+      DIM_EXPAND(               ,
+               dl2  *= r_1;   ,
+               theta = grid->xr[JDIR][j];
+               dl3   = dx3*r_1/sin(theta);)
       #endif
-       D_EXPAND( 
-        gradT[j][0] = 0.25*(  T[k][j][i+1] + T[k][j+1][i+1]
-                            - T[k][j][i-1] - T[k][j+1][i-1])*dl1;   ,
-        gradT[j][1] = (T[k][j+1][i] - T[k][j][i])*dl2;              ,
-        gradT[j][2] = 0.25*(  T[k+1][j][i] + T[k+1][j+1][i]
-                            - T[k-1][j][i] - T[k-1][j+1][i])*dl3;
+      DIM_EXPAND( 
+               gradT[j][0] = 0.25*(  T[k][j][i+1] + T[k][j+1][i+1]
+                                   - T[k][j][i-1] - T[k][j+1][i-1])*dl1;   ,
+               gradT[j][1] = (T[k][j+1][i] - T[k][j][i])*dl2;              ,
+               gradT[j][2] = 0.25*(  T[k+1][j][i] + T[k+1][j+1][i]
+                                   - T[k-1][j][i] - T[k-1][j+1][i])*dl3;
       )
     }
   
@@ -116,12 +115,12 @@ void GetGradient (double ***T, double **gradT,
     dl1 = inv_dx[i];            
     dl2 = inv_dy[j]; 
     #if GEOMETRY == POLAR || GEOMETRY == SPHERICAL
-     r_1  = 1.0/r[i];
-     dl2 *= r_1; 
+    r_1  = 1.0/r[i];
+    dl2 *= r_1; 
     #endif
     #if GEOMETRY == SPHERICAL
-     theta = grid->x[JDIR][j];
-     s_1   = 1.0/sin(theta);
+    theta = grid->x[JDIR][j];
+    s_1   = 1.0/sin(theta);
     #endif
 
     for (k = beg; k <= end; k++){

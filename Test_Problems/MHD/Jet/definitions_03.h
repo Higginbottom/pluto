@@ -1,14 +1,12 @@
 #define  PHYSICS                        MHD
-#define  DIMENSIONS                     2
-#define  COMPONENTS                     2
-#define  GEOMETRY                       CYLINDRICAL
+#define  DIMENSIONS                     3
+#define  GEOMETRY                       POLAR
 #define  BODY_FORCE                     NO
-#define  FORCED_TURB                    NO
 #define  COOLING                        NO
 #define  RECONSTRUCTION                 PARABOLIC
 #define  TIME_STEPPING                  CHARACTERISTIC_TRACING
-#define  DIMENSIONAL_SPLITTING          NO
 #define  NTRACER                        1
+#define  PARTICLES                      NO
 #define  USER_DEF_PARAMETERS            4
 
 /* -- physics dependent declarations -- */
@@ -33,11 +31,13 @@
 
 /* [Beg] user-defined constants (do not change this line) */
 
-#define  SHOCK_FLATTENING               MULTID
-#define  CHAR_LIMITING                  YES
-#define  LIMITER                        MC_LIM
-#define  CT_EMF_AVERAGE                 UCT0
 #define  ASSIGN_VECTOR_POTENTIAL        YES
-#define  CHECK_DIVB_CONDITION           TRUE
+#define  CHAR_LIMITING                  YES
+#define  CHECK_DIVB_CONDITION           YE
+#define  CHECK_ROE_MATRIX               YES
+#define  CT_EMF_AVERAGE                 UCT0
+#define  INCLUDE_JDIR                   NO
+#define  LIMITER                        MC_LIM
+#define  SHOCK_FLATTENING               MULTID
 
 /* [End] user-defined constants (do not change this line) */

@@ -1,55 +1,113 @@
+/* ///////////////////////////////////////////////////////////////////// */
+/*!
+  \file
+  \brief MHD rotated shock tube problem.
+
+  \author A. Mignone (mignone@ph.unito.it)
+  \date   Nov 27, 2018
+
+  \b Reference: 
+     - [MT10] "A second-order unsplit Godunov scheme for cell-centered MHD: The CTU-GLM scheme"
+        Mignone \& Tzeferacos, JCP (2010) 229, 2217
+*/
+/* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
+#include "rotate.h"
 
 /* ********************************************************************* */
-void Init (double *us, double x1, double x2, double x3)
+void Init (double *v, double x, double y, double z)
 /*
- *
- *
  *
  *********************************************************************** */
 {
-  double x,y;
-  double c,s,alpha;
-
+  static int first_call = 1;
+  int    jx = g_inputParam[INT_JX];
+  int    jy = g_inputParam[INT_JY];
+  int    kx = g_inputParam[INT_KX];
+  int    kz = g_inputParam[INT_KZ];
+  double xm = 0.5*(g_domEnd[IDIR] + g_domBeg[IDIR]); /* Initial discontinuity */
+                                                     /* location             */
+  double ym = 0.5*(g_domEnd[JDIR] + g_domBeg[JDIR]); /* Initial discontinuity */
+                                                     /* location             */
+  double xcoord[3];
+  
   g_gamma = g_inputParam[GAMMA_EOS];
 
-  alpha = atan(2.0);
+/* ----------------------------------------------
+   0. Initialize Rotation
+   ---------------------------------------------- */
+
+  RotateSet(jx,jy,kx,kz);
+
+/* ----------------------------------------------
+   1. Rotate coordinate to 1D frame.
+      The center of rotation is the point (0.5,0)
+      of the original frame.
+   ---------------------------------------------- */
+
+  xcoord[0] = x-xm; xcoord[1] = y; xcoord[2] = z;
+  RotateVector(xcoord, 1);
+  x = xcoord[0]; y = xcoord[1]; z = xcoord[2];
   
-  x = x1; 
-  y = x2;
+/* ----------------------------------------------
+   2. Assign initial conditions.
+      We use a small negative value (-1.e-12) so
+      that the row of zones immediately above
+      the midplane line is discontinuous at
+      x = 0;
+   ---------------------------------------------- */
 
-  c = cos(alpha);
-  s = sin(alpha);
-  
-  if ( (s*y + c*(x - 0.5)) < 1.e-6){
-
-    us[RHO] = g_inputParam[RHO_LEFT];
-    us[VX1] = g_inputParam[VX_LEFT]*c - g_inputParam[VY_LEFT]*s;
-    us[VX2] = g_inputParam[VY_LEFT]*c + g_inputParam[VX_LEFT]*s;
-    us[VX3] = g_inputParam[VZ_LEFT];
-    us[BX1] = g_inputParam[BX_CONST]*c - g_inputParam[BY_LEFT]*s;
-    us[BX2] = g_inputParam[BY_LEFT]*c  + g_inputParam[BX_CONST]*s;
-    us[BX3] = g_inputParam[BZ_LEFT];
-    us[PRS] = g_inputParam[PR_LEFT];
-
+  if ( x <= 1.e-6 ){   
+    v[RHO] = g_inputParam[RHO_LEFT];
+    v[VX1] = g_inputParam[VX_LEFT];
+    v[VX2] = g_inputParam[VY_LEFT];
+    v[VX3] = g_inputParam[VZ_LEFT];
+    v[BX1] = g_inputParam[BX_CONST];
+    v[BX2] = g_inputParam[BY_LEFT];
+    v[BX3] = g_inputParam[BZ_LEFT];
+    v[PRS] = g_inputParam[PR_LEFT];
   }else{
-
-    us[RHO] = g_inputParam[RHO_RIGHT];
-    us[VX1] = g_inputParam[VX_RIGHT]*c - g_inputParam[VY_RIGHT]*s;
-    us[VX2] = g_inputParam[VY_RIGHT]*c + g_inputParam[VX_RIGHT]*s;
-    us[VX3] = g_inputParam[VZ_RIGHT];
-    us[BX1] = g_inputParam[BX_CONST]*c - g_inputParam[BY_RIGHT]*s;
-    us[BX2] = g_inputParam[BY_RIGHT]*c + g_inputParam[BX_CONST]*s;
-    us[BX3] = g_inputParam[BZ_RIGHT];
-    us[PRS] = g_inputParam[PR_RIGHT];
+    v[RHO] = g_inputParam[RHO_RIGHT];
+    v[VX1] = g_inputParam[VX_RIGHT];
+    v[VX2] = g_inputParam[VY_RIGHT];
+    v[VX3] = g_inputParam[VZ_RIGHT];
+    v[BX1] = g_inputParam[BX_CONST];
+    v[BX2] = g_inputParam[BY_RIGHT];
+    v[BX3] = g_inputParam[BZ_RIGHT];
+    v[PRS] = g_inputParam[PR_RIGHT];
   }
 
-  us[BX1] /= sqrt(4.0*CONST_PI);
-  us[BX2] /= sqrt(4.0*CONST_PI);
-  us[BX3] /= sqrt(4.0*CONST_PI);
+  #if DIVIDE_BY_4PI == TRUE
+  v[BX1] /= sqrt(4.0*CONST_PI);
+  v[BX2] /= sqrt(4.0*CONST_PI);
+  v[BX3] /= sqrt(4.0*CONST_PI);
+  #endif
 
-  us[AX1] = us[AX2] = 0.0;
-  us[AX3] = y*us[BX1] - x*us[BX2];
+  #if PHYSICS == ResRMHD
+  v[EX1] = -(v[VX2]*v[BX3] - v[VX3]*v[BX2]); 
+  v[EX2] = -(v[VX3]*v[BX1] - v[VX1]*v[BX3]); 
+  v[EX3] = -(v[VX1]*v[BX2] - v[VX2]*v[BX1]); 
+
+  v[CRG] = 0.0;
+  #endif
+
+  v[AX1] = 0.0;
+  v[AX2] = x*v[BX3];
+  v[AX3] = y*v[BX1] - x*v[BX2];
+
+/* ----------------------------------------------
+   3. Rotate vectors from 1D frame to 2D frame
+      [counter-clockwise]
+   ---------------------------------------------- */
+
+  RotateVector (v + AX1, -1);
+  RotateVector (v + VX1, -1);
+  RotateVector (v + BX1, -1);
+
+  #if PHYSICS == ResRMHD
+  RotateVector (v + EX1, -1);
+  #endif
+
 }
 
 /* ********************************************************************* */
@@ -77,53 +135,9 @@ void Analysis (const Data *d, Grid *grid)
 /* ********************************************************************* */
 void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid) 
 /*! 
- *  Assign user-defined boundary conditions.
  *
- * \param [in/out] d  pointer to the PLUTO data structure containing
- *                    cell-centered primitive quantities (d->Vc) and 
- *                    staggered magnetic fields (d->Vs, when used) to 
- *                    be filled.
- * \param [in] box    pointer to a RBox structure containing the lower
- *                    and upper indices of the ghost zone-centers/nodes
- *                    or edges at which data values should be assigned.
- * \param [in] side   specifies on which side boundary conditions need 
- *                    to be assigned. side can assume the following 
- *                    pre-definite values: X1_BEG, X1_END,
- *                                         X2_BEG, X2_END, 
- *                                         X3_BEG, X3_END.
- *                    The special value side == 0 is used to control
- *                    a region inside the computational domain.
- * \param [in] grid  pointer to an array of Grid structures.
  *
  *********************************************************************** */
 {
-  int   i, j, k, nv;
-  double  x1, x2, x3;
-
-  if (side == X2_BEG){  /* -- X2_BEG boundary -- */
-    k = 0;
-    for (j = JBEG;  j--;  ) {
-    for (i = 1; i < NX1_TOT; i++){
-      for (nv = NVAR; nv--; ){
-        d->Vc[nv][k][j][i] = d->Vc[nv][k][j + 1][i - 1];
-      }
-      #ifdef STAGGERED_MHD
-       d->Vs[BX1s][k][j][i] = d->Vs[BX1s][k][j + 1][i - 1];
-      #endif
-    }}
-  }
-
-  if (side == X2_END){  /* -- X2_END boundary -- */
-    k = 0;
-    for (j = JEND + 1; j < NX2_TOT; j++) {
-    for (i = 0; i < NX1_TOT - 1; i++){
-      for (nv = NVAR; nv--; ){
-        d->Vc[nv][k][j][i] = d->Vc[nv][k][j - 1][i + 1];
-      }
-      #ifdef STAGGERED_MHD
-       d->Vs[BX1s][k][j][i] = d->Vs[BX1s][k][j - 1][i + 1];
-      #endif
-    }}
-  }
+  RotateBoundary(d, box, side, grid);
 }
-

@@ -44,7 +44,7 @@ void InitDomain (Data *d, Grid *grid)
 
 
 #if ADD_TURBULENCE == YES
-  id = InputDataOpen ("rho0.dbl","grid0.out"," ", 0);
+  id = InputDataOpen ("rho0.dbl","grid0.out"," ", 0, CENTER);
   TOT_LOOP(k,j,i){
     d->Vc[RHO][k][j][i] = InputDataInterpolate(id,x1[i],x2[j],x3[k]);
   }
@@ -58,7 +58,7 @@ void InitDomain (Data *d, Grid *grid)
   TOT_LOOP(k,j,i){
 
     #if GEOMETRY == CARTESIAN
-    r = D_EXPAND(x1[i]*x1[i], + x2[j]*x2[j], + x3[k]*x3[k]);
+    r = DIM_EXPAND(x1[i]*x1[i], + x2[j]*x2[j], + x3[k]*x3[k]);
     r = sqrt(r);
     #elif GEOMETRY == POLAR
     r = x1[i]; 
@@ -83,9 +83,9 @@ void InitDomain (Data *d, Grid *grid)
 
   /* -- Static medium, v = 0 -- */
 
-    EXPAND(d->Vc[VX1][k][j][i] = 0.0; ,
-           d->Vc[VX2][k][j][i] = 0.0; ,
-           d->Vc[VX3][k][j][i] = 0.0;)
+    d->Vc[VX1][k][j][i] = 0.0; 
+    d->Vc[VX2][k][j][i] = 0.0;
+    d->Vc[VX3][k][j][i] = 0.0;
   }
   
 }

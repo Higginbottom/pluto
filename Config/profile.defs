@@ -5,8 +5,10 @@
 ########################################################################
 
 CC       = gcc
-CFLAGS   = -c -O3 -pg
-LDFLAGS  = -lm -pg
+#CFLAGS   = -c -O3 -pg
+#LDFLAGS  = -lm -pg
+CFLAGS   = -c -g 
+LDFLAGS  = -lm -g 
 
 PARALLEL = FALSE
 USE_HDF5 = FALSE

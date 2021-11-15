@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -80,17 +80,17 @@ Functions</h2></td></tr>
 <tr class="separator:a49b09beda24f570deda9439369c9c3af"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Take one step in the solution of the diffusion equation <img class="formulaInl" alt="$ dQ/dt = F$" src="form_251.png"/> using Runge-Kutta-Chebyshev (RKC) method. </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ \begin{array}{lcl} Y_0 &amp; = &amp; Q^n \\ \noalign{\medskip} Y_1 &amp; = &amp; Y_0 + \tilde{\mu}_1\tau F_0 \\ \noalign{\medskip} Y_j &amp; = &amp; (1 - \mu_j - \nu_j) Y_0 + \mu_j Y_{j-1} + \nu_j Y_{j-2} + \tilde{\mu}_j \tau F_{j-1} + \tilde{\gamma}_j\tau F_0 \quad \rm{for} \quad j = 2,...,s \\ \noalign{\medskip} Q^{n+1} &amp; = &amp; Y_s \end{array} \]" src="form_252.png"/>
+<div class="textblock"><p>Take one step in the solution of the diffusion equation <img class="formulaInl" alt="$ dQ/dt = F$" src="form_258.png"/> using Runge-Kutta-Chebyshev (RKC) method. </p><p class="formulaDsp">
+<img class="formulaDsp" alt="\[ \begin{array}{lcl} Y_0 &amp; = &amp; Q^n \\ \noalign{\medskip} Y_1 &amp; = &amp; Y_0 + \tilde{\mu}_1\tau F_0 \\ \noalign{\medskip} Y_j &amp; = &amp; (1 - \mu_j - \nu_j) Y_0 + \mu_j Y_{j-1} + \nu_j Y_{j-2} + \tilde{\mu}_j \tau F_{j-1} + \tilde{\gamma}_j\tau F_0 \quad \rm{for} \quad j = 2,...,s \\ \noalign{\medskip} Q^{n+1} &amp; = &amp; Y_s \end{array} \]" src="form_259.png"/>
 </p>
 <p> where </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[\tau = \Delta t,\, \tilde{\mu}_1 = b_1 w_1,\, \mu_j = 2 b_j \frac{w_0}{b_{j-1}}, \, \nu_j = -\frac{b_j}{b_{j-2}},\, \tilde{\mu}_j = 2 b_j \frac{w_1}{b_{j-1}},\, \tilde{\gamma}_j = -\alpha_{j-1} \tilde{\mu}_j,\, \]" src="form_253.png"/>
+<img class="formulaDsp" alt="\[\tau = \Delta t,\, \tilde{\mu}_1 = b_1 w_1,\, \mu_j = 2 b_j \frac{w_0}{b_{j-1}}, \, \nu_j = -\frac{b_j}{b_{j-2}},\, \tilde{\mu}_j = 2 b_j \frac{w_1}{b_{j-1}},\, \tilde{\gamma}_j = -\alpha_{j-1} \tilde{\mu}_j,\, \]" src="form_260.png"/>
 </p>
  <p class="formulaDsp">
-<img class="formulaDsp" alt="\[ \alpha_j = 1 - b_j T_j(w_0),\, w_0 = 1 + \epsilon/s^2,\, w_1 = T'_s(w_0)/T''_s(w_0),\, b_j = T''_j(w_0)/(T'_j(w_0))^2,\, b0=b1=b2,\, \epsilon = 2/13 \]" src="form_254.png"/>
+<img class="formulaDsp" alt="\[ \alpha_j = 1 - b_j T_j(w_0),\, w_0 = 1 + \epsilon/s^2,\, w_1 = T'_s(w_0)/T''_s(w_0),\, b_j = T''_j(w_0)/(T'_j(w_0))^2,\, b0=b1=b2,\, \epsilon = 2/13 \]" src="form_261.png"/>
 </p>
 <p> Here the <em>T's</em> are the Chebyshev polynomial of the first kind: </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ T_j(x) = \cos(j {\rm arccos(x)}) ,\, T_0(x) = 1,\, T_1(x)=x,\, T_j(x)=2*x*T_jm1(x) - T_jm2(x), \quad \rm{for}\quad j = 2,...,s \]" src="form_255.png"/>
+<img class="formulaDsp" alt="\[ T_j(x) = \cos(j {\rm arccos(x)}) ,\, T_0(x) = 1,\, T_1(x)=x,\, T_j(x)=2*x*T_jm1(x) - T_jm2(x), \quad \rm{for}\quad j = 2,...,s \]" src="form_262.png"/>
 </p>
 <p> while sprad=Spectral_Radius-&gt; 4,8,12 kappa/dx/dx (check)</p>
 <p>Only the parabolic terms of the equations are advanced by a single step <a class="el" href="pluto_8h.html#a8785f6205414f260ae9da151a78c818a">g_dt</a> equal to the current integration time step and the number of RKC steps (Nrkc) is computed... The explicit parabolic time step is computed in the same manner as in <a class="el" href="sts_8c.html#ad81394baa6d616cccc2eab3cd3da0ca4">STS</a>.</p>
@@ -145,7 +145,7 @@ Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:51 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:58 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

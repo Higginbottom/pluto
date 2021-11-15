@@ -5,9 +5,9 @@
 
   Contains functions for the GLM module.
 
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \authors A. Mignone (mignone@to.infn.it)\n
            P. Tzeferacos (petros.tzeferacos@ph.unito.it)
-  \date    Dec 04, 2017
+  \date    Sep 03, 2020
 
   \b Reference
      - "Hyperbolic Divergence Cleaning for the MHD equations" 
@@ -91,8 +91,8 @@ void GLM_Solve (const Sweep *sweep, int beg, int end, Grid *grid)
       wp[i] =  0.5*(dB + dpsi/glm_ch);
     }
     for (i = beg; i <= end+1; i++){
-      dB  = MC(wm[i], wm[i-1]);
-      dB += MC(wp[i], wp[i-1]);
+      dB  = MC_LIMITER(wm[i], wm[i-1]);
+      dB += MC_LIMITER(wp[i], wp[i-1]);
       Bxp[i] = v[i][BXn] + 0.5*dB;
       Bxm[i] = v[i][BXn] - 0.5*dB;
     }
@@ -123,10 +123,10 @@ void GLM_Solve (const Sweep *sweep, int beg, int end, Grid *grid)
     Bm   = 0.5*(vL[BXn]     + vR[BXn])     - 0.5*dpsi/glm_ch;
     psim = 0.5*(vL[PSI_GLM] + vR[PSI_GLM]) - 0.5*glm_ch*dB;
 
-    sweep->bn[i] = vL[BXn] = vR[BXn] = Bm;
-    vL[PSI_GLM] = vR[PSI_GLM] = psim;
+    sweep->Bn[i] = vL[BXn] = vR[BXn] = Bm;
+    vL[PSI_GLM]  = vR[PSI_GLM] = psim;
 
-    #if PHYSICS == RMHD && RESISTIVITY != NO
+    #if PHYSICS == ResRMHD
     {
       double dE, dphi, Em, phim;
 
@@ -136,8 +136,8 @@ void GLM_Solve (const Sweep *sweep, int beg, int end, Grid *grid)
       Em   = 0.5*(vL[EXn]     + vR[EXn])     - 0.5*dphi/glm_ch;
       phim = 0.5*(vL[PHI_GLM] + vR[PHI_GLM]) - 0.5*glm_ch*dE;
 
-      vL[EXn] = vR[EXn] = Em;
-      vL[PHI_GLM] = vR[PHI_GLM] = phim;
+      sweep->En[i] = vL[EXn] = vR[EXn] = Em;
+      vL[PHI_GLM]  = vR[PHI_GLM] = phim;
     }
     #endif
   }
@@ -154,40 +154,55 @@ void GLM_Solve (const Sweep *sweep, int beg, int end, Grid *grid)
 }
 
 /* ********************************************************************* */
-void GLM_Source (const Data_Arr Q, double dt, Grid *grid)
+void GLM_Source (const Data *data, double dt, Grid *grid)
 /*!
- * Include the parabolic source term of the Lagrangian multiplier
+ * Include the damping source term of the Lagrangian multiplier
  * equation in a split fashion for the mixed GLM formulation. 
  * Ref. Mignone & Tzeferacos, JCP (2010) 229, 2117, Equation (27).
  *   
- *
  *********************************************************************** */
 {
   int    i,j,k;
+  int    dimensions = INCLUDE_IDIR + INCLUDE_JDIR + INCLUDE_KDIR;
   double cr, cp, scrh;
-  double dx, dy, dz, dtdx;
-
+  double dx, dy, dz, dtdh, dh;
+  double *dx1 = grid->dx[IDIR];
+  double *dx2 = grid->dx[JDIR];
+  double *dx3 = grid->dx[KDIR];
+  
 #ifdef CHOMBO
-  dtdx = dt;
+  dtdh = dt;
 #else
   dx   = grid->dx[IDIR][IBEG];
-  dtdx = dt/dx;
+  dtdh = dt/dx;
 #endif
 
   cp   = sqrt(dx*glm_ch/GLM_ALPHA);
-  scrh = dtdx*glm_ch*GLM_ALPHA; 
+  scrh = dtdh*glm_ch*GLM_ALPHA; 
 
   scrh = exp(-scrh);
 #ifdef CHOMBO
-  DOM_LOOP(k,j,i) Q[k][j][i][PSI_GLM] *= scrh;
+  DOM_LOOP(k,j,i) {
+    data->Uc[k][j][i][PSI_GLM] *= scrh;
+    data->Vc[PSI_GLM][k][j][i]  = data->Uc[k][j][i][PSI_GLM];
+  }
 #else
   DOM_LOOP(k,j,i) {
-    #if PHYSICS == MHD || (PHYSICS == RMHD && RESISTIVITY == NO)
-    Q[PSI_GLM][k][j][i] *= scrh;
-    #elif (PHYSICS == RMHD) && (RESISTIVITY != NO)
-    scrh = exp(-dt);
-    Q[PSI_GLM][k][j][i] *= scrh;
-    Q[PHI_GLM][k][j][i] *= scrh;
+    #if (PHYSICS == MHD) || (PHYSICS == RMHD)
+    data->Vc[PSI_GLM][k][j][i] *= scrh;
+    data->Uc[k][j][i][PSI_GLM] = data->Vc[PSI_GLM][k][j][i];
+    #elif (PHYSICS == ResRMHD)
+
+   /* -- Compute dh as the harmonic mean of dx's in different directions -- */
+   
+    scrh = DIM_EXPAND(1.0/dx1[i], + 1.0/dx2[j], + 1.0/dx3[k]);
+    dh   = dimensions/scrh;
+
+    scrh = exp(-dt/dh);
+    data->Vc[PSI_GLM][k][j][i] *= scrh;
+    data->Vc[PHI_GLM][k][j][i] *= scrh;
+    data->Uc[k][j][i][PSI_GLM] = data->Vc[PSI_GLM][k][j][i];
+    data->Uc[k][j][i][PHI_GLM] = data->Vc[PHI_GLM][k][j][i];
     #endif
   }  
 #endif
@@ -215,7 +230,7 @@ void GLM_ExtendedSource (const Sweep *sweep, double dt,
   static double *divB, *dpsi, *Bp, *pp;
 /* 
   #if PHYSICS == RMHD
-   print ("! EGLM not working for the RMHD module\n");
+   printLog ("! EGLM not working for the RMHD module\n");
    QUIT_PLUTO(1);
   #endif
 */
@@ -302,19 +317,19 @@ void GLM_ExtendedSource (const Sweep *sweep, double dt,
     v   = stateC->v[i];
     rhs = sweep->rhs[i];
 
-    EXPAND(bx = v[BX1];  ,
-           by = v[BX2];  ,
-           bz = v[BX3];)
+    bx = v[BX1];
+    by = v[BX2];
+    bz = v[BX3];
 
     #if BACKGROUND_FIELD == YES
-    EXPAND(bx += stateC->Bbck[i][IDIR];  ,
-           by += stateC->Bbck[i][JDIR];  ,
-           bz += stateC->Bbck[i][KDIR];)
+    bx += stateC->Bbck[i][IDIR];
+    by += stateC->Bbck[i][JDIR];
+    bz += stateC->Bbck[i][KDIR];
     #endif
 
-    EXPAND (rhs[MX1] -= dt*divB[i]*bx;  ,
-            rhs[MX2] -= dt*divB[i]*by;  ,
-            rhs[MX3] -= dt*divB[i]*bz;)
+    rhs[MX1] -= dt*divB[i]*bx;
+    rhs[MX2] -= dt*divB[i]*by;
+    rhs[MX3] -= dt*divB[i]*bz;
 
     #if HAVE_ENERGY
     rhs[ENG] -= dt*v[BXn]*dpsi[i];
@@ -353,7 +368,7 @@ void GLM_Init (const Data *d, const timeStep *Dts, Grid *grid)
     state.v  = v;
     state.a2 = cs2;
      
-    for (g_dir = 0; g_dir < DIMENSIONS; g_dir++){
+    DIM_LOOP(g_dir){
 
       RBoxDefine(IBEG, IEND, JBEG, JEND, KBEG, KEND, CENTER, &sweepBox);
       RBoxSetDirections (&sweepBox, g_dir);
@@ -377,7 +392,7 @@ void GLM_Init (const Data *d, const timeStep *Dts, Grid *grid)
       }
     }
   }
-#elif PHYSICS == RMHD 
+#elif (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
   if (glm_ch < 0.0) glm_ch = 1.0;
 #endif
 
@@ -400,7 +415,7 @@ void GLM_ComputeDivB(const Sweep *sweep, Grid *grid)
 {
   int    i,j,k;
   static int old_nstep = -1;
-  double *B    = sweep->bn;
+  double *B    = sweep->Bn;
   double ***A  = grid->A[g_dir];
   double ***dV = grid->dV;
 
@@ -435,7 +450,7 @@ double ***GLM_GetDivB(void)
 }
 #endif
 
-#if (GLM_COMPUTE_DIVE == YES) && (PHYSICS == RMHD && RESISTIVITY != NO)
+#if (GLM_COMPUTE_DIVE == YES) && (PHYSICS == ResRMHD)
 static double ***divE;
 /* ********************************************************* */
 void GLM_ComputeDivE(const Sweep *sweep, Grid *grid)
@@ -448,7 +463,7 @@ void GLM_ComputeDivE(const Sweep *sweep, Grid *grid)
 {
   int    i,j,k;
   static int old_nstep = -1;
-  double **flux = sweep->flux;
+  double *E = sweep->En;
   double ***A   = grid->A[g_dir];
   double ***dV  = grid->dV;
 
@@ -462,20 +477,17 @@ void GLM_ComputeDivE(const Sweep *sweep, Grid *grid)
   if (g_dir == IDIR){
     k = g_k; j = g_j;
     IDOM_LOOP(i) {
-      divE[k][j][i] += (  A[k][j][i]*flux[i][PHI_GLM]
-                        - A[k][j][i-1]*flux[i-1][PHI_GLM])/dV[k][j][i];
+      divE[k][j][i] += (A[k][j][i]*E[i] - A[k][j][i-1]*E[i-1])/dV[k][j][i];
     }
   }else if (g_dir == JDIR){
     k = g_k; i = g_i;
     JDOM_LOOP(j) {
-      divE[k][j][i] += (  A[k][j][i]*flux[j][PHI_GLM]
-                        - A[k][j-1][i]*flux[j-1][PHI_GLM])/dV[k][j][i];
+      divE[k][j][i] += (A[k][j][i]*E[j] - A[k][j-1][i]*E[j-1])/dV[k][j][i];
     }
   }else if (g_dir == KDIR){
     j = g_j; i = g_i;
     KDOM_LOOP(k) {
-      divE[k][j][i] += (  A[k][j][i]*flux[k][PHI_GLM]
-                        - A[k-1][j][i]*flux[k-1][PHI_GLM])/dV[k][j][i];
+      divE[k][j][i] += (A[k][j][i]*E[k] - A[k-1][j][i]*E[k-1])/dV[k][j][i];
     }
   }
 }

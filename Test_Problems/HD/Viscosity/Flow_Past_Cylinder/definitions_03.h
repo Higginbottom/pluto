@@ -1,18 +1,17 @@
 #define  PHYSICS                        HD
 #define  DIMENSIONS                     2
-#define  COMPONENTS                     2
 #define  GEOMETRY                       POLAR
 #define  BODY_FORCE                     NO
-#define  FORCED_TURB                    NO
 #define  COOLING                        NO
 #define  RECONSTRUCTION                 LINEAR
 #define  TIME_STEPPING                  RK2
-#define  DIMENSIONAL_SPLITTING          NO
 #define  NTRACER                        0
+#define  PARTICLES                      NO
 #define  USER_DEF_PARAMETERS            2
 
 /* -- physics dependent declarations -- */
 
+#define  DUST_FLUID                     NO
 #define  EOS                            IDEAL
 #define  ENTROPY_SWITCH                 SELECTIVE
 #define  THERMAL_CONDUCTION             NO

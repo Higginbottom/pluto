@@ -3,8 +3,8 @@
   \file
   \brief Compute the eigenvalues for the relativisitc MHD equations.
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   Sep 10, 2012
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Jul 07, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -21,20 +21,11 @@ int MaxSignalSpeed (const State *state, double *cmin, double *cmax, int beg, int
   double lambda[NFLX], scrh, a2;
 
   for (i = beg; i <= end; i++) {
-    #if RESISTIVITY == NO
     err = Magnetosonic (state->v[i], state->a2[i], state->h[i], lambda);
     if (err) Where(i,NULL); 
     if (err != 0) return i;
     cmax[i] = lambda[KFASTP];
     cmin[i] = lambda[KFASTM];
-    #else
-    a2     = state->a2[i];
-    scrh   = fabs(state->v[i][VXn])/sqrt(a2);
-    g_maxMach = MAX(scrh, g_maxMach);
-
-    cmax[i] =  1.0;
-    cmin[i] = -1.0;
-    #endif
   }
   return 0;
 }
@@ -77,11 +68,11 @@ fdZ := (1-e2)*(u[0]*lambda - u[x])^4 + (1-lambda^2)*
 ########################################################
 "print the coefficients of the quartic polynomial fdZ";
 
-coeff(fMB,lambda,4);
-coeff(fMB,lambda,3);
-coeff(fMB,lambda,2);
-coeff(fMB,lambda,1);
-coeff(fMB,lambda,0);
+coeff(fdZ,lambda,4);
+coeff(fdZ,lambda,3);
+coeff(fdZ,lambda,2);
+coeff(fdZ,lambda,1);
+coeff(fdZ,lambda,0);
 
 fdZ := fdZ*wt;  
 
@@ -142,7 +133,7 @@ simplify(a0 - coeff(fMB2,lambda,0)/gamma^2);
   double  scrh1, scrh2, scrh;
   double  b2, del, z[4];
 
-#if RMHD_FAST_EIGENVALUES
+#if RMHD_FAST_EIGENVALUES == YES
   iflag = ApproximateFastWaves(vp, cs2, h, lambda);
   return iflag;
 #endif
@@ -150,13 +141,15 @@ simplify(a0 - coeff(fMB2,lambda,0)/gamma^2);
   scrh   = fabs(vp[VXn])/sqrt(cs2);
   g_maxMach = MAX(scrh, g_maxMach);
 
-  vB  = EXPAND(vp[VX1]*vp[BX1], + vp[VX2]*vp[BX2], + vp[VX3]*vp[BX3]);
-  u02 = EXPAND(vp[VX1]*vp[VX1], + vp[VX2]*vp[VX2], + vp[VX3]*vp[VX3]);
-  Bm2 = EXPAND(vp[BX1]*vp[BX1], + vp[BX2]*vp[BX2], + vp[BX3]*vp[BX3]);
+  vB  = vp[VX1]*vp[BX1] + vp[VX2]*vp[BX2] + vp[VX3]*vp[BX3];
+  u02 = vp[VX1]*vp[VX1] + vp[VX2]*vp[VX2] + vp[VX3]*vp[VX3];
+  Bm2 = vp[BX1]*vp[BX1] + vp[BX2]*vp[BX2] + vp[BX3]*vp[BX3];
   vm2 = u02;
 
   if (u02 >= 1.0){
-    print ("! Magnetosonic(): |v|= %f > 1\n",u02);
+    printLog ("! Magnetosonic(): |v|= %f > 1\n",u02);
+    printLog ("  vp = ");
+    ShowState(vp, 1);
     return 1;
   }
 
@@ -182,10 +175,8 @@ simplify(a0 - coeff(fMB2,lambda,0)/gamma^2);
     del  = sqrt(del); 
     lambda[KFASTP] =  sqrt(0.5*(-a1 + del));
     lambda[KFASTM] = -lambda[KFASTP];
-    #if COMPONENTS > 1
-     lambda[KSLOWP] =  sqrt(0.5*(-a1 - del));
-     lambda[KSLOWM] = -lambda[KSLOWP];
-    #endif
+    lambda[KSLOWP] =  sqrt(0.5*(-a1 - del));
+    lambda[KSLOWM] = -lambda[KSLOWP];
     return 0;
   }
 
@@ -209,9 +200,7 @@ simplify(a0 - coeff(fMB2,lambda,0)/gamma^2);
 
     lambda[KFASTP] = 0.5*(-a1 + sqrt(del))/a2;
     lambda[KFASTM] = 0.5*(-a1 - sqrt(del))/a2;
-    #if COMPONENTS > 1
-     lambda[KSLOWP] = lambda[KSLOWM] = vp[VXn];
-    #endif
+    lambda[KSLOWP] = lambda[KSLOWM] = vp[VXn];
 
     return 0;
 
@@ -236,7 +225,7 @@ simplify(a0 - coeff(fMB2,lambda,0)/gamma^2);
     a0 = vx2*vx2*one_m_eps2 + a2_w*scrh2 - eps2*vx2;
 
     if (a4 < 1.e-12){
-      print ("! Magnetosonic: cannot divide by a4\n");
+      printLog ("! Magnetosonic(): cannot divide by a4\n");
       return 1;
     }
 
@@ -249,18 +238,11 @@ simplify(a0 - coeff(fMB2,lambda,0)/gamma^2);
     iflag = QuarticSolve(a3, a2, a1, a0, z);
   
     if (iflag){
-      print ("! Magnetosonic: Cannot find max speed [dir = %d]\n", g_dir);
-      print ("! rho = %12.6e\n",vp[RHO]);
-      print ("! prs = %12.6e\n",vp[PRS]);
-      EXPAND(print ("! vx  = %12.6e\n",vp[VX1]);  ,
-             print ("! vy  = %12.6e\n",vp[VX2]);  ,
-             print ("! vz  = %12.6e\n",vp[VX3]);)
-      EXPAND(print ("! Bx  = %12.6e\n",vp[BX1]);  ,
-             print ("! By  = %12.6e\n",vp[BX2]);  ,
-             print ("! Bz  = %12.6e\n",vp[BX3]);)
-      print ("! f(x) = %12.6e + x*(%12.6e + x*(%12.6e ",
+      printLog ("! Magnetosonic(): Cannot find max speed [dir = %d]\n", g_dir);
+      ShowState (vp, 1);
+      printLog ("! f(x) = %12.6e + x*(%12.6e + x*(%12.6e ",
                a0*a4, a1*a4, a2*a4);
-      print ("  + x*(%12.6e + x*%12.6e)))\n", a3*a4, a4);
+      printLog ("  + x*(%12.6e + x*%12.6e)))\n", a3*a4, a4);
       return 1;
     }
 /*
@@ -274,10 +256,8 @@ if (z[3] < z[2] || z[3] < z[1] || z[3] < z[0] ||
   
     lambda[KFASTM] = z[0];
     lambda[KFASTP] = z[3];
-    #if COMPONENTS > 1
-     lambda[KSLOWP] = z[2];
-     lambda[KSLOWM] = z[1];
-    #endif
+    lambda[KSLOWP] = z[2];
+    lambda[KSLOWM] = z[1];
   }
   return 0;
 }
@@ -300,12 +280,12 @@ int ApproximateFastWaves(double *v, double cs2, double h, double *lambda)
   double vel2, lor2, Bmag2, b2, ca2, om2, vB2;
   double vB, scrh, vl, vx, vx2;
 
-  vel2  = EXPAND(v[VX1]*v[VX1], + v[VX2]*v[VX2], + v[VX3]*v[VX3]);
-  vB    = EXPAND(v[VX1]*v[BX1], + v[VX2]*v[BX2], + v[VX3]*v[BX3]);
-  Bmag2 = EXPAND(v[BX1]*v[BX1], + v[BX2]*v[BX2], + v[BX3]*v[BX3]);  
+  vel2  = v[VX1]*v[VX1] + v[VX2]*v[VX2] + v[VX3]*v[VX3];
+  vB    = v[VX1]*v[BX1] + v[VX2]*v[BX2] + v[VX3]*v[BX3];
+  Bmag2 = v[BX1]*v[BX1] + v[BX2]*v[BX2] + v[BX3]*v[BX3];  
 
   if (vel2 >= 1.0){
-    print ("! Eigenavalues(): |v|^2 = %f > 1\n",vel2);
+    printLog ("! ApproximateFastWaves(): |v|^2 = %f > 1\n",vel2);
     return 1;
   }
 
@@ -323,11 +303,11 @@ int ApproximateFastWaves(double *v, double cs2, double h, double *lambda)
   lambda[KFASTP] = vl + scrh;
 
   if (fabs(lambda[KFASTM]) > 1.0 || fabs(lambda[KFASTP]) > 1.0){
-    print ("! Eigenvalues(): vm, vp = %8.3e, %8.3e\n",lambda[KFASTM],lambda[KFASTP]);
+    printLog ("! ApproximateFastWaves(): vm, vp = %8.3e, %8.3e\n",lambda[KFASTM],lambda[KFASTP]);
     QUIT_PLUTO(1);
   }
   if (lambda[KFASTM] != lambda[KFASTM] || lambda[KFASTP] != lambda[KFASTP]){
-    print ("! Eigenvalues(): nan, vm, vp = %8.3e, %8.3e\n",lambda[KFASTM],lambda[KFASTP]);
+    printLog ("! ApproximateFastWaves(): nan, vm, vp = %8.3e, %8.3e\n",lambda[KFASTM],lambda[KFASTP]);
     QUIT_PLUTO(1);
   }
    
@@ -339,13 +319,12 @@ int ApproximateFastWaves(double *v, double cs2, double h, double *lambda)
 
 
 
-
 #if 1==0   /* this part of the code is beta-testing 
               and is excluded from normal usage  */
 #define DEBUG_MODE NO
 /* **************************************************************** */
-void PRIM_EIGENVECTORS(real *q, real cs2, real h, real *lambda,
-                       real **LL, real **RR)
+void PrimEigenvectors (double *q, double cs2, double h, double *lambda,
+                       double **LL, double **RR)
 /*
  *
  * PURPOSE
@@ -441,19 +420,19 @@ printf ("AA = %12.6e\n",q[BXn]/sqrt(q[BXn]*q[BXn] + q[RHO]*h));
 
   if (tmp == NULL) tmp = ARRAY_2D(NFLX, NFLX, double);
 
-  u[0]  = EXPAND(q[VX1]*q[VX1], + q[VX2]*q[VX2], + q[VX3]*q[VX3]);
+  u[0]  = q[VX1]*q[VX1] + q[VX2]*q[VX2] + q[VX3]*q[VX3];
   u[0]  = 1.0/sqrt(1.0 - u[0]);
-  vB    = EXPAND(q[VX1]*q[BX1], + q[VX2]*q[BX2], + q[VX3]*q[BX3]);
-  Bmag2 = EXPAND(q[BX1]*q[BX1], + q[BX2]*q[BX2], + q[BX3]*q[BX3]);
+  vB    = q[VX1]*q[BX1] + q[VX2]*q[BX2] + q[VX3]*q[BX3];
+  Bmag2 = q[BX1]*q[BX1] + q[BX2]*q[BX2] + q[BX3]*q[BX3];
 
-  EXPAND(u[1] = u[0]*q[VXn];  ,
-         u[2] = u[0]*q[VXt];  ,
-         u[3] = u[0]*q[VXb];)
+  u[1] = u[0]*q[VXn];
+  u[2] = u[0]*q[VXt];
+  u[3] = u[0]*q[VXb];
 
   b[0] = u[0]*vB; 
-  EXPAND(b[1] = q[BXn]/u[0] + b[0]*q[VXn];  ,
-         b[2] = q[BXt]/u[0] + b[0]*q[VXt];  ,
-         b[3] = q[BXb]/u[0] + b[0]*q[VXb];)
+  b[1] = q[BXn]/u[0] + b[0]*q[VXn];
+  b[2] = q[BXt]/u[0] + b[0]*q[VXt];
+  b[3] = q[BXb]/u[0] + b[0]*q[VXb];
   b2  = Bmag2/(u[0]*u[0]) + vB*vB;
 
 /* -- thermodynamics relations -- */
@@ -480,7 +459,7 @@ printf ("AA = %12.6e\n",q[BXn]/sqrt(q[BXn]*q[BXn] + q[RHO]*h));
   lambda[KENTRP] = q[VXn];
   #ifdef KDIVB
   #if DIVB_CONTROL != EIGHT_WAVES
-    lambda[KDIVB]  = 0.0;
+  lambda[KDIVB]  = 0.0;
   #endif
   #endif
 
@@ -525,7 +504,7 @@ PRINT_STATE(q,lambda,cs2,h);
    ----------------------------------------  */
 
 
-  for (mu = 0; mu <= COMPONENTS; mu++) {
+  for (mu = 0; mu <= 3; mu++) {
     la[mu] = (eta - e_P*b2)*u[mu]*eta_1;
     lB[mu] =  b[mu]*eta_1;
     fa[mu] =  b[mu]*e_P*eta_1;
@@ -548,14 +527,16 @@ printf ("FAST, a = %12.6e, A = %12.6e, B = %12.6e\n",a,A,B);
 #endif
 
     phi[0] = lambda[k];
-    EXPAND(phi[1] = 1.0;, phi[2] = 0.0;, phi[3] = 0.0;)
+    phi[1] = 1.0;
+    phi[2] = 0.0;
+    phi[3] = 0.0;
 
     if (degen2[k]) {
-      for (mu = 0; mu <= COMPONENTS; mu++) {
+      for (mu = 0; mu <= 3; mu++) {
         d[mu] = B*b[mu] - b2*(phi[mu] + a*u[mu]);
       }
     }else {
-      for (mu = 0; mu <= COMPONENTS; mu++) {
+      for (mu = 0; mu <= 3; mu++) {
         l[mu] = phi[mu] + la[mu]*a + lB[mu]*B;
         f[mu] =           fa[mu]*a + fB[mu]*B;
         d[mu] =   a*(B*f[mu] - a*l[mu]) 
@@ -563,7 +544,7 @@ printf ("FAST, a = %12.6e, A = %12.6e, B = %12.6e\n",a,A,B);
       }
     }
 
-    for (mu = 0; mu <= COMPONENTS; mu++) {
+    for (mu = 0; mu <= 3; mu++) {
       Ru[  mu] = a*d[mu];
       Ru[4+mu] = B*d[mu] + a*A*f[mu];
     }
@@ -573,14 +554,13 @@ printf ("FAST, a = %12.6e, A = %12.6e, B = %12.6e\n",a,A,B);
   /* -- make physical vector -- */
 
     RR[RHO][k] = rho_P*Ru[8] + rho_S*Ru[9];
-    EXPAND(RR[VXn][k] = (-q[VXn]*Ru[0] + Ru[1])/u[0];  ,
-           RR[VXt][k] = (-q[VXt]*Ru[0] + Ru[2])/u[0];  ,
-           RR[VXb][k] = (-q[VXb]*Ru[0] + Ru[3])/u[0];)
+    RR[VXn][k] = (-q[VXn]*Ru[0] + Ru[1])/u[0];
+    RR[VXt][k] = (-q[VXt]*Ru[0] + Ru[2])/u[0];
+    RR[VXb][k] = (-q[VXb]*Ru[0] + Ru[3])/u[0];
     RR[PRS][k] = Ru[8];
 
-    EXPAND(                                                                ,
-           RR[BXt][k] = b[2]*Ru[0] - b[0]*Ru[2] - u[2]*Ru[4] + u[0]*Ru[6];  ,
-           RR[BXb][k] = b[3]*Ru[0] - b[0]*Ru[3] - u[3]*Ru[4] + u[0]*Ru[7];)
+    RR[BXt][k] = b[2]*Ru[0] - b[0]*Ru[2] - u[2]*Ru[4] + u[0]*Ru[6];
+    RR[BXb][k] = b[3]*Ru[0] - b[0]*Ru[3] - u[3]*Ru[4] + u[0]*Ru[7];
   }
 
   /* ----------------------------
@@ -601,8 +581,8 @@ printf ("FAST, a = %12.6e, A = %12.6e, B = %12.6e\n",a,A,B);
     }
 
     A    = q[VXt]*betay + q[VXb]*betaz;
-    b[0] =             u[0]*A;
-    b[1] =             u[1]*A;
+    b[0] =              u[0]*A;
+    b[1] =              u[1]*A;
     b[2] = betay/u[0] + u[2]*A;
     b[3] = betaz/u[0] + u[3]*A;
 
@@ -619,12 +599,12 @@ printf ("!!!! Degen 1: Bx -> 0,  b^2 = %12.6e\n", b2);
     if (degen1) { /* -- when Bx->0 also a, A, B -> 0 -- */
 
       if (k == KSLOWM) {
-        for (mu = 0; mu <= COMPONENTS; mu++) {
+        for (mu = 0; mu <= 3; mu++) {
           Ru[mu]   = -b[mu];
           Ru[mu+4] =  b[mu];
         }
       }else{
-        for (mu = 0; mu <= COMPONENTS; mu++) {
+        for (mu = 0; mu <= 3; mu++) {
           Ru[mu]   = b[mu];
           Ru[mu+4] = b[mu];
         }
@@ -642,15 +622,17 @@ printf ("!!!! Degen 1: Bx -> 0,  b^2 = %12.6e\n", b2);
 printf ("SLOW, a = %12.6e, A = %12.6e, B = %12.6e\n",a,A,B);
 #endif
       phi[0] = lambda[k];
-      EXPAND(phi[1] = 1.0;, phi[2] = 0.0;, phi[3] = 0.0;)
+      phi[1] = 1.0;
+      phi[2] = 0.0;
+      phi[3] = 0.0;
 
       if (degen2[k]) {
         A = 0.0;
-        for (mu = 0; mu <= COMPONENTS; mu++) {
+        for (mu = 0; mu <= 3; mu++) {
           d[mu] = B*b[mu] - b2*(phi[mu] + a*u[mu]);
         }
       }else {
-        for (mu = 0; mu <= COMPONENTS; mu++) {
+        for (mu = 0; mu <= 3; mu++) {
           l[mu] = phi[mu] + la[mu]*a + lB[mu]*B;
           f[mu] =           fa[mu]*a + fB[mu]*B;
           d[mu] =   a*(B*f[mu] - a*l[mu]) 
@@ -658,7 +640,7 @@ printf ("SLOW, a = %12.6e, A = %12.6e, B = %12.6e\n",a,A,B);
         }
       }
 
-      for (mu = 0; mu <= COMPONENTS; mu++) {
+      for (mu = 0; mu <= 3; mu++) {
         Ru[  mu] = a*d[mu];
         Ru[4+mu] = B*d[mu] +  a*A*f[mu];
       }
@@ -669,14 +651,13 @@ printf ("SLOW, a = %12.6e, A = %12.6e, B = %12.6e\n",a,A,B);
   /* -- make physical vector -- */
 
     RR[RHO][k] = rho_P*Ru[8] + rho_S*Ru[9];
-    EXPAND(RR[VXn][k] = (-q[VXn]*Ru[0] + Ru[1])/u[0];  ,
-           RR[VXt][k] = (-q[VXt]*Ru[0] + Ru[2])/u[0];  ,
-           RR[VXb][k] = (-q[VXb]*Ru[0] + Ru[3])/u[0];)
+    RR[VXn][k] = (-q[VXn]*Ru[0] + Ru[1])/u[0];
+    RR[VXt][k] = (-q[VXt]*Ru[0] + Ru[2])/u[0];
+    RR[VXb][k] = (-q[VXb]*Ru[0] + Ru[3])/u[0];
     RR[PRS][k] = Ru[8];
 
-    EXPAND(                                                                ,
-           RR[BXt][k] = b[2]*Ru[0] - b[0]*Ru[2] - u[2]*Ru[4] + u[0]*Ru[6];  ,
-           RR[BXb][k] = b[3]*Ru[0] - b[0]*Ru[3] - u[3]*Ru[4] + u[0]*Ru[7];)
+    RR[BXt][k] = b[2]*Ru[0] - b[0]*Ru[2] - u[2]*Ru[4] + u[0]*Ru[6];
+    RR[BXb][k] = b[3]*Ru[0] - b[0]*Ru[3] - u[3]*Ru[4] + u[0]*Ru[7];
   }
     
 /* -----------------------------------------------------
@@ -718,7 +699,9 @@ printf ("SLOW, a = %12.6e, A = %12.6e, B = %12.6e\n",a,A,B);
     a = u[0]*(q[VXn] - lambda[k]);
     B = -b[0]*lambda[k] + b[1];
     phi[0] = lambda[k];
-    EXPAND(phi[1] = 1.0;, phi[2] = 0.0;, phi[3] = 0.0;)
+    phi[1] = 1.0;
+    phi[2] = 0.0;
+    phi[3] = 0.0;
 
     Ru[0] =            (u[2]*b[3] - u[3]*b[2]);
     Ru[1] =  lambda[k]*(u[2]*b[3] - u[3]*b[2]);
@@ -740,14 +723,13 @@ printf ("SLOW, a = %12.6e, A = %12.6e, B = %12.6e\n",a,A,B);
   /* -- make physical vector -- */
 
     RR[RHO][k] = 0.0;
-    EXPAND(RR[VXn][k] = (-q[VXn]*Ru[0] + Ru[1])/u[0];  ,
-           RR[VXt][k] = (-q[VXt]*Ru[0] + Ru[2])/u[0];  ,
-           RR[VXb][k] = (-q[VXb]*Ru[0] + Ru[3])/u[0];)
+    RR[VXn][k] = (-q[VXn]*Ru[0] + Ru[1])/u[0];
+    RR[VXt][k] = (-q[VXt]*Ru[0] + Ru[2])/u[0];
+    RR[VXb][k] = (-q[VXb]*Ru[0] + Ru[3])/u[0];
     RR[PRS][k] = Ru[8];
 
-    EXPAND(                                                                ,
-           RR[BXt][k] = b[2]*Ru[0] - b[0]*Ru[2] - u[2]*Ru[4] + u[0]*Ru[6];  ,
-           RR[BXb][k] = b[3]*Ru[0] - b[0]*Ru[3] - u[3]*Ru[4] + u[0]*Ru[7];)
+    RR[BXt][k] = b[2]*Ru[0] - b[0]*Ru[2] - u[2]*Ru[4] + u[0]*Ru[6];
+    RR[BXb][k] = b[3]*Ru[0] - b[0]*Ru[3] - u[3]*Ru[4] + u[0]*Ru[7];
   }
 
   /* -------------------------
@@ -765,8 +747,8 @@ printf ("SLOW, a = %12.6e, A = %12.6e, B = %12.6e\n",a,A,B);
 
   #ifdef KDIVB
   #if DIVB_CONTROL != EIGHT_WAVES
-   k = KDIVB;
-   RR[BXn][k] = 1.0;
+  k = KDIVB;
+  RR[BXn][k] = 1.0;
   #endif
   #endif
   

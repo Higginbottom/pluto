@@ -12,7 +12,7 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
                              FArrayBox&       a_Utmp,
                              const FArrayBox& a_dV,
                              FArrayBox&  split_tags,
-                             BaseFab<unsigned char>& a_Flags,
+                             BaseFab<uint16_t>& a_Flags,
                              FluxBox&         a_F,
                              timeStep        *Dts,
                              const Box&       UBox, 
@@ -34,7 +34,7 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
   int nbeg, nend, ntot; 
   int    errp, errm, errh;
 
-  static unsigned char *flagp, *flagm;  // these should go inside sweep !!
+  static uint16_t *flagp, *flagm;  // these should go inside sweep !!
 
   static Sweep sweep;
 
@@ -52,8 +52,6 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
   static Data_Arr Uh, Vc0;
   static Data_Arr rhs, Up[DIMENSIONS], Um[DIMENSIONS];
   static double **u;
-
-  Riemann_Solver *Riemann = rsolver;
   RBox   sweepBox;
 
 /* ---------------------------------------------------------
@@ -61,7 +59,7 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
    --------------------------------------------------------- */
 
 #if !(GEOMETRY == CARTESIAN || GEOMETRY == CYLINDRICAL)
-  print1 ("! CTU only works in cartesian or cylindrical coordinates\n");
+  print ("! CTU only works in cartesian or cylindrical coordinates\n");
   QUIT_PLUTO(1);
 #endif     
 
@@ -110,7 +108,7 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
 
     d.Vc   = ARRAY_4D(NVAR, NX3_MAX, NX2_MAX, NX1_MAX, double);
     d.Uc   = ARRAY_4D(NX3_MAX, NX2_MAX, NX1_MAX, NVAR, double);
-    d.flag = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, unsigned char);
+    d.flag = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, uint16_t);
     #if RESISTIVITY
     d.J    = ARRAY_4D(3,NX3_MAX, NX2_MAX, NX1_MAX, double);
     #endif
@@ -118,23 +116,30 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
     d.Tc   = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, double);
     #endif
 
-    flagp = ARRAY_1D(NMAX_POINT, unsigned char);
-    flagm = ARRAY_1D(NMAX_POINT, unsigned char);
+    flagp = ARRAY_1D(NMAX_POINT, uint16_t);
+    flagm = ARRAY_1D(NMAX_POINT, uint16_t);
     u     = ARRAY_2D(NMAX_POINT, NVAR, double);
     
     Uh  = ARRAY_4D(NX3_MAX, NX2_MAX, NX1_MAX, NVAR, double);
     Vc0 = ARRAY_4D(NX3_MAX, NX2_MAX, NX1_MAX, NVAR, double);
 
-    D_EXPAND(Um[IDIR] = ARRAY_4D(NX3_MAX, NX2_MAX, NX1_MAX, NVAR, double);
-             Up[IDIR] = ARRAY_4D(NX3_MAX, NX2_MAX, NX1_MAX, NVAR, double);  ,
+    DIM_EXPAND(Um[IDIR] = ARRAY_4D(NX3_MAX, NX2_MAX, NX1_MAX, NVAR, double);
+              Up[IDIR] = ARRAY_4D(NX3_MAX, NX2_MAX, NX1_MAX, NVAR, double);  ,
   
-             Um[JDIR] = ARRAY_4D(NX3_MAX, NX2_MAX, NX1_MAX, NVAR, double);
-             Up[JDIR] = ARRAY_4D(NX3_MAX, NX2_MAX, NX1_MAX, NVAR, double);  ,
+              Um[JDIR] = ARRAY_4D(NX3_MAX, NX2_MAX, NX1_MAX, NVAR, double);
+              Up[JDIR] = ARRAY_4D(NX3_MAX, NX2_MAX, NX1_MAX, NVAR, double);  ,
 
-             Um[KDIR] = ARRAY_4D(NX3_MAX, NX2_MAX, NX1_MAX, NVAR, double);
-             Up[KDIR] = ARRAY_4D(NX3_MAX, NX2_MAX, NX1_MAX, NVAR, double);)
+              Um[KDIR] = ARRAY_4D(NX3_MAX, NX2_MAX, NX1_MAX, NVAR, double);
+              Up[KDIR] = ARRAY_4D(NX3_MAX, NX2_MAX, NX1_MAX, NVAR, double);)
 
     rhs = ARRAY_4D(NX3_MAX, NX2_MAX, NX1_MAX, NVAR, double);
+
+  // Set Riemann solver
+    d.fluidRiemannSolver = SetSolver (RuntimeGet()->solv_type);
+    #if RADIATION
+    d.radiationRiemannSolver = Rad_SetSolver (RuntimeGet()->rad_solv_type);
+    #endif
+    
   }
 
   up = stateL->u;   
@@ -182,19 +187,25 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
     RBoxDefine(IBEG, IEND, JBEG, JEND, KBEG, KEND, CENTER, &sweepBox);
     RBoxSetDirections (&sweepBox, g_dir);
     SetVectorIndices (g_dir);
-
-    D_EXPAND(                                      ;  ,
+/*
+    DIM_EXPAND(                                      ;  ,
              (*sweepBox.tbeg)--; (*sweepBox.tend)++;  ,
              (*sweepBox.bbeg)--; (*sweepBox.bend)++;)
-  #if (defined STAGGERED_MHD)
-    D_EXPAND((*sweepBox.nbeg)--; (*sweepBox.nend)++;  ,
+*/             
+    RBoxEnlarge (&sweepBox, g_dir != IDIR, g_dir != JDIR, g_dir != KDIR);
+    
+    #if (defined STAGGERED_MHD)
+/*
+    DIM_EXPAND((*sweepBox.nbeg)--; (*sweepBox.nend)++;  ,
              (*sweepBox.tbeg)--; (*sweepBox.tend)++;  ,
              (*sweepBox.bbeg)--; (*sweepBox.bend)++;)
-  #else
+*/             
+    RBoxEnlarge (&sweepBox, 1, 1, 1);
+    #else
     #if (PARABOLIC_FLUX & EXPLICIT)
     (*sweepBox.nbeg)--; (*sweepBox.nend)++;
     #endif
-  #endif
+    #endif
     ResetState(&d, &sweep, grid);
 
     nbeg = *sweepBox.nbeg;
@@ -217,7 +228,7 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
         sweep.flag[*in] = d.flag[k][j][i];
       }
 
-      CheckNaN (stateC->v, nbeg-1, nend+1, 0);
+      CheckNaN (stateC->v, nbeg-1, nend+1, "stateC->v");
       PrimToCons (stateC->v, u, 0, ntot-1);
 
 #if !(PARABOLIC_FLUX & EXPLICIT)
@@ -234,7 +245,11 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
       }
       #endif
 
-      Riemann (&sweep, nbeg-1, nend, Dts->cmax, grid);
+      d.fluidRiemannSolver (&sweep, nbeg-1, nend, Dts->cmax, grid);
+      #if NSCL > 0
+      AdvectFlux (&sweep, nbeg-1, nend, grid);
+      #endif
+
       RightHandSide (&sweep, Dts, nbeg, nend, 0.5*g_dt, grid);
 
       for ((*in) = nbeg-1; (*in) <= nend+1; (*in)++){
@@ -251,7 +266,11 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
       }}
 #else
       StatesFlat (&sweep, 0, ntot-1);            
-      Riemann (&sweep, nbeg-1, nend, Dts->cmax, grid);
+      d.fluidRiemannSolver (&sweep, nbeg-1, nend, Dts->cmax, grid);
+      #if NSCL > 0
+      AdvectFlux (&sweep, nbeg-1, nend, grid);
+      #endif
+
       RightHandSide (&sweep, Dts, nbeg, nend, 0.5*g_dt, grid);
       for (*in = nbeg; *in <= nend; (*in)++) {
         NVAR_LOOP(nv) rhs[k][j][i][nv] += sweep.rhs[*in][nv];
@@ -283,7 +302,7 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
 
   RBoxDefine (IBEG, IEND,JBEG, JEND,KBEG, KEND, CENTER, &sweepBox);  
 #if (PARABOLIC_FLUX & EXPLICIT) || (defined STAGGERED_MHD)
-  D_EXPAND(sweepBox.ibeg--; sweepBox.iend++;  ,
+  DIM_EXPAND(sweepBox.ibeg--; sweepBox.iend++;  ,
            sweepBox.jbeg--; sweepBox.jend++;  ,
            sweepBox.kbeg--; sweepBox.kend++;);
 #endif
@@ -294,7 +313,7 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
 
 #if (PARABOLIC_FLUX & EXPLICIT)
   ParabolicUpdate (&d, Uh, &sweepBox, NULL, 0.5*g_dt, Dts, grid);
-  D_EXPAND(ParabolicUpdate (NULL, Up[IDIR], &sweepBox, NULL, 0.5*g_dt, Dts, grid);
+  DIM_EXPAND(ParabolicUpdate (NULL, Up[IDIR], &sweepBox, NULL, 0.5*g_dt, Dts, grid);
            ParabolicUpdate (NULL, Um[IDIR], &sweepBox, NULL, 0.5*g_dt, Dts, grid);  ,
            
            ParabolicUpdate (NULL, Up[JDIR], &sweepBox, NULL, 0.5*g_dt, Dts, grid);
@@ -394,7 +413,10 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
            compute hyperbolic and parabolic fluxes 
        ------------------------------------------------------- */
 
-      Riemann (&sweep, nbeg-1, nend, Dts->cmax, grid);
+      d.fluidRiemannSolver (&sweep, nbeg-1, nend, Dts->cmax, grid);
+      #if NSCL > 0
+      AdvectFlux (&sweep, nbeg-1, nend, grid);
+      #endif
       RightHandSide (&sweep, Dts, nbeg, nend, g_dt, grid);
 
     /* -- Store fluxes for regridding operations -- */
@@ -441,7 +463,7 @@ void PatchPluto::advanceStep(FArrayBox&       a_U,
 //   glm_ch_max_loc = MAX(glm_ch_max_loc, Dts->inv_dta); /* If subcycling is turned off */
    double dtdx = g_dt/g_coeff_dl_min/m_dx;
 //    double dtdx = g_dt/g_coeff_dl_min; /* If subcycling is turned off */
-   GLM_Source (d.Uc, dtdx, grid);
+   GLM_Source (&d, dtdx, grid);
   #endif
 
 /* ------------------------------------------------

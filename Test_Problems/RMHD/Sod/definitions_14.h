@@ -1,22 +1,20 @@
 #define  PHYSICS                        RMHD
 #define  DIMENSIONS                     1
-#define  COMPONENTS                     3
 #define  GEOMETRY                       CARTESIAN
 #define  BODY_FORCE                     NO
-#define  FORCED_TURB                    NO
 #define  COOLING                        NO
 #define  RECONSTRUCTION                 LimO3
 #define  TIME_STEPPING                  RK3
-#define  DIMENSIONAL_SPLITTING          YES
 #define  NTRACER                        0
+#define  PARTICLES                      NO
 #define  USER_DEF_PARAMETERS            16
 
 /* -- physics dependent declarations -- */
 
 #define  EOS                            IDEAL
 #define  ENTROPY_SWITCH                 NO
+#define  RADIATION                      NO
 #define  DIVB_CONTROL                   NO
-#define  RESISTIVITY                    NO
 
 /* -- user-defined parameters (labels) -- */
 

@@ -46,8 +46,8 @@
 
   \image html hd_disk_planet.08.png "Density map for configuration #08 using AMR" width=1cm
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   Aug 16, 2012
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Jul 19, 2019
 
   \b References:
      - "A Conservative orbital advection scheme for simulations
@@ -76,49 +76,52 @@ void Init (double *us, double x1, double x2, double x3)
   double scrh;
 
   #if EOS == IDEAL
-   g_gamma = 1.01;
+  g_gamma = 1.01;
   #endif
 
   #if ROTATING_FRAME == YES
-   g_OmegaZ  = sqrt(1.0 + g_inputParam[Mplanet]/g_inputParam[Mstar]*CONST_Mearth/CONST_Msun);
-   g_OmegaZ *= 2.0*CONST_PI;
+  g_OmegaZ  = sqrt(1.0 + g_inputParam[Mplanet]/g_inputParam[Mstar]*CONST_Mearth/CONST_Msun);
+  g_OmegaZ *= 2.0*CONST_PI;
   #endif
   
-  #if GEOMETRY == POLAR
-   R  = x1;
-   #if DIMENSIONS == 2
-    z  = 0.0;
-    r  = R;
-    th = 0.5*CONST_PI;
-   #else
-    z  = x3;
-    r  = sqrt(R*R + z*z);
-    th = atan2(R,z);
-   #endif
-  #elif GEOMETRY == SPHERICAL
-   r  = x1;
-   th = x2;
-   R  = r*sin(th);
-   z  = r*cos(th);
+#if GEOMETRY == POLAR
+  R  = x1;
+  #if DIMENSIONS == 2
+  z  = 0.0;
+  r  = R;
+  th = 0.5*CONST_PI;
+  #else
+  z  = x3;
+  r  = sqrt(R*R + z*z);
+  th = atan2(R,z);
   #endif
+#elif GEOMETRY == SPHERICAL
+  r  = x1;
+  th = x2;
+  R  = r*sin(th);
+  z  = r*cos(th);
+#endif
   
   H      = 0.05*R;
   OmegaK = 2.0*CONST_PI/(R*sqrt(R));
   cs     = H*OmegaK;
   
-  scrh   = (0.5*CONST_PI - th)*r/H;
+  scrh    = (0.5*CONST_PI - th)*r/H;
   us[RHO] = 1.0/(R*sqrt(R))*exp(-0.5*scrh*scrh);
   us[VX1] = us[VX2] = us[VX3] = 0.0;
 
   us[iVPHI] = R*(OmegaK - g_OmegaZ);
+  #ifdef FARGO
+  us[FARGO_W] = R*(OmegaK - g_OmegaZ);
+  us[iVPHI]   = 0.0;
+  #endif  
   #if EOS == IDEAL
-   us[PRS] = us[RHO]*cs*cs;
+  us[PRS] = us[RHO]*cs*cs;
   #elif EOS == ISOTHERMAL
-//   g_isoSoundSpeed = cs;
-   g_isoSoundSpeed = CONST_PI*0.1;
+  g_isoSoundSpeed = CONST_PI*0.1;
   #endif
 
-#if DUST == YES
+#if DUST_FLUID == YES
   us[RHO_D] = 1.e-4;
   us[VX1_D] = us[VX2_D] = us[VX3_D] = 0.0;
   us[VX2_D] = us[iVPHI];
@@ -175,16 +178,20 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
       NVAR_LOOP(nv) d->Vc[nv][k][j][i] = d->Vc[nv][k][j][2*IBEG - i - 1];
       d->Vc[VX1][k][j][i] *= -1.0;
       #if GEOMETRY == POLAR
-       R = x1[i];
+      R = x1[i];
       #elif GEOMETRY == SPHERICAL
-       R = x1[i]*sin(x2[j]);
+      R = x1[i]*sin(x2[j]);
       #endif
       OmegaK = 2.0*CONST_PI/(R*sqrt(R));
+      
       d->Vc[iVPHI][k][j][i] = R*(OmegaK - g_OmegaZ);
-#if DUST == YES      
-//      NDUST_LOOP(nv) d->Vc[nv][k][j][i] = 0.0;
+      #ifdef FARGO
+      d->Vc[iVPHI][k][j][i] = 0.0;
+//d->Vc[iVPHI][k][j][i] = d->Vc[iVPHI][k][j][IBEG];
+      #endif      
+      #if DUST_FLUID == YES      
       d->Vc[VX2_D][k][j][i] = d->Vc[iVPHI][k][j][i];
-#endif      
+      #endif      
     }
   }
 
@@ -192,19 +199,20 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
     X1_END_LOOP(k,j,i){
       NVAR_LOOP(nv)  d->Vc[nv][k][j][i] = d->Vc[nv][k][j][IEND];
       #if GEOMETRY == POLAR
-       R = x1[i];
-//       d->Vc[iVR][k][j][i] = 0.0;
+      R = x1[i];
       #elif GEOMETRY == SPHERICAL
-       R = x1[i]*sin(x2[j]);
-       d->Vc[iVR][k][j][i]  = 0.0;
-       d->Vc[iVTH][k][j][i] = 0.0;
+      R = x1[i]*sin(x2[j]);
+      d->Vc[iVR][k][j][i]  = 0.0;
+      d->Vc[iVTH][k][j][i] = 0.0;
       #endif
       OmegaK = 2.0*CONST_PI/(R*sqrt(R));
       d->Vc[iVPHI][k][j][i] = R*(OmegaK - g_OmegaZ);
-#if DUST == YES      
+      #ifdef FARGO
+      d->Vc[iVPHI][k][j][i] = 0.0;
+      #endif      
+      #if DUST_FLUID == YES      
       d->Vc[VX2_D][k][j][i] = d->Vc[iVPHI][k][j][i];
-#endif      
- 
+      #endif      
     }
   }
 }
@@ -227,7 +235,7 @@ void NormalizeDensity (const Data *d, Grid *grid)
   DOM_LOOP(k,j,i){
     d->Vc[RHO][k][j][i] *= mc;
     #if EOS == IDEAL
-     d->Vc[PRS][k][j][i] *= mc;
+    d->Vc[PRS][k][j][i] *= mc;
     #endif
   }
 }
@@ -259,45 +267,47 @@ double BodyForcePotential(double x1, double x2, double x3)
   double d, R, r, z, th, x, y, phiplanet, rsm;
   double xp, yp, t, phi;
 
-  #if GEOMETRY == POLAR
-   R  = x1;
-   #if DIMENSIONS == 2
-    z  = 0.0;
-    r  = R;
-    th = 0.5*CONST_PI;
-   #else
-    z  = x3;
-    r  = sqrt(R*R + z*z);
-    th = atan2(R,z);
-   #endif
-   x  = R*cos(x2);
-   y  = R*sin(x2);
-  #elif (GEOMETRY == SPHERICAL)
-   r  = x1;
-   th = x2;
-   R = r*sin(th);
-   z = r*cos(th);
-   x = r*sin(th)*cos(x3);
-   y = r*sin(th)*sin(x3);
+#if GEOMETRY == POLAR
+  R  = x1;
+  #if DIMENSIONS == 2
+  z  = 0.0;
+  r  = R;
+  th = 0.5*CONST_PI;
+  #else
+  z  = x3;
+  r  = sqrt(R*R + z*z);
+  th = atan2(R,z);
   #endif
+  
+  x  = R*cos(x2);
+  y  = R*sin(x2);
+
+#elif (GEOMETRY == SPHERICAL)
+  r  = x1;
+  th = x2;
+  R = r*sin(th);
+  z = r*cos(th);
+  x = r*sin(th)*cos(x3);
+  y = r*sin(th)*sin(x3);
+#endif
 
 /* ---------------------------------------------
              planet position
    --------------------------------------------- */
 
-  #if ROTATING_FRAME == NO
-   double OmegaZ;
-   t = g_time;
-   if (g_stepNumber == 2) t += g_dt;
-   OmegaZ  = sqrt(1.0 + g_inputParam[Mplanet]/g_inputParam[Mstar]*CONST_Mearth/CONST_Msun);
-   OmegaZ *= 2.0*CONST_PI;
+#if ROTATING_FRAME == NO
+  double OmegaZ;
+  t = g_time;
+  if (g_stepNumber == 2) t += g_dt;
+  OmegaZ  = sqrt(1.0 + g_inputParam[Mplanet]/g_inputParam[Mstar]*CONST_Mearth/CONST_Msun);
+  OmegaZ *= 2.0*CONST_PI;
 
-   xp = cos(OmegaZ*t);
-   yp = sin(OmegaZ*t);
-  #else
-   xp = 1.0/sqrt(2.0);  /* initial planet position */
-   yp = 1.0/sqrt(2.0); 
-  #endif
+  xp = cos(OmegaZ*t);
+  yp = sin(OmegaZ*t);
+#else
+  xp = 1.0/sqrt(2.0);  /* initial planet position */
+  yp = 1.0/sqrt(2.0); 
+#endif
 
   d = sqrt((x-xp)*(x-xp) + (y-yp)*(y-yp) + z*z);
   rsm = 0.03*R;

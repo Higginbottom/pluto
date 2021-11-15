@@ -29,8 +29,8 @@
    -   "Riemann Solver and Numerical Methods for Fluid Dynamics"
         by E.F. Toro (Chapter 11)
         
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    Oct 12, 2016
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    June 27, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
@@ -139,32 +139,30 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
     for (nv = NFLX; nv--;   ) dv[nv] = qr[nv] - ql[nv];
 
     #if ROE_AVERAGE == YES    
-     s       = sqrt(qr[RHO]/ql[RHO]);
-     um[RHO]  = ql[RHO]*s;
-     s       = 1.0/(1.0 + s); 
-     c       = 1.0 - s;
+    s       = sqrt(qr[RHO]/ql[RHO]);
+    um[RHO]  = ql[RHO]*s;
+    s       = 1.0/(1.0 + s); 
+    c       = 1.0 - s;
   
-     EXPAND(um[VX1] = s*ql[VX1] + c*qr[VX1];  ,
-            um[VX2] = s*ql[VX2] + c*qr[VX2];  ,
-            um[VX3] = s*ql[VX3] + c*qr[VX3];)
+    um[VX1] = s*ql[VX1] + c*qr[VX1];
+    um[VX2] = s*ql[VX2] + c*qr[VX2];
+    um[VX3] = s*ql[VX3] + c*qr[VX3];
 
-     #if EOS == IDEAL
-      vel2 = EXPAND(um[VX1]*um[VX1], + um[VX2]*um[VX2], + um[VX3]*um[VX3]);
+    #if EOS == IDEAL
+    vel2 = um[VX1]*um[VX1] + um[VX2]*um[VX2] + um[VX3]*um[VX3];
 
-      hl  = 0.5*(EXPAND(ql[VX1]*ql[VX1], + ql[VX2]*ql[VX2], + ql[VX3]*ql[VX3]));    
-      hl += a2L[i]*gmm1_inv;
+    hl  = 0.5*(ql[VX1]*ql[VX1] + ql[VX2]*ql[VX2] + ql[VX3]*ql[VX3]);    
+    hl += a2L[i]*gmm1_inv;
      
-      hr = 0.5*(EXPAND(qr[VX1]*qr[VX1], + qr[VX2]*qr[VX2], + qr[VX3]*qr[VX3]));    
-      hr += a2R[i]*gmm1_inv;
+    hr = 0.5*(qr[VX1]*qr[VX1] + qr[VX2]*qr[VX2] + qr[VX3]*qr[VX3]);
+    hr += a2R[i]*gmm1_inv;
 
-      h = s*hl + c*hr;
+    h = s*hl + c*hr;
 
   /* -------------------------------------------------
        the following should be  equivalent to 
     
-       scrh = EXPAND(   dv[VX1]*dv[VX1],
-                      + dv[VX2]*dv[VX2],
-                      + dv[VX3]*dv[VX3]);
+       scrh = dv[VX1]*dv[VX1] + dv[VX2]*dv[VX2] + dv[VX3]*dv[VX3];
 
        a2 = s*a2L + c*a2R + 0.5*gmm1*s*c*scrh;
 
@@ -174,21 +172,21 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
      
       a2 = gmm1*(h - 0.5*vel2);
       a  = sqrt(a2);
-     #endif
+    #endif /* EOS == IDEAL */
     #else
-     for (nv = NFLX; nv--;   ) um[nv] = 0.5*(ql[nv] + qr[nv]);  
-     #if EOS == IDEAL
-      a2   = g_gamma*um[PRS]/um[RHO];
-      a    = sqrt(a2);
+    for (nv = NFLX; nv--;   ) um[nv] = 0.5*(ql[nv] + qr[nv]);  
+    #if EOS == IDEAL
+    a2   = g_gamma*um[PRS]/um[RHO];
+    a    = sqrt(a2);
      
-      vel2 = EXPAND(um[VX1]*um[VX1], + um[VX2]*um[VX2], + um[VX3]*um[VX3]);
-      h    = 0.5*vel2 + a2/gmm1;
-     #endif /* EOS == IDEAL */
+    vel2 = um[VX1]*um[VX1] + um[VX2]*um[VX2] + um[VX3]*um[VX3];
+    h    = 0.5*vel2 + a2/gmm1;
+    #endif /* EOS == IDEAL */
     #endif /* ROE_AVERAGE == YES/NO */
   
     #if EOS == ISOTHERMAL
-     a2 = 0.5*(a2L[i] + a2R[i]);
-     a  = sqrt(a2);
+    a2 = 0.5*(a2L[i] + a2R[i]);
+    a  = sqrt(a2);
     #endif
 
   /* ----------------------------------------------------------------
@@ -201,17 +199,17 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
     nn         = 0;
     lambda[nn] = um[VXn] - a;
     #if EOS == IDEAL
-     eta[nn] = 0.5/a2*(dv[PRS] - dv[VXn]*um[RHO]*a);
+    eta[nn] = 0.5/a2*(dv[PRS] - dv[VXn]*um[RHO]*a);
     #elif EOS == ISOTHERMAL
-     eta[nn] = 0.5*(dv[RHO] - um[RHO]*dv[VXn]/a);
+    eta[nn] = 0.5*(dv[RHO] - um[RHO]*dv[VXn]/a);
     #endif
 
-    Rc[RHO][nn]        = 1.0;
-    EXPAND(Rc[MXn][nn] = um[VXn] - a;   ,
-           Rc[MXt][nn] = um[VXt];       ,
-           Rc[MXb][nn] = um[VXb];)
+    Rc[RHO][nn] = 1.0;
+    Rc[MXn][nn] = um[VXn] - a;
+    Rc[MXt][nn] = um[VXt]; 
+    Rc[MXb][nn] = um[VXb];
     #if EOS == IDEAL
-     Rc[ENG][nn] = h - um[VXn]*a;
+    Rc[ENG][nn] = h - um[VXn]*a;
     #endif
 
   /*  ---- (u + c_s)  ----  */ 
@@ -219,15 +217,15 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
     nn         = 1;
     lambda[nn] = um[VXn] + a;
     #if EOS == IDEAL
-     eta[nn]    = 0.5/a2*(dv[PRS] + dv[VXn]*um[RHO]*a);
+    eta[nn]    = 0.5/a2*(dv[PRS] + dv[VXn]*um[RHO]*a);
     #elif EOS == ISOTHERMAL
-     eta[nn] = 0.5*(dv[RHO] + um[RHO]*dv[VXn]/a);
+    eta[nn] = 0.5*(dv[RHO] + um[RHO]*dv[VXn]/a);
     #endif
 
-    Rc[RHO][nn]        = 1.0;
-    EXPAND(Rc[MXn][nn] = um[VXn] + a;   ,
-           Rc[MXt][nn] = um[VXt];       ,
-           Rc[MXb][nn] = um[VXb];)
+    Rc[RHO][nn] = 1.0;
+    Rc[MXn][nn] = um[VXn] + a;
+    Rc[MXt][nn] = um[VXt];
+    Rc[MXb][nn] = um[VXb];
     #if EOS == IDEAL
      Rc[ENG][nn] = h + um[VXn]*a;
     #endif
@@ -235,40 +233,34 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
   /*  ----  (u)  ----  */ 
      
     #if EOS == IDEAL
-     nn         = 2;
-     lambda[nn] = um[VXn];
-     eta[nn]    = dv[RHO] - dv[PRS]/a2;
-     Rc[RHO][nn]        = 1.0;
-     EXPAND(Rc[MX1][nn] = um[VX1];   ,
-            Rc[MX2][nn] = um[VX2];   ,
-            Rc[MX3][nn] = um[VX3];)
-     Rc[ENG][nn]        = 0.5*vel2;
+    nn         = 2;
+    lambda[nn] = um[VXn];
+    eta[nn]    = dv[RHO] - dv[PRS]/a2;
+    Rc[RHO][nn] = 1.0;
+    Rc[MX1][nn] = um[VX1];
+    Rc[MX2][nn] = um[VX2];
+    Rc[MX3][nn] = um[VX3];
+    Rc[ENG][nn] = 0.5*vel2;
     #endif
     
-    #if COMPONENTS > 1
-
   /*  ----  (u)  ----  */ 
 
-     nn++;
-     lambda[nn] = um[VXn];
-     eta[nn]    = um[RHO]*dv[VXt];
-     Rc[MXt][nn] = 1.0;
-     #if EOS == IDEAL
-      Rc[ENG][nn] = um[VXt];  
-     #endif
+    nn++;
+    lambda[nn] = um[VXn];
+    eta[nn]    = um[RHO]*dv[VXt];
+    Rc[MXt][nn] = 1.0;
+    #if EOS == IDEAL
+    Rc[ENG][nn] = um[VXt];  
     #endif
 
-    #if COMPONENTS > 2
-
   /*  ----  (u)  ----  */ 
 
-     nn++;
-     lambda[nn] = um[VXn];
-     eta[nn]    = um[RHO]*dv[VXb];
-     Rc[MXb][nn] = 1.0;
-     #if EOS == IDEAL
-      Rc[ENG][nn] = um[VXb];  
-     #endif
+    nn++;
+    lambda[nn] = um[VXn];
+    eta[nn]    = um[RHO]*dv[VXb];
+    Rc[MXb][nn] = 1.0;
+    #if EOS == IDEAL
+    Rc[ENG][nn] = um[VXb];  
     #endif
 
   /*  ----  get max eigenvalue  ----  */
@@ -285,46 +277,46 @@ void Roe_Solver (const Sweep *sweep, int beg, int end,
          in the Mach reflection test.
       --------------------------------------------- */
 
-     #if EOS == IDEAL
+      #if EOS == IDEAL
       scrh  = fabs(ql[PRS] - qr[PRS]);
       scrh /= MIN(ql[PRS],qr[PRS]);
-     #elif EOS == ISOTHERMAL
+      #elif EOS == ISOTHERMAL
       scrh  = fabs(ql[RHO] - qr[RHO]);
       scrh /= MIN(ql[RHO],qr[RHO]);
       scrh *= a*a;
-     #endif
-     if (scrh > 0.5 && (qr[VXn] < ql[VXn])){   /* -- tunable parameter -- */
-       bmin = MIN(0.0, lambda[0]);
-       bmax = MAX(0.0, lambda[1]);
-       scrh1 = 1.0/(bmax - bmin);
-       for (nv = NFLX; nv--;   ){
-        sweep->flux[i][nv]  = bmin*bmax*(uR[nv] - uL[nv])
-                          +   bmax*fL[i][nv] - bmin*fR[i][nv];
-        sweep->flux[i][nv] *= scrh1;
-       }
-       sweep->press[i] = (bmax*pL[i] - bmin*pR[i])*scrh1;
-       continue;
-     } 
-    #endif
+      #endif
+      if (scrh > 0.5 && (qr[VXn] < ql[VXn])){   /* -- tunable parameter -- */
+        bmin = MIN(0.0, lambda[0]);
+        bmax = MAX(0.0, lambda[1]);
+        scrh1 = 1.0/(bmax - bmin);
+        for (nv = NFLX; nv--;   ){
+         sweep->flux[i][nv]  = bmin*bmax*(uR[nv] - uL[nv])
+                           +   bmax*fL[i][nv] - bmin*fR[i][nv];
+         sweep->flux[i][nv] *= scrh1;
+        }
+        sweep->press[i] = (bmax*pL[i] - bmin*pR[i])*scrh1;
+        continue;
+      } 
+    #endif  /* DIMENSIONS > 1 */
 
     #if CHECK_ROE_MATRIX == YES
-     for (nv = 0; nv < NFLX; nv++){
-       um[nv] = 0.0;
-       for (k = 0; k < NFLX; k++){
-       for (j = 0; j < NFLX; j++){
-         um[nv] += Rc[nv][k]*(k==j)*lambda[k]*eta[j];
-       }}
-     }
-     for (nv = 0; nv < NFLX; nv++){
-       scrh = fR[i][nv] - fL[i][nv] - um[nv];
-       if (nv == MXn) scrh += pR[i] - pL[i];
-       if (fabs(scrh) > 1.e-6){
-         print ("! Matrix condition not satisfied %d, %12.6e\n", nv, scrh);
-         Show(sweep->vL, i);
-         Show(sweep->vR, i);
-         exit(1);
-       }
-     }
+    for (nv = 0; nv < NFLX; nv++){
+      um[nv] = 0.0;
+      for (k = 0; k < NFLX; k++){
+      for (j = 0; j < NFLX; j++){
+        um[nv] += Rc[nv][k]*(k==j)*lambda[k]*eta[j];
+      }}
+    }
+    for (nv = 0; nv < NFLX; nv++){
+      scrh = fR[i][nv] - fL[i][nv] - um[nv];
+      if (nv == MXn) scrh += pR[i] - pL[i];
+      if (fabs(scrh) > 1.e-6){
+        printLog ("! Matrix condition not satisfied %d, %12.6e\n", nv, scrh);
+        Show(sweep->vL, i);
+        Show(sweep->vR, i);
+        exit(1);
+      }
+    }
     #endif
 
   /* -----------------------------------------------------------

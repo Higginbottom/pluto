@@ -28,8 +28,8 @@
        Diminishing Numerical Schemes for Hydrodynamics and Magnetohydrodynamics 
        Problems", Toth and Odstrcil, JCP (1996), 128,82
        
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    July 20, 2017
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    Sep 11, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -61,6 +61,17 @@ void LF_Solver (const Sweep *sweep, int beg, int end,
   double  *pL = stateL->prs,   *pR = stateR->prs;
   static double **vRL,  *cmin_RL, *cmax_RL;
 
+#if TIME_STEPPING == CHARACTERISTIC_TRACING
+{
+  static int first_call = 1;
+  if (first_call){
+    print ("! LF_Solver(): employment of this solver with ");
+    print ("CHARACTERISTIC_TRACING may degrade order of accuracy to 1.\n");
+    first_call = 0;
+  }
+}
+#endif
+
 /* --------------------------------------------------------
    0. Allocate memory
    -------------------------------------------------------- */
@@ -76,6 +87,7 @@ void LF_Solver (const Sweep *sweep, int beg, int end,
    -------------------------------------------------------- */
   
 #if BACKGROUND_FIELD == YES
+  /* -- Background field compute in stateL->bck = stateR->bck */
   GetBackgroundField (stateL, beg, end, FACE_CENTER, grid);
 #endif
 
@@ -94,7 +106,7 @@ void LF_Solver (const Sweep *sweep, int beg, int end,
   Flux (stateR, beg, end);
 
 /* --------------------------------------------------------
-   3. Compute max eigenvalue and fluxes
+   3. Compute max eigenvalue and Lax-Friedrichs fluxes
    -------------------------------------------------------- */
 
   for (i = beg; i <= end; i++) {
@@ -123,14 +135,22 @@ void LF_Solver (const Sweep *sweep, int beg, int end,
     cmax[i] = cRL;
     uL = stateL->u[i];
     uR = stateR->u[i];
-    for (nv = NFLX; nv--;    ) {
+    NFLX_LOOP(nv) {
       sweep->flux[i][nv] = 0.5*(fL[i][nv] + fR[i][nv] - cRL*(uR[nv] - uL[nv]));
     }
     sweep->press[i] = 0.5*(pL[i] + pR[i]);
   }
 
 /* --------------------------------------------------------
-   4. Compute source term
+   4. Define point and diffusive fluxes for CT
+   -------------------------------------------------------- */
+  
+#if DIVB_CONTROL == CONSTRAINED_TRANSPORT 
+  CT_Flux (sweep, beg, end, grid);
+#endif
+  
+/* --------------------------------------------------------
+   5. Compute source term
    -------------------------------------------------------- */
 
 #if DIVB_CONTROL == EIGHT_WAVES
@@ -138,26 +158,18 @@ void LF_Solver (const Sweep *sweep, int beg, int end,
 #endif
 
 /* ----------------------------------------------------------
-   5. Add CR flux contribution using simplified upwinding.
+   6. Add CR flux contribution using simplified upwinding.
    ---------------------------------------------------------- */
 
-#ifdef PARTICLES
-  #if (PARTICLES_TYPE == COSMIC_RAYS) && (PARTICLES_CR_FEEDBACK == YES) 
+  #if (PARTICLES == PARTICLES_CR) && (PARTICLES_CR_FEEDBACK == YES) 
   Particles_CR_Flux (stateL, beg, end);
   Particles_CR_Flux (stateR, beg, end);
 
   for (i = beg; i <= end; i++){
-    if (sweep->flux[i][RHO] > 0.0) {
-      for (nv = NFLX; nv--; ) sweep->flux[i][nv] += stateL->fluxCR[i][nv];
-    }else if (sweep->flux[i][RHO] < 0.0){
-      for (nv = NFLX; nv--; ) sweep->flux[i][nv] += stateR->fluxCR[i][nv];
-    }else{
-      for (nv = NFLX; nv--; ) {
-        sweep->flux[i][nv] += 0.5*(stateL->fluxCR[i][nv] + stateR->fluxCR[i][nv]);
-      }
+    NFLX_LOOP(nv) {
+      sweep->flux[i][nv] += 0.5*(stateL->fluxCR[i][nv] + stateR->fluxCR[i][nv]);
     }
   }  
   #endif
-#endif
 
 }

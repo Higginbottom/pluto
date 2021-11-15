@@ -37,9 +37,10 @@
 
  
  \authors B. Vaidya (bvaidya@unito.it)\n
-          A. Mignone (mignone@ph.unito.it)\n
+          A. Mignone (mignone@to.infn.it)\n
+          D. Mukherjee
  
- \date    April3, 2018
+ \date    Aug 20, 2020
  */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -66,7 +67,7 @@ void Particles_WriteVTK(particleNode *PHeadRef, Output *output, char filename[12
   char  vtkheader[512];
   particleNode * CurNode;
   float *pos, *vel, *color, *tinj;
-  double gamma, u[3];
+  double gamma, u[3], rcoord[3];
  
   pids   = ARRAY_1D(p_nparticles, int);
   typarr = ARRAY_1D(p_nparticles, int);
@@ -87,16 +88,41 @@ void Particles_WriteVTK(particleNode *PHeadRef, Output *output, char filename[12
 
     for (dir = 0; dir < 3; dir++) u[dir] = CurNode->p.speed[dir];
 
-    #if PARTICLES_TYPE == COSMIC_RAYS && PARTICLES_CR_WRITE_4VEL == YES
-    gamma = u[IDIR]*u[IDIR] + u[JDIR]*u[JDIR] + u[KDIR]*u[KDIR];
-    gamma = 1.0/sqrt(1.0 - gamma/(PARTICLES_CR_C*PARTICLES_CR_C));
-    for (dir = 0; dir < 3; dir++) u[dir] *= gamma;  /* 4-vel */
+    #if GEOMETRY == POLAR
+    {
+      double r   = CurNode->p.coord[IDIR];
+      double phi = (DIMENSIONS >= 2 ? CurNode->p.coord[JDIR]:0.0);
+
+      rcoord[IDIR] = r*cos(phi);
+      rcoord[JDIR] = r*sin(phi);
+      rcoord[KDIR] = CurNode->p.coord[KDIR];
+    }
+    #elif GEOMETRY == SPHERICAL
+    {
+      double r   = CurNode->p.coord[IDIR];
+      double th  = (DIMENSIONS >= 2 ? CurNode->p.coord[JDIR]:0.0);
+      double phi = (DIMENSIONS == 2 ? CurNode->p.coord[KDIR]:0.0);
+
+      rcoord[IDIR] = r*sin(th)*cos(phi);
+      rcoord[JDIR] = r*sin(th)*sin(phi);
+      rcoord[JDIR] = r*cos(th);
+    }
+    #else
+    rcoord[IDIR] = CurNode->p.coord[IDIR];  /* Standard Cartesian  */
+    rcoord[JDIR] = CurNode->p.coord[JDIR];  /* coordinates         */
+    rcoord[KDIR] = CurNode->p.coord[KDIR];
     #endif
+
     for (dir = 0; dir < 3; dir++) {
-      pos[3*i + dir] = CurNode->p.coord[dir];
+      pos[3*i + dir] = rcoord[dir];
       vel[3*i + dir] = u[dir];
     }
+    #if PARTICLES == PARTICLES_LP
+    color[i]  = CurNode->p.color[0];
+    #else
     color[i]  = CurNode->p.color;
+    #endif
+
     pids[i]   = CurNode->p.id;
     tinj[i]   = CurNode->p.tinj;
     typarr[i] = 1;
@@ -145,7 +171,7 @@ void Particles_WriteVTK(particleNode *PHeadRef, Output *output, char filename[12
   sprintf(vtkheader+strlen(vtkheader),"PLUTO %s VTK Data\n",PLUTO_VERSION);
   sprintf(vtkheader+strlen(vtkheader),"BINARY\n");
   sprintf(vtkheader+strlen(vtkheader),"DATASET UNSTRUCTURED_GRID\n");
-  sprintf(vtkheader+strlen(vtkheader),"POINTS %d float\n",tot_np);
+  sprintf(vtkheader+strlen(vtkheader),"POINTS %ld float\n",tot_np);
   FileWriteHeader(vtkheader, filename, -1);  
 
   s = sizeof(float);
@@ -155,20 +181,22 @@ void Particles_WriteVTK(particleNode *PHeadRef, Output *output, char filename[12
    3. Write particle CELL Type Header and data.
    ---------------------------------------------------------- */
    
-  sprintf(vtkheader, "\nCELL_TYPES %d\n",tot_np);
+  sprintf(vtkheader, "\nCELL_TYPES %ld\n",tot_np);
   FileWriteHeader(vtkheader, filename, 0);      
 
   s = sizeof(int);
   FileWriteArray(typarr, offset*s, p_nparticles, s, filename);
 
+  sprintf(vtkheader, "\nPOINT_DATA %ld\n",tot_np); 
+  FileWriteHeader(vtkheader, filename, 0);      
+
 /* ----------------------------------------------------------
    4. Write particle ID header and data.
    ---------------------------------------------------------- */
-  
+
   indx = StringArrayIndex(output->var_name, output->nvar, "id");
   if (output->dump_var[indx]){
-    sprintf(vtkheader, "\nPOINT_DATA %d\n",tot_np); 
-    sprintf(vtkheader+strlen(vtkheader), "SCALARS Identity int 1\n"); 
+    sprintf(vtkheader, "\nSCALARS Identity int 1\n"); 
     sprintf(vtkheader+strlen(vtkheader), "LOOKUP_TABLE default\n");    
     FileWriteHeader(vtkheader, filename, 0);  
   
@@ -179,7 +207,7 @@ void Particles_WriteVTK(particleNode *PHeadRef, Output *output, char filename[12
 /* ----------------------------------------------------------
    5. Write particle injection time header and data.
    ---------------------------------------------------------- */
-   
+
   indx = StringArrayIndex(output->var_name, output->nvar, "tinj");
   if (output->dump_var[indx]){
     sprintf(vtkheader, "\nSCALARS tinj float 1\n"); 
@@ -215,7 +243,7 @@ void Particles_WriteVTK(particleNode *PHeadRef, Output *output, char filename[12
       && output->dump_var[indx2]
       && output->dump_var[indx3]){
   
-    #if PARTICLES_TYPE == COSMIC_RAYS && PARTICLES_CR_WRITE_4VEL == YES
+    #if PARTICLES == PARTICLES_CR
     sprintf(vtkheader, "\nVECTORS Four-Velocity float 3\n"); 
     FileWriteHeader(vtkheader, filename, 0);  
     #else  

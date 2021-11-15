@@ -73,19 +73,19 @@ void POWELL_DIVB_SOURCE(const Sweep *sweep, int beg, int end, Grid *grid)
 
     vc = stateC->v[i];
 
-    vB  = EXPAND(vc[VX1]*vc[BX1], + vc[VX2]*vc[BX2], + vc[VX3]*vc[BX3]);
-    g_2 = EXPAND(vc[VX1]*vc[VX1], + vc[VX2]*vc[VX2], + vc[VX3]*vc[VX3]);
+    vB  = vc[VX1]*vc[BX1] + vc[VX2]*vc[BX2] + vc[VX3]*vc[BX3];
+    g_2 = vc[VX1]*vc[VX1] + vc[VX2]*vc[VX2] + vc[VX3]*vc[VX3];
     g_2 = 1.0 - g_2;
 
-    EXPAND (sweep->src[i][MX1] = -divB[i]*(vc[BX1]*g_2 + vB*vc[VX1]);  ,
-            sweep->src[i][MX2] = -divB[i]*(vc[BX2]*g_2 + vB*vc[VX2]);  ,
-            sweep->src[i][MX3] = -divB[i]*(vc[BX3]*g_2 + vB*vc[VX3]);)
+    sweep->src[i][MX1] = -divB[i]*(vc[BX1]*g_2 + vB*vc[VX1]);
+    sweep->src[i][MX2] = -divB[i]*(vc[BX2]*g_2 + vB*vc[VX2]);
+    sweep->src[i][MX3] = -divB[i]*(vc[BX3]*g_2 + vB*vc[VX3]);
 
     sweep->src[i][ENG] = -divB[i]*vB;
 
-    EXPAND (sweep->src[i][BX1] = -divB[i]*vc[VX1];  ,
-            sweep->src[i][BX2] = -divB[i]*vc[VX2];  ,
-            sweep->src[i][BX3] = -divB[i]*vc[VX3];)
+    sweep->src[i][BX1] = -divB[i]*vc[VX1];
+    sweep->src[i][BX2] = -divB[i]*vc[VX2];
+    sweep->src[i][BX3] = -divB[i]*vc[VX3];
 
   }
 }
@@ -175,15 +175,15 @@ void HLL_DIVB_SOURCE (const Sweep *sweep, double **Uhll, int beg,
     vc  = stateC->v[i];
     src = sweep->src[i];
 
-    vB = EXPAND(vc[VX1]*vc[BX1], + vc[VX2]*vc[BX2], + vc[VX3]*vc[BX3]);
+    vB = vc[VX1]*vc[BX1] + vc[VX2]*vc[BX2] + vc[VX3]*vc[BX3];
     src[RHO] = 0.0;
-    EXPAND(src[MX1] = 0.0;  ,
-           src[MX2] = 0.0;  ,
-           src[MX3] = 0.0;)
+    src[MX1] = 0.0;
+    src[MX2] = 0.0;
+    src[MX3] = 0.0;
 
-    EXPAND(src[BX1] = -vc[VX1]*divB[i];  ,
-           src[BX2] = -vc[VX2]*divB[i];  ,
-   	       src[BX3] = -vc[VX3]*divB[i];)
+    src[BX1] = -vc[VX1]*divB[i];
+    src[BX2] = -vc[VX2]*divB[i];
+    src[BX3] = -vc[VX3]*divB[i];
 
     #if HAVE_ENERGY 
     src[ENG] = 0.0;

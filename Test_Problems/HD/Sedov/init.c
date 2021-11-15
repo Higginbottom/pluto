@@ -26,8 +26,8 @@
 
   \image html hd_sedov.02.jpg "Density plot at t=0.5 for configuration #02 (cylindrical blast)"
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   July 08, 2014
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Feb 25, 2019
   
   \b References:
      -  L.I. Sedov, "Similarity and Dimensional Methods in Mechanics", 
@@ -37,7 +37,7 @@
 #include "pluto.h"
 
 /* ********************************************************************* */
-void Init (double *us, double x1, double x2, double x3)
+void Init (double *v, double x1, double x2, double x3)
 /*
  *
  *
@@ -54,9 +54,9 @@ void Init (double *us, double x1, double x2, double x3)
    -------------------------------------------------- */
 
   #if DIMENSIONS == 1
-   dr = 2.0*(g_domEnd[IDIR]-g_domBeg[IDIR])/(double)NX1;
+  dr = 2.0*(g_domEnd[IDIR]-g_domBeg[IDIR])/(double)NX1;
   #else
-   dr = 3.5*(g_domEnd[IDIR]-g_domBeg[IDIR])/(double)NX1;
+  dr = 3.5*(g_domEnd[IDIR]-g_domBeg[IDIR])/(double)NX1;
   #endif
 
 /* ---------------------------------------
@@ -66,29 +66,31 @@ void Init (double *us, double x1, double x2, double x3)
   #if (GEOMETRY == CARTESIAN) && (DIMENSIONS == 1)
    vol = 2.0*dr;
   #elif (GEOMETRY == CYLINDRICAL && DIMENSIONS == 1)|| \
+        (GEOMETRY == POLAR       && DIMENSIONS == 1)|| \
         (GEOMETRY == CARTESIAN   && DIMENSIONS == 2)
    vol = CONST_PI*dr*dr;
   #elif (GEOMETRY == SPHERICAL   && DIMENSIONS == 1)|| \
         (GEOMETRY == CYLINDRICAL && DIMENSIONS == 2)|| \
+        (GEOMETRY == POLAR       && DIMENSIONS == 3)|| \
         (GEOMETRY == CARTESIAN   && DIMENSIONS == 3)
    vol = 4.0/3.0*CONST_PI*dr*dr*dr;
   #else
-   print1 ("! Init: geometrical configuration not allowed\n");
+   print ("! Init: geometrical configuration not allowed\n");
    QUIT_PLUTO(1);
   #endif
 
-  r = EXPAND(x1*x1, + x2*x2, +x3*x3);
+  r = DIM_EXPAND(x1*x1, + x2*x2, +x3*x3);
   r = sqrt(r);
 
-  us[RHO] = g_inputParam[DNST0];
-  us[VX1] = 0.0;
-  us[VX2] = 0.0;
-  us[VX3] = 0.0;
+  v[RHO] = g_inputParam[DNST0];
+  v[VX1] = 0.0;
+  v[VX2] = 0.0;
+  v[VX3] = 0.0;
 
-  if (r <= dr)  us[PRS] =  (g_gamma - 1.0)*g_inputParam[ENRG0]/vol;
-  else          us[PRS] = 1.e-5;
+  if (r <= dr) v[PRS] =  (g_gamma - 1.0)*g_inputParam[ENRG0]/vol;
+  else         v[PRS] = 1.e-5;
 
-  us[TRC]  = 0.0;
+  v[TRC]  = 0.0;
 }
 
 /* ********************************************************************* */

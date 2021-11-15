@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -99,6 +99,8 @@ $(function() {
 Macros</h2></td></tr>
 <tr class="memitem:a56cc57bcaddf1d01afcf487be8510292"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#a56cc57bcaddf1d01afcf487be8510292">INITIAL_SMOOTHING</a>&#160;&#160;&#160;NO</td></tr>
 <tr class="separator:a56cc57bcaddf1d01afcf487be8510292"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af6c09114f14b3d4556ec9042d8813ed2"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#af6c09114f14b3d4556ec9042d8813ed2">NGHOST_USR</a>&#160;&#160;&#160;-1</td></tr>
+<tr class="separator:af6c09114f14b3d4556ec9042d8813ed2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af1b97f69947626df0bb2b427a3aad656"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#af1b97f69947626df0bb2b427a3aad656">RECONSTRUCT_4VEL</a>&#160;&#160;&#160;NO</td></tr>
 <tr class="separator:af1b97f69947626df0bb2b427a3aad656"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1e411ee12bfbc3e7b61dd978a2faf737"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#a1e411ee12bfbc3e7b61dd978a2faf737">UNIT_DENSITY</a>&#160;&#160;&#160;(<a class="el" href="pluto_8h.html#a4dc959ccd28ff51ba04ff6bfd4f177e2">CONST_mp</a>)</td></tr>
@@ -111,8 +113,8 @@ Macros</h2></td></tr>
 <tr class="separator:a8764db1b23fb32adc88292922df60835"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac6a37b9ae25d11bf2521d8ee85c46d79"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#ac6a37b9ae25d11bf2521d8ee85c46d79">NIONS</a>&#160;&#160;&#160;0</td></tr>
 <tr class="separator:ac6a37b9ae25d11bf2521d8ee85c46d79"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad5195ac8f863f5a9a7eaa0db094f7639"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#ad5195ac8f863f5a9a7eaa0db094f7639">NVAR</a>&#160;&#160;&#160;(NFLX + NSCL + NDUST_FLUID)</td></tr>
-<tr class="separator:ad5195ac8f863f5a9a7eaa0db094f7639"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac4dcf43ace04e3b1f9c688f8f1baa2a5"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#ac4dcf43ace04e3b1f9c688f8f1baa2a5">NFLX_LOOP</a>(n)&#160;&#160;&#160;for ((n) = NFLX; (n)--;  )</td></tr>
+<tr class="separator:ac4dcf43ace04e3b1f9c688f8f1baa2a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr><td colspan="2"><div class="groupHeader">Labels identifying different boundary and domain regions.</div></td></tr>
 <tr><td colspan="2"><div class="groupText"><p>These are useful in <a class="el" href="boundary_8c.html#a737d3862f4cf347b9f2216b6310edde7">Boundary()</a> and when setting <a class="el" href="struct_r_box.html">RBox</a> structures in different points of the code. </p>
 </div></td></tr>
@@ -133,7 +135,7 @@ Macros</h2></td></tr>
 <tr class="memitem:ab74ea0985ed254421a2ec2a9348eaf91"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#ab74ea0985ed254421a2ec2a9348eaf91">TOT</a>&#160;&#160;&#160;108</td></tr>
 <tr class="separator:ab74ea0985ed254421a2ec2a9348eaf91"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr><td colspan="2"><div class="groupHeader">Bit flag labels.</div></td></tr>
-<tr><td colspan="2"><div class="groupText"><p>The following macros define the bits that can be turned on or off in an unsigned char (= 1 byte = 8 bits) variable. Different bit flags allow to enable or disable certain actions in a given cell at different points in the code, see also flag.c. The 3D unsigned char <code>***flag</code> array is used for bookeeping, in each zone (i,j,k), which bits are actually switched on or off. A simple bitwise operation is used to enable a flag, e.g., <code> flag[k][j][i] |= FLAG_XXX </code>. For instance, by turning the <a class="el" href="pluto_8h.html#a3fa3287a9bb25e06fe5ba6f038bb251e">FLAG_HLL</a> bit on, we have <code> flag = 00000100 </code>, while by also enabling the <a class="el" href="pluto_8h.html#a2f0d9a00a877ea4d5d6abe0709bf80b6">FLAG_SPLIT_CELL</a> one has <code> flag = 00010100 </code> and so on. Individual bits can also be turned off with the complement operator</p>
+<tr><td colspan="2"><div class="groupText"><p>The following macros define the bits that can be turned on or off in an uint16_t (2 bytes integer, 1 byte = 8 bits) variable. Different bit flags allow to enable or disable certain actions in a given cell at different points in the code, see also flag.c. The 3D, 16-bit <code>***flag</code> array is used for bookeeping, in each zone (i,j,k), which bits are actually switched on or off. A simple bitwise operation is used to enable a flag, e.g., <code> flag[k][j][i] |= FLAG_XXX </code>. For instance, by turning the <a class="el" href="pluto_8h.html#a3fa3287a9bb25e06fe5ba6f038bb251e">FLAG_HLL</a> bit on, we have <code> flag = 00000100 </code>, while by also enabling the <a class="el" href="pluto_8h.html#a2f0d9a00a877ea4d5d6abe0709bf80b6">FLAG_SPLIT_CELL</a> one has <code> flag = 00010100 </code> and so on. Individual bits can also be turned off with the complement operator</p>
 <p>Individual bits can also be turned off, e.g., <code> flag &amp;= ~FLAG_XXX; </code> </p>
 </div></td></tr>
 <tr class="memitem:acda2856a577dd62b96c7ec91aa8baef0"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#acda2856a577dd62b96c7ec91aa8baef0">FLAG_MINMOD</a>&#160;&#160;&#160;1</td></tr>
@@ -151,9 +153,24 @@ Macros</h2></td></tr>
 <tr class="memitem:a2b010e9629dbfda504cf99f409705ab5"><td class="memItemLeft" align="right" valign="top"><a id="a2b010e9629dbfda504cf99f409705ab5"></a>
 #define&#160;</td><td class="memItemRight" valign="bottom"><b>FLAG_CONS2PRIM_FAIL</b>&#160;&#160;&#160;64</td></tr>
 <tr class="separator:a2b010e9629dbfda504cf99f409705ab5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7ee40d1e5091772c5d942b2e787ddad0"><td class="memItemLeft" align="right" valign="top"><a id="a7ee40d1e5091772c5d942b2e787ddad0"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>FLAG_BIT8</b>&#160;&#160;&#160;128</td></tr>
-<tr class="separator:a7ee40d1e5091772c5d942b2e787ddad0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa1237e80ab2be496aed626c0d17bac51"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#aa1237e80ab2be496aed626c0d17bac51">FLAG_NEGATIVE_PRESSURE</a>&#160;&#160;&#160;128</td></tr>
+<tr class="separator:aa1237e80ab2be496aed626c0d17bac51"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab3d4aff3b1776a7f3838aa1f4dbc8587"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#ab3d4aff3b1776a7f3838aa1f4dbc8587">FLAG_NEGATIVE_ENERGY</a>&#160;&#160;&#160;256</td></tr>
+<tr class="separator:ab3d4aff3b1776a7f3838aa1f4dbc8587"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afc62684fa0aca9b46a171a36774eb5ff"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#afc62684fa0aca9b46a171a36774eb5ff">FLAG_NEGATIVE_DENSITY</a>&#160;&#160;&#160;512</td></tr>
+<tr class="separator:afc62684fa0aca9b46a171a36774eb5ff"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a17ea963fe343a27edcc50f7af246576e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#a17ea963fe343a27edcc50f7af246576e">FLAG_BIT_11</a>&#160;&#160;&#160;1024</td></tr>
+<tr class="separator:a17ea963fe343a27edcc50f7af246576e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:add9414269c9ab43807f1de357226355e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#add9414269c9ab43807f1de357226355e">FLAG_BIT_12</a>&#160;&#160;&#160;2048</td></tr>
+<tr class="separator:add9414269c9ab43807f1de357226355e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5579698f755b5617bb03b8018f1a8d81"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#a5579698f755b5617bb03b8018f1a8d81">FLAG_BIT_13</a>&#160;&#160;&#160;4096</td></tr>
+<tr class="separator:a5579698f755b5617bb03b8018f1a8d81"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a48daef7a7d9f02032b7ff9a0359e434d"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#a48daef7a7d9f02032b7ff9a0359e434d">FLAG_BIT_14</a>&#160;&#160;&#160;8192</td></tr>
+<tr class="separator:a48daef7a7d9f02032b7ff9a0359e434d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a479ee2a92347f321d1df0ec12d395e61"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#a479ee2a92347f321d1df0ec12d395e61">FLAG_BIT_15</a>&#160;&#160;&#160;16384</td></tr>
+<tr class="separator:a479ee2a92347f321d1df0ec12d395e61"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae778362f3fee1807efd777c39e3faf51"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#ae778362f3fee1807efd777c39e3faf51">FLAG_GCA_FAILURE</a>&#160;&#160;&#160;32768</td></tr>
+<tr class="separator:ae778362f3fee1807efd777c39e3faf51"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr><td colspan="2"><div class="groupHeader">Physical constants in c.g.s units.</div></td></tr>
 <tr><td colspan="2"><div class="groupText"><p>The following set of macros express some useful physical constants in c.g.s units (erg, cm and sec). Values have been taken from <a href="http://physic.nist.gov/cuu/Constants/index.html">http://physic.nist.gov/cuu/Constants/index.html</a> </p>
 </div></td></tr>
@@ -274,8 +291,6 @@ Variables</h2></td></tr>
 <tr class="separator:a295c08ba7114e27b128df191fb6ce720"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8785f6205414f260ae9da151a78c818a"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#a8785f6205414f260ae9da151a78c818a">g_dt</a></td></tr>
 <tr class="separator:a8785f6205414f260ae9da151a78c818a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a20623ee660eb5eaa5e0549685bb22141"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#a20623ee660eb5eaa5e0549685bb22141">g_hydroStep</a></td></tr>
-<tr class="separator:a20623ee660eb5eaa5e0549685bb22141"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ada167df2e8ff65cdcc35a8861a7a7743"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#ada167df2e8ff65cdcc35a8861a7a7743">g_maxMach</a></td></tr>
 <tr class="separator:ada167df2e8ff65cdcc35a8861a7a7743"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a377f5f881e1b54fcf0c5249a1cca6750"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="pluto_8h.html#a377f5f881e1b54fcf0c5249a1cca6750">g_domBeg</a> [3]</td></tr>
@@ -287,8 +302,8 @@ Variables</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Contains basic macro definitions, structure definitions and global variable declarations used by the code.</p>
-<dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'ph'+'.un'+'it'+'o.i'+'t'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@p<span style="display: none;">.nosp@m.</span>h.uni<span style="display: none;">.nosp@m.</span>to.i<span style="display: none;">.nosp@m.</span>t</a>) </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>Feb 21, 2018 </dd></dl>
+<dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'to'+'.in'+'fn'+'.it'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@t<span style="display: none;">.nosp@m.</span>o.inf<span style="display: none;">.nosp@m.</span>n.it</a>) </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>Jun 02, 2021 </dd></dl>
 </div><h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="a77004533ea9f81c0dd00988c84689207"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a77004533ea9f81c0dd00988c84689207">&#9670;&nbsp;</a></span>CONST_AH</h2>
@@ -601,7 +616,7 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p><img class="formulaInl" alt="$ \pi $" src="form_61.png"/>. </p>
+<p><img class="formulaInl" alt="$ \pi $" src="form_248.png"/>. </p>
 
 </div>
 </div>
@@ -695,6 +710,81 @@ Variables</h2></td></tr>
 
 </div>
 </div>
+<a id="a17ea963fe343a27edcc50f7af246576e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a17ea963fe343a27edcc50f7af246576e">&#9670;&nbsp;</a></span>FLAG_BIT_11</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define FLAG_BIT_11&#160;&#160;&#160;1024</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Free bit </p>
+
+</div>
+</div>
+<a id="add9414269c9ab43807f1de357226355e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#add9414269c9ab43807f1de357226355e">&#9670;&nbsp;</a></span>FLAG_BIT_12</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define FLAG_BIT_12&#160;&#160;&#160;2048</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Free bit </p>
+
+</div>
+</div>
+<a id="a5579698f755b5617bb03b8018f1a8d81"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5579698f755b5617bb03b8018f1a8d81">&#9670;&nbsp;</a></span>FLAG_BIT_13</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define FLAG_BIT_13&#160;&#160;&#160;4096</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Free bit </p>
+
+</div>
+</div>
+<a id="a48daef7a7d9f02032b7ff9a0359e434d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a48daef7a7d9f02032b7ff9a0359e434d">&#9670;&nbsp;</a></span>FLAG_BIT_14</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define FLAG_BIT_14&#160;&#160;&#160;8192</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Free bit </p>
+
+</div>
+</div>
+<a id="a479ee2a92347f321d1df0ec12d395e61"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a479ee2a92347f321d1df0ec12d395e61">&#9670;&nbsp;</a></span>FLAG_BIT_15</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define FLAG_BIT_15&#160;&#160;&#160;16384</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Free bit </p>
+
+</div>
+</div>
 <a id="ad00cada97e252dd1887a4716e733ddd1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ad00cada97e252dd1887a4716e733ddd1">&#9670;&nbsp;</a></span>FLAG_ENTROPY</h2>
 
@@ -725,6 +815,21 @@ Variables</h2></td></tr>
 
 </div>
 </div>
+<a id="ae778362f3fee1807efd777c39e3faf51"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae778362f3fee1807efd777c39e3faf51">&#9670;&nbsp;</a></span>FLAG_GCA_FAILURE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define FLAG_GCA_FAILURE&#160;&#160;&#160;32768</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Singularity in the GCA because of E_ &gt; B (incomplete stencil error) </p>
+
+</div>
+</div>
 <a id="a3fa3287a9bb25e06fe5ba6f038bb251e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a3fa3287a9bb25e06fe5ba6f038bb251e">&#9670;&nbsp;</a></span>FLAG_HLL</h2>
 
@@ -736,7 +841,7 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Use HLL Riemann solver. </p>
+<p>Switch to HLL Riemann solver. </p>
 
 </div>
 </div>
@@ -767,6 +872,51 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <p>Reconstruct using MINMOD limiter. </p>
+
+</div>
+</div>
+<a id="afc62684fa0aca9b46a171a36774eb5ff"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afc62684fa0aca9b46a171a36774eb5ff">&#9670;&nbsp;</a></span>FLAG_NEGATIVE_DENSITY</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define FLAG_NEGATIVE_DENSITY&#160;&#160;&#160;512</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>A negative density has been found </p>
+
+</div>
+</div>
+<a id="ab3d4aff3b1776a7f3838aa1f4dbc8587"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab3d4aff3b1776a7f3838aa1f4dbc8587">&#9670;&nbsp;</a></span>FLAG_NEGATIVE_ENERGY</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define FLAG_NEGATIVE_ENERGY&#160;&#160;&#160;256</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>A negative energy has been found </p>
+
+</div>
+</div>
+<a id="aa1237e80ab2be496aed626c0d17bac51"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa1237e80ab2be496aed626c0d17bac51">&#9670;&nbsp;</a></span>FLAG_NEGATIVE_PRESSURE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define FLAG_NEGATIVE_PRESSURE&#160;&#160;&#160;128</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>A negative pressure has been found </p>
 
 </div>
 </div>
@@ -815,6 +965,50 @@ Variables</h2></td></tr>
 
 </div>
 </div>
+<a id="ac4dcf43ace04e3b1f9c688f8f1baa2a5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac4dcf43ace04e3b1f9c688f8f1baa2a5">&#9670;&nbsp;</a></span>NFLX_LOOP</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define NFLX_LOOP</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">n</td><td>)</td>
+          <td>&#160;&#160;&#160;for ((n) = NFLX; (n)--;  )</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>The total number of variables that are evolved in time. This includes:</p>
+<ul>
+<li><code>NFLX:</code> number of equations defining the system of conservation laws. For example, for the HD module, it consists of density, momentum and energy. Defined in the physics module header file mod_defs.h.</li>
+<li><code>NIONS:</code> number of chemical species; defined in the cooling modules <a class="el" href="cooling_8h.html" title="Cooling main header file. ">cooling.h</a>, if present.</li>
+<li><code>NTRACER:</code> number of user-defined tracers; defined in the problem directory header file definitions.h</li>
+</ul>
+<pre class="fragment"> NFLX    NIONS    NTRACER    ENTR    NDUST_FLUID
+         &lt;----------------------&gt;
+                   NSCL
+ &lt;----------------------------------------------&gt;
+                     NVAR
+</pre> 
+</div>
+</div>
+<a id="af6c09114f14b3d4556ec9042d8813ed2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af6c09114f14b3d4556ec9042d8813ed2">&#9670;&nbsp;</a></span>NGHOST_USR</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define NGHOST_USR&#160;&#160;&#160;-1</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>When positive, it specifes a user-provided number of ghost zones. </p>
+
+</div>
+</div>
 <a id="ac6a37b9ae25d11bf2521d8ee85c46d79"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac6a37b9ae25d11bf2521d8ee85c46d79">&#9670;&nbsp;</a></span>NIONS</h2>
 
@@ -829,35 +1023,10 @@ Variables</h2></td></tr>
 <p>Set the number of scalars including:</p>
 <ul>
 <li><code>NTRACER</code> (user-supplied)</li>
-<li><code>NIONS</code> chemical fractions (added by cooling modules)</li>
+<li><code>NIONS</code> chemical fractions (cooling modules)</li>
 <li>Entropy</li>
 </ul>
-<p>In total, there are <code>NSCL = NIONS+NTRACER+(ENTROPY</code> passive scalar to be advected. </p>
-
-</div>
-</div>
-<a id="ad5195ac8f863f5a9a7eaa0db094f7639"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad5195ac8f863f5a9a7eaa0db094f7639">&#9670;&nbsp;</a></span>NVAR</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define NVAR&#160;&#160;&#160;(NFLX + NSCL + NDUST_FLUID)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>The total number of variables that are evolved in time. This includes:</p>
-<ul>
-<li><code>NFLX:</code> number of equations defining the system of conservation laws. For example, for the HD module, it consists of density, momentum and energy. It is defined in the physics module header file mod_defs.h.</li>
-<li><code>NIONS:</code> number of chemical species; defined in the cooling modules cooling.h, if present.</li>
-<li><code>NTRACER:</code> number of user-defined tracers; defined in the problem directory header file definitions.h <pre class="fragment">       NFLX    NIONS    NTRACER    ENTR    NDUST_FLUID
-               &lt;----------------------&gt;
-                          NSCL
-       &lt;---------------------------------------&gt;
-                NVAR
-</pre> </li>
-</ul>
+<p>In total, there are <code>NSCL = NIONS+NTRACER+ENTROPY</code> passive scalar to be advected. </p>
 
 </div>
 </div>
@@ -1088,21 +1257,6 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <p>The current integration time step. </p>
-
-</div>
-</div>
-<a id="a20623ee660eb5eaa5e0549685bb22141"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a20623ee660eb5eaa5e0549685bb22141">&#9670;&nbsp;</a></span>g_hydroStep</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int g_hydroStep</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Tells whether we're in a hydro step (=1) or SplitSource step (=0) </p>
 
 </div>
 </div>
@@ -1574,7 +1728,7 @@ Variables</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:51 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:58 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

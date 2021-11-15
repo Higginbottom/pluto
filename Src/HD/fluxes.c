@@ -13,8 +13,8 @@
   - \c VXt, \c MXt and \c VXb, \c MXb are the transverse components
     (tangent \c "t" and bi-tangent \c "b").
 
- \author A. Mignone (mignone@ph.unito.it)
- \date   Oct 12, 2016
+ \author A. Mignone (mignone@to.infn.it)
+ \date   June 21, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -38,22 +38,14 @@ void Flux (const State *state, int beg, int end)
     flux = state->flux[i];
 
     flux[RHO] = u[MXn];
-    EXPAND(flux[MX1] = u[MX1]*v[VXn]; ,
-           flux[MX2] = u[MX2]*v[VXn]; ,
-           flux[MX3] = u[MX3]*v[VXn];)
-#if HAVE_ENERGY
+    flux[MX1] = u[MX1]*v[VXn];
+    flux[MX2] = u[MX2]*v[VXn];
+    flux[MX3] = u[MX3]*v[VXn];
+    #if HAVE_ENERGY
     state->prs[i] =  v[PRS];
     flux[ENG]     = (u[ENG] + v[PRS])*v[VXn];
-#elif EOS == ISOTHERMAL
+    #elif EOS == ISOTHERMAL
     state->prs[i] = state->a2[i]*v[RHO];
-#endif
-/*
-#if DUST_FLUID == YES
-    fx[ii][RHO_D] = u[ii][MXn_D];
-    EXPAND(fx[ii][MX1_D] = u[ii][MX1_D]*w[ii][VXn_D]; ,
-           fx[ii][MX2_D] = u[ii][MX2_D]*w[ii][VXn_D]; ,
-           fx[ii][MX3_D] = u[ii][MX3_D]*w[ii][VXn_D];)
-#endif
-*/
+    #endif
   }
 }

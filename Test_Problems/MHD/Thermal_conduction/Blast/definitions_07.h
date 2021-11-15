@@ -1,14 +1,12 @@
 #define  PHYSICS                        MHD
 #define  DIMENSIONS                     2
-#define  COMPONENTS                     2
 #define  GEOMETRY                       CARTESIAN
 #define  BODY_FORCE                     NO
-#define  FORCED_TURB                    NO
 #define  COOLING                        NO
 #define  RECONSTRUCTION                 LINEAR
 #define  TIME_STEPPING                  RK2
-#define  DIMENSIONAL_SPLITTING          NO
 #define  NTRACER                        0
+#define  PARTICLES                      NO
 #define  USER_DEF_PARAMETERS            6
 
 /* -- physics dependent declarations -- */
@@ -35,8 +33,9 @@
 
 /* [Beg] user-defined constants (do not change this line) */
 
-#define  LIMITER                        VANALBADA_LIM
 #define  ASSIGN_VECTOR_POTENTIAL        YES
+#define  CT_EMF_AVERAGE                 UCT_HLL
+#define  LIMITER                        VANALBADA_LIM
 #define  UNIT_DENSITY                   (1.26*CONST_mH)
 #define  UNIT_LENGTH                    (CONST_pc)
 #define  UNIT_VELOCITY                  sqrt(g_gamma*CONST_kB*1.e6/(1.26*CONST_mH))

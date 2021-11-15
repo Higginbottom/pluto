@@ -57,6 +57,8 @@ void Init (double *v, double x1, double x2, double x3)
     v[PRS] = 0.1;
   }
   v[VX1] = 0.0;
+  v[VX2] = 0.0;
+  v[VX3] = 0.0;
 
 }
 

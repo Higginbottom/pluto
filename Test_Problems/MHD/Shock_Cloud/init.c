@@ -121,7 +121,7 @@ void Init (double *v, double x, double y, double z)
 
   /*  ----  CLOUD  ----  */
 
-  r = D_EXPAND((x-x0)*(x-x0), + (y-y0)*(y-y0) , + (z-z0)*(z-z0));
+  r = DIM_EXPAND((x-x0)*(x-x0), + (y-y0)*(y-y0) , + (z-z0)*(z-z0));
 
   if (sqrt(r) < g_inputParam[RADIUS]) v[RHO] = 10.0;
 
@@ -168,20 +168,20 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
     if (box->vpos == CENTER){   /* -- select the variable position -- */
       BOX_LOOP(box,k,j,i){      /* -- Loop over boundary zones -- */
         d->Vc[RHO][k][j][i] = 1.0;
-        EXPAND(d->Vc[VX1][k][j][i] = -11.2536;  ,
-               d->Vc[VX2][k][j][i] = 0.0;       ,
-               d->Vc[VX3][k][j][i] = 0.0;)
+        d->Vc[VX1][k][j][i] = -11.2536;  
+        d->Vc[VX2][k][j][i] = 0.0;       
+        d->Vc[VX3][k][j][i] = 0.0;
         d->Vc[PRS][k][j][i] = 1.0;
-        EXPAND(d->Vc[BX1][k][j][i] = 0.0;        ,
-               d->Vc[BX2][k][j][i] = g_inputParam[B_PRE]; ,
-               d->Vc[BX3][k][j][i] = g_inputParam[B_PRE];)
+        d->Vc[BX1][k][j][i] = 0.0;        
+        d->Vc[BX2][k][j][i] = g_inputParam[B_PRE]; 
+        d->Vc[BX3][k][j][i] = g_inputParam[B_PRE];
       }
     }else if (box->vpos == X2FACE){  /* -- y staggered field -- */
       #ifdef STAGGERED_MHD
        BOX_LOOP(box,k,j,i) d->Vs[BX2s][k][j][i] = g_inputParam[B_PRE];
       #endif
     }else if (box->vpos == X3FACE){  /* -- z staggered field -- */
-      #ifdef STAGGERED_MHD
+      #if (DIMENSIONS == 3) && (defined STAGGERED_MHD)
        BOX_LOOP(box,k,j,i) d->Vs[BX3s][k][j][i] = g_inputParam[B_PRE];
       #endif
     }

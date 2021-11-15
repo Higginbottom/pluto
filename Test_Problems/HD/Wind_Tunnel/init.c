@@ -73,6 +73,13 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   x = grid->x[IDIR];
   y = grid->x[JDIR];
 
+  if (side == 0){
+    TOT_LOOP(k,j,i){
+      if (y[j] <= 0.2 && x[i] >= 0.6) d->flag[k][j][i]   |= FLAG_INTERNAL_BOUNDARY;         
+    }
+  }
+  
+#if 0 
   if (side == 0 && g_dir == IDIR){
     KDOM_LOOP(k) { 
     JDOM_LOOP(j) { 
@@ -96,6 +103,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
       if (x[i] < 0.6) continue;
       JDOM_LOOP(j){ 
         if (y[j] > 0.2 && y[j-1] < 0.2){
+d->flag[k][j][i]   |= FLAG_INTERNAL_BOUNDARY;         
           for (j1 = j - 1; j1 >= j - 4; j1--){
             d->Vc[RHO][k][j1][i] =  d->Vc[RHO][k][2*j - j1 - 1][i];
             d->Vc[VX1][k][j1][i] =  d->Vc[VX1][k][2*j - j1 - 1][i];
@@ -106,13 +114,14 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
       }
     }}
   }
-       
+#endif       
 
   if (side == X1_BEG){
     X1_BEG_LOOP(k,j,i){ 
       d->Vc[RHO][k][j][i] = 1.4;
       d->Vc[VX1][k][j][i] = 3.0;
       d->Vc[VX2][k][j][i] = 0.0;
+      d->Vc[VX3][k][j][i] = 0.0;
       d->Vc[PRS][k][j][i] = 1.0;
     }
   } 

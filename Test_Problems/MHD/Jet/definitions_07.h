@@ -1,14 +1,12 @@
 #define  PHYSICS                        MHD
 #define  DIMENSIONS                     2
-#define  COMPONENTS                     3
 #define  GEOMETRY                       CYLINDRICAL
 #define  BODY_FORCE                     NO
-#define  FORCED_TURB                    NO
 #define  COOLING                        SNEq
 #define  RECONSTRUCTION                 PARABOLIC
 #define  TIME_STEPPING                  CHARACTERISTIC_TRACING
-#define  DIMENSIONAL_SPLITTING          YES
 #define  NTRACER                        1
+#define  PARTICLES                      NO
 #define  USER_DEF_PARAMETERS            6
 
 /* -- physics dependent declarations -- */

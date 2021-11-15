@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -88,8 +88,8 @@ Functions</h2></td></tr>
 <tr class="separator:af5f2bb582dd6942f9dfe5b9e9f2eecc5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'ph'+'.un'+'it'+'o.i'+'t'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@p<span style="display: none;">.nosp@m.</span>h.uni<span style="display: none;">.nosp@m.</span>to.i<span style="display: none;">.nosp@m.</span>t</a>) </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>Oct 4, 2016 </dd></dl>
+<div class="textblock"><dl class="section author"><dt>Author</dt><dd>A. Mignone (<a href="#" onclick="location.href='mai'+'lto:'+'mig'+'no'+'ne@'+'to'+'.in'+'fn'+'.it'; return false;">migno<span style="display: none;">.nosp@m.</span>ne@t<span style="display: none;">.nosp@m.</span>o.inf<span style="display: none;">.nosp@m.</span>n.it</a>) </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>Aug 21, 2020 </dd></dl>
 </div><h2 class="groupheader">Function Documentation</h2>
 <a id="a8719d072b5a6782933da094f8ff1d5f5"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a8719d072b5a6782933da094f8ff1d5f5">&#9670;&nbsp;</a></span>Brent()</h2>
@@ -146,7 +146,7 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Use Brent's method to find the root of <img class="formulaInl" alt="$ f(x) = 0$" src="form_121.png"/> known to lie between x1 and x2. Here the function must be in the form <code>double</code> <code>Func(x,*p)</code>, where where <code>x</code> is the independent variable while <code>*p</code> is a (void) pointer to any data type containing the function parameters. Absolute accuracies can be specified to check for convergence</p>
+<p>Use Brent's method to find the root of <img class="formulaInl" alt="$ f(x) = 0$" src="form_109.png"/> known to lie between x1 and x2. Here the function must be in the form <code>double</code> <code>Func(x,*p)</code>, where where <code>x</code> is the independent variable while <code>*p</code> is a (void) pointer to any data type containing the function parameters. Absolute accuracies can be specified to check for convergence</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">*func</td><td>a pointer to a function func(x, *par) </td></tr>
@@ -201,7 +201,7 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <p>Solve a cubic equation in the form </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ z^3 + bz^2 + cz + d = 0 \]" src="form_122.png"/>
+<img class="formulaDsp" alt="\[ z^3 + bz^2 + cz + d = 0 \]" src="form_110.png"/>
 </p>
 <p> For its purpose, it is assumed that <b>ALL</b> roots are real. This makes things faster.</p>
 <dl class="params"><dt>Parameters</dt><dd>
@@ -307,7 +307,7 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <p>Solve a quartic equation in the form </p><p class="formulaDsp">
-<img class="formulaDsp" alt="\[ z^4 + bz^3 + cz^2 + dz + e = 0 \]" src="form_123.png"/>
+<img class="formulaDsp" alt="\[ z^4 + bz^3 + cz^2 + dz + e = 0 \]" src="form_111.png"/>
 </p>
 <p> For its purpose, it is assumed that <b>ALL</b> roots are real. This makes things faster.</p>
 <dl class="params"><dt>Parameters</dt><dd>
@@ -381,7 +381,7 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Use Ridder's method to find the root of <img class="formulaInl" alt="$ f(x) = 0$" src="form_121.png"/> known to lie between x1 and x2. Here the function must be in the form <code>double</code> <code>Func(x,*p)</code>, where where <code>x</code> is the independent variable while <code>*p</code> is a (void) pointer to any data type containing the function parameters. Both relative and absolute accuracies can be specified and convergence is achieved by the condition that is realized first. To choose among the two accuracies, set the other one to a negative number.</p>
+<p>Use Ridder's method to find the root of <img class="formulaInl" alt="$ f(x) = 0$" src="form_109.png"/> known to lie between x1 and x2. Here the function must be in the form <code>double</code> <code>Func(x,*p)</code>, where where <code>x</code> is the independent variable while <code>*p</code> is a (void) pointer to any data type containing the function parameters. Both relative and absolute accuracies can be specified and convergence is achieved by the condition that is realized first. To choose among the two accuracies, set the other one to a negative number.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">*func</td><td>a pointer to a function func(x, *par) </td></tr>
@@ -401,7 +401,7 @@ Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:50 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:23:57 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

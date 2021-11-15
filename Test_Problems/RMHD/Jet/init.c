@@ -62,8 +62,8 @@
      - "An HLLC Rieman solver for relativistic flows - II. Magnetohydrodynamics"
         Mignone \& Bodo, MNRAS (2006) 368, 1040   
 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   March 09, 2017
+  \author A. Mignone (mignone@to.infn.it)
+  \date   Aug 19, 2019
 
 */
 /* ///////////////////////////////////////////////////////////////////// */
@@ -95,23 +95,36 @@ void Init (double *v, double x1, double x2, double x3)
 /* -- set ambient values -- */
 
   v[RHO] = g_inputParam[RHOA];
-  EXPAND(v[VX1] = 0.0;   ,
-         v[VX2] = 0.0;   ,
-         v[VX3] = 0.0;)
+  v[VX1] = 0.0;
+  v[VX2] = 0.0;
+  v[VX3] = 0.0;
   v[PRS] = pj;
-  #if PHYSICS == RMHD
-   EXPAND(v[BX1] = 0.0;        ,
-          v[BX2] = vjet[BX2];  ,
-          v[BX3] = 0.0;)
-   v[AX1] = 0.0;
-   v[AX2] = 0.0;
-   v[AX3] = vjet[AX3];
+#if PHYSICS == RMHD
+  #if (GEOMETRY == CARTESIAN) || (GEOMETRY == CYLINDRICAL)
+  v[BX1] = 0.0;
+  v[BX2] = vjet[BX2];  
+  v[BX3] = 0.0;
+
+  v[AX1] = 0.0;
+  v[AX2] = 0.0;
+  v[AX3] = vjet[AX3];
+  #elif GEOMETRY == POLAR
+  v[BX1] = 0.0;
+  v[BX2] = 0.0;
+  v[BX3] = vjet[BX3];  
+
+  v[AX1] = 0.0;
+  v[AX2] = vjet[AX2];
+  v[AX3] = 0.0;
   #endif
+
+#endif
+
   #if NTRACER > 0
-   v[TRC] = 0.0;
+  v[TRC] = 0.0;
   #endif
   #ifdef PSI_GLM 
-   v[PSI_GLM] = 0.0;
+  v[PSI_GLM] = 0.0;
   #endif
 
   g_smallPressure = 1.e-5;
@@ -153,32 +166,32 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   double prof, vjet[256], vout[NVAR];
 
   #ifdef STAGGERED_MHD
-   D_EXPAND(bxs = d->Vs[BX1s];  , 
-            bys = d->Vs[BX2s];  , 
-            bzs = d->Vs[BX3s];)
+  DIM_EXPAND(bxs = d->Vs[BX1s];  , 
+           bys = d->Vs[BX2s];  , 
+           bzs = d->Vs[BX3s];)
   #endif
 
   x1  = grid->xgc[IDIR];  
   x2  = grid->xgc[JDIR];  
   x3  = grid->xgc[KDIR];
 
+#if (GEOMETRY == CYLINDRICAL) || (GEOMETRY == CARTESIAN)
   if (side == X2_BEG){  /* -- X2_BEG boundary -- */
     if (box->vpos == CENTER){    /* -- cell-centered boundary conditions -- */
       BOX_LOOP(box,k,j,i){
         GetJetValues (x1[i], x2[j], x3[k], vjet); /* Jet Values */
-        VAR_LOOP(nv) vout[nv] = d->Vc[nv][k][2*JBEG - j - 1][i]; /* Ambient */
+        NVAR_LOOP(nv) vout[nv] = d->Vc[nv][k][2*JBEG - j - 1][i]; /* Ambient */
 
         vout[VX2] *= -1.0; 
-        EXPAND(vout[BX1] *= -1.0;  ,  
-                                ;  , 
-               vout[BX3] *= -1.0;)
+        vout[BX1] *= -1.0;    
+        vout[BX3] *= -1.0;
         #ifdef PSI_GLM
          vjet[PSI_GLM]  = d->Vc[PSI_GLM][k][JBEG][i] - d->Vc[BX2][k][JBEG][i];
          vout[PSI_GLM] *= -1.0;
         #endif
 
         prof = (fabs(x1[i]) <= 1.0); 
-        VAR_LOOP(nv) d->Vc[nv][k][j][i] = vout[nv] - (vout[nv] - vjet[nv])*prof;
+        NVAR_LOOP(nv) d->Vc[nv][k][j][i] = vout[nv] - (vout[nv] - vjet[nv])*prof;
       }
 
     }else if (box->vpos == X1FACE){  /* -- staggered fields -- */
@@ -193,6 +206,40 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
       #endif
     }
   }
+#endif
+
+#if GEOMETRY == POLAR
+  if (side == X3_BEG){  /* -- X2_BEG boundary -- */
+    if (box->vpos == CENTER){    /* -- cell-centered boundary conditions -- */
+      BOX_LOOP(box,k,j,i){
+        GetJetValues (x1[i], x2[j], x3[k], vjet); /* Jet Values */
+        NVAR_LOOP(nv) vout[nv] = d->Vc[nv][2*KBEG - k - 1][j][i]; /* Ambient */
+
+        vout[VX3] *= -1.0; 
+        vout[BX1] *= -1.0;
+        vout[BX2] *= -1.0;
+        #ifdef PSI_GLM
+        vjet[PSI_GLM]  = d->Vc[PSI_GLM][KBEG][j][i] - d->Vc[BX3][KBEG][j][i];
+        vout[PSI_GLM] *= -1.0;
+        #endif
+
+        prof = (fabs(x1[i]) <= 1.0); 
+        NVAR_LOOP(nv) d->Vc[nv][k][j][i] = vout[nv] - (vout[nv] - vjet[nv])*prof;
+      }
+
+    }else if (box->vpos == X1FACE){  /* -- staggered fields -- */
+      #ifdef STAGGERED_MHD
+       x1 = grid->xr[IDIR];
+       vjet[BX1] = 0.0; 
+       BOX_LOOP(box,k,j,i){
+          vout[BX1] = -bxs[2*KBEG - k - 1][j][i];
+          prof = (fabs(x1[i]) <= 1.0);
+          bxs[k][j][i] = vout[BX1] - (vout[BX1] - vjet[BX1])*prof;
+       }
+      #endif
+    }
+  }
+#endif
 }
 
 /* **************************************************************** */
@@ -204,7 +251,6 @@ void GetJetValues (double x1, double x2, double x3, double *vj)
  * 
  ****************************************************************** */
 {
-  static int  first_call = 1;
   double bm, b2_av, bphi, lor, a = 0.5;
   double r, x, scrh, sig_z, sig_phi;
 
@@ -217,9 +263,9 @@ void GetJetValues (double x1, double x2, double x3, double *vj)
   x = r/a;
   vj[RHO] = g_inputParam[RHOJ];
 
-  EXPAND(vj[VX1] = 0.0;                        ,
-         vj[VX2] = sqrt(1.0 - 1.0/(lor*lor));  , /* 3-vel */
-         vj[VX3] = 0.0;)
+  vj[VX1] = 0.0;                        
+  vj[VX2] = sqrt(1.0 - 1.0/(lor*lor));  /* 3-vel */
+  vj[VX3] = 0.0;
 
   scrh = g_inputParam[MACH]/vj[VX2];
   pj   = vj[RHO]/(g_gamma*scrh*scrh - g_gamma/(g_gamma - 1.0));
@@ -233,22 +279,36 @@ void GetJetValues (double x1, double x2, double x3, double *vj)
 
   bphi  = bm*(fabs(x) < 1.0 ? x: 1.0/x);
 
-  #if GEOMETRY == CYLINDRICAL
-   EXPAND(vj[iBR]   = 0.0;                                 ,
-          vj[iBZ]   = sqrt(sig_z*(bm*bm*a*a + 2.0*pj));  ,
-          vj[iBPHI] = lor*bphi;)
-   vj[AX1] = 0.0;
-   vj[AX2] = 0.0;
-   vj[AX3] = 0.5*r*vj[iBZ];
+  #if (GEOMETRY == CYLINDRICAL) || (GEOMETRY == CARTESIAN)
+  vj[BX1] = 0.0;     
+  vj[BX2] = sqrt(sig_z*(bm*bm*a*a + 2.0*pj)); 
+  vj[BX3] = lor*bphi;
+
+  vj[AX1] = 0.0;
+  vj[AX2] = 0.0;
+  vj[AX3] = 0.5*r*vj[iBZ];
+  #endif
+
+  #if GEOMETRY == POLAR
+  vj[VX1] = 0.0;                        
+  vj[VX2] = 0.0;
+  vj[VX3] = sqrt(1.0 - 1.0/(lor*lor));  
+
+  vj[BX1] = 0.0;     
+  vj[BX2] = lor*bphi; 
+  vj[BX3] = sqrt(sig_z*(bm*bm*a*a + 2.0*pj));
+
+  vj[AX1] = 0.0;
+  vj[AX2] = 0.5*r*vj[BX3];
+  vj[AX3] = 0.0;
   #endif
 
 /* -- set tracer value -- */
 
   #if NTRACER > 0
-   vj[TRC] = 1.0;
+  vj[TRC] = 1.0;
   #endif
   #ifdef PSI_GLM 
-   vj[PSI_GLM] = 0.0;
+  vj[PSI_GLM] = 0.0;
   #endif
-
 }

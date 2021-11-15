@@ -18,8 +18,8 @@
     - "An HLLC Riemann solver for relativistic flows - I. Hydrodynamics",
        Mignone and Bodo, MNRAS (2005) 364,1126.
 
-  \authors A. Mignone (mignone@ph.unito.it)
-  \date    Oct 12, 2016
+  \authors A. Mignone (mignone@to.infn.it)
+  \date    Dec 03, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
@@ -100,12 +100,12 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
 
     if (SL[i] >= 0.0){
     
-      for (nv = NFLX; nv--; ) sweep->flux[i][nv] = fL[i][nv];
+      NFLX_LOOP(nv) sweep->flux[i][nv] = fL[i][nv];
       sweep->press[i] = pL[i];
 
     }else if (SR[i] <= 0.0){
 
-      for (nv = NFLX; nv--; ) sweep->flux[i][nv] = fR[i][nv];
+      NFLX_LOOP(nv) sweep->flux[i][nv] = fR[i][nv];
       sweep->press[i] = pR[i];
 
     }else{
@@ -116,7 +116,7 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
 #if SHOCK_FLATTENING == MULTID   
       if ((sweep->flag[i] & FLAG_HLL) || (sweep->flag[i+1] & FLAG_HLL)){        
         scrh  = 1.0/(SR[i] - SL[i]);
-        for (nv = NFLX; nv--; ){
+        NFLX_LOOP(nv) {
           sweep->flux[i][nv]  = SL[i]*SR[i]*(uR[nv] - uL[nv])
                              +  SR[i]*fL[i][nv] - SL[i]*fR[i][nv];
           sweep->flux[i][nv] *= scrh;
@@ -157,12 +157,15 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
     
       usl[RHO] = uL[RHO]*(SL[i] - vxl)/(SL[i] - us);
       usr[RHO] = uR[RHO]*(SR[i] - vxr)/(SR[i] - us);
-      EXPAND(usl[MXn] = (SL[i]*(uL[ENG] + ps) - uL[MXn])*us/(SL[i] - us); 
-             usr[MXn] = (SR[i]*(uR[ENG] + ps) - uR[MXn])*us/(SR[i] - us);  ,
-             usl[MXt] =  uL[MXt]*(SL[i] - vxl)/(SL[i] - us); 
-             usr[MXt] =  uR[MXt]*(SR[i] - vxr)/(SR[i] - us);              ,
-             usl[MXb] =  uL[MXb]*(SL[i] - vxl)/(SL[i] - us); 
-             usr[MXb] =  uR[MXb]*(SR[i] - vxr)/(SR[i] - us);)
+      
+      usl[MXn] = (SL[i]*(uL[ENG] + ps) - uL[MXn])*us/(SL[i] - us); 
+      usr[MXn] = (SR[i]*(uR[ENG] + ps) - uR[MXn])*us/(SR[i] - us);
+      
+      usl[MXt] =  uL[MXt]*(SL[i] - vxl)/(SL[i] - us); 
+      usr[MXt] =  uR[MXt]*(SR[i] - vxr)/(SR[i] - us);
+      
+      usl[MXb] =  uL[MXb]*(SL[i] - vxl)/(SL[i] - us); 
+      usr[MXb] =  uR[MXb]*(SR[i] - vxr)/(SR[i] - us);
            
       usl[ENG] = uL[ENG] + (usl[MXn] - uL[MXn])/SL[i];
       usr[ENG] = uR[ENG] + (usr[MXn] - uR[MXn])/SR[i];
@@ -170,12 +173,12 @@ void HLLC_Solver (const Sweep *sweep, int beg, int end,
      /*  ----  Compute HLLC flux  ----  */
 
       if (us >= 0.0) {
-        for (nv = NFLX; nv--;  ) {
+        NFLX_LOOP(nv) {
           sweep->flux[i][nv] = fL[i][nv] + SL[i]*(usl[nv] - uL[nv]);
         }
         sweep->press[i] = pL[i];
       }else {
-        for (nv = NFLX; nv--; ) {
+        NFLX_LOOP(nv) {
           sweep->flux[i][nv] = fR[i][nv] + SR[i]*(usr[nv] - uR[nv]);
         }
         sweep->press[i] = pR[i];

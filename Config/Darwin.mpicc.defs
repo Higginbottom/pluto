@@ -5,7 +5,8 @@
 ########################################################################
 
 CC       = mpicc
-CFLAGS   = -c -O3
+CFLAGS   = -c -O3 -Wundef
+#CFLAGS   = -c -fno-trapping-math -fno-signed-zeros -fassociative-math 
 LDFLAGS  = -lm 
 
 PARALLEL = TRUE   
@@ -25,6 +26,9 @@ endif
 #######################################
 
 ifeq ($(strip $(USE_HDF5)), TRUE)
+ HDF5_LIB = /usr/local/lib/HDF5-parallel
+ INCLUDE_DIRS += -I$(HDF5_LIB)/include
+ LDFLAGS      += -L$(HDF5_LIB)/lib -lhdf5 -lz
 endif
 
 #######################################

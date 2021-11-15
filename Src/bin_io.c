@@ -22,30 +22,10 @@
   \authors A. Mignone (mignone@ph.unito.it)\n
            G. Muscianisi (g.muscianisi@cineca.it)
 
-  \date   Oct 22, 2015
+  \date   Apr 02, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
-
-/* ********************************************************************* */
-int FileClose (FILE *fbin, int sz) 
-/*!
- * Close file.
- *
- * \param [in] fbin     pointer to the FILE that needs to be closed (serial
- *                      mode only)
- * \param [in] sz       the distributed array descriptor for parallel mode
- *
- * \return Returns 0 on success
- *********************************************************************** */
-{
-  #ifdef PARALLEL 
-   AL_File_close(sz); 
-  #else
-   fclose (fbin);
-  #endif
-  return(0);
-}
 
 /* ********************************************************************* */
 float ***Convert_dbl2flt (double ***Vdbl, double unit, int swap_endian)
@@ -83,6 +63,26 @@ float ***Convert_dbl2flt (double ***Vdbl, double unit, int swap_endian)
 }
 
 /* ********************************************************************* */
+int FileClose (FILE *fbin, int sz) 
+/*!
+ * Close file.
+ *
+ * \param [in] fbin     pointer to the FILE that needs to be closed (serial
+ *                      mode only)
+ * \param [in] sz       the distributed array descriptor for parallel mode
+ *
+ * \return Returns 0 on success
+ *********************************************************************** */
+{
+  #ifdef PARALLEL 
+   AL_File_close(sz); 
+  #else
+   fclose (fbin);
+  #endif
+  return(0);
+}
+
+/* ********************************************************************* */
 FILE *FileOpen (char *filename, int sz, char *mode)  
 /*!
  * Open a file for write/reading in binary mode.
@@ -105,7 +105,7 @@ FILE *FileOpen (char *filename, int sz, char *mode)
   if (strcmp(mode,"r") == 0 && prank == 0){
     fp = fopen(filename, "rb");
     if (fp == NULL){
-      print ("! FileOpen(): file %s does not exists\n", filename);
+      printLog ("! FileOpen(): file %s does not exists\n", filename);
       QUIT_PLUTO(1);
     }
     fclose(fp);
@@ -132,7 +132,7 @@ print ("Deleting file...\n");
   if      (strcmp(mode,"w") == 0) fp = fopen(filename, "wb");
   else if (strcmp(mode,"r") == 0) fp = fopen(filename, "rb");
   if (fp == NULL){
-    print ("! Cannot find file %s\n",filename);
+    printLog ("! Cannot find file %s\n",filename);
     QUIT_PLUTO(1);
   }
   return (fp);
@@ -145,19 +145,19 @@ void FileReadData (void *V, size_t dsize, int sz, FILE *fl, int istag,
 /*!
  * Read a 3D grid data array V[k][j][i] from a binary file. 
  *
- * \param [in] V      pointer to a 3D array,
- *                    V[k][j][i] -->  V[i + NX1*j + NX1*NX2*k]. Must
- *                    start with index 0
- * \param [in] dsize  the size of the each buffer element   
- *                    (sizeof(double) or sizeof(float)). This
- *                    parameter is used only in serial mode.
- * \param [in] sz     the distributed array descriptor. This parameter
- *                    replaces dsize in parallel mode
- * \param [in] fl     a valid FILE pointer
- * \param [in] istag  a flag to identify cell-centered (istag = -1) or
- *                    staggered field data (istag = 0,1 or 2 for staggering 
- *                    in the x1, x2 or x3 directions) 
- * \param [in]  swap_endian  a flag for swapping endianity
+ * \param [in] V            pointer to a 3D array
+ *                          V[k][j][i] -->  V[i + NX1*j + NX1*NX2*k]. 
+ *                          Must start with index 0
+ * \param [in] dsize        the size of the each buffer element   
+ *                          (sizeof(double) or sizeof(float)). This
+ *                          parameter is used only in serial mode.
+ * \param [in] sz           the distributed array descriptor. This parameter
+ *                          replaces dsize in parallel mode
+ * \param [in] fl           a valid FILE pointer
+ * \param [in] istag        a flag to identify cell-centered (istag = -1) or
+ *                          staggered field data (istag = 0,1 or 2 for staggering 
+ *                          in the x1, x2 or x3 directions) 
+ * \param [in] swap_endian  a flag for swapping endianity
  *
  * \return This function has no return value.
  *
@@ -272,24 +272,27 @@ int FileDelete (char *fname)
  * \return The pointer to the file.
  *********************************************************************** */
 {
+  int status = 0;
 #ifdef PARALLEL
   MPI_File fp;
 
-  MPI_File_open(MPI_COMM_WORLD, fname,
-                MPI_MODE_CREATE | MPI_MODE_WRONLY | MPI_MODE_DELETE_ON_CLOSE,
-                MPI_INFO_NULL, &fp);
+  status = MPI_File_open(MPI_COMM_WORLD, fname,
+                        MPI_MODE_CREATE | MPI_MODE_WRONLY | MPI_MODE_DELETE_ON_CLOSE,
+                        MPI_INFO_NULL, &fp);
   MPI_File_close(&fp);
 #endif
+  return status;
 }
 
 /* ********************************************************************* */
-void FileWriteArray(void *buf, long int offset, int cnt, size_t size, char *fname)
+void FileWriteArray(void *buf, long int offset, long int cnt, size_t size,
+                    char *fname)
 /*!
  *  Write an array to file using raw binary format.
  *  No AL distributed array descriptor is used here.
  *
  * \param [in]   buf      address of buffer to be written
- * \param [in]   offset   file offset (in bytes)
+ * \param [in]   offset   file offset in bytes [Only for parallel writing]
  * \param [in]   cnt      the number of element to be written
  * \param [in]   size     the sizeof() datatype
  * \param [in]   fname    the file name 
@@ -303,11 +306,11 @@ void FileWriteArray(void *buf, long int offset, int cnt, size_t size, char *fnam
   MPI_Status status;
   MPI_Offset start;   /* Store end of file position */
   
-  
+MPI_Barrier(MPI_COMM_WORLD);
   MPI_File_open(MPI_COMM_WORLD, fname, 
                 MPI_MODE_WRONLY | MPI_MODE_APPEND, MPI_INFO_NULL, &fhw);
   MPI_File_get_position(fhw, &start);
-    
+   
   MPI_File_set_view (fhw, start+offset, MPI_BYTE, MPI_CHAR, "native", MPI_INFO_NULL);
   MPI_File_write_all(fhw, cbuf, cnt, MPI_CHAR, &status);
   MPI_File_close(&fhw);
@@ -364,6 +367,7 @@ void FileWriteHeader(char *buffer, char fname[], int mode)
     MPI_File_write(fhw, buffer, nelem, MPI_CHAR, &status); 
   }
   MPI_File_close(&fhw);
+  MPI_Barrier(MPI_COMM_WORLD);
 #else
   FILE *fp;
   if (mode < 0){

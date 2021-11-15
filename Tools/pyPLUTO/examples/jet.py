@@ -2,14 +2,16 @@ import os
 import sys
 from numpy import *
 from matplotlib.pyplot import *
-import pyPLUTO as pp
+import pyPLUTO as pypl
+import pyPLUTO.pload as pp
+import pyPLUTO.Image as img
 
 plutodir = os.environ['PLUTO_DIR']
 wdir = plutodir+'/Test_Problems/MHD/Jet/'
-nlinf = pp.nlast_info(w_dir=wdir)
+nlinf = pyp3.nlast_info(w_dir=wdir)
 
 D = pp.pload(nlinf['nlast'],w_dir=wdir) # Loading the data into a pload object D.
-I = pp.Image()
+I = img.Image()
 I.pldisplay(D, D.rho,x1=D.x1,x2=D.x2,label1='x',label2='y',
             title=r'Density $\rho$ [MHD jet]',cbar=(True,'vertical'),figsize=[7,12])
 

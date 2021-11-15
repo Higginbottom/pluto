@@ -2,19 +2,22 @@ import os
 import sys
 from numpy import *
 from matplotlib.pyplot import *
-import pyPLUTO as pp
+import pyPLUTO as pypl
+import pyPLUTO.pload as pp
+import pyPLUTO.Image as img
+import pyPLUTO.Tools as tl
 
 plutodir = os.environ['PLUTO_DIR']
 wdir = plutodir+'/Test_Problems/MHD/FARGO/Spherical_Disk/'
-nlinf = pp.nlast_info(w_dir=wdir,datatype='vtk')
+nlinf = pypl.nlast_info(w_dir=wdir,datatype='vtk')
 
 D = pp.pload(nlinf['nlast'],w_dir=wdir,datatype='vtk') # Loading the data into a pload object D.
 
-I = pp.Image()
+I = img.Image()
 
 f1 = figure(figsize=[15,6],num=1)
 ax1=f1.add_subplot(122)
-I.pltSphData(D,w_dir=wdir,datatype='vtk',plvar='bx1',logvar=False,rphi=False,x3cut=96)
+I.pltSphData(D,w_dir=wdir,datatype='vtk',plvar='Bx1',logvar=False,rphi=False,x3cut=96)
 colorbar(orientation='horizontal')
 ax1.set_xlabel(r'Radius')
 ax1.set_ylabel(r'Height')
@@ -30,7 +33,7 @@ ax2.set_title(r'Log $\rho$')
 # Code to plot arrows. --> Spacing between the arrow can be adjusted by 
 # modifying the newdims tuple of conrid function.
 
-T = pp.Tools()
+T = tl.Tools()
 newdims = 2*(20,)
 R,Z,SphData = I.getSphData(D,w_dir=wdir,datatype='vtk',rphi=True,x2cut=24)
 xcong = T.congrid(R,newdims,method='linear')

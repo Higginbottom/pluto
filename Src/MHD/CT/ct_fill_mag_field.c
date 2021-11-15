@@ -28,10 +28,10 @@
  *   X = components assigned in this function.
  * \endverbatim
  *
- * \author A. Mignone (mignone@ph.unito.it)
- * \date   March 19, 2017
+ * \author A. Mignone (mignone@to.infn.it)
+ * \date   Apr 25, 2019
  *
-/* ///////////////////////////////////////////////////////////////////// */
+   ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
 /* ********************************************************************** */
@@ -51,19 +51,16 @@ void FillMagneticField (const Data *d, int side, Grid *grid)
   int  i,j,k;
   int  di,dj,dk;
 
-  double bxp, byp, bzp;
-  double bxm, bym, bzm;
+  double Bxp, Byp, Bzp;
+  double Bxm, Bym, Bzm;
   double dBx = 0.0, dBy = 0.0, dBz = 0.0;
-  double  dx,  dy,  dz;
   double Axp, Ayp, Azp;
   double Axm, Aym, Azm;
-
-  double ***bx, ***by, ***bz;  /* -- staggered magnetic field -- */
   double ***Bx, ***By, ***Bz;  /* -- cell centered mag. field -- */
 
-  D_EXPAND(bx = d->Vs[BX1s]; Bx = d->Vc[BX1];  ,
-           by = d->Vs[BX2s]; By = d->Vc[BX2];  ,
-           bz = d->Vs[BX3s]; Bz = d->Vc[BX3];)
+  DIM_EXPAND(Bx = d->Vs[BX1s];  ,
+             By = d->Vs[BX2s];  ,
+             Bz = d->Vs[BX3s];)
 
 /* ----------------------------------------------------------
    1. Set initial and final index for each side
@@ -71,11 +68,7 @@ void FillMagneticField (const Data *d, int side, Grid *grid)
 
   ibeg = 0; iend = NX1_TOT-1; di = 1;
   jbeg = 0; jend = NX2_TOT-1; dj = 1;
-#if DIMENSIONS == 3
   kbeg = 0; kend = NX3_TOT-1; dk = 1;
-#else
-  kbeg = kend = 0, dk = 1;
-#endif
 
   if (side == X1_BEG) {ibeg = IBEG-1; iend = 0; di = -1;}
   if (side == X1_END)  ibeg = IEND+1;
@@ -94,30 +87,30 @@ void FillMagneticField (const Data *d, int side, Grid *grid)
   for (j = jbeg; dj*j <= dj*jend; j += dj){
   for (i = ibeg; di*i <= di*iend; i += di){
 
-    D_EXPAND(bxp = bx[k][j][i]; bxm = bx[k][j][i - 1];  ,
-             byp = by[k][j][i]; bym = by[k][j - 1][i];  ,
-             bzp = bz[k][j][i]; bzm = bz[k - 1][j][i];)
+    DIM_EXPAND(Bxp = Bx[k][j][i]; Bxm = Bx[k][j][i-1];  ,
+               Byp = By[k][j][i]; Bym = By[k][j-1][i];  ,
+               Bzp = Bz[k][j][i]; Bzm = Bz[k-1][j][i];)
 
   /* -------------------------------------------------------
        Divergence is written as 
 
-          (Axp*bxp - Axm*dxm)  
-        + (Ayp*byp - Aym*dym)  
-        + (Azp*bzp - Azm*dzm) = 0
+          (Axp*Bxp - Axm*Bxm)  
+        + (Ayp*Byp - Aym*Bym)  
+        + (Azp*Bzp - Azm*Bzm) = 0
 
        so that the k-th component can be 
        recovered as
  
-      bkp = bkm*Akm/Akp + sum_(j != k) (Ajp*bjp - Ajm*bjm)/Akp
+      Bkp = Bkm*Akm/Akp + sum_(j != k) (Ajp*Bjp - Ajm*Bjm)/Akp
     ------------------------------------------------------- */
 
-    Axp = grid->A[IDIR][k][j][i]; Axm = grid->A[IDIR][k][j][i-1];
-    Ayp = grid->A[JDIR][k][j][i]; Aym = grid->A[JDIR][k][j-1][i];
-    Azp = grid->A[KDIR][k][j][i]; Azm = grid->A[KDIR][k-1][j][i];
+    DIM_EXPAND(Axp = grid->A[IDIR][k][j][i]; Axm = grid->A[IDIR][k][j][i-1];  ,
+               Ayp = grid->A[JDIR][k][j][i]; Aym = grid->A[JDIR][k][j-1][i];  ,
+               Azp = grid->A[KDIR][k][j][i]; Azm = grid->A[KDIR][k-1][j][i];)
 
-    D_EXPAND(dBx = (Axp*bxp - Axm*bxm);  ,
-             dBy = (Ayp*byp - Aym*bym);  ,
-             dBz = (Azp*bzp - Azm*bzm); )
+    DIM_EXPAND(dBx = (Axp*Bxp - Axm*Bxm);  ,
+               dBy = (Ayp*Byp - Aym*Bym);  ,
+               dBz = (Azp*Bzp - Azm*Bzm); )
 
 /* -------------------------------------------------
       Assign a single face magnetic field 
@@ -125,60 +118,41 @@ void FillMagneticField (const Data *d, int side, Grid *grid)
 
     if (side == X1_BEG){
 
-      bx[k][j][i-1] = (Axp*bxp + dBy + dBz)/Axm;
+      Bx[k][j][i-1] = (Axp*Bxp + dBy + dBz)/Axm;
 
     }else if (side == X1_END){
 
-      bx[k][j][i] = (Axm*bxm - (dBy + dBz))/Axp;
+      Bx[k][j][i] = (Axm*Bxm - (dBy + dBz))/Axp;
 
+    #if INCLUDE_JDIR
     }else if (side == X2_BEG){
 
-      by[k][j-1][i] = (Ayp*byp + dBx + dBz)/Aym;
+      By[k][j-1][i] = (Ayp*Byp + dBx + dBz)/Aym;
 
     }else if (side == X2_END){
   
-      by[k][j][i] = (Aym*bym - (dBx + dBz))/Ayp;
+      By[k][j][i] = (Aym*Bym - (dBx + dBz))/Ayp;
+    #endif
 
-    #if DIMENSIONS == 3
-     }else if (side == X3_BEG){
+    #if INCLUDE_KDIR
+    }else if (side == X3_BEG){
 
-       bz[k - 1][j][i] = (Azp*bzp + dBx + dBy)/Azm;
+      Bz[k-1][j][i] = (Azp*Bzp + dBx + dBy)/Azm;
 
-     }else if (side == X3_END){
+    }else if (side == X3_END){
 
-       bz[k][j][i] = (Azm*bzm - (dBx + dBy))/Azp;
+      Bz[k][j][i] = (Azm*Bzm - (dBx + dBy))/Azp;
 
     #endif
     }
 
-  /* -------------------------------------------------------
-        Now redefine the cell-centered magnetic field 
-     ------------------------------------------------------- */
-/*
-    #if GEOMETRY == CARTESIAN 
-     D_EXPAND( Bx[k][j][i] = 0.5*(bx[k][j][i] + bx[k][j][i - 1]);  ,
-               By[k][j][i] = 0.5*(by[k][j][i] + by[k][j - 1][i]);  ,
-               Bz[k][j][i] = 0.5*(bz[k][j][i] + bz[k - 1][j][i]); )
-    #elif GEOMETRY == CYLINDRICAL
-     D_EXPAND( Bx[k][j][i] = 0.5*(bx[k][j][i] + bx[k][j][i - 1]);  ,
-               By[k][j][i] = 0.5*(by[k][j][i] + by[k][j - 1][i]);  ,
-               Bz[k][j][i] = 0.5*(bz[k][j][i] + bz[k - 1][j][i]); )
-    #elif GEOMETRY == POLAR
-     D_EXPAND(Bx[k][j][i] = (Axp*bx[k][j][i] + Axm*bx[k][j][i - 1])/(Axp + Axm);  ,
-              By[k][j][i] = 0.5*(by[k][j][i] + by[k][j - 1][i]);                  ,
-              Bz[k][j][i] = 0.5*(bz[k][j][i] + bz[k - 1][j][i]);)
-    #elif GEOMETRY == SPHERICAL
-     D_EXPAND(Bx[k][j][i] = (Axp*bx[k][j][i] + Axm*bx[k][j][i - 1])/(Axp + Axm);   ,
-              By[k][j][i] = (Ayp*by[k][j][i] + Aym*by[k][j - 1][i])/(Ayp + Aym);  ,
-              Bz[k][j][i] = 0.5*(bz[k][j][i] + bz[k - 1][j][i]);)
-    #endif
-*/
   }}}
 
 }
 
+#if PHYSICS == ResRMHD 
 /* ********************************************************************** */
-void FillMagneticField_Old (const Data *d, int side, Grid *grid)
+void FillElectricField (const Data *d, int side, Grid *grid)
 /*!
  *
  * \param [in,out]    d  pointer to PLUTO Data structure
@@ -194,38 +168,29 @@ void FillMagneticField_Old (const Data *d, int side, Grid *grid)
   int  i,j,k;
   int  di,dj,dk;
 
-  double r, dmu;
-  double bxp, byp, bzp;
-  double bxm, bym, bzm;
-  double dBx = 0.0, dBy = 0.0, dBz = 0.0;
-  double dVx, dVy, dVz;
-  double  dx,  dy,  dz;
-  double rp, sp, Axp, Ayp, Azp;
-  double rm, sm, Axm, Aym, Azm;
+  double qdV;
+  double Exp, Eyp, Ezp;
+  double Exm, Eym, Ezm;
+  double dEx = 0.0, dEy = 0.0, dEz = 0.0;
+  double *dx1 = grid->dx[IDIR];
+  double *dx2 = grid->dx[JDIR];
+  double *dx3 = grid->dx[KDIR];
+  double Axp, Ayp, Azp;
+  double Axm, Aym, Azm;
 
-  double ***bx, ***by, ***bz;  /* -- staggered magnetic field -- */
-  double ***Bx, ***By, ***Bz;  /* -- cell centered mag. field -- */
+  double ***Ex, ***Ey, ***Ez;  /* -- staggered magnetic field -- */
 
-  double ***Ax1 = grid->A[IDIR];
-  double ***Ax2 = grid->A[JDIR];
-  double ***Ax3 = grid->A[KDIR];
-
-
-  D_EXPAND(bx = d->Vs[BX1s]; Bx = d->Vc[BX1];  ,
-           by = d->Vs[BX2s]; By = d->Vc[BX2];  ,
-           bz = d->Vs[BX3s]; Bz = d->Vc[BX3];)
-
-  ibeg = 0; iend = NX1_TOT-1; di = 1;
-  jbeg = 0; jend = NX2_TOT-1; dj = 1;
-#if DIMENSIONS == 3
-  kbeg = 0; kend = NX3_TOT-1; dk = 1;
-#else
-  kbeg = kend = 0, dk = 1;
-#endif
+  DIM_EXPAND(Ex = d->Vs[EX1s]; ,
+             Ey = d->Vs[EX2s]; ,
+             Ez = d->Vs[EX3s]; )
 
 /* ----------------------------------------------------------
    1. Set initial and final index for each side
    ---------------------------------------------------------- */
+
+  ibeg = 0; iend = NX1_TOT-1; di = 1;
+  jbeg = 0; jend = NX2_TOT-1; dj = 1;
+  kbeg = 0; kend = NX3_TOT-1; dk = 1;
 
   if (side == X1_BEG) {ibeg = IBEG-1; iend = 0; di = -1;}
   if (side == X1_END)  ibeg = IEND+1;
@@ -237,151 +202,69 @@ void FillMagneticField_Old (const Data *d, int side, Grid *grid)
   if (side == X3_END)  kbeg = KEND+1;
 
 /* ----------------------------------------------------------
-   2. Loop over cell in the boundary
+   2. Loop over cells in the boundary
    ---------------------------------------------------------- */
 
   for (k = kbeg; dk*k <= dk*kend; k += dk){
   for (j = jbeg; dj*j <= dj*jend; j += dj){
   for (i = ibeg; di*i <= di*iend; i += di){
 
-    r  = grid->x[IDIR][i];
-    rp = fabs(grid->xr[IDIR][i]);
-    rm = fabs(grid->xl[IDIR][i]);
-
-    dx = grid->dx[IDIR][i];
-    dy = grid->dx[JDIR][j];
-    dz = grid->dx[KDIR][k];
-
-    #if GEOMETRY == SPHERICAL
-    sp  = grid->xr[JDIR][j];
-    sm  = grid->xl[JDIR][j];
-
-    dmu = fabs(cos(sm) - cos(sp));
-
-    sp = fabs(sin(sp));
-    sm = fabs(sin(sm));
-    #endif
-
-    #if DIMENSIONS == 2
-    dz = 1.0;
-    #endif
-
-    D_EXPAND(bxp = bx[k][j][i]; bxm = bx[k][j][i - 1];  ,
-             byp = by[k][j][i]; bym = by[k][j - 1][i];  ,
-             bzp = bz[k][j][i]; bzm = bz[k - 1][j][i];)
+    DIM_EXPAND(Exp = Ex[k][j][i]; Exm = Ex[k][j][i - 1];  ,
+               Eyp = Ey[k][j][i]; Eym = Ey[k][j - 1][i];  ,
+               Ezp = Ez[k][j][i]; Ezm = Ez[k - 1][j][i];)
 
   /* -------------------------------------------------------
        Divergence is written as 
 
-         dVx*(Axp*bxp - Axm*dxm) + 
-         dVy*(Ayp*byp - Aym*dym) + 
-         dVz*(Azp*bzp - Azm*dzm) = 0
+          (Axp*Exp - Axm*Exm)  
+        + (Ayp*Eyp - Aym*Eym)  
+        + (Azp*Ezp - Azm*Ezm) = q*dV
 
-       so that the k-th component can be 
-       recovered as
- 
-      bkp = bkm*Akm/Akp + 
-            sum_(j != k) (Ajp*bjp - Ajm*bjm)*dVj/(dVk*Akp)
     ------------------------------------------------------- */
 
-    #if GEOMETRY == CARTESIAN
+    Axp = grid->A[IDIR][k][j][i]; Axm = grid->A[IDIR][k][j][i-1];
+    Ayp = grid->A[JDIR][k][j][i]; Aym = grid->A[JDIR][k][j-1][i];
+    Azp = grid->A[KDIR][k][j][i]; Azm = grid->A[KDIR][k-1][j][i];
 
-    dVx = dy*dz; Axp = Axm = 1.0;
-    dVy = dx*dz; Ayp = Aym = 1.0;
-    dVz = dx*dy; Azp = Azm = 1.0;
-
-    #elif GEOMETRY == CYLINDRICAL
-
-    dVx = dy*dz;         Axp = fabs(rp); Axm = fabs(rm);
-    dVy = fabs(r)*dx*dz; Ayp = 1.0; Aym = 1.0;
-    dVz = dx*dy;         Azp = 1.0; Azm = 1.0;
-
-    #elif GEOMETRY == POLAR
-
-    dVx =   dy*dz; Axp = rp ; Axm = rm;
-    dVy =   dx*dz; Ayp = 1.0; Aym = 1.0;
-    dVz = r*dx*dy; Azp = 1.0; Azm = 1.0;
-
-    #elif GEOMETRY == SPHERICAL
-
-    dVx =  dmu*dz; Axp = rp*rp; Axm = rm*rm;
-    dVy = r*dx*dz; Ayp = sp   ; Aym = sm;
-    dVz = r*dx*dy; Azp = 1.0  ; Azm = 1.0;
-
-    #endif
-
-    D_EXPAND(dBx = dVx*(Axp*bxp - Axm*bxm);  ,
-             dBy = dVy*(Ayp*byp - Aym*bym);  ,
-             dBz = dVz*(Azp*bzp - Azm*bzm); )
+    DIM_EXPAND(dEx = (Axp*Exp - Axm*Exm);  ,
+               dEy = (Ayp*Eyp - Aym*Eym);  ,
+               dEz = (Azp*Ezp - Azm*Ezm); )
 
 /* -------------------------------------------------
       Assign a single face magnetic field 
    ------------------------------------------------- */
 
+    qdV = d->q[k][j][i]*grid->dV[k][j][i];
+
     if (side == X1_BEG){
 
-      bxm = (bxp*Axp + (dBy + dBz)/dVx)/Axm;
-/*
-bxm = (bxp*grid->A[IDIR][k][j][i] + grid->A[JDIR][k][j][i]*byp
-                                  - grid->A[JDIR][k][j-1][i]*bym)/grid->A[IDIR][k][j][i-1];
-*/
-      bx[k][j][i - 1] = bxm;
+      Ex[k][j][i-1] = (Axp*Exp + dEy + dEz - qdV)/Axm;
 
     }else if (side == X1_END){
 
-      bxp = (bxm*Axm - (dBy + dBz)/dVx)/Axp;
-      bx[k][j][i] = bxp;
+      Ex[k][j][i] = (Axm*Exm - (dEy + dEz) + qdV)/Axp;
 
     }else if (side == X2_BEG){
 
-      bym = (byp*Ayp + (dBx + dBz)/dVy)/Aym;
-/*
-bym = (Ax2[k][j][i]*byp + Ax1[k][j][i]*bxp
-                        - Ax1[k][j][i-1]*bxm)/Ax2[k][j-1][i];
-*/
-      by[k][j - 1][i] = bym;
+      Ey[k][j-1][i] = (Ayp*Eyp + dEx + dEz - qdV)/Aym;
 
     }else if (side == X2_END){
   
-      byp = (bym*Aym - (dBx + dBz)/dVy)/Ayp;
-      by[k][j][i] = byp;
+      Ey[k][j][i] = (Aym*Eym - (dEx + dEz) + qdV )/Ayp;
 
     #if DIMENSIONS == 3
-     }else if (side == X3_BEG){
+    }else if (side == X3_BEG){
 
-       bzm = (bzp*Azp + (dBx + dBy)/dVz)/Azm;
-       bz[k - 1][j][i] = bzm;
+      Ez[k-1][j][i] = (Azp*Ezp + dEx + dEy - qdV)/Azm;
 
-     }else if (side == X3_END){
+    }else if (side == X3_END){
 
-       bzp = (bzm*Azm - (dBx + dBy)/dVz)/Azp;
-       bz[k][j][i] = bzp;
+      Ez[k][j][i] = (Azm*Ezm - (dEx + dEy) + qdV)/Azp;
 
     #endif
     }
 
-  /* -------------------------------------------------------
-        Now redefine the cell-centered magnetic field 
-     ------------------------------------------------------- */
-/*
-    #if GEOMETRY == CARTESIAN 
-     D_EXPAND( Bx[k][j][i] = 0.5*(bx[k][j][i] + bx[k][j][i - 1]);  ,
-               By[k][j][i] = 0.5*(by[k][j][i] + by[k][j - 1][i]);  ,
-               Bz[k][j][i] = 0.5*(bz[k][j][i] + bz[k - 1][j][i]); )
-    #elif GEOMETRY == CYLINDRICAL
-     D_EXPAND( Bx[k][j][i] = 0.5*(bx[k][j][i] + bx[k][j][i - 1]);  ,
-               By[k][j][i] = 0.5*(by[k][j][i] + by[k][j - 1][i]);  ,
-               Bz[k][j][i] = 0.5*(bz[k][j][i] + bz[k - 1][j][i]); )
-    #elif GEOMETRY == POLAR
-     D_EXPAND(Bx[k][j][i] = (Axp*bx[k][j][i] + Axm*bx[k][j][i - 1])/(Axp + Axm);  ,
-              By[k][j][i] = 0.5*(by[k][j][i] + by[k][j - 1][i]);                  ,
-              Bz[k][j][i] = 0.5*(bz[k][j][i] + bz[k - 1][j][i]);)
-    #elif GEOMETRY == SPHERICAL
-     D_EXPAND(Bx[k][j][i] = (Axp*bx[k][j][i] + Axm*bx[k][j][i - 1])/(Axp + Axm);   ,
-              By[k][j][i] = (Ayp*by[k][j][i] + Aym*by[k][j - 1][i])/(Ayp + Aym);  ,
-              Bz[k][j][i] = 0.5*(bz[k][j][i] + bz[k - 1][j][i]);)
-    #endif
-*/
   }}}
 
 }
+#endif

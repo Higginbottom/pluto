@@ -12,7 +12,7 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
  *
  * LAST MODIFIED
  *
- *   March 5, 2017
+ *   Oct 28, 20178
  *   by A. Mignone (mignone@ph.unito.it)
  *
  **************************************************************** */
@@ -52,6 +52,10 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
     WENO3_COEFF(Rg, Lg, Pg, Mg, grid);
   }
 
+#if (INTERNAL_BOUNDARY == YES) && (INTERNAL_BOUNDARY_REFLECT == YES)
+  FluidInterfaceBoundary(sweep, beg, end, grid);
+#endif
+
 #if RECONSTRUCT_4VEL
   ConvertTo4vel (stateC->v, beg-1, end+1);
 #endif
@@ -75,10 +79,13 @@ void States (const Sweep *sweep, int beg, int end, Grid *grid)
     dvp = dv[i];  
     dvm = dv[i-1];
 
-    #if SHOCK_FLATTENING == MULTID    
-    if (sweep->flag[i] & FLAG_MINMOD){  
+    #if SHOCK_FLATTENING == MULTID
+    if (sweep->flag[i] & FLAG_FLAT) {
+      vp[i][nv] = vm[i][nv] = v[i][nv];
+      continue;
+    }else if (sweep->flag[i] & FLAG_MINMOD){  
       for (nv = NVAR; nv--;    ) {
-        dmm = MINMOD(dvp[nv], dvm[nv]);
+        dmm = MINMOD_LIMITER(dvp[nv], dvm[nv]);
         vp[i][nv] = v[i][nv] + 0.5*dmm;
         vm[i][nv] = v[i][nv] - 0.5*dmm;
       }
@@ -136,10 +143,13 @@ S1 = 1.0/(b1 + 1.e-6)/(b1 + 1.e-6);
     PrimToChar(Lv, dvp, dwp);
     PrimToChar(Lv, dvm, dwm);
 
-    #if SHOCK_FLATTENING == MULTID    
-    if (sweep->flag[i] & FLAG_MINMOD){  
+    #if SHOCK_FLATTENING == MULTID
+    if (sweep->flag[i] & FLAG_FLAT) {
+      vp[i][nv] = vm[i][nv] = v[i][nv];
+      continue;
+    }else if (sweep->flag[i] & FLAG_MINMOD){  
       for (nv = NVAR; nv--;    ) {
-        dmm = MINMOD(dvp[nv], dvm[nv]);
+        dmm = MINMOD_LIMITER(dvp[nv], dvm[nv]);
         vp[i][nv] = v[i][nv] + 0.5*dmm;
         vm[i][nv] = v[i][nv] - 0.5*dmm;
       }
@@ -205,7 +215,7 @@ S1 = 1.0/(b1 + 1.e-6)/(b1 + 1.e-6);
     dvm = dv[i-1]; 
     if (vp[i][RHO] < 0.0 || vm[i][RHO] < 0.0){
       for (nv = NFLX; nv--;  ){
-        dmm = MINMOD(dvp[RHO], dvm[RHO]);
+        dmm = MINMOD_LIMITER(dvp[RHO], dvm[RHO]);
         vp[i][RHO] = v[i][RHO] + 0.5*dmm;
         vm[i][RHO] = v[i][RHO] - 0.5*dmm;  
       }
@@ -214,7 +224,7 @@ S1 = 1.0/(b1 + 1.e-6)/(b1 + 1.e-6);
     #if HAVE_ENERGY
     if (vp[i][PRS] < 0.0 || vm[i][PRS] < 0.0){
       for (nv = NFLX; nv--;  ){
-        dmm = MINMOD(dvp[PRS], dvm[PRS]);
+        dmm = MINMOD_LIMITER(dvp[PRS], dvm[PRS]);
         vp[i][PRS] = v[i][PRS] + 0.5*dmm;
         vm[i][PRS] = v[i][PRS] - 0.5*dmm;  
       }
@@ -222,15 +232,23 @@ S1 = 1.0/(b1 + 1.e-6)/(b1 + 1.e-6);
     #endif
     #if ENTROPY_SWITCH
     if (vp[i][ENTR] < 0.0 || vm[i][ENTR] < 0.0){
-      dmm = MINMOD(dvp[ENTR], dvm[ENTR]);
+      dmm = MINMOD_LIMITER(dvp[ENTR], dvm[ENTR]);
       vp[i][ENTR] = v[i][ENTR] + 0.5*dmm;
       vm[i][ENTR] = v[i][ENTR] - 0.5*dmm;
     }
-    #endif      
+    #endif
+      
+    #if RADIATION
+    if (vp[i][ENR] < 0.0 || vm[i][ENR] < 0.0){
+      dmm = MINMOD_LIMITER(dvp[ENR], dvm[ENR]);
+      vp[i][ENR] = v[i][ENR] + 0.5*dmm;
+      vm[i][ENR] = v[i][ENR] - 0.5*dmm;
+    }
+    #endif
 
   /* -- Relativistic Limiter -- */
 
-    #if PHYSICS == RHD || PHYSICS == RMHD
+    #if (PHYSICS == RHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
     VelocityLimiter (v[i], vp[i], vm[i]);
     #endif
   }
@@ -249,7 +267,10 @@ S1 = 1.0/(b1 + 1.e-6)/(b1 + 1.e-6);
 
 #ifdef STAGGERED_MHD
   for (i = beg - 1; i <= end; i++) {
-    stateL->v[i][BXn] = stateR->v[i][BXn] = sweep->bn[i];
+    stateL->v[i][BXn] = stateR->v[i][BXn] = sweep->Bn[i];
+    #if PHYSICS == ResRMHD
+    stateL->v[i][EXn] = stateR->v[i][EXn] = sweep->En[i];
+    #endif
   }
 #endif
 

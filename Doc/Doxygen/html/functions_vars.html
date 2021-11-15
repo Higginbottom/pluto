@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLUTO
-   &#160;<span id="projectnumber">4.3</span>
+   &#160;<span id="projectnumber">4.4-patch2</span>
    </div>
   </td>
  </tr>
@@ -71,6 +71,9 @@ $(function() {
 <li>anl_dt
 : <a class="el" href="struct_runtime.html#af0e315817e65a9b82f4be25d279164b1">Runtime</a>
 </li>
+<li>aR
+: <a class="el" href="struct_sweep.html#afa9b1e472028ad9a2d4de4d378242ee8">Sweep</a>
+</li>
 <li>Ax1
 : <a class="el" href="struct_data.html#a44ebd18c76017ec35da8264d0a2f5378">Data</a>
 </li>
@@ -102,8 +105,26 @@ $(function() {
 <li>bend
 : <a class="el" href="struct_r_box.html#a92c0dc730ab3612c145f7ec7ec63fe35">RBox</a>
 </li>
-<li>bn
-: <a class="el" href="struct_sweep.html#af0320ed01144b5b95c6265f01bdeffbb">Sweep</a>
+<li>Bn
+: <a class="el" href="struct_sweep.html#a88839d7f714d8254a286ade05bd8779f">Sweep</a>
+</li>
+<li>Bxj
+: <a class="el" href="struct_e_m_f.html#a3a040f5117501319087734bdf77170d2">EMF</a>
+</li>
+<li>Bxk
+: <a class="el" href="struct_e_m_f.html#a8d78208f94ddd4fa5ec0dbe72e55312a">EMF</a>
+</li>
+<li>Byi
+: <a class="el" href="struct_e_m_f.html#a4f97358bb77a21f7bf670a41e5df5c13">EMF</a>
+</li>
+<li>Byk
+: <a class="el" href="struct_e_m_f.html#a742cc0707a0439e04c740ae877d4048d">EMF</a>
+</li>
+<li>Bzi
+: <a class="el" href="struct_e_m_f.html#a88b85277b43258d394f0da2a96292895">EMF</a>
+</li>
+<li>Bzj
+: <a class="el" href="struct_e_m_f.html#ab3d2ece44f31780e4b0de37f3178cc89">EMF</a>
 </li>
 </ul>
 
@@ -128,6 +149,9 @@ $(function() {
 </li>
 <li>cmax
 : <a class="el" href="structtime_step.html#ab22235313dbe59e024e6a0d3d82e0964">timeStep</a>
+</li>
+<li>cv
+: <a class="el" href="struct_rad__data.html#a2de2b74f23f444df227c310f208dddc3">Rad_data</a>
 </li>
 <li>cw
 : <a class="el" href="struct_state.html#ade236bed4d8fbd5110c0521061fddfbd">State</a>
@@ -160,8 +184,12 @@ $(function() {
 <li>dn
 : <a class="el" href="struct_output.html#ad5a5b03c3b5dfcf320411c3a668260fa">Output</a>
 </li>
+<li>dR
+: <a class="el" href="struct_sweep.html#aff10095f959d0d031ae7902863e52b39">Sweep</a>
+</li>
 <li>dt
 : <a class="el" href="struct_output.html#a03e28be41881b703c836edbfe9b51b17">Output</a>
+, <a class="el" href="struct_rad__data.html#a03e28be41881b703c836edbfe9b51b17">Rad_data</a>
 </li>
 <li>dt_cool
 : <a class="el" href="structtime_step.html#af22f40cadebf2aed741e1fa5310bd4e0">timeStep</a>
@@ -185,8 +213,8 @@ $(function() {
 <li>E
 : <a class="el" href="struct_map__param.html#a1eb62b8cb1f5e5f571d51179718e7d4c">Map_param</a>
 </li>
-<li>Ecr
-: <a class="el" href="struct_data.html#aa737487626501432d4c29af397c400a2">Data</a>
+<li>En
+: <a class="el" href="struct_sweep.html#a6c48892586715e2fa9e7e692ce82920d">Sweep</a>
 </li>
 <li>end
 : <a class="el" href="struct_grid.html#ac2ec3ef382d6586116af47a29edf9126">Grid</a>
@@ -203,23 +231,47 @@ $(function() {
 <li>exj
 : <a class="el" href="struct_e_m_f.html#a0d6f35563181459cb4aa6c86d8d58c2d">EMF</a>
 </li>
+<li>exj_dff
+: <a class="el" href="struct_e_m_f.html#afefaaee293ffb0a874100797759b35bb">EMF</a>
+</li>
 <li>exk
 : <a class="el" href="struct_e_m_f.html#a4a269677401e0b97ebcc8d369f5f1f8d">EMF</a>
+</li>
+<li>exk_dff
+: <a class="el" href="struct_e_m_f.html#a144db8ac28078f4b3684f9402a5933bf">EMF</a>
 </li>
 <li>ext
 : <a class="el" href="struct_output.html#a5f978e3d8a9e91bac1eede654a522b3c">Output</a>
 </li>
+<li>exv
+: <a class="el" href="struct_rad__data.html#a9495f4d256a83b44c0c3870e49d3e25e">Rad_data</a>
+</li>
+<li>exv_prev
+: <a class="el" href="struct_rad__data.html#a53cdde30a8e2b15bc9f877bdda2d664b">Rad_data</a>
+</li>
 <li>eyi
 : <a class="el" href="struct_e_m_f.html#acff574858648926169ff7b044beb57c4">EMF</a>
+</li>
+<li>eyi_dff
+: <a class="el" href="struct_e_m_f.html#a5afebd141b1692ca8e7ad44acc844d07">EMF</a>
 </li>
 <li>eyk
 : <a class="el" href="struct_e_m_f.html#a60df28f9f32c05152272dc4af765414f">EMF</a>
 </li>
+<li>eyk_dff
+: <a class="el" href="struct_e_m_f.html#a743e8f15727304d4f088ef4994bced91">EMF</a>
+</li>
 <li>ezi
 : <a class="el" href="struct_e_m_f.html#aa8dce24c4538b0091cc6c34be741e545">EMF</a>
 </li>
+<li>ezi_dff
+: <a class="el" href="struct_e_m_f.html#a6ec6eab9e67d7f9f18cc55b26aeaa07f">EMF</a>
+</li>
 <li>ezj
 : <a class="el" href="struct_e_m_f.html#afba65520709e9311da888651836cdb93">EMF</a>
+</li>
+<li>ezj_dff
+: <a class="el" href="struct_e_m_f.html#ab7bc653c1aa19bd33cc03bf5c06f44e8">EMF</a>
 </li>
 </ul>
 
@@ -237,12 +289,14 @@ $(function() {
 </li>
 <li>fill
 : <a class="el" href="struct_output.html#a68819f4316cdb00042f6f2eeeedd1d8a">Output</a>
+, <a class="el" href="struct_rad__data.html#a87b4ba2b68386b180689572471415671">Rad_data</a>
 </li>
 <li>first_dt
 : <a class="el" href="struct_runtime.html#a1d60e25a5ea591c6823df420de1b0578">Runtime</a>
 </li>
 <li>flag
-: <a class="el" href="struct_data.html#a3cd2f6e8260b6cc243cf710f859e8ae3">Data</a>
+: <a class="el" href="struct_data.html#ae9c1e848c9ed5d08bf2a242c9d7de63b">Data</a>
+, <a class="el" href="struct_rad__data.html#a74ca5908c45ba3c9865758c4f7f33c4b">Rad_data</a>
 </li>
 <li>flux
 : <a class="el" href="struct_state.html#a6e4288be590d73fba3bd3014c69f8aa2">State</a>
@@ -255,6 +309,12 @@ $(function() {
 
 
 <h3><a id="index_g"></a>- g -</h3><ul>
+<li>gamma
+: <a class="el" href="struct_rad__data.html#a72f9e01745b3a8203067ab84aefc9aea">Rad_data</a>
+</li>
+<li>gamma2
+: <a class="el" href="struct_rad__data.html#a2e1e574832f4214189a63276dc3dea8d">Rad_data</a>
+</li>
 <li>gbeg
 : <a class="el" href="struct_grid.html#afcaf494781594e1acdc73d2a587733da">Grid</a>
 </li>
@@ -295,6 +355,9 @@ $(function() {
 </li>
 <li>invDt_par
 : <a class="el" href="structtime_step.html#a0f2daea33aee0aca749368e0700e0bb7">timeStep</a>
+</li>
+<li>invDt_particles
+: <a class="el" href="structtime_step.html#aa5c2e9c28c1ad745325c7e2d28ae04d3">timeStep</a>
 </li>
 </ul>
 
@@ -436,6 +499,9 @@ $(function() {
 
 
 <h3><a id="index_o"></a>- o -</h3><ul>
+<li>omega_particles
+: <a class="el" href="structtime_step.html#a85cfd7013d984431dc6990ac2c1cbbca">timeStep</a>
+</li>
 <li>output_dir
 : <a class="el" href="struct_runtime.html#ae924f0eac233e5a999a9bb2fcd7d4ec5">Runtime</a>
 </li>
@@ -443,6 +509,16 @@ $(function() {
 
 
 <h3><a id="index_p"></a>- p -</h3><ul>
+<li>particles_GC_InvalidCount
+: <a class="el" href="struct_data.html#a87a9f8abdb82d4d5fbd92602b5e01934">Data</a>
+</li>
+<li>particles_tstart
+: <a class="el" href="struct_runtime.html#a6a4232b9d44dbe7a58b30aaab24cd542">Runtime</a>
+, <a class="el" href="structtime_step.html#a6a4232b9d44dbe7a58b30aaab24cd542">timeStep</a>
+</li>
+<li>pos
+: <a class="el" href="struct_rad__data.html#a1910d262855b71da353ed0d07a6c7823">Rad_data</a>
+</li>
 <li>press
 : <a class="el" href="struct_sweep.html#a708e6b89af7d26cfcdd5e5133f3b1f26">Sweep</a>
 </li>
@@ -453,10 +529,16 @@ $(function() {
 <li>pstr
 : <a class="el" href="struct_data.html#a80fdc7c113c96d37768fb904200c2665">Data</a>
 </li>
+<li>pv
+: <a class="el" href="struct_rad__data.html#a7a52eb372384d74e77b96ee6c536def2">Rad_data</a>
+</li>
 </ul>
 
 
 <h3><a id="index_q"></a>- q -</h3><ul>
+<li>q
+: <a class="el" href="struct_data.html#a2024cef5e671f6673f245cebe7c8f2e0">Data</a>
+</li>
 <li>qcr
 : <a class="el" href="struct_data.html#afe6c1ad00f24a8cbb2e718e88eaa9fc1">Data</a>
 </li>
@@ -464,6 +546,9 @@ $(function() {
 
 
 <h3><a id="index_r"></a>- r -</h3><ul>
+<li>rad_solv_type
+: <a class="el" href="struct_runtime.html#ab6c17b2b60173e46032795b985197cda">Runtime</a>
+</li>
 <li>rank_coord
 : <a class="el" href="struct_grid.html#ab3e4233c041325a39cfebd627e86dba7">Grid</a>
 </li>
@@ -479,11 +564,20 @@ $(function() {
 <li>right_bound
 : <a class="el" href="struct_runtime.html#a20a11ede27e03cd28c470a9dd4faf3e5">Runtime</a>
 </li>
+<li>ring_av_csize
+: <a class="el" href="struct_grid.html#a5e0be19061a17d90373659e6d291ec1d">Grid</a>
+</li>
+<li>Rini
+: <a class="el" href="struct_rad__data.html#a38fe29a4b24d814d0a87e5889681d617">Rad_data</a>
+</li>
 <li>rmax_par
 : <a class="el" href="struct_runtime.html#aeaf62995d64fe4f7368ae9ef5f9a68e3">Runtime</a>
 </li>
 <li>Rp
 : <a class="el" href="struct_state.html#ae60b0356eb90aae9cb465e8f62a7833f">State</a>
+</li>
+<li>Rprev
+: <a class="el" href="struct_rad__data.html#ace10f6971a49020f253207ae4e9ba8d2">Rad_data</a>
 </li>
 <li>rt
 : <a class="el" href="struct_grid.html#a7e1964a1ed8a45606f5d1bb93d8e781b">Grid</a>
@@ -500,6 +594,9 @@ $(function() {
 </li>
 <li>S2
 : <a class="el" href="struct_map__param.html#a2460f0b92b54bebe56b8a6ac1426fcd1">Map_param</a>
+</li>
+<li>Sc
+: <a class="el" href="struct_sweep.html#a9d7264e203de39f8dfb372f1e52a8735">Sweep</a>
 </li>
 <li>sigma_c
 : <a class="el" href="struct_map__param.html#a309b0f331b88e050658299ba928e3bec">Map_param</a>
@@ -538,8 +635,14 @@ $(function() {
 <li>tend
 : <a class="el" href="struct_r_box.html#a2167e4f7843cf89835252ad24d0d658b">RBox</a>
 </li>
+<li>tfreeze
+: <a class="el" href="struct_runtime.html#a497bbf594f4c36c5ab1aecdf114179b2">Runtime</a>
+</li>
 <li>tstop
 : <a class="el" href="struct_runtime.html#a720df4b21dbe7819865deee05f1a3cca">Runtime</a>
+</li>
+<li>Ttot
+: <a class="el" href="struct_rad__data.html#ad3ab73aed4037ee316d44fe84b964ecb">Rad_data</a>
 </li>
 <li>type
 : <a class="el" href="struct_output.html#ac765329451135abec74c45e1897abf26">Output</a>
@@ -549,7 +652,12 @@ $(function() {
 
 <h3><a id="index_u"></a>- u -</h3><ul>
 <li>u
-: <a class="el" href="struct_state.html#a0f2aeac6016e514b2d5f807403e021a4">State</a>
+: <a class="el" href="struct_map__param.html#a3b6b999a764f1e2ea94bb5f28c7a558c">Map_param</a>
+, <a class="el" href="struct_rad__data.html#a3b6b999a764f1e2ea94bb5f28c7a558c">Rad_data</a>
+, <a class="el" href="struct_state.html#a0f2aeac6016e514b2d5f807403e021a4">State</a>
+</li>
+<li>u2
+: <a class="el" href="struct_rad__data.html#ac2e2a4e58dbffb74b80be2322219d833">Rad_data</a>
 </li>
 <li>Uc
 : <a class="el" href="struct_data.html#a775aa6241086ed4e9eb10fb3c5f11f95">Data</a>
@@ -572,9 +680,6 @@ $(function() {
 </li>
 <li>Vc
 : <a class="el" href="struct_data.html#a752c7e339b1ed3f84cc4d86d8996eac0">Data</a>
-</li>
-<li>Vdust
-: <a class="el" href="struct_data.html#ad413dc8b0378d9e9b6511ae9681742fe">Data</a>
 </li>
 <li>vn
 : <a class="el" href="struct_sweep.html#a7721328d0dd9901e2c15ae488e8536b6">Sweep</a>
@@ -621,7 +726,7 @@ $(function() {
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Jun 7 2018 18:33:51 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Jun 26 2021 13:25:22 for PLUTO by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

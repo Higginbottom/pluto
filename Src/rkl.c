@@ -65,10 +65,10 @@
      - Meyer, C., Balsara, D., \& Aslam T., 2012, 
        Mon. Not. R. Astron. Soc., 422
 
-  \authors L. Rickler   (luca.rickler@edu.unito.it)\n
-           A. Mignone (mignone@ph.unito.it)
+  \authors L. Rickler (luca.rickler@edu.unito.it)\n
+           A. Mignone (mignone@to.infn.it)
     
-  \date    March 6, 2018
+  \date    Aug 09, 2019
 */
 /* /////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -77,7 +77,7 @@
  #define RKL_ORDER 2
 #endif
 
-/* *************************************************************** */
+/* ********************************************************************* */
 void RKL (const Data *d, double dt, timeStep *Dts, Grid *grid)
 /*!
  *Solve diffusion equation using Runge-Kutta-Legendre (RKL) method
@@ -87,17 +87,18 @@ void RKL (const Data *d, double dt, timeStep *Dts, Grid *grid)
  * \param [in,out] Dts   pointer to timeStep structure
  * \param [in]     grid  pointer to an array of Grid structures
  *
- ***************************************************************** */
+ *********************************************************************** */
 {
   int i, j, k, nv, s, s_RKL = 0;
+  int dimensions = INCLUDE_IDIR + INCLUDE_JDIR + INCLUDE_KDIR;
   int nv_indx, var_list[NVAR], nvar_rkl;
   double mu_j, nu_j, mu_tilde_j, gamma_j, Y;
   double a_jm1, b_j, b_jm1, b_jm2, w1;
-  double tau = dt, t0 = g_time;
+  double tau = dt, t0 = g_time;          /* Set time variables */
   double dt_par, scrh;
   static Data_Arr Y_jm1, Y_jm2, MY_jm1, MY_0;
   static double **v;
-  double s_str;
+  double s_str;                          /* The "s" parameter */
   RBox box;
 
 /* --------------------------------------------------------
@@ -107,7 +108,7 @@ void RKL (const Data *d, double dt, timeStep *Dts, Grid *grid)
   RBoxDefine (IBEG, IEND, JBEG, JEND, KBEG, KEND, CENTER, &box);
 
   if (Y_jm1 == NULL) { 
-    Y_jm1  = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);  
+    Y_jm1  = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double); 
     Y_jm2  = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);
     MY_0   = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);
     MY_jm1 = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);
@@ -121,15 +122,15 @@ void RKL (const Data *d, double dt, timeStep *Dts, Grid *grid)
   i = 0;
   for (nv = 0; nv < NVAR; nv++) var_list[nv] = 0;
   #if VISCOSITY == RK_LEGENDRE
-  EXPAND(var_list[i++] = MX1;  ,
-         var_list[i++] = MX2;  ,
-         var_list[i++] = MX3;)
+  var_list[i++] = MX1;
+  var_list[i++] = MX2;
+  var_list[i++] = MX3;
   #endif
 
   #if RESISTIVITY == RK_LEGENDRE
-  EXPAND(var_list[i++] = BX1;  ,
-         var_list[i++] = BX2;  ,
-         var_list[i++] = BX3;)
+  var_list[i++] = BX1;
+  var_list[i++] = BX2;
+  var_list[i++] = BX3;
   #endif
   #if    (THERMAL_CONDUCTION == RK_LEGENDRE)  \
       || (VISCOSITY     == RK_LEGENDRE && EOS == IDEAL) \
@@ -154,7 +155,7 @@ void RKL (const Data *d, double dt, timeStep *Dts, Grid *grid)
   Boundary(d, ALL_DIR, grid);
 
   Dts->invDt_par  = ParabolicRHS(d, MY_0, &box, NULL, RK_LEGENDRE, 1.0, grid);
-  Dts->invDt_par /= (double) DIMENSIONS;  
+  Dts->invDt_par /= (double) dimensions;  
 #ifdef PARALLEL
   MPI_Allreduce (&Dts->invDt_par, &scrh, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
   Dts->invDt_par = scrh;
@@ -228,7 +229,7 @@ void RKL (const Data *d, double dt, timeStep *Dts, Grid *grid)
   
     #if RKL_ORDER == 1
     mu_j       = (2.*s -1.)/s; /* Eq. [17] */
-    mu_tilde_j = w1*mu_j;                                     
+    mu_tilde_j = w1*mu_j;
     nu_j       = -(s -1.)/s;
     #elif RKL_ORDER == 2
     mu_j       = (2.*s -1.)/s * b_j/b_jm1;   /* Eq. [17] */

@@ -15,8 +15,6 @@
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
-#if PARTICLES_TYPE == COSMIC_RAYS
-
 #define CROSS_PRODUCT_X1(a,b)  ( (a)[JDIR]*(b)[KDIR] - (a)[KDIR]*(a)[JDIR] )
 #define CROSS_PRODUCT_X2(a,b)  ( (a)[KDIR]*(b)[IDIR] - (a)[IDIR]*(a)[KDIR] )
 #define CROSS_PRODUCT_X3(a,b)  ( (a)[IDIR]*(b)[JDIR] - (a)[JDIR]*(a)[IDIR] )
@@ -203,12 +201,12 @@ void Particles_CR_States1DCopy(const Data *d, const Sweep *sweep, int beg, int e
   
   for (i = beg; i <= end; i++){
     for (dir = 0; dir < 3; dir++){
-      dFcr_lim = MC(dFcr[i+1][dir], dFcr[i][dir]);
+      dFcr_lim = MC_LIMITER(dFcr[i+1][dir], dFcr[i][dir]);
       stateL->Fcr[i][dir]   = stateC->Fcr[i][dir] + 0.5*dFcr_lim;
       stateR->Fcr[i-1][dir] = stateC->Fcr[i][dir] - 0.5*dFcr_lim;
 //stateL->Fcr[i][dir]   = 0.5*(stateC->Fcr[i][dir] + stateC->Fcr[i+1][dir]);
 //stateR->Fcr[i-1][dir] = 0.5*(stateC->Fcr[i][dir] + stateC->Fcr[i-1][dir]);
-    }  
+    }
   }
   
   DEBUG_FUNC_END ("Particles_CR_States1DCopy");
@@ -281,8 +279,7 @@ void Particles_CR_StatesSource(const Sweep *sweep, double dt,
   double **fluxCR_p = stateL->fluxCR;
   double **fluxCR_m = stateR->fluxCR - 1;
 
-  intList var_list = {6, VX1, VX2, VX3, BX1, BX2, BX3};
-
+  intList var_list = {6, {VX1, VX2, VX3, BX1, BX2, BX3}};
 
   for (i = beg; i <= end; i++){
     Fcr = stateC->Fcr[i];
@@ -317,119 +314,15 @@ void Particles_CR_StatesSource(const Sweep *sweep, double dt,
 
     dB2_p -= vp[BX1]*vp[BX1] + vp[BX2]*vp[BX2] + vp[BX3]*vp[BX3];
     dB2_m -= vm[BX1]*vm[BX1] + vm[BX2]*vm[BX2] + vm[BX3]*vm[BX3];
-
+#if HAVE_ENERGY
     src[ENG] = -dtdx*(fluxCR_p[i][ENG] - fluxCR_m[i][ENG]) - dt*Fcr[3];
 
     vp[PRS] += (g_gamma - 1.0)*(0.5*vp[RHO]*dv2_p + 0.5*dB2_p + src[ENG]);
     vm[PRS] += (g_gamma - 1.0)*(0.5*vm[RHO]*dv2_m + 0.5*dB2_m + src[ENG]);
+#endif
   }
 
 #endif /* TIME_STEPPING == HANCOCK */
 #endif /* PARTICLES_FEEDBACK == YES */
 }
-
-/* ********************************************************************* */
-void Particles_CR_StatesSourceOld(const Sweep *sweep, double dt,
-                                int beg, int end, Grid *grid)
-/*!
- *  Add CR flux-difference and source term contributions to L/R
- *  conservative states during the predictor step of CTU algorithm.
- *
- *  This step is done only for the primitive Hancock / Char. Trac. schemes
- *  since these are carried out in primitive variables.
- *  This step is not needed for the conservative Hancock scheme since
- *  these terms are included during the predictor. 
- *
- *  Note that, unlike gravity, we include *ALL* components of the
- *  force here since no other partcles-related source term will be
- *  added during the transverse predictors.
- *
- *********************************************************************** */
-{
-#if PARTICLES_CR_FEEDBACK == YES
-#if   (TIME_STEPPING == HANCOCK && PRIMITIVE_HANCOCK == YES) \
-   || (TIME_STEPPING == CHARACTERISTIC_TRACING)
-  int   i, nv;
-  static unsigned char *flag;
-
-  const State *stateC = &(sweep->stateC);
-  const State *stateL = &(sweep->stateL);
-  const State *stateR = &(sweep->stateR);
-
-  double  **up = stateL->u;
-  double  **um = stateR->u-1;
-
-  double **fluxCR   = stateC->fluxCR;
-  double **fluxCR_p = stateL->fluxCR;
-  double **fluxCR_m = stateR->fluxCR - 1;
-  double dtdx, du, dup, dum;
-  #if HAVE_ENERGY
-  intList var_list = {4, BX1, BX2, BX3, ENG};
-  #else
-  intList var_list = {3, BX1, BX2, BX3};
-  #endif
-
-  DEBUG_FUNC_BEG("Particles_CR_StatesSource");
-  
-/* --------------------------------------------------------
-   0. Allocate memory
-   -------------------------------------------------------- */
-
-  if (flag == NULL) {
-    flag    = ARRAY_1D(NMAX_POINT, unsigned char);
-  }
-  
-/* --------------------------------------------------------
-   2. Loop over one row of zones and modify
-      conservative L/R 1D states
-   -------------------------------------------------------- */
-  
-  for (i = beg; i <= end; i++){
-
-  /* --------------------------------------------
-     2b. Add flux-difference contribution to
-         magnetic field and energy equations
-     -------------------------------------------- */
-
-    dtdx = dt/grid->dx[g_dir][i];
-    FOR_EACH(nv, &var_list){
-      du = dtdx*(fluxCR_p[i][nv] - fluxCR_m[i][nv]);
-      um[i][nv] -= du;
-      up[i][nv] -= du;
-    }
-
-  /* --------------------------------------------
-     2c. Add source term contribution to
-         momentum and energy
-     -------------------------------------------- */
-
-    um[i][MX1] -= stateC->Fcr[i][IDIR]*dt;  
-    up[i][MX1] -= stateC->Fcr[i][IDIR]*dt;  
-    
-    um[i][MX2] -= stateC->Fcr[i][JDIR]*dt;  
-    up[i][MX2] -= stateC->Fcr[i][JDIR]*dt;  
-    
-    um[i][MX3] -= stateC->Fcr[i][KDIR]*dt;
-    up[i][MX3] -= stateC->Fcr[i][KDIR]*dt;  
-    
-    #if HAVE_ENERGY
-    um[i][ENG] -= stateC->Fcr[i][3]*dt;
-    up[i][ENG] -= stateC->Fcr[i][3]*dt;  
-    #endif
-  }
-
-/* --------------------------------------------------------
-   3. Convert conservative to primitive states
-   -------------------------------------------------------- */
-
-  ConsToPrim (stateL->u, stateL->v, beg, end, flag);
-  ConsToPrim (stateR->u, stateR->v, beg-1, end-1, flag);
-
-  DEBUG_FUNC_END("Particles_CR_StatesSource");
-#endif /* TIME_STEPPING == HANCOCK */
-#endif /* PARTICLES_FEEDBACK == YES */
-}
-
-
-#endif  /* PARTICLES_TYPE == COSMIC_RAYS */
 

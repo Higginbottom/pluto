@@ -47,19 +47,20 @@ void PatchPluto::define(ProblemDomain& a_domain,
 
 // Factory method - this object is its own factory.  It returns a pointer
 // to new PatchPluto object with its boundary condtions defined.
- PatchPluto* PatchPluto::new_patchPluto() const
+PatchPluto* PatchPluto::new_patchPluto() const
 {
-   // Make the new object
-   PatchPluto* retval =
-     static_cast<PatchPluto*>(new PatchPluto());
+  // Make the new object
+  PatchPluto* retval = static_cast<PatchPluto*>(new PatchPluto());
 
-   // Set the boundary and Riemann solver values
-   retval->setBoundary(left_bound_side,
-                       right_bound_side);
-   retval->setRiemann(rsolver);
+  // Set the boundary and Riemann solver values
+  retval->setBoundary(left_bound_side, right_bound_side);
+  retval->setRiemann(rsolver);
+  #if RADIATION
+  retval->setRadRiemann(rad_rsolver);
+  #endif
 
-   // Return the new object
-   return retval;
+  // Return the new object
+  return retval;
 }
 
 // Set the current physical time - used for time dependent boundary conditions
@@ -80,29 +81,32 @@ void PatchPluto::setCurrentBox(const Box& a_currentBox)
 void PatchPluto::setBoundary(const int *leftbound,
                              const int *rightbound)
 {
-
- for (int i = 0; i < 3; i++)
-    {
-      left_bound_side[i] =  leftbound[i];
-     right_bound_side[i] = rightbound[i];
-    }
-
- m_isBoundarySet = true;
-
+  for (int i = 0; i < 3; i++){
+    left_bound_side[i] =  leftbound[i];
+    right_bound_side[i] = rightbound[i];
+  }
+  m_isBoundarySet = true;
 }
 
 // Set the riemann solver to be used
 void PatchPluto::setRiemann(Riemann_Solver *solver)
 {
-
-   rsolver = solver; 
-   m_isRiemannSet = true;
-
+  rsolver = solver; 
+  m_isRiemannSet = true;
 }
+
+#if RADIATION
+// Set the riemann solver to be used for the radiation subsystem
+void PatchPluto::setRadRiemann(Riemann_Solver *solver)
+{
+  rad_rsolver = solver; 
+  m_isRadRiemannSet = true;
+}
+#endif
 
 // Set the grid structure to be passed to updateState
 // (or advanceSolution and SWEEP in the next future)
-void PatchPluto::setGrid(const Box&    a_box, Grid *grid, FArrayBox& a_dV)
+void PatchPluto::setGrid(const Box&  a_box, Grid *grid, FArrayBox& a_dV)
 {
   int    i, j, k, idim;
   int    np_int, np_tot, np_int_glob, np_tot_glob;
@@ -138,7 +142,6 @@ void PatchPluto::setGrid(const Box&    a_box, Grid *grid, FArrayBox& a_dV)
     tmp &= m_domain;
     tmp.shift(dir,-1);
     if (tmp != a_box) grid->rbound[dir] = 1;
-
   }
 
   for (int dir = 0; dir < 3; ++dir){
@@ -195,12 +198,12 @@ void PatchPluto::setGrid(const Box&    a_box, Grid *grid, FArrayBox& a_dV)
   grid->rbound[JDIR] *=  right_bound_side[JDIR];
   grid->lbound[KDIR] *=   left_bound_side[KDIR];
   grid->rbound[KDIR] *=  right_bound_side[KDIR];
-  MakeGeometry(grid);
+  SetGeometry(grid);
 
 // compute cell volumes (dV/m_dx^3) and cylindrical radius
 
-  #if GEOMETRY != CARTESIAN
-  double mdx_dim = D_EXPAND(m_dx, *m_dx, *m_dx);
+#if GEOMETRY != CARTESIAN
+  double mdx_dim = DIM_EXPAND(m_dx, *m_dx, *m_dx);
 
   NX1_TOT = grid->np_tot[IDIR];
   NX2_TOT = grid->np_tot[JDIR];
@@ -217,11 +220,10 @@ void PatchPluto::setGrid(const Box&    a_box, Grid *grid, FArrayBox& a_dV)
     #if GEOMETRY == POLAR || GEOMETRY == CYLINDRICAL
     dV[1][k][j][i] = grid->x[IDIR][i];
     #else
-    dV[1][k][j][i] = D_EXPAND(grid->x[IDIR][i], *= sin(grid->x[JDIR][j]);
+    dV[1][k][j][i] = DIM_EXPAND(grid->x[IDIR][i], *sin(grid->x[JDIR][j], *1.0);
     #endif
     #endif
   }}}
-
 
   for (i = 0; i < CHOMBO_NDV; i++) FreeArrayMap(dV[i]);
 #endif /* != CARTESIAN */
@@ -246,17 +248,17 @@ void PatchPluto::setGrid(const Box&    a_box, Grid *grid, FArrayBox& a_dV)
   for (j = JBEG; j <= JEND; j++) {
   for (k = KBEG; k <= KEND; k++) {
 
-  #if (TIME_STEPPING == RK2)
-    D_EXPAND(scrh1 = Length_1(i, j, k, grid); ,
-             scrh2 = Length_2(i, j, k, grid); ,
-             scrh3 = Length_3(i, j, k, grid); )
+    #if (TIME_STEPPING == RK2)
+    DIM_EXPAND(scrh1 = Length_1(i, j, k, grid); ,
+               scrh2 = Length_2(i, j, k, grid); ,
+               scrh3 = Length_3(i, j, k, grid); )
 
-    scrh = D_EXPAND(1./scrh1, +1./scrh2, +1./scrh3);
+    scrh = DIM_EXPAND(1./scrh1, +1./scrh2, +1./scrh3);
     scrh = (double)DIMENSIONS/scrh;
-    D_EXPAND(dxmin[IDIR] = MIN (dxmin[IDIR], scrh); ,
-             dxmin[JDIR] = dxmin[IDIR]; ,
-             dxmin[KDIR] = dxmin[IDIR]; )
-  #else
+    DIM_EXPAND(dxmin[IDIR] = MIN (dxmin[IDIR], scrh); ,
+               dxmin[JDIR] = dxmin[IDIR]; ,
+               dxmin[KDIR] = dxmin[IDIR]; )
+    #else
     scrh = Length_1(i, j, k, grid);
     dxmin[IDIR] = MIN (dxmin[IDIR], scrh);
 
@@ -265,7 +267,7 @@ void PatchPluto::setGrid(const Box&    a_box, Grid *grid, FArrayBox& a_dV)
 
     scrh = Length_3(i, j, k, grid);
     dxmin[KDIR] = MIN (dxmin[KDIR], scrh);
-  #endif
+    #endif
 
   }}}
 
@@ -321,8 +323,19 @@ Vector<string> PatchPluto::ConsStateNames()
     if (nv == BX2) retval.push_back("Y-magnfield");
     if (nv == BX3) retval.push_back("Z-magnfield");
 #endif
+#if PHYSICS == ResRMHD
+    if (nv == EX1) retval.push_back("X-elecfield");
+    if (nv == EX2) retval.push_back("Y-elecfield");
+    if (nv == EX3) retval.push_back("Z-elecfield");
+#endif                    
 #if EOS != ISOTHERMAL
     if (nv == ENG) retval.push_back("energy-density");
+#endif
+#if RADIATION
+    if (nv == ENR) retval.push_back("radenergy-density");
+    if (nv == FR1) retval.push_back("X-radflux");
+    if (nv == FR2) retval.push_back("Y-radflux");
+    if (nv == FR3) retval.push_back("Z-radflux");
 #endif
 
 #if NTRACER > 0   
@@ -412,6 +425,9 @@ bool PatchPluto::isDefined() const
   return m_isDefined        &&
          m_isBoundarySet    &&
          m_isRiemannSet     &&
+         #if RADIATION
+         m_isRadRiemannSet     &&
+         #endif
          m_isCurrentTimeSet &&
          m_isCurrentBoxSet;
 }
