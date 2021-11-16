@@ -39,10 +39,11 @@ class DefineProblem(object):
     # defining the PLUTO entries and its default values in lists.  
     self.entries = ['PHYSICS', 'DIMENSIONS', 'GEOMETRY',
                     'BODY_FORCE', 'COOLING', 'RECONSTRUCTION', 
-                    'TIME_STEPPING','NTRACER', 'PARTICLES','USER_DEF_PARAMETERS']
+                    'TIME_STEPPING','NTRACER', 'PARTICLES','USER_DEF_PARAMETERS',
+                    'PY_CONNECT','PY_RAD_DRIV']
     self.default = ['HD', '1', 'CARTESIAN',
                     'NO', 'NO','LINEAR',
-                    'RK2', '0', 'NO','0']
+                    'RK2', '0', 'NO','0','NO','FLUXES']
 
     # Creating a dictionary of flags that are invoked by giving arguments.
     flag_keys = ['WITH-CHOMBO', 'FULL', 'WITH-FD', 'WITH-SB', 'WITH-FARGO',
@@ -168,17 +169,19 @@ class DefineProblem(object):
     dimlist = ['1','2','3']
     geolist = ['CARTESIAN','CYLINDRICAL','POLAR','SPHERICAL']
     bfolist = ['NO','VECTOR', 'POTENTIAL', '(VECTOR+POTENTIAL)']
-    coolist = ['NO','POWER_LAW','TABULATED','SNEq','MINEq','H2_COOL', 'KROME']
+    coolist = ['NO','POWER_LAW','TABULATED','SNEq','MINEq','H2_COOL', 'KROME','BLONDIN','LOOKUP']
     intlist = ['FLAT','LINEAR','LimO3','WENO3','PARABOLIC','WENOZ','MP5']
     tmslist = ['EULER','RK2','RK3','RK4','HANCOCK','CHARACTERISTIC_TRACING']
     ntrlist = ['%d'%n for n in range(9)]
     prtlist = ['NO','PARTICLES_LP','PARTICLES_CR','PARTICLES_DUST']
     udplist = ['%d'%n for n in range(32)]
     udclist = ['%d'%n for n in range(32)]
+    pyllist = ['NO','YES']
+    pdrlist = ['FLUXES','ACCELERATIONS']
 
     self.options = [phylist, dimlist, geolist, bfolist,
                     coolist, intlist, tmslist, ntrlist,
-                    prtlist, udplist, udclist]
+                    prtlist, udplist, pyllist, pdrlist,udclist]
 
   def AfterFlagLists(self):
     """Modify options and default list based on command-line flags.
@@ -690,8 +693,19 @@ class DefineProblem(object):
         self.pluto_path.append('Cooling/Tabulated/')
       elif cool_mode == 'POWER_LAW':
         self.pluto_path.append('Cooling/Power_Law/')
+      elif cool_mode == 'BLONDIN':
+        self.pluto_path.append('Cooling/BLONDIN/')
+      elif cool_mode == 'LOOKUP':
+        self.pluto_path.append('Cooling/LOOKUP/')
       else:
         self.pluto_path.append('Cooling/'+ cool_mode +'/')
+
+    py_mode = self.default[self.entries.index('PY_CONNECT')]
+    if py_mode != 'NO' or cool_mode == 'BLONDIN' or cool_mode =='LOOKUP':
+      self.pluto_path.append('Py_pluto/')
+
+
+
 
     # -- Add path for EOS --
     if 'EOS' in self.mod_entries:

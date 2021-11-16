@@ -21,7 +21,7 @@ void ShowMemoryInfo();
 void FreeAll();
 
 double BodyForcePotential(double, double, double);
-void   BodyForceVector(double *, double *, double, double, double);
+void   BodyForceVector(double *, double *, double, double, double, int,int,int);
 void   Boundary    (const Data *, int, Grid *);
 
 void   ChangeOutputVar (void);
@@ -234,6 +234,29 @@ void  WritePNG (double ***, char *, char *, Grid *);
 void print (const char *fmt, ...);
 void printLog  (const char *fmt, ...);
 void Trace (double);
+
+
+
+void  read_py_heatcool (Data *, Grid *,int);
+void  read_py_iso_temp (Data *, Grid *,int);
+
+
+#if (BODY_FORCE & VECTOR)
+    #if (PY_RAD_DRIV==FLUXES)
+        void read_py_fluxes (Data *, Grid *);
+        void VGradCalc (const Data *, Grid *);
+        void bilinear (double x11[2],double x22[2],double v11[2],double v12[2],double v21[2],double v22[2],double test[2],double ans[2],int flag);
+		double linterp (double x, double xarray[], double yarray[], int nelem);
+		
+    #endif
+    #if (PY_RAD_DRIV==ACCELERATIONS)
+        void read_py_rad_driv (Data *, Grid *,int);
+    #endif
+#endif
+
+
+
+
 
 /* ----------------------------------------------
            functions in tools.c 

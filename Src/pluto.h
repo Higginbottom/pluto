@@ -40,6 +40,7 @@
 #define STRETCHED_GRID           2
 #define LOGARITHMIC_INC_GRID     3
 #define LOGARITHMIC_DEC_GRID     4
+#define RATIO_GRID 5
 
 /* ---- Equation of sweep (EoS) labels  ----  */
 
@@ -48,6 +49,12 @@
 #define TAUB          3
 #define BAROTROPIC    4
 #define ISOTHERMAL    5
+
+/* ---- python radiation driving labels  ----  */
+
+#define FLUXES        1
+#define ACCELERATIONS      2
+
 
 /* ---- Entropy switch options ----- */
 
@@ -111,6 +118,8 @@
 #define TABULATED    6
 #define H2_COOL      7
 #define KROME	       8
+#define BLONDIN	     9
+#define LOOKUP       10
 
 /*----- Particle Labels ----- */
 
@@ -866,6 +875,71 @@ extern double g_smallDensity, g_smallPressure;
 
 extern double g_time, g_dt;
 extern double g_maxMach;
+
+extern double ****g_rad; // 
+
+
+#if PY_CONNECT
+    #if PY_RAD_DRIV==FLUXES
+
+	extern int NFLUX_ANGLES;
+	
+	extern int MPOINTS;
+	extern double ****M_UV_fit;
+	extern double *t_fit;
+
+	extern double ****flux_x_UV;
+	extern double ****flux_y_UV;
+	extern double ****flux_z_UV;
+
+	extern double ****flux_r_UV;
+	extern double ****flux_t_UV;
+	extern double ****flux_p_UV;
+	
+	
+	extern double ****dvds_r_offset;
+	extern double ****dvds_t_offset;
+	extern double ****dvds_mod_offset;
+	
+	extern double ****dvds_array;
+		
+    extern double ***k_UV_array;
+    extern double ***alpha_UV_array;
+    extern double ****x11_interp;//
+    extern double ****x22_interp;//
+        
+    extern int dvds_setup_flag;
+#endif
+#endif
+        
+
+#if EOS==ISOTHERMAL && PY_CONNECT
+  extern double ***py_temp;   //
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if ROTATING_FRAME
  extern double g_OmegaZ;
 #endif

@@ -94,14 +94,24 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
         runtime->patch_type[idim][ip] = LOGARITHMIC_INC_GRID;
       }else if (strcmp(str_var,"l-") == 0){
         runtime->patch_type[idim][ip] = LOGARITHMIC_DEC_GRID;
+      }else if (strcmp(str_var,"r") == 0){
+      runtime->patch_type[idim][ip] = RATIO_GRID;
       }else{ 
-        printf ("\nRuntimeSetup(): You must specify either 'u', 's', 'l+' or 'l-' as grid-type in %s\n",
-                ini_file);
+          printf ("\nSetup: You must specify either 'u', 's', 'l+', 'l-' or 'r' as grid-type in %s\n",
+                  ini_file);
         QUIT_PLUTO(1);
       }
     }
     
     runtime->patch_left_node[idim][ip] = atof(ParamFileGet(glabel[idim], ++ipos));
+
+ 	if (runtime->patch_type[idim][ip-1] == RATIO_GRID)
+ 	{
+ 	    runtime->ratio[idim] = atof(ParamFileGet(glabel[idim], ++ipos)); //Ratio - needs a seperate line coz more params
+ 		ipos--;
+		
+ 	}
+
 
     if ( (ipos+1) != (runtime->npatch[idim]*3 + 3)) {
       printf ("! RuntimeSetup(): domain #%d setup is not properly defined \n", idim);

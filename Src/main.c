@@ -57,7 +57,7 @@ int main (int argc, char *argv[])
  *
  *********************************************************************** */
 {
-  int    nv, idim, err;
+  int    nv, idim, err,restart_flag;
   char   first_step=1, last_step = 0;
   char   input_file[128];
   double scrh;
@@ -153,6 +153,62 @@ int main (int argc, char *argv[])
     CheckForOutput   (&data, &runtime, tbeg, grd);
     CheckForAnalysis (&data, &runtime, grd);
   }
+  
+/* --------------------------------------------------------------
+  1a.  If we are running py_pluto - we now go and see if we have a python heatcool file 
+   -------------------------------------------------------------- */
+  printf ("Entering my new bits of code\n");
+#if COOLING == BLONDIN
+  read_py_heatcool (&data, grd,0); //Ensure the prefectors are initialiased if we are in blondin mode
+#endif 
+  
+#if COOLING == LOOKUP
+  read_py_heatcool (&data, grd,0); //Ensure the prefectors are initialiased if we are in blondin mode
+#endif   
+  
+#if PY_CONNECT
+  if (cmd_line.restart == NO)
+    {
+        restart_flag=0;
+        #if COOLING == BLONDIN
+	    read_py_heatcool (&data, grd,restart_flag); //This reads in heating and cooling rates, and also forces if needed. Could be much smarter here.
+        #endif
+        #if EOS == ISOTHERMAL //We will read in new temperatures from python
+        printf ("Off to read py iso temp\n");
+        read_py_iso_temp (&data, grd,restart_flag);
+            #if (BODY_FORCE & VECTOR) //We are also reading in forces
+                printf ("Heading off to py_rad_driv\n");
+                #if (PY_RAD_DRIV == ACCELERATIONS)
+                    read_py_rad_driv(&data, grd,restart_flag);
+                #endif
+                #if (PY_RAD_DRIV == FLUXES)
+                    read_py_fluxes(&data, grd);  
+                    printf ("Read fluxes\n");              
+                #endif
+            #endif
+        #endif
+    }
+  else
+    {
+        restart_flag=1;
+        #if COOLING == BLONDIN
+        read_py_heatcool (&data, grd,restart_flag);
+        #endif
+        #if EOS == ISOTHERMAL //We will read in new temperatures from python
+        read_py_iso_temp (&data, grd,restart_flag);
+            #if (BODY_FORCE & VECTOR) //We are also reading in forces
+                printf ("Heading off to py_rad_driv\n");
+                #if (PY_RAD_DRIV == ACCELERATIONS)
+                    read_py_rad_driv(&data, grd,restart_flag);
+                #endif
+                #if (PY_RAD_DRIV == FLUXES)
+                    read_py_fluxes(&data, grd);                
+                #endif
+            #endif
+        #endif
+    }  
+#endif
+  
 
   if (cmd_line.maxsteps == 0) last_step = 1;
   print ("> Starting computation... \n\n");  

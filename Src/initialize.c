@@ -469,6 +469,49 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
   data->Ex3 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
 #endif
 
+
+#if PY_CONNECT
+  #if COOLING == BLONDIN
+      data->comp_h_pre=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+      data->comp_c_pre=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+      data->xray_h_pre=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+      data->line_c_pre=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+      data->brem_c_pre=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+      data->comp_h=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+      data->comp_c=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+      data->xray_h=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+      data->line_c=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+      data->brem_c=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);	
+  #endif  
+  #if EOS == ISOTHERMAL
+      py_temp=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);	
+  #endif      
+  #if PY_RAD_DRIV==ACCELERATIONS  
+      g_rad = ARRAY_4D(3,NX3_TOT, NX2_TOT, NX1_TOT, double);  //This is a global variable because rad force doesnt have access to data
+  #endif
+  #if PY_RAD_DRIV ==FLUXES
+    printf ("Setting up flux arrays\n");	
+    x11_interp= ARRAY_4D(2,NX3_TOT, NX2_TOT, NX1_TOT, double);
+    x22_interp= ARRAY_4D(2,NX3_TOT, NX2_TOT, NX1_TOT, double);
+	k_UV_array=ARRAY_3D(NX3_TOT, NX2_TOT,NX1_TOT,double);
+    alpha_UV_array=ARRAY_3D(NX3_TOT, NX2_TOT,NX1_TOT,double);
+  #endif
+
+#endif  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* ----------------------------------------------
    7a. Allocate memory for vector potential.
    ---------------------------------------------- */

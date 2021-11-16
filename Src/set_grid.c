@@ -366,6 +366,7 @@ void MakeGrid (int idim, Runtime *rtime, double *xlft, double *xrgt, double *dx)
   double par[4];
   double dalpha, alpha, f, df;
   double dy;
+  double ratio;
 
   nseg = rtime->npatch[idim];
 
@@ -433,6 +434,29 @@ void MakeGrid (int idim, Runtime *rtime, double *xlft, double *xrgt, double *dx)
         xlft[i + 1] = xrgt[i];
       }        
       done_with_segment[iseg] = 1;
+   
+  } else if ( rtime->patch_type[idim][iseg] == RATIO_GRID) {
+  ratio=rtime->ratio[idim];
+  xlft[iL] = xL;
+  dx[iL] = (xR-xL)*(ratio-1.0)/(pow(ratio,(iR-iL+1)) - 1.0); //Initial dx
+  xrgt[iL] = xlft[iL] + dx[iL];
+    for (i = iL+1; i <= iR; i++) {
+	dx[i] = dx[i-1] * ratio;
+	xlft[i] =  xlft[i-1] + dx[i-1];	
+	xrgt[i] = xlft[i] + dx[i];		
+
+}
+  done_with_segment[iseg] = 1;
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
    
     } else {
       continue;

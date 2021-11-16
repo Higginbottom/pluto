@@ -181,3 +181,49 @@ double g_inputParam[32]; /**< Array containing the user-defined parameters.
   MPI_Datatype PartOutputType;
  #endif
 #endif	
+  
+  double ****g_rad; // 
+
+  #if (BODY_FORCE & VECTOR)
+      #if (PY_RAD_DRIV==FLUXES)
+
+  		int NFLUX_ANGLES;
+  		int MPOINTS;
+		
+  		double ****M_UV_fit;
+  		double *t_fit;
+
+  		double ****flux_x_UV;
+  		double ****flux_y_UV;
+  		double ****flux_z_UV;
+
+  		double ****flux_r_UV;
+  		double ****flux_t_UV;
+  		double ****flux_p_UV;
+		
+  		double ****dvds_r_offset;
+  		double ****dvds_t_offset;
+  		double ****dvds_mod_offset;
+		
+  		double ****dvds_array;
+
+		 
+          double ****x11_interp;//
+          double ****x22_interp;//
+          double ***k_UV_array;
+          double ***alpha_UV_array;
+          int dvds_setup_flag;//
+		
+      #endif        
+  #endif
+
+  #if EOS==ISOTHERMAL && PY_CONNECT
+    double ***py_temp;   //
+  #endif
+
+  
+  
+  
+  
+  
+  

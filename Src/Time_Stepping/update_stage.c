@@ -118,6 +118,13 @@ void UpdateStage(Data *d, Data_Arr Uc, Data_Arr Us, double **aflux,
   #endif
   GetCurrent (d, grid);
   #endif
+  
+#if (BODY_FORCE & VECTOR)
+    #if (PY_RAD_DRIV == FLUXES)
+   VGradCalc(d, grid); 
+    #endif  
+#endif
+  
 
   for (dir = beg_dir; dir <= end_dir; dir++){
 

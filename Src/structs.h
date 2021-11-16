@@ -446,6 +446,8 @@ typedef struct Runtime_{
                                        Default is output_dir. */
   Output output[MAX_OUTPUT_TYPES];  
   double patch_left_node[5][16];  /*  self-expl. */
+  double ratio[5];  /* required for the ratio grid type */
+  
   double  cfl;               /**< Hyperbolic cfl number (\c CFL) */
   double  cfl_max_var;       /**< Maximum increment between consecutive time
                                   steps (\c CFL_max_var). */
