@@ -9,7 +9,6 @@ import pyPLUTO as pp
 import numpy as np
 import pluto_python_sub as pps
 import re
-import time as timer
 
 help= '''
 This is pluto_python - it needs to be called with at least one option
@@ -152,15 +151,12 @@ for i in range(istart,10000):
         data["k"]=999
         data["alpha"]=999
         
-    timer0=timer.perf_counter()
         
     root="%08d"%(i)
     logfile.write("Making a pluto input file for cycle "+str(i)+"\n")
     print("Making a pluto input file for cycle "+str(i)+"\n")
     
     pps.pluto_input_file(time,data)
-    logfile.write("starting "+str(timer.perf_counter()-timer0)+"\n")
-    print("starting "+str(timer.perf_counter()-timer0)+"\n")
     
     if i==0:
         cmdline="./pluto > pluto_log"
@@ -177,8 +173,6 @@ for i in range(istart,10000):
     logfile.write("Finished pluto run"+"\n")
     print("Finished pluto run"+"\n")
     
-    logfile.write(str(timer.perf_counter()-timer0)+"\n")
-    print(str(timer.perf_counter()-timer0)+"\n")
 
    
 
@@ -189,28 +183,22 @@ for i in range(istart,10000):
     directory="cycle"+root #The name of the directory we will save all the files into
 
     logfile.write("Turning dbl file "+dbl+" into a python model file"+"\n")
-    logfile.write(str(timer.perf_counter()-timer0)+"\n")
     
     print("Turning dbl file "+dbl+" into a python model file"+"\n")
-    print(str(timer.perf_counter()-timer0)+"\n")
     
     
     
     py_model_file=pps.pluto2py_rtheta(ifile)    #Make a python model file from pluto output
     logfile.write("Made a python model file called "+py_model_file+"\n")
-    logfile.write(str(timer.perf_counter()-timer0)+"\n")
 
     print("Made a python model file called "+py_model_file+"\n")
-    print(str(timer.perf_counter()-timer0)+"\n")
 
     logfile.write("Making a python input file"+"\n")
     print("Making a python input file"+"\n")
     
     pps.python_input_file(root,data,cycles=init_py_cycles+i*py_cycles)
     logfile.write("Successfully made a python input file"+"\n")
-    logfile.write(str(timer.perf_counter()-timer0)+"\n")
     print("Successfully made a python input file"+"\n")
-    print(str(timer.perf_counter()-timer0)+"\n")
 
     cmdline="cp "+root+".pf input.pf"
     logfile.write("command line: "+cmdline+"\n")
@@ -232,7 +220,6 @@ for i in range(istart,10000):
         cmdline="mpirun -n "+str(data["nproc_py"])+" py"+data["python_ver"]+" -f -r -classic input.pf > python_log"        
     else:   
         cmdline="mpirun -n "+str(data["nproc_py"])+" py"+data["python_ver"]+" -f -classic input.pf > python_log"
-    logfile.write(str(timer.perf_counter()-timer0)+"\n")
         
     logfile.write("Running python"+"\n")
     logfile.write("command line: "+cmdline+"\n")
@@ -240,15 +227,11 @@ for i in range(istart,10000):
     print("command line: "+cmdline+"\n")          
     subprocess.check_call(cmdline,shell=True)
     logfile.write("Finished python"+"\n")
-    logfile.write(str(timer.perf_counter()-timer0)+"\n")
     print("Finished python"+"\n")
-    print(str(timer.perf_counter()-timer0)+"\n")
 
     cmdline="rad_hydro_files"+data["python_ver"]+" input > rad_hydro_files_output" 
     logfile.write("command line: "+cmdline+"\n") 
-    logfile.write(str(timer.perf_counter()-timer0)+"\n")
     print("command line: "+cmdline+"\n") 
-    print(str(timer.perf_counter()-timer0)+"\n")         
     subprocess.check_call(cmdline,shell=True)
 
     cmdline="cp py_heatcool.dat "+root+"_py_heatcool.dat"  
@@ -290,10 +273,8 @@ for i in range(istart,10000):
     subprocess.check_call("cp "+dbl+" "+directory,shell=True) #Copy the model file to the storage directory
     subprocess.check_call("cp py_*.dat "+directory,shell=True) #Copy the rad_hydro output files to storage directory
     subprocess.check_call("cp M_UV_data.dat "+directory,shell=True) #Copy the CAK output files to storage directory
-    logfile.write("B4"+str(timer.perf_counter()-timer0)+"\n")
     
     subprocess.check_call("cp input.wind_save "+directory,shell=True) #Copy the CAK output files to storage directory
-    logfile.write("AF"+str(timer.perf_counter()-timer0)+"\n")
     
     subprocess.check_call("mv "+py_model_file+" "+directory,shell=True) #Copy the model file to the storage directory
     subprocess.check_call("mv "+root+".pf "+directory,shell=True)  #And also copy the python file to storage directory
@@ -303,7 +284,6 @@ for i in range(istart,10000):
     
     #   subprocess.check_call("cp prefactors.dat "+directory,shell=True) #Copy the CAK output files to storage directory
     logfile.write("Finished tidying up"+"\n")
-    logfile.write("finshed"+str(timer.perf_counter()-timer0)+"\n")
     
     
 print ("Fin")
