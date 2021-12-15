@@ -33,6 +33,17 @@ void   Numerical_Jacobian (double *, double **);
 #if COOLING == POWER_LAW
  void  PowerLawCooling (Data_Arr, double, timeStep *, Grid *);
 #endif
+#if COOLING == BLONDIN
+void  BlondinCooling (Data_Arr,const Data *, double, timeStep *, Grid *);
+#endif
+
+#if PY_CONNECT
+  #if COOLING == BLONDIN
+		double ne_rat(double,double);
+#endif
+#endif
+
+
 void   Radiat (double *, double *);
 
 double SolveODE_CK45  (double *, double *, double *, double, double, intList *);

@@ -117,7 +117,7 @@
 #define SNEq         5
 #define TABULATED    6
 #define H2_COOL      7
-#define KROME	       8
+#define KROME	     8
 #define BLONDIN	     9
 #define LOOKUP       10
 

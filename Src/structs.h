@@ -568,18 +568,18 @@ typedef struct Data_{
   /* Heating and cooling */
   
 #if PY_CONNECT
-  #if COOLING == BLONDIN
-      double ***comp_h_pre;
-      double ***comp_c_pre;
-      double ***xray_h_pre;
-      double ***line_c_pre;
-      double ***brem_c_pre;
-      double ***comp_h;
-      double ***comp_c;
-      double ***xray_h;
-      double ***line_c;
-      double ***brem_c;	
-  #endif 
+#if COOLING==BLONDIN || COOLING==LOOKUP
+  double ***comp_h_pre;   //
+  double ***comp_c_pre;   //
+  double ***line_c_pre;   //
+  double ***xray_h_pre;   //
+  double ***brem_c_pre;   // 
+  double ***comp_h;   //
+  double ***comp_c;   //
+  double ***line_c;   //
+  double ***xray_h;   //
+  double ***brem_c;   // 
+#endif
 #endif  
 
 

@@ -254,11 +254,7 @@ void  read_py_iso_temp (Data *, Grid *,int);
     #endif
 #endif
 
-#if PY_CONNECT
-  #if COOLING == BLONDIN
-		double ne_rat(double,double);
-#endif
-#endif
+
 
 
 /* ----------------------------------------------
