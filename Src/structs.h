@@ -565,6 +565,25 @@ typedef struct Data_{
 
   struct ElectroMotiveForce *emf;
 
+  /* Heating and cooling */
+  
+#if PY_CONNECT
+  #if COOLING == BLONDIN
+      double ***comp_h_pre;
+      double ***comp_c_pre;
+      double ***xray_h_pre;
+      double ***line_c_pre;
+      double ***brem_c_pre;
+      double ***comp_h;
+      double ***comp_c;
+      double ***xray_h;
+      double ***line_c;
+      double ***brem_c;	
+  #endif 
+#endif  
+
+
+
 /* Others */
   struct timeStep_  *Dts;
 
