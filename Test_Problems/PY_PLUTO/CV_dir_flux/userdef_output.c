@@ -82,16 +82,18 @@ sigma_e=CONST_sigmaT/CONST_amu/1.18;
 	  nH=rho/(1.43*CONST_mp);   //Work out hydrogen number density assuming stellar abundances	  
   	  xi_out[k][j][i]=xi=lx/nH/r/r;     //ionization parameter	  
 	  
-//	  ne=1.21*nH;             //electron number density assuming full ionization
 	  n=rho/(mu*CONST_mp);    //particle density	  
       nH_out[k][j][i]=nH; 
+	  ne=1.21*nH;             //electron number density assuming full ionization
+	  
+	  
 	  
       v_th=  pow ((2. * CONST_kB * T / CONST_mp), 0.5);     //We need the thermal velocity for hydrogen
 	  
-#if COOLING != NO 
+#if COOLING==BLONDIN
 	 
 	 heatcool2(xi,T,i,j,k,ne,nH);
-     ne_out[k][j][i]=nH*ne_rat(T,xi);	  
+     ne_out[k][j][i]=ne;	  
 	comp_h_pre[k][j][i]=d->comp_h_pre[k][j][i];
 	comp_c_pre[k][j][i]=d->comp_c_pre[k][j][i];
 	xray_h_pre[k][j][i]=d->xray_h_pre[k][j][i];

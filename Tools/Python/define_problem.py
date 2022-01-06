@@ -686,7 +686,7 @@ class DefineProblem(object):
     # -- Add path for Cooling --
     cool_mode = self.default[self.entries.index('COOLING')]
     if cool_mode != 'NO':
-      if (cool_mode != "POWER_LAW"):
+      if (cool_mode != "POWER_LAW" and cool_mode !="BLONDIN"):
          self.pluto_path.append('Cooling/')
          
       if cool_mode == 'TABULATED':

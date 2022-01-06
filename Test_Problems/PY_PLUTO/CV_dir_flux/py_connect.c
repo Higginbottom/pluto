@@ -52,10 +52,11 @@ void read_py_heatcool (Data *d, Grid *grid,int flag)
 		d->line_c_pre[k][j][i]=1.0;
 		d->brem_c_pre[k][j][i]=1.0;
 #endif
-		g_rad[0][k][j][i]=1e-99;
-		g_rad[1][k][j][i]=1e-99;
-		g_rad[2][k][j][i]=1e-99;	
+//		g_rad[0][k][j][i]=1e-99;
+//		g_rad[1][k][j][i]=1e-99;
+//		g_rad[2][k][j][i]=1e-99;	
 	}
+	printf ("Initialised\n");
 }
 	else //We will be reading in some updated numbers
 	{

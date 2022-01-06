@@ -45,6 +45,7 @@ void Init (double *v, double x1, double x2, double x3)
 	double disk_trunc_rad,T_iso;
     double x,z;
     double v_x,v_z;
+	double test;
 	
 	cent_mass=g_inputParam[CENT_MASS];  //Central mass
 	rho_alpha=g_inputParam[RHO_ALPHA];  //Drop off exponent of density
@@ -53,6 +54,7 @@ void Init (double *v, double x1, double x2, double x3)
 	r_0=g_inputParam[R_0];              //r_0 - typically set to R_IC
     tx=g_inputParam[T_x];               //temperature of xray source - needed here to compute compton temperature
     T_iso=g_inputParam[T_ISO];               //temperature of xray source - needed here to compute compton temperature
+	
 //    printf ("BOOM T_iso %e\n",T_iso);
 	
     r=x1*UNIT_LENGTH; //We will do things in cgs here - then convert back
@@ -63,14 +65,19 @@ void Init (double *v, double x1, double x2, double x3)
 
 #if EOS != ISOTHERMAL
   temp=pow(((3.0*cent_mass*disk_mdot*CONST_G)/(8.0*CONST_PI*CONST_sigma*pow((r*sin(x2)),3.0))),0.25);
+//   temp=T_iso;
+//  cisosqrd=pow((14.*1000.*100.),2);
+  cisosqrd=(CONST_Rgas*temp/0.6);  
+//  v[RHO]=rho_0*pow((r/r_0),-1.0*rho_alpha); //midplane density at this radius
+//  v[RHO]=v[RHO]*exp(-1.0*CONST_G*cent_mass*pow((r*cos(x2)),2)/(cisosqrd*2.0*pow(r,3))); //hydrostatic strucuture
+  v[RHO]=rho_0*exp(-1*CONST_G*cent_mass/2./cisosqrd/r/tan(x2)/tan(x2)); //The expression from PSD98
+//  print ("r=%e theta=%e temp=%e rho=%e ciso=%e %e\n",r,x2,temp,v[RHO],sqrt(cisosqrd),test);
 #else
-  temp=T_iso;
-  
-  g_isoSoundSpeed=sqrt(CONST_Rgas*temp/0.6)/UNIT_VELOCITY;
-  
+  temp=T_iso;  
+  g_isoSoundSpeed=sqrt(CONST_Rgas*temp/0.6)/UNIT_VELOCITY;  
   g_isoSoundSpeed=14.*1000.*100./UNIT_VELOCITY; //14 km/s the value from PSD98
-  
-  
+  cisosqrd=g_isoSoundSpeed*g_isoSoundSpeed*UNIT_VELOCITY*UNIT_VELOCITY;
+  v[RHO]=rho_0*exp(-1*CONST_G*cent_mass/2./cisosqrd/r/tan(x2)/tan(x2)); //The expression from PSD98
 #endif
 /*  mu=MeanMolecularWeight(v); This is how it should be done - but we are ionized and get the wrong answer */
  
@@ -80,15 +87,13 @@ void Init (double *v, double x1, double x2, double x3)
   
 //we need the isothermal sound speed to work out the hydrostatic disk structure 
 	
-//  cisosqrd=g_gamma*temp/(KELVIN*mu);
+//  
   
-  cisosqrd=g_isoSoundSpeed*g_isoSoundSpeed*UNIT_VELOCITY*UNIT_VELOCITY;
 //  printf ("BOOM %e %e\n",temp,sqrt(cisosqrd));
  
-//      v[RHO]=rho_0*pow((r/r_0),-1.0*rho_alpha); //midplane density at this radius
-//      v[RHO]=v[RHO]*exp(-1.0*CONST_G*cent_mass*pow((r*cos(x2)),2)/(cisosqrd*2.0*pow(r,3))); //hydrostatic strucuture
+//      
+//      
 
-  v[RHO]=rho_0*exp(-1*CONST_G*cent_mass/2./cisosqrd/r/tan(x2)/tan(x2)); //The expression from PSD98
 
  
   if (v[RHO]<1e-20)  //Set a lower density bound
@@ -239,7 +244,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
 	  
   double  r, theta;
   double rho_0,r_0,rho_alpha,cent_mass,disk_trunc_rad,tx;
-  double v_new;
+  double v_new,temp,mu;
 //Get some parameters from the input file
     
 rho_0=g_inputParam[RHO_0];
@@ -247,6 +252,7 @@ r_0=g_inputParam[R_0];
 rho_alpha=g_inputParam[RHO_ALPHA];
 cent_mass=g_inputParam[CENT_MASS];
 tx=g_inputParam[T_x];               //temperature of xray source - needed here to compute compton temperature
+mu=g_inputParam[MU];  //Mean particle mass  
 
 
   
@@ -282,12 +288,15 @@ tx=g_inputParam[T_x];               //temperature of xray source - needed here t
 //:wq
             d->Vc[VX3][k][j][i]=d->Vc[VX3][k][j][i]/(1.e-20/UNIT_DENSITY/d->Vc[RHO][k][j][i]); //conserve momentum           
 //            printf (" %e\n",d->Vc[VX1][k][j][i]);
-            
+			
+#if EOS!=ISOTHERMAL
+            temp   = d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i]*KELVIN*mu;
+             			 
+             d->Vc[PRS][k][j][i]=d->Vc[RHO][k][j][i]*temp/(KELVIN*0.6);	
+#endif
 	         d->Vc[RHO][k][j][i] = 1.e-20/UNIT_DENSITY;	
-             
-             
-             
-//             d->Vc[PRS][k][j][i]=d->Vc[RHO][k][j][i]*tx/(KELVIN*0.6);			
+			 
+//			 printf("BOOM\n");		
 		 } 
 	 }	
   }
@@ -408,7 +417,7 @@ void VGradCalc(const Data *d, Grid *grid)
 		
 		//And we can also set up the array for the dvds array - one value for each flux bin
     	dvds_array = ARRAY_4D(NFLUX_ANGLES,NX3_TOT, NX2_TOT, NX1_TOT, double);	
-					
+		printf ("Set up arrays\n");		
 		for (iangle=0;iangle<NFLUX_ANGLES;iangle++)
 		{
 	       	DOM_LOOP(k,j,i) //Now compute dvdr for use in line driving calculations
@@ -609,7 +618,7 @@ void BodyForceVector(double *v, double *g, double x1, double x2, double x3,int i
  *********************************************************************** */
 {
 	double rad, rs,theta;
-	double Lx,Luv,flux;
+	double Lx,Luv,flux,T;
 	double rho,nH,ne,g_r,g_t,g_p;
 	double g_x,g_y,g_z;
     double sigma_e;
@@ -620,8 +629,18 @@ void BodyForceVector(double *v, double *g, double x1, double x2, double x3,int i
 	double M_UV_array[MPOINTS];
     double eta_max,tau_max,M_max,T_iso;
 	int iangle,ii;
+	double mu;
     
     T_iso=g_inputParam[T_ISO];               //isothermal temperature
+	
+    mu=g_inputParam[MU];  //Mean particle mass  
+#if EOS!=ISOTHERMAL
+    T   = v[PRS]/v[RHO]*KELVIN*mu;    //Compute initial temperature in Kelvin
+#else
+	T=T_iso;
+#endif
+	
+	
     krad=g_inputParam[KRAD];               
     alpharad=g_inputParam[ALPHARAD];  
 	
@@ -643,7 +662,7 @@ void BodyForceVector(double *v, double *g, double x1, double x2, double x3,int i
     M_max=4400.;  
     
     
-    v_th=  pow ((2. * CONST_kB * T_iso / CONST_mp), 0.5);     //We need the thermal velocity for hydrogen
+    v_th=  pow ((2. * CONST_kB * T / CONST_mp), 0.5);     //We need the thermal velocity for hydrogen
 //    printf ("BOOM %e %e\n",T_iso,v_th);
 //   eta_max=pow((M_max/(krad_UV*(1.-alpha_UV))),(1./alpha_UV));
     

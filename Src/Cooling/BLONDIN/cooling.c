@@ -39,20 +39,22 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
   int     i, j, k,iii;
   double tmin,tmax,dT;
   double  cost, dE, E1,E_f;
-  double  p, T, p_f, T_f;
+  double  p, T,T2, p_f, T_f;
   double  lx, r, test;
   double t_u,t_l,mu,t_new;
   double dt_min,***xi_out,***T_out;
   double hc_final;
   double T_test;
   int imin,jmin,reset_flag;
-  double tstore1,tstore2,nenh_store;
+  double tstore1,tstore2,nenh_store,T_iso;
 
   dt_share=dt*UNIT_TIME;  //We need to share the current time step so the zbrent code can use it - must be in real units
   lx=g_inputParam[L_star];  //Xray luminosiy
   tx=g_inputParam[T_x];  //Xray tenperature
   mu=g_inputParam[MU];  //Mean particle mass  
   flag=0;
+  T_iso=g_inputParam[T_ISO];               //temperature of xray source - needed here to compute compton temperature
+  
   
   
 /*  mu=MeanMolecularWeight(v); This is how it should be done - but we are ionized and get the wrong answer */
@@ -85,7 +87,7 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
 
     rho = VV[RHO][k][j][i]*UNIT_DENSITY; 
     p   = VV[PRS][k][j][i];  //pressure of the current cell
-    T   = VV[PRS][k][j][i]/VV[RHO][k][j][i]*KELVIN*mu;    //Compute initial temperature in Kelvin
+    T2   = VV[PRS][k][j][i]/VV[RHO][k][j][i]*KELVIN*mu;    //Compute initial temperature in Kelvin
     E   = (p*UNIT_PRESSURE)/(g_gamma-1);     //Compute internal energy in physical unit
 	 
      
@@ -107,7 +109,7 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
 //    if (i==2 && j==70) printf ("BLAH rho=%e n=%e E=%e T=%e\n",rho,n,E,T);
     
 	  
-    if (T < g_minCoolingTemp) continue;  //Quit if the temperature is too cold - this may need tweeking		
+//    if (T < g_minCoolingTemp) continue;  //Quit if the temperature is too cold - this may need tweeking		
 	if (T>1e12) printf ("BOOM - we are in trouble here %i %i %e\n",i,j,T);
 	
 	sqsqxi=pow(xi,0.25);    //we use xi^0.25 in the cooling rates - expensive to recompute every call, so do it now and transmit externally	
@@ -174,6 +176,7 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
 //	heatcool2(data,T,i,j,k);
 
 
+//    T_f=T_iso;               //temperature of xray source - needed here to compute compton temperature
 
 
 	E_f=T_f/(2.0/3.0)*(n*CONST_kB); //convert back to energy
@@ -194,7 +197,7 @@ double heatcool(double T)
 	double lambda,st,h_comp,c_comp,h_xray,l_line,l_brem;
 	st=sqrt(T);
 	
-	#if PY_CONNECT
+/*	#if PY_CONNECT
 	ne=nH*ne_rat(T,xi);
 	h_comp=comp_h_pre*8.9e-36*xi*tx*(ne*nH);
 	c_comp=comp_c_pre*8.9e-36*xi*(4.0*T)*ne*nH;
@@ -209,10 +212,29 @@ double heatcool(double T)
 	l_line=line_c_pre*(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24)*ne*nH;	
 //	l_line=(line_c_pre*((1e-16*exp(-1.3e5/T)/sqxi/T)+fmin(fmin(1e-24,5e-27*st),1.5e-17/T)))*ne*nH;	
 	l_brem=brem_c_pre*3.3e-27*st*ne*nH;	
-	#endif	
+	#endif	*/
+	
+//	#if PY_CONNECT
+//	ne=nH*ne_rat(T,xi);
+//	printf ("BOOM\n");
+//	h_comp=comp_h_pre*8.9e-36*xi*tx*(ne*nH);
+//	c_comp=comp_c_pre*8.9e-36*xi*(4.0*T)*ne*nH;
+//	h_xray=xray_h_pre*1.5e-22*(1./st)*nH*nH;
+//	l_line=line_c_pre*((0.5e-18*exp(-1.3e5/T)/st)+1e-24)*ne*nH;	
+//	l_brem=brem_c_pre*3.3e-27*st*ne*nH;		
+//	#else
+	ne=1.21*nH;
+	h_comp=comp_h_pre*8.9e-36*xi*tx*(ne*nH);
+	c_comp=comp_c_pre*8.9e-36*xi*(4.0*T)*ne*nH;
+	h_xray=xray_h_pre*1.5e-22*(1./st)*nH*nH;
+	l_line=line_c_pre*((0.5e-18*exp(-1.3e5/T)/st)+1e-24)*ne*nH;	
+	l_brem=brem_c_pre*3.3e-27*st*ne*nH;		
+//	#endif
 	
 	
-	lambda=h_comp+h_xray-l_brem-l_line-c_comp;
+	lambda=h_xray-l_brem-l_line-c_comp;
+	
+//	printf ("BOOM %e\n",lambda);
 
 	return (lambda);
 	
@@ -238,20 +260,23 @@ double heatcool2(double xi,double T,int i, int j,int k, double ne, double nh)
 	
 		
 	st=sqrt(T);
-	#if PY_CONNECT
+//	#if PY_CONNECT
+//	comp_h[k][j][i]=h_comp=8.9e-36*xi*tx;
+//	comp_c[k][j][i]=c_comp=8.9e-36*xi*(4.0*T);
+//	xray_h[k][j][i]=h_xray=1.5e-22*(1./st);
+//	line_c[k][j][i]=l_line=((0.5e-18*exp(-1.3e5/T)/st)+1e-24);		
+//	brem_c[k][j][i]=l_brem=3.3e-27*st;	
+//	#else
 	comp_h[k][j][i]=h_comp=8.9e-36*xi*tx;
 	comp_c[k][j][i]=c_comp=8.9e-36*xi*(4.0*T);
-	xray_h[k][j][i]=h_xray=1.5e-21*(pow(xi,0.25)/st)*(1-(T/tx));
-	line_c[k][j][i]=l_line=(1e-16*exp(-1.3e5/T)/sqrt(xi)/T)+fmin(fmin(1e-24,5e-27*st),1.5e-17/T);		
-	brem_c[k][j][i]=l_brem=3.3e-27*st;	
-	#else
-	comp_h[k][j][i]=h_comp=8.9e-36*xi*tx;
-	comp_c[k][j][i]=c_comp=8.9e-36*xi*(4.0*T);
-	xray_h[k][j][i]=h_xray=1.5e-21*(pow(xi,0.25)/st)*(1-(T/tx));
-	line_c[k][j][i]=l_line=(1.7e-18*exp(-1.3e5/T)/(xi*st)+1e-24);
+	xray_h[k][j][i]=h_xray=1.5e-22*(1./st);
+	line_c[k][j][i]=l_line=((0.5e-18*exp(-1.3e5/T)/st)+1e-24);		
 	brem_c[k][j][i]=l_brem=3.3e-27*st;
-	#endif
-	lambda=(h_comp+h_xray-l_brem-l_line-c_comp);
+//	#endif
+	
+
+	
+	lambda=(h_xray-l_brem-l_line-c_comp);
 	return (lambda);
 	
 	
