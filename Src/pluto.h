@@ -916,7 +916,9 @@ extern double ****g_rad; //
 #if EOS==ISOTHERMAL && PY_CONNECT
   extern double ***py_temp;   //
 #endif
-
+#if EOS==ISOTHERMAL 
+  extern double ***iso_temp;   //
+#endif
 
 
 

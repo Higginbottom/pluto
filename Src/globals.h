@@ -220,7 +220,9 @@ double g_inputParam[32]; /**< Array containing the user-defined parameters.
   #if EOS==ISOTHERMAL && PY_CONNECT
     double ***py_temp;   //
   #endif
-
+#if EOS==ISOTHERMAL //
+  double ***iso_temp;   //
+#endif
   
   
   

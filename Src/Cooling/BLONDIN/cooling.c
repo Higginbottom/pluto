@@ -165,7 +165,7 @@ void BlondinCooling (Data_Arr VV,const Data *data, double dt, timeStep *Dts, Gri
 //		printf ("%i %i %i %15.10e %15.10e %e\n",i,j,k,T,T_f,dt_share);
 	
 /*  ----  Update Energy  ----  */
-	T_f = MAX (T_f, g_minCoolingTemp); //if the temperature has dropped too low - use the floor (50K)
+	T_f = MAX (T_f, 10000.); //if the temperature has dropped too low - use the floor (50K)
 	
     
     
@@ -232,7 +232,7 @@ double heatcool(double T)
 //	#endif
 	
 	
-	lambda=h_xray-l_brem-l_line-c_comp;
+	lambda=h_comp+h_xray-l_brem-l_line-c_comp;
 	
 //	printf ("BOOM %e\n",lambda);
 

@@ -198,13 +198,14 @@ int main (int argc, char *argv[])
 //                #endif
  //           #endif
         #endif
+		
     }
   else
     {
         restart_flag=1;
 		printf ("BOOM\n");
         #if COOLING == BLONDIN
-	        read_py_heatcool (&data, grd,0);
+	        read_py_heatcool (&data, grd,restart_flag);
 			#if (PY_RAD_DRIV == ACCELERATIONS)
 	    		read_py_rad_driv(&data, grd,restart_flag);
 			#endif

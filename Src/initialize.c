@@ -485,6 +485,7 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
   #endif  
   #if EOS == ISOTHERMAL
       py_temp=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);	
+      iso_temp=ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);	
   #endif      
   #if PY_RAD_DRIV==ACCELERATIONS  
       g_rad = ARRAY_4D(3,NX3_TOT, NX2_TOT, NX1_TOT, double);  //This is a global variable because rad force doesnt have access to data

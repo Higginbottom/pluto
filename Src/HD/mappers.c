@@ -184,14 +184,20 @@ int ConsToPrim (double **ucons, double **uprim, int beg, int end, uint16_t *flag
       v[PRS] = gmm1*(u[ENG] - kin);
       if (v[PRS] < 0.0){
         WARNING(
-          printLog ("! ConsToPrim(): p(E) < 0 (%8.2e), ", v[PRS]);
+          printLog ("! ConsToPrim(): p(E) < 0 (%18.10e %18.10e %18.10e %18.10e), ", v[PRS],u[ENG],kin,kin/u[ENG]);
           Where (i, NULL);
         )
-        v[PRS]   = g_smallPressure;
+		v[PRS]=10000.*v[RHO]/KELVIN/0.6;
+//		printf ("BOOM %18.10e %18.10e %18.10e\n",u[ENG],kin,(u[ENG]-kin));
+//        v[PRS]   = g_smallPressure;
         u[ENG]   = v[PRS]/gmm1 + kin; /* -- redefine energy -- */
         flag[i] |= FLAG_CONS2PRIM_FAIL;
 //        ifail    = 1;
       }
+	  else if (v[PRS]/v[RHO]*KELVIN*0.6<10000.)
+	  {
+	  	v[PRS]=10000.*v[RHO]/KELVIN/0.6;
+	  }
       #if ENTROPY_SWITCH
       u[ENTR] = v[PRS]/pow(rho,gmm1);
       #endif
