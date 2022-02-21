@@ -1,0 +1,18 @@
+Running PY PLUTO
+
+1: Copy the contents of cak_v2 to the local directory
+
+2: Make cak by simply typing make
+
+3: Remove the Makefile - or that wont play with pluto.
+
+4: Copy the contents of CV_dir_flux_iso to the local directrory
+
+5: Make pluto:
+	
+	a: python ~/PLUTO/setup.py
+	b: leave all as defaults, but ensure you use a suitable choive for makefile - dont use mpi...
+	c: make
+	d: make_clean
+	
+6: run pluto_python with nohup ./pluto_python_dir_iso.py & 
