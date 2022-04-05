@@ -112,7 +112,7 @@ int    g_maxRiemannIter;  /**< Maximum number of iterations for
 int    g_maxRootIter;     /**< Maximum number of iterations for root finder */
 int    g_nprocs;          /**< The total number of processors */
                                     
-double g_smallDensity  = 1.e-12; /**< Small value for density fix. */
+double g_smallDensity  = 1.e4; /**< Small value for density fix. */
 double g_smallPressure = 1.e-12; /**< Small value for pressure fix. */
 #if EOS == IDEAL 
  double g_gamma = 5./3.;
